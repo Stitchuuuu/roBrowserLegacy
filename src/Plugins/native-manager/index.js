@@ -11,11 +11,14 @@
  * module-scoped state (an ESM module is a singleton), so no window global is
  * needed — which also keeps the src/ coexistence grep gate clean.
  *
- * Scope: DI only. No import-map, no IndexedDB, no `deps` topo-sort, no libs.
+ * Load is two-phase (session 3): collect every native plugin default, topo-sort
+ * by `deps`, then register in order — injecting each producer's exported API
+ * into its consumers' DI maps. Still no import-map, no IndexedDB.
  */
 
 import Configs from 'Core/Configs.js';
-import { register } from 'Plugins/native-manager/registry.js';
+import { register, results } from 'Plugins/native-manager/registry.js';
+import { topoSort, resolveDepExports } from 'Plugins/native-manager/deps.js';
 
 let _initialized = false;
 let _initPromise = null;
@@ -59,8 +62,24 @@ function resolveEntry(value) {
 }
 
 /**
- * Read `ROConfig.plugins`, import each declared plugin, register it via DI.
- * Per-entry try/catch: one bad plugin never breaks the rest of boot.
+ * Discriminate a native entry from a v2 one before importing. Native plugins
+ * are served at a stable absolute URL (`/plugins/…` or `http(s)://…`); v2
+ * entries are bare relative paths resolved under `src/Plugins/` by the v2
+ * manager. Skipping the v2 ones here spares a benign `import(url)` failure per
+ * boot on a mixed config (the v2 manager still handles them). We don't touch
+ * v2, so its own 404 on native URLs is left as-is.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isNativeEntry(url) {
+	return url[0] === '/' || url.startsWith('http://') || url.startsWith('https://');
+}
+
+/**
+ * Read `ROConfig.plugins`, import every native plugin default, topo-sort by
+ * `deps`, then register in order — injecting each producer's export into its
+ * consumers' DI maps. Per-entry try/catch: one bad plugin (incl. a fail-fast
+ * missing hard dep) never breaks the rest of boot.
  * @returns {Promise<void>}
  */
 async function run() {
@@ -68,19 +87,56 @@ async function run() {
 
 	const list = Configs.get('plugins', {});
 
+	// ── Phase A : collect native plugin defaults (order-independent) ──
+	const entries = [];
 	for (const name in list) {
 		const entry = resolveEntry(list[name]);
-		if (!entry) {
-			continue;
+		if (!entry || !isNativeEntry(entry.url)) {
+			continue; // malformed, or a v2-style entry the v2 manager owns
 		}
-
 		try {
 			const mod = await import(/* @vite-ignore */ entry.url);
-			if (register(mod.default, entry.pars) !== false) {
-				console.log('[NativePM] registered: ' + name);
+			const def = mod.default;
+			if (!def || typeof def.init !== 'function') {
+				// loaded but not a native plugin (no init) — diagnose, don't
+				// let it vanish silently.
+				console.error('[NativePM] Invalid plugin (missing init): ' + name);
+				continue;
 			}
+			// canonical key: the default's own name wins, else the config key
+			const key = def.name || name;
+			entries.push({ name: key, def, mod, pars: entry.pars });
 		} catch (err) {
+			// import reject = a bad file OR a missing hard dep (an unresolved
+			// static plugin specifier) — fail-fast, skip, keep booting.
 			console.error('[NativePM] Failed to load plugin: ' + name, err);
+		}
+	}
+
+	// ── Phase B : topo-sort by deps (producers before consumers) ──
+	const { ordered, cyclic } = topoSort(entries);
+	if (cyclic.length) {
+		console.error('[NativePM] dependency cycle detected, skipping: ' + cyclic.join(', '));
+	}
+
+	// ── Phase C : register in order, injecting resolved dep exports ──
+	// null-proto so a plugin named `constructor` / `__proto__` can't collide
+	// with an inherited member when resolveDepExports probes it.
+	const namespaces = Object.create(null);
+	for (let i = 0; i < entries.length; i++) {
+		namespaces[entries[i].name] = entries[i].mod;
+	}
+	for (let i = 0; i < ordered.length; i++) {
+		const e = ordered[i];
+		const deps = Array.isArray(e.def.deps) ? e.def.deps : [];
+		const pluginExports = resolveDepExports(deps, results, namespaces);
+		try {
+			// def shape was validated in phase A, so register always runs init;
+			// its return (even a legitimate `false`) is a successful load.
+			await register(e.def, e.pars, pluginExports, e.name);
+			console.log('[NativePM] registered: ' + e.name);
+		} catch (err) {
+			console.error('[NativePM] Plugin init failed: ' + e.name, err);
 		}
 	}
 }
