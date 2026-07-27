@@ -108,7 +108,13 @@ export function createLifecycle(bus, opts) {
 	let _currentPlugin = null  // set by the registry around each plugin init
 
 	function setCurrentPlugin(name) {
+		// Return the previous owner so the caller can restore it — needed for
+		// nested registration (a plugin whose init() registers other plugins,
+		// e.g. LocalPluginManager's bootLoad): the inner register must not reset
+		// the owner to null and orphan the outer plugin's later cleanups.
+		const prev = _currentPlugin
 		_currentPlugin = name
+		return prev
 	}
 
 	function transition(phase) {
@@ -202,8 +208,9 @@ export const onInitCall = _lifecycle.onInitCall
 export const registerCleanup = _lifecycle.registerCleanup
 export const flushCleanup = _lifecycle.flushCleanup
 // Called by the registry around each plugin init to scope subsequent
-// registerCleanup() calls to the currently-initializing plugin.
-export const setCurrentPlugin = (name) => { _lifecycle.setCurrentPlugin(name) }
+// registerCleanup() calls to the currently-initializing plugin. Returns the
+// PREVIOUS owner so the caller can restore it (nested registration nest-safety).
+export const setCurrentPlugin = (name) => _lifecycle.setCurrentPlugin(name)
 export function getState() { return _lifecycle.state }
 export function getCount() { return _lifecycle.count }
 export function hasReached(phase) { return _lifecycle.hasReached(phase) }
