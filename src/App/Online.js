@@ -1,5 +1,6 @@
 import GameEngine from 'Engine/GameEngine.js';
 import Plugins from 'Plugins/PluginManager.js';
+import NativePluginManager from 'Plugins/native-manager/index.js';
 import { roInitSpinner } from 'App/PreLoader.js';
 
 export { roInitSpinner };
@@ -9,6 +10,7 @@ export function init() {
 	roInitSpinner.add();
 
 	Plugins.init();
+	NativePluginManager.init();
 	GameEngine.init();
 
 	window.onbeforeunload = function () {
