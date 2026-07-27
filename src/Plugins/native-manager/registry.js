@@ -1,16 +1,17 @@
 /**
- * Native Plugin Manager — registry (session 1: spike-core).
+ * Native Plugin Manager — registry.
  *
  * Registers a plugin's default export `{ name, deps, init }` and runs its
- * `init(pars, diMap)`. The DI map is a plain object spread from ENGINE, so an
- * absent key reads as `undefined` — never a thrown exception (no-crash
- * contract, e.g. a plugin that reads a not-yet-native module still loads).
+ * `init(pars, diMap)`. The DI map is built by `buildDiMap()` (engine modules +
+ * native libs); an absent key reads as `undefined` — never a thrown exception
+ * (no-crash contract, e.g. a plugin that reads a not-yet-native module still
+ * loads).
  *
- * Deliberately minimal: no queue, no `deps` topo-sort (session 3), no libs
- * (session 2). Only the DI path.
+ * Deliberately minimal: no queue, no `deps` topo-sort (session 3). Only the DI
+ * path + per-plugin cleanup ownership.
  */
 
-import { ENGINE } from 'Plugins/native-manager/engine-modules.js';
+import { buildDiMap } from 'Plugins/native-manager/di.js';
 
 /**
  * Collected `init()` return values, keyed by plugin name. Later sessions
@@ -31,8 +32,25 @@ export function register(def, pars) {
 		return false;
 	}
 
-	const diMap = { ...ENGINE };
-	const ret = def.init(pars, diMap);
+	const diMap = buildDiMap();
+
+	// Scope registerCleanup() calls made synchronously during init to this
+	// plugin, so lifecycle can flush them per-plugin later (matches the v3
+	// PluginManager owner-scoping). Cleared in a finally so a throw can't leak
+	// the owner onto the next registration.
+	const lc = diMap.lifecycle;
+	const canScope = lc && typeof lc.setCurrentPlugin === 'function';
+	if (canScope) {
+		lc.setCurrentPlugin(def.name || null);
+	}
+	let ret;
+	try {
+		ret = def.init(pars, diMap);
+	} finally {
+		if (canScope) {
+			lc.setCurrentPlugin(null);
+		}
+	}
 
 	if (def.name) {
 		results[def.name] = ret;
