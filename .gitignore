@@ -6,6 +6,7 @@
 /dist/
 /node_modules/
 /src/Plugins/*/
+!/src/Plugins/native-manager/
 /index.html
 Config.local.js
 /package-lock.json
