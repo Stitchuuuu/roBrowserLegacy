@@ -4,11 +4,13 @@
 /client/resources/*
 /client/System/*
 /dist/
+/dist-node/
 /node_modules/
 /src/Plugins/*/
 !/src/Plugins/native-manager/
 /index.html
 Config.local.js
+/config.local.json
 /package-lock.json
 /GrannyModelViewer.js
 /GrfViewer.js
