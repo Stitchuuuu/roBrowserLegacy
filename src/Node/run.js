@@ -30,7 +30,7 @@ try {
 		cfg.server.packetver
 	);
 	log('info', 'account:', cfg.account.login);
-	password = await resolvePassword();
+	password = await resolvePassword(cfg);
 } catch (err) {
 	log('error', err.message);
 	process.exit(1);

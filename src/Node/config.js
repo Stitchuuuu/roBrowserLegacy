@@ -71,17 +71,23 @@ export function loadConfig(opts = {}) {
 }
 
 /**
- * Masked interactive password prompt (no echo — raw mode, char by char).
+ * Single-line raw-mode prompt. `mask` hides the input (password). Resolves
+ * with a discriminated result so the caller can tell Enter / Ctrl-C / Ctrl-D
+ * apart rather than throwing — Ctrl-C at a password prompt is a "go back",
+ * not an abort.
  *
- * @returns {Promise<string>}
+ * @param {string} label prompt text
+ * @param {{mask?: boolean}} [opts]
+ * @returns {Promise<{value?: string, interrupted?: boolean, eof?: boolean}>}
  */
-function promptPassword() {
-	return new Promise((resolve, reject) => {
+function rawPrompt(label, opts = {}) {
+	const mask = !!opts.mask;
+	return new Promise(resolve => {
 		const stdin = process.stdin;
 		const stdout = process.stdout;
-		let pass = '';
+		let buf = '';
 
-		stdout.write('Password: ');
+		stdout.write(label);
 		stdin.setRawMode(true);
 		stdin.resume();
 		stdin.setEncoding('utf8');
@@ -96,16 +102,29 @@ function promptPassword() {
 			if (ch === '\r' || ch === '\n') {
 				cleanup();
 				stdout.write('\n');
-				resolve(pass);
+				resolve({ value: buf });
 			} else if (ch === '\u0003') {
-				// Ctrl-C
+				// Ctrl-C — caller decides what to do (go back to login here)
 				cleanup();
 				stdout.write('\n');
-				reject(new Error('password prompt aborted'));
+				resolve({ interrupted: true });
+			} else if (ch === '\u0004') {
+				// Ctrl-D (EOF)
+				cleanup();
+				stdout.write('\n');
+				resolve({ eof: true });
 			} else if (ch === '\u007f' || ch === '\b') {
-				pass = pass.slice(0, -1);
+				if (buf.length) {
+					buf = buf.slice(0, -1);
+					if (!mask) {
+						stdout.write('\b \b');
+					}
+				}
 			} else {
-				pass += ch;
+				buf += ch;
+				if (!mask) {
+					stdout.write(ch);
+				}
 			}
 		}
 
@@ -114,13 +133,51 @@ function promptPassword() {
 }
 
 /**
- * Resolve the account password: `--pass=<value>` argv, then RO_PASS env,
- * then a masked interactive prompt when stdin is a TTY. RAM only — never
- * persisted, never echoed.
+ * Interactive credential prompt: masked password, and — on Ctrl-C during the
+ * password — a "go back" that re-asks the account login (editable, defaults
+ * to the current one) before prompting the password again. Ctrl-C at the
+ * login prompt (or Ctrl-D anywhere) aborts for good. The re-entered login is
+ * applied to `cfg.account.login` in memory (never persisted here).
  *
+ * @param {{account: {login: string}}} cfg
+ * @returns {Promise<string>} the password (RAM only)
+ */
+async function promptCredentials(cfg) {
+	const account = cfg && cfg.account ? cfg.account : { login: '' };
+	for (;;) {
+		const pw = await rawPrompt('Password: ', { mask: true });
+		if (pw.eof) {
+			throw new Error('password prompt aborted (EOF)');
+		}
+		if (!pw.interrupted) {
+			if (pw.value) {
+				return pw.value;
+			}
+			process.stdout.write('(empty password — try again)\n');
+			continue;
+		}
+
+		// Ctrl-C during the password → re-enter the login, then loop back.
+		const current = account.login || '';
+		const li = await rawPrompt('Login [' + current + ']: ');
+		if (li.interrupted || li.eof) {
+			throw new Error('login prompt aborted');
+		}
+		account.login = (li.value || '').trim() || current;
+		process.stdout.write('account: ' + account.login + '\n');
+	}
+}
+
+/**
+ * Resolve the account password: `--pass=<value>` argv, then RO_PASS env, then
+ * an interactive masked prompt when stdin is a TTY. RAM only — never
+ * persisted, never echoed. During the interactive prompt, Ctrl-C re-asks the
+ * login instead of aborting (see promptCredentials).
+ *
+ * @param {{account: {login: string}}} [cfg] enables the login "go back"
  * @returns {Promise<string>}
  */
-export async function resolvePassword() {
+export async function resolvePassword(cfg) {
 	const argv = process.argv;
 	for (let i = 2, count = argv.length; i < count; ++i) {
 		if (argv[i].startsWith('--pass=')) {
@@ -134,10 +191,7 @@ export async function resolvePassword() {
 	}
 
 	if (process.stdin.isTTY) {
-		const pass = await promptPassword();
-		if (pass) {
-			return pass;
-		}
+		return promptCredentials(cfg);
 	}
 
 	throw new Error('no password — interactive prompt needs a TTY; otherwise use RO_PASS env or --pass=<value>');

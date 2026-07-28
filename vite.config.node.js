@@ -39,7 +39,8 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				run: path.resolve(__dirname, 'src/Node/run.js'),
-				smoke: path.resolve(__dirname, 'src/Node/smoke.js')
+				smoke: path.resolve(__dirname, 'src/Node/smoke.js'),
+				client: path.resolve(__dirname, 'src/Node/client.js')
 			},
 			external: ['ws'],
 			output: {
