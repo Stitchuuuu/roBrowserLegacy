@@ -5,9 +5,11 @@
  * and the index.js direct-launch dispatch.
  */
 import { AutoBuff } from './AutoBuff.js';
+import { AutoHeal } from './AutoHeal.js';
 
 const REGISTRY = {
-	autobuff: AutoBuff
+	autobuff: AutoBuff,
+	autoheal: AutoHeal
 };
 
 /**

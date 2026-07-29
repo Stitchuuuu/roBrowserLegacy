@@ -16,10 +16,26 @@ import say from './commands/say.js';
 import whisper from './commands/whisper.js';
 import emote from './commands/emote.js';
 import autobuff from './commands/autobuff.js';
+import autoheal from './commands/autoheal.js';
 import routine from './commands/routine.js';
 import help from './commands/help.js';
 
-const COMMANDS = [login, logout, status, party, skills, skill, buffs, say, whisper, emote, autobuff, routine, help];
+const COMMANDS = [
+	login,
+	logout,
+	status,
+	party,
+	skills,
+	skill,
+	buffs,
+	say,
+	whisper,
+	emote,
+	autobuff,
+	autoheal,
+	routine,
+	help
+];
 
 const byName = {};
 for (let i = 0, n = COMMANDS.length; i < n; ++i) {
