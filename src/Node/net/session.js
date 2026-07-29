@@ -164,9 +164,12 @@ function loginPhase(cfg, password) {
 /**
  * Char server: CH.ENTER → char list → CH.SELECT_CHAR → HC.NOTIFY_ZONESVR.
  *
+ * @param {?function(Array): (number|Promise<number>)} [chooseChar] when given,
+ *        receives the deduped real char list and returns the chosen CharNum
+ *        (interactive select); when absent, selects by cfg.server.charSlot.
  * @returns {Promise<{mapName: string, ip: string, port: number}>}
  */
-function charPhase(cfg, charServers) {
+function charPhase(cfg, charServers, chooseChar) {
 	const server = cfg.server;
 
 	return phase('char', (resolve, reject) => {
@@ -183,18 +186,72 @@ function charPhase(cfg, charServers) {
 		// The char list may span several packets (NEO_UNION and/or _LIST/_LIST2
 		// chunks after a CHARLIST_NOTIFY/CHARLIST_REQ exchange). Aggregate, and
 		// select on exact slot match right away — otherwise wait for a short
-		// settle window after the last chunk before falling back.
+		// settle window after the last chunk before falling back. With an
+		// interactive chooseChar, always wait the settle window so the whole
+		// list is collected before prompting.
 		const charList = [];
 		const SETTLE_MS = 500;
 		let selected = false;
 		let settleTimer = null;
 
-		function selectCharacter() {
+		// LIST2 chunks repeat the same character — dedupe by slot for display.
+		function dedupeBySlot(list) {
+			const seen = {};
+			const out = [];
+			for (let i = 0, n = list.length; i < n; ++i) {
+				const c = list[i];
+				if (seen[c.CharNum]) {
+					continue;
+				}
+				seen[c.CharNum] = 1;
+				out.push(c);
+			}
+			return out;
+		}
+
+		function sendSelect(character) {
+			Session.Character = character;
+			log('info', 'selecting character', character.name, '(slot ' + character.CharNum + ')');
+			const pktSel = new PACKET.CH.SELECT_CHAR();
+			pktSel.CharNum = character.CharNum;
+			Network.sendPacket(pktSel);
+		}
+
+		async function selectCharacter() {
 			if (selected) {
 				return;
 			}
 			selected = true;
 			clearTimeout(settleTimer);
+
+			if (!charList.length) {
+				reject(sessionError(5, 'no character on this account'));
+				return;
+			}
+
+			if (chooseChar) {
+				const uniq = dedupeBySlot(charList);
+				let slot;
+				try {
+					slot = await chooseChar(uniq);
+				} catch {
+					reject(sessionError(5, 'character selection aborted'));
+					return;
+				}
+				let character = null;
+				for (let i = 0, n = uniq.length; i < n; ++i) {
+					if (uniq[i].CharNum === slot) {
+						character = uniq[i];
+						break;
+					}
+				}
+				if (!character) {
+					reject(sessionError(5, 'no character for slot ' + slot));
+					return;
+				}
+				sendSelect(character);
+				return;
+			}
 
 			const slot = server.charSlot;
 			let character = null;
@@ -205,10 +262,6 @@ function charPhase(cfg, charServers) {
 				}
 			}
 			if (!character) {
-				if (!charList.length) {
-					reject(sessionError(5, 'no character on this account'));
-					return;
-				}
 				character = charList[0];
 				log(
 					'warn',
@@ -217,13 +270,7 @@ function charPhase(cfg, charServers) {
 					'(slot ' + character.CharNum + ')'
 				);
 			}
-
-			Session.Character = character;
-			log('info', 'selecting character', character.name, '(slot ' + character.CharNum + ')');
-
-			const pktSel = new PACKET.CH.SELECT_CHAR();
-			pktSel.CharNum = character.CharNum;
-			Network.sendPacket(pktSel);
+			sendSelect(character);
 		}
 
 		function onCharList(pkt) {
@@ -233,7 +280,7 @@ function charPhase(cfg, charServers) {
 			}
 			for (let i = 0, count = charInfo.length; i < count; ++i) {
 				charList.push(charInfo[i]);
-				if (charInfo[i].CharNum === server.charSlot) {
+				if (!chooseChar && charInfo[i].CharNum === server.charSlot) {
 					selectCharacter();
 					return;
 				}
@@ -371,10 +418,12 @@ function mapPhase(cfg, mapInfo) {
  *
  * @param {object} cfg from loadConfig()
  * @param {string} password RAM only — never logged, never persisted
+ * @param {{chooseChar?: function(Array): (number|Promise<number>)}} [opts]
+ *        chooseChar → interactive char select (see charPhase); absent → config slot.
  * @returns {Promise<{mapName: string}>}
  */
-export async function runSession(cfg, password) {
+export async function runSession(cfg, password, opts = {}) {
 	const charServers = await loginPhase(cfg, password);
-	const mapInfo = await charPhase(cfg, charServers);
+	const mapInfo = await charPhase(cfg, charServers, opts.chooseChar);
 	return mapPhase(cfg, mapInfo);
 }

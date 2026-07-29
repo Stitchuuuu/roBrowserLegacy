@@ -25,6 +25,7 @@ import PACKET from 'Network/PacketStructure.js';
 import PacketLength from 'Network/PacketLength.js';
 
 const listeners = new Map(); // packetId → [cb, ...]
+const anyListeners = []; // catch-all taps — every inbound packet (debug logging)
 let classMap = null; // id → PacketClass, built once at install
 let installed = false;
 let classMapMissRebuilt = false; // retry flag if an id misses the lookup
@@ -79,7 +80,7 @@ function dispatch(fp) {
 			break;
 		}
 		const cbs = listeners.get(id);
-		if (cbs) {
+		if (cbs || anyListeners.length) {
 			// O(1) lookup. Rare miss → rebuild once (packet registered
 			// after our install, improbable).
 			let cls = classMap[id];
@@ -91,16 +92,22 @@ function dispatch(fp) {
 			if (cls) {
 				try {
 					const instance = new cls(fp, offset + length);
-					for (const cb of cbs) {
-						try {
-							cb(instance);
-						} catch (e) {
-							console.error('[observePacket] cb:', e);
+					if (cbs) {
+						for (const cb of cbs) {
+							try {
+								cb(instance);
+							} catch (e) {
+								console.error('[observePacket] cb:', e);
+							}
 						}
 					}
+					notifyAny(id, cls.name, instance);
 				} catch (e) {
 					console.error('[observePacket] parse:', e);
+					notifyAny(id, cls && cls.name, null);
 				}
+			} else {
+				notifyAny(id, null, null); // unknown packet — still report the opcode
 			}
 		}
 		fp.seek(offset + length, 0); // SEEK_SET = 0
@@ -178,6 +185,38 @@ export function observePacket(packetClass, callback) {
 	listeners.get(id).push(callback);
 	install();
 	return true;
+}
+
+function notifyAny(id, name, instance) {
+	for (let i = 0, n = anyListeners.length; i < n; ++i) {
+		try {
+			anyListeners[i](id, name, instance);
+		} catch (e) {
+			console.error('[observeAny] cb:', e);
+		}
+	}
+}
+
+/**
+ * Catch-all tap: cb(id, packetName, instance|null) for EVERY inbound packet
+ * (unknown opcodes report a null instance). For debug logging. Returns an
+ * unsubscribe function.
+ *
+ * @param {function(number, ?string, ?object): void} cb
+ * @returns {function(): void}
+ */
+export function observeAny(cb) {
+	if (typeof cb !== 'function') {
+		return () => {};
+	}
+	anyListeners.push(cb);
+	install();
+	return () => {
+		const i = anyListeners.indexOf(cb);
+		if (i >= 0) {
+			anyListeners.splice(i, 1);
+		}
+	};
 }
 
 /**

@@ -35,6 +35,20 @@ for (const name in SkillConst) {
 	idToName[SkillConst[name]] = name;
 }
 
+// normalized display name (spaces/_/- stripped, lowercased) → SKID, so the name
+// shown in logs works as an input token too: "Increase Agility" → increaseagility.
+const nameIndex = {};
+for (const id in SkillInfo) {
+	const info = SkillInfo[id];
+	if (info && info.SkillName) {
+		nameIndex[
+			String(info.SkillName)
+				.toLowerCase()
+				.replace(/[\s_-]/g, '')
+		] = Number(id);
+	}
+}
+
 /**
  * Human display name for a SKID. Falls back to the const name, then a
  * synthetic label — never returns undefined.
@@ -76,10 +90,15 @@ export function resolveSkill(input) {
 			constName = upper;
 		}
 	}
-	if (!constName) {
-		return null;
+	if (constName) {
+		const skid = SkillConst[constName];
+		return { skid, name: constName, display: skillName(skid) };
 	}
 
-	const skid = SkillConst[constName];
-	return { skid, name: constName, display: skillName(skid) };
+	// Fall back to the full display name (space-stripped), e.g. "Increase Agility".
+	const byName = nameIndex[key];
+	if (byName != null) {
+		return { skid: byName, name: idToName[byName] || 'SKID_' + byName, display: skillName(byName) };
+	}
+	return null;
 }

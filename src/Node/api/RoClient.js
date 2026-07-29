@@ -14,6 +14,8 @@
  */
 import { EventEmitter } from 'node:events';
 import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
+import { observePacket } from '../net/observe.js';
 import { runSession } from '../net/session.js';
 import { PlayerState } from '../state/player.js';
 import { PartyState } from '../state/party.js';
@@ -30,6 +32,12 @@ export class RoClient extends EventEmitter {
 		super();
 		this._cfg = cfg;
 		this.connected = false;
+		this.currentMap = null; // our current map (set on connect, updated on warp)
+
+		// Keep the current map live so routines can gate on "same map".
+		observePacket(PACKET.ZC.NPCACK_MAPMOVE, pkt => {
+			this.currentMap = pkt.mapName;
+		});
 
 		// Trackers — install() taps observePacket now, before connect().
 		this._playerState = new PlayerState().install();
@@ -62,6 +70,10 @@ export class RoClient extends EventEmitter {
 		this._skillState.on('list', () => this.emit('skills'));
 		this._skillState.on('skill', () => this.emit('skills'));
 
+		// A USESKILL_ACK for our own cast — the server accepted it (used by routines
+		// to detect a silently-dropped cast: sent, but no ack).
+		this._delayState.on('cast', e => this.emit('castAck', e));
+
 		this._messages.on('chat', e => this.emit('chat', e));
 		this._messages.on('privateMessage', e => this.emit('privateMessage', e));
 		this._messages.on('emote', e => this.emit('emote', e));
@@ -83,11 +95,14 @@ export class RoClient extends EventEmitter {
 
 	/**
 	 * @param {string} password RAM only — never logged, never persisted
+	 * @param {{chooseChar?: function(Array): (number|Promise<number>)}} [opts]
+	 *        forwarded to runSession — interactive char select (inline setup).
 	 * @returns {Promise<{mapName: string}>}
 	 */
-	async connect(password) {
-		const result = await runSession(this._cfg, password);
+	async connect(password, opts = {}) {
+		const result = await runSession(this._cfg, password, opts);
 		this.connected = true;
+		this.currentMap = result.mapName;
 		this.emit('connected', result);
 		return result;
 	}

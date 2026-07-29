@@ -34,14 +34,18 @@ const DEFAULTS = {
 	},
 	account: {
 		login: ''
-	}
+	},
+	// Per-character state, keyed "<login>/<charSlot>". Each entry holds the
+	// character name and its own routine config (autobuff profiles) — a routine
+	// runs on a specific character, so its config is scoped here, not global.
+	characters: {}
 };
 
 let _cached = null;
 
 /**
  * @param {{allowMissing?: boolean}} [opts]
- * @returns {{server: object, account: {login: string}}}
+ * @returns {{server: object, account: {login: string}, characters: object}}
  */
 export function loadConfig(opts = {}) {
 	if (_cached) {
@@ -60,7 +64,8 @@ export function loadConfig(opts = {}) {
 	const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
 	_cached = {
 		server: Object.assign({}, DEFAULTS.server, raw.server),
-		account: Object.assign({}, DEFAULTS.account, raw.account)
+		account: Object.assign({}, DEFAULTS.account, raw.account),
+		characters: raw.characters && typeof raw.characters === 'object' ? raw.characters : {}
 	};
 
 	if (!_cached.server.packetver) {
@@ -68,6 +73,85 @@ export function loadConfig(opts = {}) {
 	}
 
 	return _cached;
+}
+
+/**
+ * Identity of the character a routine binds to: account login + char slot.
+ * @param {{account:{login:string}, server:{charSlot:number}}} cfg
+ * @returns {string} "<login>/<slot>"
+ */
+export function charKey(cfg) {
+	const login = (cfg && cfg.account && cfg.account.login) || '';
+	const slot = cfg && cfg.server ? cfg.server.charSlot : 0;
+	return login + '/' + slot;
+}
+
+const SECRET_KEYS = { password: 1, passwd: 1, pass: 1 };
+
+function stripSecrets(value) {
+	if (!value || typeof value !== 'object') {
+		return value;
+	}
+	if (Array.isArray(value)) {
+		return value.map(stripSecrets);
+	}
+	const out = {};
+	for (const k in value) {
+		if (SECRET_KEYS[k.toLowerCase()]) {
+			continue;
+		}
+		out[k] = stripSecrets(value[k]);
+	}
+	return out;
+}
+
+// Recursive merge: plain objects merge key-by-key; arrays and primitives
+// replace. Creates missing nested objects on the target.
+function deepMerge(target, patch) {
+	for (const k in patch) {
+		const pv = patch[k];
+		if (pv && typeof pv === 'object' && !Array.isArray(pv)) {
+			if (!target[k] || typeof target[k] !== 'object' || Array.isArray(target[k])) {
+				target[k] = {};
+			}
+			deepMerge(target[k], pv);
+		} else {
+			target[k] = pv;
+		}
+	}
+	return target;
+}
+
+/**
+ * Persist a partial config into config.local.json (gitignored). Reads the raw
+ * file fresh (not the DEFAULTS-filtered cache), deep-merges the patch so
+ * unknown keys are preserved, then refreshes the in-memory cache so the running
+ * process sees the change without a reload. The password is NEVER written —
+ * any password/passwd/pass key in the patch is stripped defensively.
+ *
+ * @param {object} patch partial config to merge
+ * @returns {object} the full merged config now on disk
+ */
+export function saveConfig(patch) {
+	const file = path.resolve(process.cwd(), CONFIG_FILE);
+	let raw = {};
+	if (fs.existsSync(file)) {
+		try {
+			raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+		} catch {
+			raw = {};
+		}
+	}
+
+	const clean = stripSecrets(patch);
+	deepMerge(raw, clean);
+	fs.writeFileSync(file, JSON.stringify(raw, null, '\t') + '\n', 'utf8');
+
+	// Keep the live cfg in sync (never persisted secrets are also absent here).
+	if (_cached && _cached !== DEFAULTS) {
+		deepMerge(_cached, clean);
+	}
+	return raw;
 }
 
 /**
@@ -80,7 +164,7 @@ export function loadConfig(opts = {}) {
  * @param {{mask?: boolean}} [opts]
  * @returns {Promise<{value?: string, interrupted?: boolean, eof?: boolean}>}
  */
-function rawPrompt(label, opts = {}) {
+export function rawPrompt(label, opts = {}) {
 	const mask = !!opts.mask;
 	return new Promise(resolve => {
 		const stdin = process.stdin;

@@ -36,6 +36,19 @@ export class Skill extends EventEmitter {
 	}
 
 	/**
+	 * After-cast delay remaining before the skill can be recast, in ms (0 =
+	 * ready). Combines the per-skill SKILL_POSTDELAY and the global POSTDELAY(46)
+	 * — the same gate canCast() consults. Complements canCast() for diagnostics.
+	 *
+	 * @param {string|number} name skill alias / const name / SKID
+	 * @returns {number} ms remaining (0 when ready or the name is unknown)
+	 */
+	remaining(name) {
+		const resolved = resolveSkill(name);
+		return resolved ? this._delay.remaining(resolved.skid) : 0;
+	}
+
+	/**
 	 * Emit a skill cast. Target defaults to self ('me' → Session.GID).
 	 *
 	 * @param {string|number} name skill alias / const name / SKID

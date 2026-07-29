@@ -40,9 +40,22 @@ export default defineConfig({
 			input: {
 				run: path.resolve(__dirname, 'src/Node/run.js'),
 				smoke: path.resolve(__dirname, 'src/Node/smoke.js'),
-				client: path.resolve(__dirname, 'src/Node/client.js')
+				client: path.resolve(__dirname, 'src/Node/client.js'),
+				index: path.resolve(__dirname, 'src/Node/index.js')
 			},
 			external: ['ws'],
+			// The headless path reproduces the handshake in net/session.js and never
+			// runs the UI engines, but they still get pulled into the graph and can't
+			// be chunk-split (dynamically + statically imported in the core). Fixing
+			// that at the source means editing the reused core (forbidden) or pruning
+			// the Node import graph (a separate optimization). Silence only that Rollup
+			// hint here — all other warnings still surface.
+			onwarn(warning, warn) {
+				if (warning.code === 'INEFFECTIVE_DYNAMIC_IMPORT') {
+					return;
+				}
+				warn(warning);
+			},
 			output: {
 				format: 'es',
 				entryFileNames: '[name].js'

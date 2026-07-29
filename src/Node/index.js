@@ -1,0 +1,257 @@
+/**
+ * Node/index.js
+ *
+ * Main entry for the headless client: an interactive slash-command REPL, with
+ * optional direct-launch of an auto-pilot routine that runs alongside the live
+ * REPL. Self-configuring on first run (login → masked password → interactive
+ * char select → config write-back); later launches only ask for the password.
+ *
+ *   node --import ./src/Node/shim.js dist-node/index.js [routine [args…]] [flags]
+ *
+ * Flags: -v/--debug (routine debug) · -vv (framework + packets) ·
+ *        --account=<login> · --char=<name|slot> · --pass=<value> (or RO_PASS).
+ *
+ * Run via `npm run cli:node` — ./shim.js must be preloaded with `node --import`
+ * (see shim.js header), it is NOT imported here.
+ */
+import path from 'node:path';
+import process from 'node:process';
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
+import Session from 'Engine/SessionStorage.js';
+import { boot } from './boot.js';
+import { resolvePassword, rawPrompt, saveConfig, charKey } from './config.js';
+import { RoClient } from './api/RoClient.js';
+import { ClientSession } from './Session.js';
+import { Screen } from './cli/screen.js';
+import { startRepl } from './cli/repl.js';
+import { selectCharacter } from './cli/charselect.js';
+import { routineNames } from './routines/registry.js';
+import { wsUrl } from './transport/WsSocket.js';
+import { startDebugLog, logLine } from './debuglog.js';
+import { BUILD } from './version.js';
+import { log, setVerbosity, setSink, setFileSink, installConsoleGate } from './log.js';
+
+function parseArgs(argv) {
+	const out = { verbosity: 0, account: null, char: null, positional: [] };
+	for (let i = 2, n = argv.length; i < n; ++i) {
+		const a = argv[i];
+		if (a === '-v' || a === '--debug') {
+			out.verbosity = Math.max(out.verbosity, 1);
+		} else if (a === '-vv' || a === '-vvv') {
+			out.verbosity = 2;
+		} else if (a.startsWith('--account=')) {
+			out.account = a.slice('--account='.length);
+		} else if (a.startsWith('--char=')) {
+			out.char = a.slice('--char='.length);
+		} else if (a.startsWith('-')) {
+			// --pass= is consumed by resolvePassword; ignore other flags here
+		} else {
+			out.positional.push(a);
+		}
+	}
+	return out;
+}
+
+function buildChooseChar(cfg, opts) {
+	// Explicit slot override → no prompt.
+	if (opts.char != null && /^\d+$/.test(opts.char)) {
+		cfg.server.charSlot = Number(opts.char);
+		return undefined;
+	}
+	// Explicit name override → auto-pick by name, no prompt.
+	if (opts.char != null) {
+		const want = opts.char.toLowerCase();
+		return list => {
+			const m = list.find(c => String(c.name).toLowerCase() === want);
+			if (!m) {
+				throw new Error('no character named "' + opts.char + '"');
+			}
+			return m.CharNum;
+		};
+	}
+	// No saved character for this identity → interactive select.
+	const known = cfg.characters && cfg.characters[charKey(cfg)];
+	if (!known) {
+		return list => selectCharacter(list, { defaultSlot: cfg.server.charSlot });
+	}
+	return undefined;
+}
+
+function persistLogin(cfg) {
+	const chosen = Session.Character;
+	if (chosen) {
+		cfg.server.charSlot = chosen.CharNum;
+	}
+	const key = charKey(cfg);
+	saveConfig({
+		server: cfg.server,
+		account: { login: cfg.account.login },
+		characters: {
+			[key]: { name: chosen ? chosen.name : '', charSlot: chosen ? chosen.CharNum : cfg.server.charSlot }
+		}
+	});
+}
+
+// --- boot ------------------------------------------------------------------
+
+const opts = parseArgs(process.argv);
+setVerbosity(opts.verbosity);
+installConsoleGate();
+
+const screen = new Screen();
+let session = null;
+let quitting = false;
+let finished = false;
+
+function finishQuit() {
+	if (finished) {
+		return;
+	}
+	finished = true;
+	try {
+		Network.close();
+	} catch {
+		// already closed
+	}
+	screen.close();
+	process.exit(0);
+}
+
+function quit() {
+	if (quitting) {
+		process.exit(130);
+	}
+	quitting = true;
+	if (session) {
+		session.quit();
+	}
+	log.event('quitting — clean disconnect…');
+	try {
+		Network.hookPacket(PACKET.ZC.ACK_REQ_DISCONNECT, () => finishQuit());
+		const pkt = new PACKET.CZ.REQ_DISCONNECT();
+		pkt.type = 0;
+		Network.sendPacket(pkt);
+	} catch {
+		finishQuit();
+		return;
+	}
+	setTimeout(finishQuit, 1000);
+}
+
+screen.onInterrupt(quit);
+process.on('SIGINT', quit);
+
+let cfg;
+try {
+	cfg = boot();
+} catch (err) {
+	log.error(err.message);
+	process.exit(1);
+}
+
+if (opts.account) {
+	cfg.account.login = opts.account;
+}
+
+// First run: no account configured → prompt the login (default = last used).
+if (!cfg.account.login) {
+	const r = await rawPrompt('Login: ');
+	if (r.value) {
+		cfg.account.login = r.value.trim();
+	}
+	if (!cfg.account.login) {
+		log.error('no account login — aborting');
+		process.exit(1);
+	}
+}
+
+log.info('build   :', BUILD);
+log.info('target :', wsUrl(cfg.server.host, cfg.server.port, cfg.server.wsProxy), '· packetver', cfg.server.packetver);
+log.info('account:', cfg.account.login);
+
+const chooseChar = buildChooseChar(cfg, opts);
+
+let password;
+try {
+	password = await resolvePassword(cfg);
+} catch (err) {
+	log.error(err.message);
+	process.exit(1);
+}
+
+const client = new RoClient(cfg);
+session = new ClientSession(cfg, client);
+session.setPassword(password);
+
+// Full-session debug trace (inbound + outbound packets except CA.LOGIN, REPL
+// commands, and every log line — each timestamped). Enabled by default for now;
+// started before connect so the handshake is captured. Screen stays
+// verbosity-gated; the file always gets everything.
+const debugLogFile = startDebugLog();
+setFileSink((channel, text) => logLine(channel, text));
+log.info('debug log →', debugLogFile);
+
+// Verbose channels — packet-ish state noise stays off by default.
+client.on('hp', e => log.framework('hp', e.hp + '/' + e.maxhp));
+client.on('sp', e => log.framework('sp', e.sp + '/' + e.maxsp));
+client.on('change', e => log.framework('player', e.field));
+client.on('status', e => log.framework('status aid', e.aid, 'efst', e.efst, e.active ? 'ON' : 'off'));
+client.on('party', e => log.framework('party', e.reason));
+client.on('skills', () => log.framework('skills updated'));
+
+// Always-on event channel.
+client.on('connected', r => log.event('connected — map ' + r.mapName));
+client.on('reconnected', r => log.event('reconnected — map ' + r.mapName));
+client.on('disconnected', () => log.event('disconnected'));
+client.on('cast', e => log.event('cast ' + e.name + ' → ' + e.target + (e.caveat ? ' (' + e.caveat + ')' : '')));
+client.on('blocked', e => log.routine('cast', 'blocked —', e.reason));
+client.on('chat', e => log.event('chat: ' + e.msg));
+client.on('privateMessage', e => log.event('whisper ' + e.sender + ': ' + e.msg));
+
+// While retrying login, a refused-login socket close must not trip boot's
+// process.exit(3) — the retry loop owns the flow. ClientSession.login installs
+// the real auto-reconnect handler once connected.
+Network.onDisconnect = () => {};
+
+const connectOpts = chooseChar ? { chooseChar } : {};
+for (;;) {
+	try {
+		const result = await session.login(password, connectOpts);
+		persistLogin(cfg);
+		log.info('CONNECTED — in map ' + result.mapName);
+		break;
+	} catch (err) {
+		// Login refused (exit 4 — wrong password / unknown account): re-prompt the
+		// password and retry instead of aborting. Any other failure exits.
+		if (err.exitCode === 4 && process.stdin.isTTY) {
+			log.warn(err.message + ' — re-enter the password (Ctrl-C to abort)');
+			const r = await rawPrompt('Password: ', { mask: true });
+			if (!r.value) {
+				log.error('login aborted');
+				process.exit(4);
+			}
+			password = r.value; // retried in the next loop iteration
+			continue;
+		}
+		log.error(err.message);
+		process.exit(err.exitCode || 1);
+	}
+}
+
+// In map — switch to the split-screen REPL and route all logging into it.
+screen.setHistoryFile(path.resolve(process.cwd(), '.ro-node-history'));
+screen.mount();
+setSink((text, stream) => screen.write(text, stream));
+const ctx = startRepl({ screen, session, client, config: cfg });
+
+log.event('REPL ready (build ' + BUILD + ') — /help for commands');
+
+// Direct-launch: start the routine alongside the live REPL.
+if (opts.positional.length) {
+	const name = opts.positional[0];
+	const res = session.startRoutine(name, opts.positional.slice(1), ctx);
+	if (!res.ok) {
+		log.event(res.reason + ' — known routines: ' + routineNames().join(', '));
+	}
+}

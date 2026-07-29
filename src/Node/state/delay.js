@@ -15,6 +15,16 @@ import Session from 'Engine/SessionStorage.js';
 import { observePacket } from '../net/observe.js';
 
 const POSTDELAY_EFST = StatusConst.POSTDELAY; // 46
+// Gap enforced after a cast completes before the next one. The server enforces
+// an inter-cast gate that it doesn't always communicate (instant buffs like
+// Blessing send no POSTDELAY), and which isn't cleanly derivable from rAthena
+// default. Measured empirically from the debug logs: casts dropped at 136/401 ms,
+// accepted at 1003/1006 ms → the real gate is ~1000 ms. 1100 clears it with
+// margin. A real POSTDELAY overrides it when longer. The AutoBuff routine also
+// detects silently-dropped casts and grows an extra back-off on top, so a larger
+// gate (another server / skill) self-corrects — but on this server 1100 already
+// prevents the drop up front.
+const CAST_TAIL_MS = 1100;
 
 export class DelayState extends EventEmitter {
 	/**
@@ -24,6 +34,7 @@ export class DelayState extends EventEmitter {
 		super();
 		this.status = status;
 		this.bySkid = {}; // skid → absolute end timestamp (ms)
+		this.castingUntil = 0; // absolute ms — a cast is in flight until then
 	}
 
 	install() {
@@ -34,7 +45,24 @@ export class DelayState extends EventEmitter {
 				this._onDelay(list[i].SKID, list[i].DelayTM);
 			}
 		});
+		// Our own cast bar: ZC.USESKILL_ACK{,2,3} carries the cast time
+		// (delayTime). While it runs the character is busy — casting anything
+		// else cancels the current cast (the server drops the new one). Gate on
+		// it so buffs with a cast time (Magnificat, delayed Blessing) aren't
+		// interrupted by the next queued cast. (Undefined variants no-op.)
+		observePacket(PACKET.ZC.USESKILL_ACK, pkt => this._onCast(pkt));
+		observePacket(PACKET.ZC.USESKILL_ACK2, pkt => this._onCast(pkt));
+		observePacket(PACKET.ZC.USESKILL_ACK3, pkt => this._onCast(pkt));
 		return this;
+	}
+
+	_onCast(pkt) {
+		if (pkt.AID === Session.AID) {
+			// cast time + a tail so the after-cast (POSTDELAY) can register before
+			// we're considered free — casting into that gap gets dropped server-side.
+			this.castingUntil = Date.now() + (pkt.delayTime || 0) + CAST_TAIL_MS;
+			this.emit('cast', { skid: pkt.SKID, end: this.castingUntil });
+		}
 	}
 
 	_onDelay(skid, delayMs) {
@@ -56,7 +84,8 @@ export class DelayState extends EventEmitter {
 	remaining(skid) {
 		const now = Date.now();
 		const perSkid = this.bySkid[skid] || 0;
-		return Math.max(0, perSkid - now, this._globalDelayEnd() - now);
+		// Also blocked while a cast is in flight (cast time not yet elapsed).
+		return Math.max(0, perSkid - now, this._globalDelayEnd() - now, this.castingUntil - now);
 	}
 
 	canCast(skid) {
