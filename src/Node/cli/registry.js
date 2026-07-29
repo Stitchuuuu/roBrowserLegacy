@@ -18,6 +18,7 @@ import emote from './commands/emote.js';
 import autobuff from './commands/autobuff.js';
 import autoheal from './commands/autoheal.js';
 import homunbuff from './commands/homunbuff.js';
+import macro from './commands/macro.js';
 import routine from './commands/routine.js';
 import help from './commands/help.js';
 
@@ -35,6 +36,7 @@ const COMMANDS = [
 	autobuff,
 	autoheal,
 	homunbuff,
+	macro,
 	routine,
 	help
 ];
