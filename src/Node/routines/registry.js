@@ -6,10 +6,12 @@
  */
 import { AutoBuff } from './AutoBuff.js';
 import { AutoHeal } from './AutoHeal.js';
+import { HomunBuff } from './HomunBuff.js';
 
 const REGISTRY = {
 	autobuff: AutoBuff,
-	autoheal: AutoHeal
+	autoheal: AutoHeal,
+	homunbuff: HomunBuff
 };
 
 /**

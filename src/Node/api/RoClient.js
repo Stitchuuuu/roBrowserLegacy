@@ -4,7 +4,7 @@
  * Root façade over the live connection. Constructs the state trackers
  * (each taps observePacket immediately, so listeners are armed before the
  * handshake floods state), wires them to the sub-facades (player / party /
- * skill) and re-emits a flat event surface on itself.
+ * skill / homun) and re-emits a flat event surface on itself.
  *
  * connect(password) runs the login→char→map handshake (net/session.js) and
  * resolves once in map. Boot (socket factory, PACKETVER, Configs) must have
@@ -22,6 +22,8 @@ import { PartyState } from '../state/party.js';
 import { StatusState } from '../state/status.js';
 import { SkillState } from '../state/skills.js';
 import { DelayState } from '../state/delay.js';
+import { HomunState } from '../state/homun.js';
+import { CastState } from '../state/casts.js';
 import { Player } from './Player.js';
 import { Party } from './Party.js';
 import { Skill } from './Skill.js';
@@ -34,8 +36,12 @@ export class RoClient extends EventEmitter {
 		this.connected = false;
 		this.currentMap = null; // our current map (set on connect, updated on warp)
 
-		// Keep the current map live so routines can gate on "same map".
+		// Keep the current map live so routines can gate on "same map". Both
+		// warp acks carry it — MAPMOVE within a zone, SERVERMOVE across zones.
 		observePacket(PACKET.ZC.NPCACK_MAPMOVE, pkt => {
+			this.currentMap = pkt.mapName;
+		});
+		observePacket(PACKET.ZC.NPCACK_SERVERMOVE, pkt => {
 			this.currentMap = pkt.mapName;
 		});
 
@@ -45,12 +51,16 @@ export class RoClient extends EventEmitter {
 		this._partyState = new PartyState().install();
 		this._skillState = new SkillState().install();
 		this._delayState = new DelayState(this._statusState).install();
+		this._homunState = new HomunState().install();
+		this._castState = new CastState().install();
 		this._messages = new Messages().install();
 
 		// Sub-facades.
 		this.player = new Player(this._playerState);
 		this.party = new Party(this._partyState, this._statusState);
 		this.skill = new Skill(this._skillState, this._delayState, this._partyState);
+		// No façade of its own — the tracker's read API is already the friendly one.
+		this.homun = this._homunState;
 
 		this._wire();
 	}
@@ -73,6 +83,16 @@ export class RoClient extends EventEmitter {
 		// A USESKILL_ACK for our own cast — the server accepted it (used by routines
 		// to detect a silently-dropped cast: sent, but no ack).
 		this._delayState.on('cast', e => this.emit('castAck', e));
+
+		// Homunculus presence, collapsed into one event with a reason (the
+		// `party` idiom above). 'own' = the server told us our own homun's id.
+		this._homunState.on('spawn', e => this.emit('homun', { reason: 'spawn', gid: e.gid }));
+		this._homunState.on('vanish', e => this.emit('homun', { reason: 'vanish', gid: e.gid }));
+		this._homunState.on('own', e => this.emit('homun', { reason: 'own', gid: e.gid }));
+
+		// A no-damage skill reached castend on some unit — the only "the buff
+		// applied" signal for targets whose EFST is never broadcast.
+		this._castState.on('skillUsed', e => this.emit('skillUsed', e));
 
 		this._messages.on('chat', e => this.emit('chat', e));
 		this._messages.on('privateMessage', e => this.emit('privateMessage', e));

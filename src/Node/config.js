@@ -36,7 +36,10 @@ const DEFAULTS = {
 		login: ''
 	},
 	// Per-character state, keyed "<login>/<charSlot>". Each entry holds the
-	// character name and its own routine config (autobuff profiles) — a routine
+	// character name and its own routine config (autobuff / autoheal / homunbuff
+	// profiles — homunbuff carries { skills, own, party, radius, spFloor,
+	// durations }, the last a per-skill ms override of the pre-renewal table in
+	// resolve/buffMap.js) — a routine
 	// runs on a specific character, so its config is scoped here, not global.
 	characters: {}
 };

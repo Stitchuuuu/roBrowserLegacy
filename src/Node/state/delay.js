@@ -61,7 +61,17 @@ export class DelayState extends EventEmitter {
 			// cast time + a tail so the after-cast (POSTDELAY) can register before
 			// we're considered free — casting into that gap gets dropped server-side.
 			this.castingUntil = Date.now() + (pkt.delayTime || 0) + CAST_TAIL_MS;
-			this.emit('cast', { skid: pkt.SKID, end: this.castingUntil });
+			// `target` and `delayTime` let a routine watch a specific cast and
+			// size its confirmation window to the server's real cast time —
+			// clif_skillcasting fires even for instant casts (unit.cpp:2485),
+			// and it sits AFTER the silent refusal gates, so its absence is
+			// itself a signal.
+			this.emit('cast', {
+				skid: pkt.SKID,
+				target: pkt.targetID,
+				delayTime: pkt.delayTime || 0,
+				end: this.castingUntil
+			});
 		}
 	}
 

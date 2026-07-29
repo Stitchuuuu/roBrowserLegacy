@@ -30,6 +30,13 @@ export class Player {
 	get maxweight() {
 		return this._s.maxweight;
 	}
+	// Map cell. 0,0 = not known yet (no spawn/warp/move ack seen), not the origin.
+	get x() {
+		return this._s.x;
+	}
+	get y() {
+		return this._s.y;
+	}
 	get stats() {
 		return this._s.stats;
 	}

@@ -30,6 +30,11 @@ export class PartyMember {
 	get online() {
 		return this._raw.online;
 	}
+	// Job id (DB/Jobs/JobConst.js). From the roster / join packet, i.e. the real
+	// class — unlike an entry packet's `job`, which is the cart/disguise view id.
+	get class_() {
+		return this._raw.class_;
+	}
 	get baseLevel() {
 		return this._raw.baseLevel;
 	}
