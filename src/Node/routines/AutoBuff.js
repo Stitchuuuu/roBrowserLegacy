@@ -7,7 +7,11 @@
  * respecting the server after-cast delay.
  *
  * Buffs are requested by a named per-character profile (config
- * characters["<login>/<slot>"].autobuff[name]) or an inline skill list.
+ * characters["<login>/<slot>"].autobuff[name]) or an inline skill list. Two
+ * `self=on|off` / `party=on|off` tokens (default both on) may sit anywhere in
+ * that list to scope who gets buffed: `self=off party=on` buffs only reachable
+ * members (idle when alone); AoE-self buffs (Magnificat/Gloria) still fire under
+ * self=off when a member needs them, since they cover the party from us.
  *
  * Scheduling — fully event-driven, NO polling interval:
  *  - re-evaluation is triggered by `status`/`party` events (a buff dropping,
@@ -88,11 +92,25 @@ function priorityIndex(skid) {
 	return i < 0 ? PRIORITY.length : i;
 }
 
+// on|off|yes|no|true|false|1|0 → boolean, or null for anything else.
+function parseBool(v) {
+	const s = String(v).toLowerCase();
+	if (s === 'on' || s === 'true' || s === '1' || s === 'yes') {
+		return true;
+	}
+	if (s === 'off' || s === 'false' || s === '0' || s === 'no') {
+		return false;
+	}
+	return null;
+}
+
 export class AutoBuff extends Routine {
 	constructor() {
 		super('autobuff');
 		this.client = null;
 		this.wanted = []; // [{skid, efst, name, display}]
+		this.selfOpt = true; // buff self (self=on|off)
+		this.partyOpt = true; // buff reachable party members (party=on|off)
 		this.pending = {}; // "aid:efst" → cast timestamp
 		this._timer = null;
 		this._settleUntil = 0; // absolute ms — no casts before this (post-cast RTT guard)
@@ -118,6 +136,10 @@ export class AutoBuff extends Routine {
 			log.warn('[autobuff] no valid buff to maintain — routine not armed');
 			return;
 		}
+		if (!this.selfOpt && !this.partyOpt) {
+			log.warn('[autobuff] self=off and party=off — nobody to buff, routine not armed');
+			return;
+		}
 
 		// Beg emote: read the per-character token (undefined → default /mp,
 		// explicit 'off'/false → disabled).
@@ -132,6 +154,8 @@ export class AutoBuff extends Routine {
 		log.event(
 			'[autobuff] armed: ' +
 				this.wanted.map(b => b.display).join(', ') +
+				(this.selfOpt ? ' · self' : '') +
+				(this.partyOpt ? ' · party' : '') +
 				(this._triggerTok ? ' · beg emote /' + this._triggerTok : '')
 		);
 
@@ -204,6 +228,10 @@ export class AutoBuff extends Routine {
 	 * arg is treated as a skill name.
 	 */
 	_resolveWanted(args, ctx) {
+		// Reset to defaults each (re)start; option tokens below override them.
+		this.selfOpt = true;
+		this.partyOpt = true;
+
 		const cfg = ctx && ctx.config;
 		let names = args.slice();
 
@@ -218,9 +246,13 @@ export class AutoBuff extends Routine {
 
 		const wanted = [];
 		for (let i = 0, n = names.length; i < n; ++i) {
-			const resolved = resolveSkill(names[i]);
+			const tok = names[i];
+			if (this._applyOptToken(tok)) {
+				continue; // self=/party= option, not a skill
+			}
+			const resolved = resolveSkill(tok);
 			if (!resolved) {
-				log.warn('[autobuff] unknown skill "' + names[i] + '" — skipped');
+				log.warn('[autobuff] unknown skill "' + tok + '" — skipped');
 				continue;
 			}
 			const efst = buffEfst(resolved.skid);
@@ -233,6 +265,31 @@ export class AutoBuff extends Routine {
 
 		wanted.sort((a, b) => priorityIndex(a.skid) - priorityIndex(b.skid));
 		return wanted;
+	}
+
+	// Apply a `self=`/`party=` option token, setting the matching flag. Returns
+	// true if `tok` was one (so the caller skips skill resolution), false if it's
+	// an ordinary token. A recognised key with a bad value is consumed and warned.
+	_applyOptToken(tok) {
+		const eq = tok.indexOf('=');
+		if (eq < 0) {
+			return false;
+		}
+		const key = tok.slice(0, eq).toLowerCase();
+		if (key !== 'self' && key !== 'party') {
+			return false;
+		}
+		const b = parseBool(tok.slice(eq + 1));
+		if (b == null) {
+			log.warn('[autobuff] "' + tok + '" — value must be on|off');
+			return true;
+		}
+		if (key === 'self') {
+			this.selfOpt = b;
+		} else {
+			this.partyOpt = b;
+		}
+		return true;
 	}
 
 	// Coalesce a burst of events into a single evaluation on the next turn.
@@ -318,11 +375,18 @@ export class AutoBuff extends Routine {
 		for (let i = 0, n = this.wanted.length; i < n; ++i) {
 			const buff = this.wanted[i];
 			const isAoe = !!AOE_SELF[buff.skid];
-			const targets = isAoe
-				? [{ aid: selfAid, ref: 'me', label: 'self' }]
-				: [{ aid: selfAid, ref: 'me', label: 'self' }].concat(
-						members.map(m => ({ aid: m.aid, ref: m.name, label: m.name }))
-					);
+			// AoE-self buffs are always cast on self (they cover the party); whether
+			// they're *needed* respects self/party via _aoeUntilNeeded below. Single-
+			// target buffs go to the enabled categories only.
+			let targets;
+			if (isAoe) {
+				targets = [{ aid: selfAid, ref: 'me', label: 'self' }];
+			} else {
+				targets = this.selfOpt ? [{ aid: selfAid, ref: 'me', label: 'self' }] : [];
+				if (this.partyOpt) {
+					targets = targets.concat(members.map(m => ({ aid: m.aid, ref: m.name, label: m.name })));
+				}
+			}
 
 			for (let t = 0, tn = targets.length; t < tn; ++t) {
 				const target = targets[t];
@@ -405,9 +469,15 @@ export class AutoBuff extends Routine {
 		const client = this.client;
 		for (let i = 0, n = this.wanted.length; i < n; ++i) {
 			const buff = this.wanted[i];
-			const targets = AOE_SELF[buff.skid]
-				? [{ aid: selfAid, label: 'self' }]
-				: [{ aid: selfAid, label: 'self' }].concat(members.map(m => ({ aid: m.aid, label: m.name })));
+			let targets;
+			if (AOE_SELF[buff.skid]) {
+				targets = [{ aid: selfAid, label: 'self' }];
+			} else {
+				targets = this.selfOpt ? [{ aid: selfAid, label: 'self' }] : [];
+				if (this.partyOpt) {
+					targets = targets.concat(members.map(m => ({ aid: m.aid, label: m.name })));
+				}
+			}
 
 			const parts = [];
 			for (let t = 0, tn = targets.length; t < tn; ++t) {
@@ -549,9 +619,15 @@ export class AutoBuff extends Routine {
 	// bounded to one per AOE_RECHECK_MS so a member we can never reach (outside
 	// the AoE — no precise range gating yet) can't make us spam. 0 = cast now.
 	_aoeUntilNeeded(status, selfAid, members, buff, now) {
-		let need = this._untilNeeded(status, selfAid, buff, now);
+		// self=off: our own need never drives the cast (Infinity), but a member's
+		// need still forces it below — the buff lands on us to cover them, and does
+		// nothing when we're alone. self=on: our own expiry drives it as usual.
+		let need = this.selfOpt ? this._untilNeeded(status, selfAid, buff, now) : Infinity;
 		if (need <= 0) {
 			return 0; // missing / expiring on self — cast now
+		}
+		if (!this.partyOpt) {
+			return need; // party=off: don't recast to cover members
 		}
 		const sinceCast = now - (this._aoeCastAt[buff.efst] || -Infinity);
 		const recheckLeft = AOE_RECHECK_MS - sinceCast;

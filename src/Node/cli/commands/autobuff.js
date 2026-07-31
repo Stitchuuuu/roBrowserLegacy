@@ -11,6 +11,11 @@
  *                                         it to force their buffs; default /mp).
  *  - /autobuff emote                    → show the current beg emote.
  *
+ * A `self=on|off` and/or `party=on|off` token (default both on) may sit anywhere
+ * in the skill list to scope who gets buffed — e.g. `/autobuff support blessing
+ * agi self=off` buffs only reachable party members (nothing when alone). They
+ * ride along in the stored profile array; new ones replace previously saved ones.
+ *
  * Profiles are stored per character (config.characters["<login>/<slot>"].autobuff).
  */
 import Emotions from 'DB/Emotions.js';
@@ -21,11 +26,11 @@ import { log } from '../../log.js';
 export default {
 	name: 'autobuff',
 	aliases: ['ab'],
-	usage: '<profile|skills…> | emote <token|off> | stop',
+	usage: '<profile|skills…> [self=on|off party=on|off] | emote <token|off> | stop',
 	help: 'maintain buffs (named profile or inline skills)',
 	run(ctx, args) {
 		if (!args.length) {
-			log.event('usage: /autobuff <profile|skills…> | stop');
+			log.event('usage: /autobuff <profile|skills…> [self=on|off party=on|off] | stop');
 			return;
 		}
 		if (args[0] === 'stop') {
@@ -61,31 +66,57 @@ export default {
 
 		const profiles = (cfg.characters && cfg.characters[key] && cfg.characters[key].autobuff) || {};
 
+		// self=/party= tokens are scope options, not skills or a profile name — pull
+		// them aside so branch detection sees only skills, then fold them back into
+		// the stored list (they ride along in the profile array, parsed by the
+		// routine). New options replace any already stored on the profile.
+		const isOpt = a => /^(self|party)=/i.test(a);
+		const optTokens = args.filter(isOpt);
+		const core = args.filter(a => !isOpt(a));
+		if (!core.length) {
+			log.event('usage: /autobuff <profile|skills…> [self=on|off party=on|off] | stop');
+			return;
+		}
+
 		let name;
 		let skills;
-		if (resolveSkill(args[0])) {
+		if (resolveSkill(core[0])) {
 			// inline skill list → persist under "last"
 			name = 'last';
-			skills = args;
-		} else if (args.length === 1) {
+			skills = core;
+		} else if (core.length === 1) {
 			// single non-skill token → must be an existing profile
-			if (!Array.isArray(profiles[args[0]])) {
-				log.event('no profile "' + args[0] + '" and not a skill — /autobuff <skills…>');
+			if (!Array.isArray(profiles[core[0]])) {
+				log.event('no profile "' + core[0] + '" and not a skill — /autobuff <skills…>');
 				return;
 			}
-			name = args[0];
-			skills = profiles[args[0]];
+			name = core[0];
+			skills = profiles[core[0]];
 		} else {
 			// first token is a new profile name, rest are skills
-			name = args[0];
-			skills = args.slice(1);
+			name = core[0];
+			skills = core.slice(1);
 		}
+
+		// Reconcile options: strip any already on the list, then re-append the new
+		// ones (or preserve the stored ones when none were given this time).
+		const skillsOnly = skills.filter(s => !isOpt(s));
+		skills = skillsOnly.concat(optTokens.length ? optTokens : skills.filter(isOpt));
 
 		// Persist unless we're just launching an already-saved profile unchanged.
 		const isExistingProfile = Array.isArray(profiles[name]) && profiles[name].join(' ') === skills.join(' ');
 		if (!isExistingProfile) {
+			const shownOpts = skills.filter(isOpt);
 			saveConfig({ characters: { [key]: { autobuff: { [name]: skills } } } });
-			log.event('saved autobuff profile "' + name + '" (' + skills.join(', ') + ') for ' + key);
+			log.event(
+				'saved autobuff profile "' +
+					name +
+					'" (' +
+					skillsOnly.join(', ') +
+					(shownOpts.length ? ' · ' + shownOpts.join(' ') : '') +
+					') for ' +
+					key
+			);
 		}
 
 		const res = ctx.session.startRoutine('autobuff', skills, ctx);
