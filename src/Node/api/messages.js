@@ -22,6 +22,7 @@ export class Messages extends EventEmitter {
 			this.emit('chat', { gid: Session.GID, msg: pkt.msg, self: true })
 		);
 		observePacket(PACKET.ZC.WHISPER, pkt => this.emit('privateMessage', { sender: pkt.sender, msg: pkt.msg }));
+		observePacket(PACKET.ZC.WHISPER2, pkt => this.emit('privateMessage', { sender: pkt.sender, msg: pkt.msg }));
 		observePacket(PACKET.ZC.EMOTION, pkt => this.emit('emote', { gid: pkt.GID, type: pkt.type }));
 		return this;
 	}

@@ -8,7 +8,7 @@
  * convention).
  *
  * Reads from `RoClient`'s `privateMessage` event ({ sender, msg }, emitted by
- * api/messages.js off ZC.WHISPER) — no packet tap of its own.
+ * api/messages.js off ZC.WHISPER/WHISPER2) — no packet tap of its own.
  */
 import fs from 'node:fs';
 import path from 'node:path';
