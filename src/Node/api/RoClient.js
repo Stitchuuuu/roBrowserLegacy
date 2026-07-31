@@ -15,6 +15,7 @@
 import { EventEmitter } from 'node:events';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
+import Session from 'Engine/SessionStorage.js';
 import { observePacket } from '../net/observe.js';
 import { runSession } from '../net/session.js';
 import { PlayerState } from '../state/player.js';
@@ -24,10 +25,16 @@ import { SkillState } from '../state/skills.js';
 import { DelayState } from '../state/delay.js';
 import { HomunState } from '../state/homun.js';
 import { CastState } from '../state/casts.js';
+import { EntityState, TYPE_PC } from '../state/entities.js';
+import { InventoryState } from '../state/inventory.js';
+import { StorageState } from '../state/storage.js';
+import { NpcState } from '../state/npc.js';
 import { Player } from './Player.js';
 import { Party } from './Party.js';
 import { Skill } from './Skill.js';
 import { Messages } from './messages.js';
+import { logWhisper } from '../net/whisperlog.js';
+import { alert } from '../net/notify.js';
 
 export class RoClient extends EventEmitter {
 	constructor(cfg) {
@@ -53,6 +60,10 @@ export class RoClient extends EventEmitter {
 		this._delayState = new DelayState(this._statusState).install();
 		this._homunState = new HomunState().install();
 		this._castState = new CastState().install();
+		this._entityState = new EntityState().install();
+		this._inventoryState = new InventoryState().install();
+		this._storageState = new StorageState().install();
+		this._npcState = new NpcState().install();
 		this._messages = new Messages().install();
 
 		// Sub-facades.
@@ -61,6 +72,10 @@ export class RoClient extends EventEmitter {
 		this.skill = new Skill(this._skillState, this._delayState, this._partyState);
 		// No façade of its own — the tracker's read API is already the friendly one.
 		this.homun = this._homunState;
+		this.entities = this._entityState;
+		this.inventory = this._inventoryState;
+		this.storage = this._storageState;
+		this.npc = this._npcState;
 
 		this._wire();
 	}
@@ -94,8 +109,39 @@ export class RoClient extends EventEmitter {
 		// applied" signal for targets whose EFST is never broadcast.
 		this._castState.on('skillUsed', e => this.emit('skillUsed', e));
 
+		// Entity presence, collapsed into one event with a reason (the `party`
+		// idiom above). Player-cross alert: a TYPE_PC spawn that isn't self or
+		// a party member (both keyed by AID — the block id the entry packets
+		// carry as `gid`, see state/entities.js and resolve/targets.js).
+		this._entityState.on('spawn', e => {
+			this.emit('entity', { reason: 'spawn', gid: e.gid, objecttype: e.objecttype });
+			if (e.objecttype === TYPE_PC && e.gid !== Session.AID && !this._partyState.getByAid(e.gid)) {
+				const ent = this._entityState.get(e.gid);
+				alert({ title: 'Ragnarok — player in zone', body: (ent && ent.name) || 'Unknown player' });
+			}
+		});
+		this._entityState.on('vanish', e =>
+			this.emit('entity', { reason: 'vanish', gid: e.gid, objecttype: e.objecttype })
+		);
+
+		this._inventoryState.on('list', () => this.emit('inventory', { reason: 'list' }));
+		this._inventoryState.on('add', e => this.emit('inventory', { reason: 'add', index: e.index }));
+		this._inventoryState.on('remove', e => this.emit('inventory', { reason: 'remove', index: e.index }));
+
+		this._storageState.on('open', () => this.emit('storage', { reason: 'open' }));
+		this._storageState.on('close', () => this.emit('storage', { reason: 'close' }));
+		this._storageState.on('list', () => this.emit('storage', { reason: 'list' }));
+		this._storageState.on('add', e => this.emit('storage', { reason: 'add', index: e.index }));
+		this._storageState.on('remove', e => this.emit('storage', { reason: 'remove', index: e.index }));
+
+		this._npcState.on('dialog', e => this.emit('dialog', e));
+
 		this._messages.on('chat', e => this.emit('chat', e));
-		this._messages.on('privateMessage', e => this.emit('privateMessage', e));
+		this._messages.on('privateMessage', e => {
+			this.emit('privateMessage', e);
+			logWhisper(e);
+			alert({ title: 'Ragnarok — whisper from ' + e.sender, body: e.msg });
+		});
 		this._messages.on('emote', e => this.emit('emote', e));
 
 		this.skill.on('cast', e => this.emit('cast', e));

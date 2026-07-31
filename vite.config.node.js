@@ -41,7 +41,8 @@ export default defineConfig({
 				run: path.resolve(__dirname, 'src/Node/run.js'),
 				smoke: path.resolve(__dirname, 'src/Node/smoke.js'),
 				client: path.resolve(__dirname, 'src/Node/client.js'),
-				index: path.resolve(__dirname, 'src/Node/index.js')
+				index: path.resolve(__dirname, 'src/Node/index.js'),
+				'smoke-perceive': path.resolve(__dirname, 'src/Node/smoke-perceive.js')
 			},
 			external: ['ws'],
 			// The headless path reproduces the handshake in net/session.js and never

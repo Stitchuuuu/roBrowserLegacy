@@ -36,6 +36,7 @@
 		"node:connect": "node --import ./src/Node/shim.js dist-node/run.js",
 		"node:client": "node --import ./src/Node/shim.js dist-node/index.js",
 		"node:test": "node --import ./src/Node/shim.js dist-node/client.js",
+		"node:perceive": "node --import ./src/Node/shim.js dist-node/smoke-perceive.js",
 		"preview": "vite preview",
 		"format": "prettier --write \"src/**/*.js\"",
 		"format:check": "prettier --check \"src/**/*.js\"",
