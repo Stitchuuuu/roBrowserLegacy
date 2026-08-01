@@ -14,20 +14,24 @@ import { log } from '../../log.js';
 export default {
 	name: 'login',
 	aliases: ['l'],
-	usage: '[user] [pass]',
-	help: '(re)connect, optionally switching account',
+	usage: '[-c] [user] [pass]',
+	help: '(re)connect; -c forces the character picker',
 	async run(ctx, args) {
 		const cfg = ctx.config;
 		const screen = ctx.screen;
+		// Leading -c forces the character picker — the only way to switch
+		// character on the *same* account (accountChanged/known wouldn't fire).
+		const forceSelect = args[0] === '-c' || args[0] === '--char';
+		const rest = forceSelect ? args.slice(1) : args;
 		const prevLogin = cfg.account.login;
-		const newUser = args[0];
+		const newUser = rest[0];
 		if (newUser) {
 			cfg.account.login = newUser;
 		}
 		const accountChanged = !!newUser && newUser !== prevLogin;
 
 		// Password — inline or masked prompt (screen dropped for the modal).
-		let password = args[1];
+		let password = rest[1];
 		if (!password) {
 			screen.pauseInput();
 			try {
@@ -43,7 +47,7 @@ export default {
 		}
 
 		const known = cfg.characters && cfg.characters[charKey(cfg)];
-		const needSelect = accountChanged || !known;
+		const needSelect = accountChanged || !known || forceSelect;
 		const chooseChar = needSelect
 			? async list => {
 					screen.pauseInput();

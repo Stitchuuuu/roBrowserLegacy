@@ -12,6 +12,8 @@ import party from './commands/party.js';
 import skills from './commands/skills.js';
 import skill from './commands/skill.js';
 import buffs from './commands/buffs.js';
+import entities from './commands/entities.js';
+import inventory from './commands/inventory.js';
 import say from './commands/say.js';
 import whisper from './commands/whisper.js';
 import emote from './commands/emote.js';
@@ -35,6 +37,8 @@ const COMMANDS = [
 	skills,
 	skill,
 	buffs,
+	entities,
+	inventory,
 	say,
 	whisper,
 	emote,

@@ -2,10 +2,11 @@
  * Node/state/entities.js
  *
  * Generic entity tracker (jalon 1 of node-farm-macros) — same shape as
- * `state/homun.js`, generalised to any `objecttype` on the wire. This session
- * only consumes `TYPE_MOB` (farming targets) and `TYPE_PC` (operator-alert
- * "player crossed the zone"), but the tracker itself is not type-filtered at
- * the packet level — `list()`/`get()`/`count()` take an optional type filter.
+ * `state/homun.js`, generalised to any `objecttype` on the wire. It keeps the
+ * actor types worth acting on — `TYPE_MOB` (farming targets), `TYPE_PC`
+ * (operator-alert "player crossed the zone") and the `TYPE_NPC` family (their
+ * GID is the NAID `/npc talk` needs) — and drops the rest (ground items, skill
+ * units, pets). `list()`/`get()`/`count()` take an optional type filter.
  *
  * Only the *11 entry variants are observed: the entry opcodes are a hard
  * function of PACKETVER (rAthena packets_struct.hpp — idle 0x9ff, spawn 0x9fe,
@@ -19,6 +20,13 @@ import { observePacket } from '../net/observe.js';
 
 const TYPE_PC = 0; // Renderer/Entity/Entity.js — inlined; that module pulls the renderer in
 const TYPE_MOB = 5; // ditto
+const TYPE_NPC = 6; // ditto — plus the NPC-family variants below
+const TYPE_NPC2 = 12;
+const TYPE_NPC_ABR = 13;
+const TYPE_NPC_BIONIC = 14;
+
+// objecttype → kept (plain object per project perf convention, not a Set).
+const KEPT = { [TYPE_PC]: 1, [TYPE_MOB]: 1, [TYPE_NPC]: 1, [TYPE_NPC2]: 1, [TYPE_NPC_ABR]: 1, [TYPE_NPC_BIONIC]: 1 };
 
 export class EntityState extends EventEmitter {
 	constructor() {
@@ -56,7 +64,7 @@ export class EntityState extends EventEmitter {
 	// `pos` is readPos() ([x, y, dir]) or readPos2() ([x1, y1, x2, y2, …]);
 	// `at` selects which cell pair to read.
 	_onEntry(pkt, pos, at) {
-		if ((pkt.objecttype !== TYPE_MOB && pkt.objecttype !== TYPE_PC) || !pos) {
+		if (!KEPT[pkt.objecttype] || !pos) {
 			return;
 		}
 		const gid = pkt.GID;
@@ -95,7 +103,7 @@ export class EntityState extends EventEmitter {
 	}
 
 	/**
-	 * @param {number} [objecttype] TYPE_MOB / TYPE_PC — omit for both
+	 * @param {number} [objecttype] TYPE_MOB / TYPE_PC / TYPE_NPC* — omit for all
 	 * @returns {Array<{gid: number, name: string, x: number, y: number, job: number, objecttype: number}>}
 	 */
 	list(objecttype) {
@@ -118,4 +126,4 @@ export class EntityState extends EventEmitter {
 	}
 }
 
-export { TYPE_PC, TYPE_MOB };
+export { TYPE_PC, TYPE_MOB, TYPE_NPC, TYPE_NPC2, TYPE_NPC_ABR, TYPE_NPC_BIONIC };

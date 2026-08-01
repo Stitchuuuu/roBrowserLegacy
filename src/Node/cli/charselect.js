@@ -27,9 +27,13 @@ export async function selectCharacter(charList, opts = {}) {
 	const out = process.stdout;
 
 	// Non-interactive: fall back to the default slot (or the first character).
+	// Warn — an intended-interactive pick that silently fell back here is the
+	// "I switched account but got no prompt" surprise.
 	if (!process.stdin.isTTY) {
 		const fallback = charList.find(c => c.CharNum === opts.defaultSlot);
-		return (fallback || charList[0]).CharNum;
+		const chosen = (fallback || charList[0]).CharNum;
+		out.write('no TTY — auto-selecting character slot ' + chosen + ' (pass --char to choose)\n');
+		return chosen;
 	}
 
 	let defaultIdx = 0;

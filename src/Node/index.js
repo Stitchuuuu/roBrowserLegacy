@@ -70,12 +70,38 @@ function buildChooseChar(cfg, opts) {
 			return m.CharNum;
 		};
 	}
-	// No saved character for this identity → interactive select.
-	const known = cfg.characters && cfg.characters[charKey(cfg)];
-	if (!known) {
-		return list => selectCharacter(list, { defaultSlot: cfg.server.charSlot });
+	// A character saved for THIS login → reuse its slot, no prompt. Keys are
+	// `login/slot` while cfg.server.charSlot is global (it may belong to a
+	// previously-used account), so match on the login prefix — not the exact
+	// charKey — and pin the slot to the match. Otherwise switching account
+	// either re-prompts needlessly or logs into the wrong account's slot.
+	const saved = savedCharForLogin(cfg);
+	if (saved) {
+		cfg.server.charSlot = saved.charSlot;
+		return undefined;
 	}
-	return undefined;
+	// Unknown account → interactive select.
+	return list => selectCharacter(list, { defaultSlot: cfg.server.charSlot });
+}
+
+// The character remembered for cfg.account.login, or null. Prefers the entry
+// at the current global slot, else any character saved under this login.
+function savedCharForLogin(cfg) {
+	const chars = cfg.characters;
+	if (!chars) {
+		return null;
+	}
+	const exact = chars[charKey(cfg)];
+	if (exact) {
+		return exact;
+	}
+	const prefix = cfg.account.login + '/';
+	for (const key in chars) {
+		if (key.slice(0, prefix.length) === prefix) {
+			return chars[key];
+		}
+	}
+	return null;
 }
 
 function persistLogin(cfg) {
@@ -244,6 +270,17 @@ screen.setHistoryFile(path.resolve(process.cwd(), '.ro-node-history'));
 screen.mount();
 setSink((text, stream) => screen.write(text, stream));
 const ctx = startRepl({ screen, session, client, config: cfg });
+
+// Storage has no client "open" packet — `open` flips on the kafra's first
+// item-list push. Surface that transition (and the close echo) so the
+// operator isn't blind-polling isOpen().
+client.on('storage', e => {
+	if (e.reason === 'open') {
+		log.event('Storage opened');
+	} else if (e.reason === 'close') {
+		log.event('Storage closed');
+	}
+});
 
 log.event('REPL ready (build ' + BUILD + ') — /help for commands');
 
