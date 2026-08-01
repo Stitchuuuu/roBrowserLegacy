@@ -282,6 +282,11 @@ client.on('storage', e => {
 	}
 });
 
+// Log every warp so map changes are easy to spot in the REPL and the trace.
+client.on('map', e => {
+	log.event('→ map ' + e.map + '  (' + e.x + ',' + e.y + ')');
+});
+
 // Echo NPC dialog: the reply to /npc talk arrives async on the 'dialog' event,
 // so without this the REPL only shows "npc talk sent" and never the NPC's line.
 const NPC_REPLY_HINT = {

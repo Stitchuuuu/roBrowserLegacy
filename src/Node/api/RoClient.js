@@ -49,12 +49,9 @@ export class RoClient extends EventEmitter {
 
 		// Keep the current map live so routines can gate on "same map". Both
 		// warp acks carry it — MAPMOVE within a zone, SERVERMOVE across zones.
-		observePacket(PACKET.ZC.NPCACK_MAPMOVE, pkt => {
-			this.currentMap = pkt.mapName;
-		});
-		observePacket(PACKET.ZC.NPCACK_SERVERMOVE, pkt => {
-			this.currentMap = pkt.mapName;
-		});
+		// Emit 'map' on a real change so the REPL/trace records every warp.
+		observePacket(PACKET.ZC.NPCACK_MAPMOVE, pkt => this._onWarp(pkt.mapName, pkt.xPos, pkt.yPos));
+		observePacket(PACKET.ZC.NPCACK_SERVERMOVE, pkt => this._onWarp(pkt.mapName, pkt.xPos, pkt.yPos));
 
 		// Trackers — install() taps observePacket now, before connect().
 		this._playerState = new PlayerState().install();
@@ -176,6 +173,16 @@ export class RoClient extends EventEmitter {
 	 *        forwarded to runSession — interactive char select (inline setup).
 	 * @returns {Promise<{mapName: string}>}
 	 */
+	// Warp handler for both map-move acks — updates currentMap and emits 'map'
+	// only on an actual change (the acks also fire on re-entry to the same map).
+	_onWarp(mapName, x, y) {
+		if (mapName === this.currentMap) {
+			return;
+		}
+		this.currentMap = mapName;
+		this.emit('map', { map: mapName, x, y });
+	}
+
 	async connect(password, opts = {}) {
 		const result = await runSession(this._cfg, password, opts);
 		this.connected = true;
