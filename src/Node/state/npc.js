@@ -14,9 +14,11 @@
  *   - 'input-num'  OPEN_EDITDLG — a numeric input is expected
  *   - 'input-str'  OPEN_EDITDLGSTR — a string input is expected
  *
- * `options` is only populated by MENU_LIST (rAthena joins choices with
- * `\t` — see clif_scriptmenu / packets_struct.hpp); every other transition
- * leaves it as the empty array from the last menu.
+ * `options` is only populated by MENU_LIST (choices are `:`-separated, the RO
+ * script `menu`/`select` convention — the browser splits the same way in
+ * UI/Components/NpcMenu.js); empty segments are dropped so the array index +1
+ * is the value CHOOSE_MENU expects. Every other transition leaves it as the
+ * empty array from the last menu.
  */
 import { EventEmitter } from 'node:events';
 import PACKET from 'Network/PacketStructure.js';
@@ -36,7 +38,7 @@ export class NpcState extends EventEmitter {
 		observePacket(PACKET.ZC.WAIT_DIALOG, pkt => this._set(pkt.NAID, { awaiting: 'next' }));
 		observePacket(PACKET.ZC.CLOSE_DIALOG, pkt => this._set(pkt.NAID, { awaiting: 'close' }));
 		observePacket(PACKET.ZC.MENU_LIST, pkt =>
-			this._set(pkt.NAID, { options: pkt.msg.split('\t').filter(Boolean), awaiting: 'menu' })
+			this._set(pkt.NAID, { options: pkt.msg.split(':').filter(Boolean), awaiting: 'menu' })
 		);
 		observePacket(PACKET.ZC.OPEN_EDITDLG, pkt => this._set(pkt.NAID, { awaiting: 'input-num' }));
 		observePacket(PACKET.ZC.OPEN_EDITDLGSTR, pkt => this._set(pkt.NAID, { awaiting: 'input-str' }));

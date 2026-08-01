@@ -284,22 +284,36 @@ client.on('storage', e => {
 
 // Echo NPC dialog: the reply to /npc talk arrives async on the 'dialog' event,
 // so without this the REPL only shows "npc talk sent" and never the NPC's line.
-// Every transition re-emits the full text, so print it only when it changes;
-// always show what reply the dialog is waiting for.
 const NPC_REPLY_HINT = {
 	next: '/npc next',
 	close: '/npc close',
 	'input-num': '/npc num <value>',
 	'input-str': '/npc str <text>'
 };
+const stripColor = s => s.replace(/\^[0-9a-fA-F]{6}/g, ''); // ^RRGGBB client color codes
 let lastNpcText = null;
+let lastNpcSig = null;
 client.on('dialog', e => {
+	// Only the NPC the operator is actively talking to (set by /npc talk). Map
+	// scripts push background dialogs (autoloot/announcer closes) on entry that
+	// aren't ours — ignore them so the REPL isn't spammed.
+	if (e.naid !== client.npc.getTarget()) {
+		return;
+	}
+	// Skip an event identical to the last (some scripts re-send the same state).
+	const sig = e.awaiting + '|' + e.text + '|' + e.options.join('');
+	if (sig === lastNpcSig) {
+		return;
+	}
+	lastNpcSig = sig;
+
 	if (e.text && e.text !== lastNpcText) {
 		lastNpcText = e.text;
-		log.event('[npc] ' + e.text.replace(/\^[0-9a-fA-F]{6}/g, '')); // strip ^RRGGBB color codes
+		log.event('[npc] ' + stripColor(e.text));
 	}
 	if (e.awaiting === 'menu' && e.options.length) {
-		log.event('[npc] menu: ' + e.options.map((o, i) => i + 1 + ') ' + o).join('   ') + '   (/npc choose <i>)');
+		const opts = e.options.map((o, i) => i + 1 + ') ' + stripColor(o)).join('   ');
+		log.event('[npc] menu: ' + opts + '   (/npc choose <i>, 255 = cancel)');
 	} else if (NPC_REPLY_HINT[e.awaiting]) {
 		log.event('[npc] awaiting → ' + NPC_REPLY_HINT[e.awaiting]);
 	}

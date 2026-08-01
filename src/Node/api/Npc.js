@@ -20,6 +20,13 @@ export class Npc extends EventEmitter {
 	constructor(npcState) {
 		super();
 		this._s = npcState;
+		this._target = 0; // naid of the NPC the operator last talked to (echo scope)
+	}
+
+	// The NPC we last initiated contact with — lets the REPL echo only that
+	// dialog and ignore background/announcer scripts pushed on map entry.
+	getTarget() {
+		return this._target;
 	}
 
 	getNaid() {
@@ -64,6 +71,7 @@ export class Npc extends EventEmitter {
 	 * @returns {{sent: boolean, naid: number}}
 	 */
 	talk(naid) {
+		this._target = naid;
 		const pkt = new PACKET.CZ.CONTACTNPC();
 		pkt.NAID = naid;
 		pkt.type = 1; // 1 = NPC (Aegis enum) — no warp/entity-click flow here
