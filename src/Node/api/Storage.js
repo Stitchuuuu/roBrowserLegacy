@@ -95,23 +95,42 @@ export class Storage extends EventEmitter {
 	/**
 	 * Shared gate → resolve source slot → build packet → send. `source` is the
 	 * state the item currently lives in (inventory for deposit, storage for
-	 * withdraw); `count` defaults to that slot's held stack.
+	 * withdraw); `count` defaults to that slot's held stack. Refuses unless the
+	 * resolved slot is actually held — otherwise a bad index/id would report a
+	 * bogus success and put a no-op move on the wire.
 	 */
-	_move(source, indexOrName, count, missReason, build) {
+	_move(source, target, count, missReason, build) {
 		if (!this._storage.isOpen()) {
 			return this._blocked('storage not open');
 		}
-		const index = typeof indexOrName === 'string' ? source.findByName(indexOrName) : Number(indexOrName);
-		if (index == null || Number.isNaN(index)) {
+		const index = this._resolve(source, target);
+		const slot = index == null ? null : this._slot(source, index);
+		if (!slot) {
 			return this._blocked(missReason);
 		}
-		const slot = this._slot(source, index);
-		const n = count != null ? count : slot ? slot.count : 1;
+		const n = count != null ? count : slot.count;
 		const pkt = build();
 		pkt.index = index;
 		pkt.count = n;
 		Network.sendPacket(pkt);
 		return { sent: true, index, count: n };
+	}
+
+	// Resolve a name / item id / slot index against `source` to a slot index. A
+	// number is tried as a held slot first, then as an item id (what /storage
+	// list and /inventory print); a string is a best-effort name.
+	_resolve(source, target) {
+		if (typeof target === 'string') {
+			return source.findByName(target);
+		}
+		const num = Number(target);
+		if (Number.isNaN(num)) {
+			return null;
+		}
+		if (this._slot(source, num)) {
+			return num;
+		}
+		return source.findByItid(num);
 	}
 
 	// Find a slot in a source's list() by index (StorageState has no get()).

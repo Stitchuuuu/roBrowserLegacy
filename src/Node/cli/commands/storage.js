@@ -1,5 +1,5 @@
 /**
- * /storage deposit <index|name> [count] | withdraw <index|name> [count] | close
+ * /storage list | deposit <index|itemId|name> [count] | withdraw … | close
  * — move items between inventory and an open kafra storage.
  */
 import { log } from '../../log.js';
@@ -20,15 +20,33 @@ function report(action, res) {
 
 export default {
 	name: 'storage',
-	usage: 'deposit <index|name> [count] | withdraw <index|name> [count] | close',
-	help: 'move items between inventory and open storage',
+	usage: 'list | deposit <index|itemId|name> [count] | withdraw <index|itemId|name> [count] | close',
+	help: 'list / move items between inventory and open storage',
 	run(ctx, args) {
 		const storage = ctx.client.storage;
 		const sub = args[0];
 		switch (sub) {
+			case 'list': {
+				if (!storage.isOpen()) {
+					log.event('storage not open');
+					return;
+				}
+				const items = storage.list();
+				if (!items.length) {
+					log.event('storage empty');
+					return;
+				}
+				items.sort((a, b) => a.index - b.index);
+				log.event(items.length + ' item(s) in storage (names unavailable headless):');
+				for (let i = 0, n = items.length; i < n; ++i) {
+					const it = items[i];
+					log.event('  index ' + it.index + '  itid ' + it.itid + ' ×' + it.count + ' · type ' + it.type);
+				}
+				return;
+			}
 			case 'deposit': {
 				if (args.length < 2) {
-					log.event('usage: /storage deposit <index|name> [count]');
+					log.event('usage: /storage deposit <index|itemId|name> [count]');
 					return;
 				}
 				const count = args[2] != null ? Number(args[2]) : undefined;
@@ -37,7 +55,7 @@ export default {
 			}
 			case 'withdraw': {
 				if (args.length < 2) {
-					log.event('usage: /storage withdraw <index|name> [count]');
+					log.event('usage: /storage withdraw <index|itemId|name> [count]');
 					return;
 				}
 				const count = args[2] != null ? Number(args[2]) : undefined;
@@ -48,7 +66,7 @@ export default {
 				report('close', storage.close());
 				return;
 			default:
-				log.event('usage: /storage deposit <index|name> [count] | withdraw <index|name> [count] | close');
+				log.event('usage: /storage deposit <index|itemId|name> [count] | withdraw <index|itemId|name> [count] | close');
 		}
 	}
 };

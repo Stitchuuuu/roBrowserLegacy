@@ -133,4 +133,17 @@ export class StorageState extends EventEmitter {
 		}
 		return null;
 	}
+
+	/**
+	 * @param {number} itid item template id (ITID)
+	 * @returns {?number} the first storage slot holding it, or null
+	 */
+	findByItid(itid) {
+		for (const index in this.byIndex) {
+			if (this.byIndex[index].itid === itid) {
+				return Number(index);
+			}
+		}
+		return null;
+	}
 }
