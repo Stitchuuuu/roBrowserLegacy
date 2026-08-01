@@ -38,6 +38,16 @@ export class InventoryState extends EventEmitter {
 		observePacket(PACKET.ZC.NORMAL_ITEMLIST3, pkt => this._onList(pkt.itemInfo || pkt.ItemInfo));
 		observePacket(PACKET.ZC.NORMAL_ITEMLIST4, pkt => this._onList(pkt.itemInfo || pkt.ItemInfo));
 
+		// The 2018+ split wrapper (0xb09) is what the server actually sends at
+		// PACKETVER 20211103 — one packet multiplexed by invType (0=inventory,
+		// 1=cart, 2=storage). Filter to inventory: _onList resets byIndex, so an
+		// unfiltered hook would let a cart/storage push clobber the inventory.
+		observePacket(PACKET.ZC.SPLIT_SEND_ITEMLIST_NORMAL, pkt => {
+			if (pkt.invType === 0) {
+				this._onList(pkt.itemInfo || pkt.ItemInfo);
+			}
+		});
+
 		observePacket(PACKET.ZC.ITEM_PICKUP_ACK, pkt => this._onPickup(pkt));
 		observePacket(PACKET.ZC.ITEM_PICKUP_ACK2, pkt => this._onPickup(pkt));
 		observePacket(PACKET.ZC.ITEM_PICKUP_ACK3, pkt => this._onPickup(pkt));

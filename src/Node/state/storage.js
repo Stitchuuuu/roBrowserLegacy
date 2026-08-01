@@ -31,6 +31,15 @@ export class StorageState extends EventEmitter {
 		observePacket(PACKET.ZC.STORE_NORMAL_ITEMLIST3, pkt => this._onList(pkt.itemInfo || pkt.ItemInfo));
 		observePacket(PACKET.ZC.STORE_NORMAL_ITEMLIST4, pkt => this._onList(pkt.itemInfo || pkt.ItemInfo));
 
+		// At PACKETVER 20211103 storage items arrive on the same 2018+ split
+		// wrapper (0xb09) as inventory, tagged invType 2. (The legacy hooks above
+		// stay for older servers.) _onList also flips `open` true via _onOpen.
+		observePacket(PACKET.ZC.SPLIT_SEND_ITEMLIST_NORMAL, pkt => {
+			if (pkt.invType === 2) {
+				this._onList(pkt.itemInfo || pkt.ItemInfo);
+			}
+		});
+
 		observePacket(PACKET.ZC.NOTIFY_STOREITEM_COUNTINFO, () => this._onOpen());
 
 		observePacket(PACKET.ZC.ADD_ITEM_TO_STORE, pkt => this._onAdd(pkt));
