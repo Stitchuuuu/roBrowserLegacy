@@ -182,6 +182,7 @@ function charPhase(cfg, charServers, chooseChar) {
 			log('warn', charServers.length + ' char servers, using first: ' + srv.name);
 		}
 		Session.ServerName = srv.name;
+		Session.CharServer = srv; // retained so returnToCharSelect can reconnect without re-login
 
 		// The char list may span several packets (NEO_UNION and/or _LIST/_LIST2
 		// chunks after a CHARLIST_NOTIFY/CHARLIST_REQ exchange). Aggregate, and
@@ -425,5 +426,51 @@ function mapPhase(cfg, mapInfo) {
 export async function runSession(cfg, password, opts = {}) {
 	const charServers = await loginPhase(cfg, password);
 	const mapInfo = await charPhase(cfg, charServers, opts.chooseChar);
+	return mapPhase(cfg, mapInfo);
+}
+
+/**
+ * Return to character-select on the live, already-authenticated session — no
+ * re-login, no password. Mirrors the browser's CZ.RESTART(type=1) →
+ * CharEngine.reload() path (MapEngine.js:819 / CharEngine.js:130): ask the map
+ * server to send us back, tear down the map socket, then re-run the char + map
+ * phases reusing the retained char-server descriptor and the Session auth
+ * tokens (AID/AuthCode/UserLevel/Sex/LangType — all still valid).
+ *
+ * @param {object} cfg
+ * @param {?function(Array): (number|Promise<number>)} [chooseChar] interactive picker
+ * @returns {Promise<{mapName: string}>}
+ */
+export async function returnToCharSelect(cfg, chooseChar) {
+	if (!Session.CharServer) {
+		throw sessionError(5, 'no retained char server — return to char-select needs a prior login');
+	}
+
+	// Ask the map server, and wait for its ack before tearing down.
+	await phase('restart', (resolve, reject) => {
+		hook(PACKET.ZC.RESTART_ACK, pkt => {
+			// type 1 = return to char-select; type 0 = respawn ("wait 10s").
+			if (pkt.type === 1) {
+				resolve();
+			} else {
+				reject(sessionError(7, 'restart refused — got type ' + pkt.type + ' (respawn), not char-select'));
+			}
+		});
+		hookNotifyBan(reject);
+		const pkt = new PACKET.CZ.RESTART();
+		pkt.type = 1;
+		Network.sendPacket(pkt);
+	});
+
+	// Close the map socket first (mirrors CharEngine.reload's Network.close) so
+	// the stale map ping loop doesn't run against a dead server while the char
+	// phase reconnects. The server may already have closed it after the ack.
+	try {
+		Network.close();
+	} catch {
+		// already closed
+	}
+
+	const mapInfo = await charPhase(cfg, [Session.CharServer], chooseChar);
 	return mapPhase(cfg, mapInfo);
 }

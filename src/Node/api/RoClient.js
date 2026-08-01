@@ -17,7 +17,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Session from 'Engine/SessionStorage.js';
 import { observePacket } from '../net/observe.js';
-import { runSession } from '../net/session.js';
+import { runSession, returnToCharSelect as sessionReturnToCharSelect } from '../net/session.js';
 import { PlayerState } from '../state/player.js';
 import { PartyState } from '../state/party.js';
 import { StatusState } from '../state/status.js';
@@ -178,6 +178,17 @@ export class RoClient extends EventEmitter {
 	 */
 	async connect(password, opts = {}) {
 		const result = await runSession(this._cfg, password, opts);
+		this.connected = true;
+		this.currentMap = result.mapName;
+		this.emit('connected', result);
+		return result;
+	}
+
+	// Return to char-select without re-login (CZ.RESTART type=1), re-entering
+	// map on the same authenticated session. ClientSession.returnToCharSelect
+	// wraps this with the auto-reconnect guard.
+	async returnToCharSelect(chooseChar) {
+		const result = await sessionReturnToCharSelect(this._cfg, chooseChar);
 		this.connected = true;
 		this.currentMap = result.mapName;
 		this.emit('connected', result);

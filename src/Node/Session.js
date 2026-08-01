@@ -86,6 +86,30 @@ export class ClientSession {
 		this.client.connected = false;
 	}
 
+	/**
+	 * Return to char-select and re-enter map on the live session, no password
+	 * (CZ.RESTART type=1). Guards the auto-reconnect like logout() does — the
+	 * RESTART + map-socket close would otherwise trip _onDrop into a full
+	 * re-login race — then re-arms routines like the reconnect path.
+	 *
+	 * @param {?function(Array): (number|Promise<number>)} [chooseChar] interactive picker
+	 * @returns {Promise<{mapName: string}>}
+	 */
+	async returnToCharSelect(chooseChar) {
+		this._suppressReconnect = true;
+		try {
+			const result = await this.client.returnToCharSelect(chooseChar);
+			this._suppressReconnect = false;
+			this._installReconnect();
+			this._rearmRoutines();
+			this.client.emit('reconnected', result);
+			return result;
+		} catch (err) {
+			this._suppressReconnect = false;
+			throw err;
+		}
+	}
+
 	_installReconnect() {
 		Network.onDisconnect = () => this._onDrop();
 	}

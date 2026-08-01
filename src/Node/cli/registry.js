@@ -7,6 +7,7 @@
  */
 import login from './commands/login.js';
 import logout from './commands/logout.js';
+import charselect from './commands/charselect.js';
 import status from './commands/status.js';
 import party from './commands/party.js';
 import skills from './commands/skills.js';
@@ -32,6 +33,7 @@ import help from './commands/help.js';
 const COMMANDS = [
 	login,
 	logout,
+	charselect,
 	status,
 	party,
 	skills,
