@@ -21,9 +21,18 @@
  * ZC.ADD_ITEM/ITEM_ADD. All six variants share `index`/`count`/`ITID`/
  * `result`; `result === 0` is success (mirrors Engine/MapEngine/Item.js's
  * onItemPickAnswer hook list).
+ *
+ * Consuming an item does NOT produce a delete packet: pc_useitem acks with
+ * clif_useitemack and then calls pc_delitem(…, type=1, …), whose `if(!(type&1))`
+ * gate suppresses clif_delitem (rathena src/map/pc.cpp:6534-6536 and :6120).
+ * ZC.USE_ITEM_ACK{,2} is therefore the only signal that a use landed — it
+ * carries the REMAINING count, so it is also the only thing that keeps a slot's
+ * count honest after a use. Mirrors Engine/MapEngine/Item.js:737-738, which
+ * hooks both variants; only ACK2 carries an AID to filter on.
  */
 import { EventEmitter } from 'node:events';
 import PACKET from 'Network/PacketStructure.js';
+import Session from 'Engine/SessionStorage.js';
 import { observePacket } from '../net/observe.js';
 
 export class InventoryState extends EventEmitter {
@@ -57,6 +66,9 @@ export class InventoryState extends EventEmitter {
 		observePacket(PACKET.ZC.ITEM_PICKUP_ACK8, pkt => this._onPickup(pkt));
 
 		observePacket(PACKET.ZC.DELETE_ITEM_FROM_BODY, pkt => this._onDelete(pkt.Index, pkt.Count));
+
+		observePacket(PACKET.ZC.USE_ITEM_ACK, pkt => this._onUse(pkt));
+		observePacket(PACKET.ZC.USE_ITEM_ACK2, pkt => this._onUse(pkt));
 		return this;
 	}
 
@@ -89,6 +101,26 @@ export class InventoryState extends EventEmitter {
 			};
 		}
 		this.emit('add', { index: pkt.index });
+	}
+
+	// `count` is what REMAINS after the use, and `result` is the server's ok/fail
+	// (a refused use acks with count 0 / result false — pc.cpp:6539). Only ACK2
+	// carries an AID; the older ACK has none, so filter only when it is present.
+	_onUse(pkt) {
+		if (pkt.AID != null && pkt.AID !== Session.AID) {
+			return;
+		}
+		const ok = !!pkt.result;
+		if (ok) {
+			const existing = this.byIndex[pkt.index];
+			if (existing) {
+				existing.count = pkt.count;
+				if (existing.count <= 0) {
+					delete this.byIndex[pkt.index];
+				}
+			}
+		}
+		this.emit('use', { index: pkt.index, count: pkt.count, ok });
 	}
 
 	_onDelete(index, count) {

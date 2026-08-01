@@ -28,6 +28,8 @@ import autoheal from './commands/autoheal.js';
 import homunbuff from './commands/homunbuff.js';
 import macro from './commands/macro.js';
 import routine from './commands/routine.js';
+import run from './commands/run.js';
+import stop from './commands/stop.js';
 import help from './commands/help.js';
 
 const COMMANDS = [
@@ -54,6 +56,8 @@ const COMMANDS = [
 	homunbuff,
 	macro,
 	routine,
+	run,
+	stop,
 	help
 ];
 

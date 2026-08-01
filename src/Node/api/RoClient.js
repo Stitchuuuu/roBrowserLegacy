@@ -139,6 +139,12 @@ export class RoClient extends EventEmitter {
 		this._inventoryState.on('list', () => this.emit('inventory', { reason: 'list' }));
 		this._inventoryState.on('add', e => this.emit('inventory', { reason: 'add', index: e.index }));
 		this._inventoryState.on('remove', e => this.emit('inventory', { reason: 'remove', index: e.index }));
+		// Using an item sends no delete packet (rathena pc.cpp:6534-6536 suppresses
+		// clif_delitem), so 'use' is the only confirmation an item use landed —
+		// `count` is what remains, `ok` the server's verdict.
+		this._inventoryState.on('use', e =>
+			this.emit('inventory', { reason: 'use', index: e.index, count: e.count, ok: e.ok })
+		);
 
 		this._storageState.on('open', () => this.emit('storage', { reason: 'open' }));
 		this._storageState.on('close', () => this.emit('storage', { reason: 'close' }));

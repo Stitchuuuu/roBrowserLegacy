@@ -11,9 +11,24 @@
  * satisfied (single-threaded JS, no race). No polling mode: the codebase is
  * event-driven (see routines/Routine.js).
  *
- * `opts.signal` (AbortSignal) is honoured but never *created* here — session 3
- * owns instant-abort; this only has to not preclude a signal handed in later.
+ * `opts.signal` (AbortSignal) is honoured but never *created* here — the macro
+ * loader (macro/loader.js) owns the controller; this only honours the signal.
  */
+
+/**
+ * Rejection message on abort. Exported so the one place that *produces* it and
+ * the places that *classify* it (macro/loader.js's clean-stop test, api/Bot.js's
+ * abortable sleep) share a single sentinel instead of a drifting literal.
+ */
+export const ABORTED = 'waitFor aborted';
+
+/**
+ * @param {*} err
+ * @returns {boolean} true when `err` is an abort rather than a timeout / failure
+ */
+export function isAborted(err) {
+	return !!err && err.message === ABORTED;
+}
 
 /**
  * @param {import('node:events').EventEmitter} emitter any tracker / façade / RoClient
@@ -29,7 +44,7 @@ export function waitFor(emitter, event, predicate = () => true, opts = {}) {
 	return new Promise((resolve, reject) => {
 		// Already aborted → reject without ever subscribing.
 		if (signal && signal.aborted) {
-			reject(new Error('waitFor aborted'));
+			reject(new Error(ABORTED));
 			return;
 		}
 
@@ -60,7 +75,7 @@ export function waitFor(emitter, event, predicate = () => true, opts = {}) {
 		};
 		const onAbort = () => {
 			cleanup();
-			reject(new Error('waitFor aborted'));
+			reject(new Error(ABORTED));
 		};
 
 		timer = setTimeout(() => {

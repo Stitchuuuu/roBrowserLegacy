@@ -27,6 +27,8 @@ import { Screen } from './cli/screen.js';
 import { startRepl } from './cli/repl.js';
 import { selectCharacter } from './cli/charselect.js';
 import { routineNames } from './routines/registry.js';
+import { stop as stopMacro } from './macro/loader.js';
+import { watchStopFile } from './macro/stopfile.js';
 import { wsUrl } from './transport/WsSocket.js';
 import { startDebugLog, logLine } from './debuglog.js';
 import { BUILD } from './version.js';
@@ -270,6 +272,10 @@ screen.setHistoryFile(path.resolve(process.cwd(), '.ro-node-history'));
 screen.mount();
 setSink((text, stream) => screen.write(text, stream));
 const ctx = startRepl({ screen, session, client, config: cfg });
+
+// Out-of-band macro kill switch, armed for the whole session (see
+// macro/stopfile.js): `echo > .ro-node-stop` stops a macro without the REPL.
+watchStopFile(stopMacro);
 
 // Storage has no client "open" packet — `open` flips on the kafra's first
 // item-list push. Surface that transition (and the close echo) so the

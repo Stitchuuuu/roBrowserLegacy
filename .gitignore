@@ -34,3 +34,6 @@ Config.local.js
 # headless Node client debug logs
 /node-logs/
 /.ro-node-history
+# operator-authored macros (/run) + its out-of-band stop drop
+/macros/
+/.ro-node-stop
