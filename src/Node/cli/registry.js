@@ -15,6 +15,11 @@ import buffs from './commands/buffs.js';
 import say from './commands/say.js';
 import whisper from './commands/whisper.js';
 import emote from './commands/emote.js';
+import move from './commands/move.js';
+import npc from './commands/npc.js';
+import useitem from './commands/useitem.js';
+import groundskill from './commands/groundskill.js';
+import storage from './commands/storage.js';
 import autobuff from './commands/autobuff.js';
 import autoheal from './commands/autoheal.js';
 import homunbuff from './commands/homunbuff.js';
@@ -33,6 +38,11 @@ const COMMANDS = [
 	say,
 	whisper,
 	emote,
+	move,
+	npc,
+	useitem,
+	groundskill,
+	storage,
 	autobuff,
 	autoheal,
 	homunbuff,

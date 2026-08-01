@@ -92,4 +92,55 @@ export class Skill extends EventEmitter {
 		this.emit('cast', cast);
 		return { sent: true, ...cast };
 	}
+
+	/**
+	 * Cast a ground-targeted skill at a map cell. Same after-cast gate as
+	 * doSkill (ZC.USESKILL_ACK* doesn't distinguish target kind), and the same
+	 * 'cast' event — just with { x, y } in place of target/targetKind.
+	 *
+	 * Three-tier packet pick: at cyro's PACKETVER (20211103, past both
+	 * thresholds) the correct class is USE_SKILL_TOGROUND3 (0xaf4), not …2 —
+	 * the browser reference adds the third tier at 20190904 (MapEngine/Skill.js).
+	 *
+	 * @param {string|number} name skill alias / const name / SKID
+	 * @param {number} x target cell
+	 * @param {number} y target cell
+	 * @param {number} [level] override; defaults to the known/learned level
+	 * @returns {{sent: boolean, reason?: string, skid?: number, level?: number, x?: number, y?: number}}
+	 */
+	castGround(name, x, y, level) {
+		const resolved = resolveSkill(name);
+		if (!resolved) {
+			this.emit('blocked', { name, reason: 'unknown skill' });
+			return { sent: false, reason: 'unknown skill' };
+		}
+
+		const skid = resolved.skid;
+		if (!this._delay.canCast(skid)) {
+			const reason = 'after-cast delay (' + this._delay.remaining(skid) + 'ms)';
+			this.emit('blocked', { skid, reason });
+			return { sent: false, reason };
+		}
+
+		const known = this._skills.get(skid);
+		const lv = level || (known && known.level) || 1;
+
+		let pkt;
+		if (PACKETVER.value >= 20190904) {
+			pkt = new PACKET.CZ.USE_SKILL_TOGROUND3(); // .unknown stays 0 (browser ref never sets it)
+		} else if (PACKETVER.value >= 20180307) {
+			pkt = new PACKET.CZ.USE_SKILL_TOGROUND2();
+		} else {
+			pkt = new PACKET.CZ.USE_SKILL_TOGROUND();
+		}
+		pkt.selectedLevel = lv;
+		pkt.SKID = skid;
+		pkt.xPos = x;
+		pkt.yPos = y;
+		Network.sendPacket(pkt);
+
+		const cast = { skid, name: resolved.name, level: lv, x, y };
+		this.emit('cast', cast);
+		return { sent: true, ...cast };
+	}
 }

@@ -111,4 +111,17 @@ export class StorageState extends EventEmitter {
 		}
 		return out;
 	}
+
+	/**
+	 * @param {string} name best-effort — matches only if `name` was populated
+	 * @returns {?number} storage slot index, or null if not found
+	 */
+	findByName(name) {
+		for (const index in this.byIndex) {
+			if (this.byIndex[index].name === name) {
+				return Number(index);
+			}
+		}
+		return null;
+	}
 }

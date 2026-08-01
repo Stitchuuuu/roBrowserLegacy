@@ -32,7 +32,11 @@ import { NpcState } from '../state/npc.js';
 import { Player } from './Player.js';
 import { Party } from './Party.js';
 import { Skill } from './Skill.js';
+import { Npc } from './Npc.js';
+import { Item } from './Item.js';
+import { Storage } from './Storage.js';
 import { Messages } from './messages.js';
+import { waitFor } from '../waitFor.js';
 import { logWhisper } from '../net/whisperlog.js';
 import { alert } from '../net/notify.js';
 
@@ -70,12 +74,12 @@ export class RoClient extends EventEmitter {
 		this.player = new Player(this._playerState);
 		this.party = new Party(this._partyState, this._statusState);
 		this.skill = new Skill(this._skillState, this._delayState, this._partyState);
+		this.npc = new Npc(this._npcState);
+		this.inventory = new Item(this._inventoryState);
+		this.storage = new Storage(this._storageState, this._inventoryState);
 		// No façade of its own — the tracker's read API is already the friendly one.
 		this.homun = this._homunState;
 		this.entities = this._entityState;
-		this.inventory = this._inventoryState;
-		this.storage = this._storageState;
-		this.npc = this._npcState;
 
 		this._wire();
 	}
@@ -145,7 +149,14 @@ export class RoClient extends EventEmitter {
 		this._messages.on('emote', e => this.emit('emote', e));
 
 		this.skill.on('cast', e => this.emit('cast', e));
+		// One consolidated stream for the gated senders' refusals (skill / npc /
+		// item / storage). Player.moveTo's benign 'already there' is a plain
+		// { sent:false } return, not a 'blocked' event — Player stays a read-view
+		// class, not an emitter.
 		this.skill.on('blocked', e => this.emit('blocked', e));
+		this.npc.on('blocked', e => this.emit('blocked', e));
+		this.inventory.on('blocked', e => this.emit('blocked', e));
+		this.storage.on('blocked', e => this.emit('blocked', e));
 
 		// Preserve boot's onDisconnect (process.exit path) while surfacing
 		// the event to façade listeners first.
@@ -171,6 +182,21 @@ export class RoClient extends EventEmitter {
 		this.currentMap = result.mapName;
 		this.emit('connected', result);
 		return result;
+	}
+
+	/**
+	 * Wait for one of this client's own flat events to fire with a matching
+	 * payload — the common case (waiting on 'change' | 'dialog' | 'inventory' |
+	 * 'storage' | 'entity' …). Delegates to the standalone waitFor; a caller
+	 * wanting "already true, or next" checks the synchronous tracker first.
+	 *
+	 * @param {string} event
+	 * @param {function(*): boolean} [predicate]
+	 * @param {{timeout?: number, signal?: AbortSignal}} [opts]
+	 * @returns {Promise<*>}
+	 */
+	waitFor(event, predicate, opts) {
+		return waitFor(this, event, predicate, opts);
 	}
 
 	// Root convenience surface (sub-facades carry the detail).
