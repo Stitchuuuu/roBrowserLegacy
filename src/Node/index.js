@@ -312,8 +312,10 @@ client.on('dialog', e => {
 		log.event('[npc] ' + stripColor(e.text));
 	}
 	if (e.awaiting === 'menu' && e.options.length) {
-		const opts = e.options.map((o, i) => i + 1 + ') ' + stripColor(o)).join('   ');
-		log.event('[npc] menu: ' + opts + '   (/npc choose <i>, 255 = cancel)');
+		log.event('[npc] menu (/npc choose <i>, 255 = cancel):');
+		for (let i = 0, n = e.options.length; i < n; ++i) {
+			log.event('  ' + (i + 1) + ') ' + stripColor(e.options[i]));
+		}
 	} else if (NPC_REPLY_HINT[e.awaiting]) {
 		log.event('[npc] awaiting → ' + NPC_REPLY_HINT[e.awaiting]);
 	}
