@@ -47,11 +47,15 @@ export default {
 		log.event(rows.length + ' entit' + (rows.length === 1 ? 'y' : 'ies') + ':');
 		for (let i = 0, n = rows.length; i < n; ++i) {
 			const e = rows[i];
+			const label = labelOf(e.objecttype);
+			// NPC block id doubles as the NAID for /npc talk — label it as such.
 			log.event(
-				'  gid ' +
+				'  ' +
+					(label === 'NPC' ? 'naid' : 'gid') +
+					' ' +
 					e.gid +
 					'  ' +
-					labelOf(e.objecttype) +
+					label +
 					(e.name ? ' "' + e.name + '"' : '') +
 					' · ' +
 					e.x +

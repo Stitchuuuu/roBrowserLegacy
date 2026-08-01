@@ -282,6 +282,29 @@ client.on('storage', e => {
 	}
 });
 
+// Echo NPC dialog: the reply to /npc talk arrives async on the 'dialog' event,
+// so without this the REPL only shows "npc talk sent" and never the NPC's line.
+// Every transition re-emits the full text, so print it only when it changes;
+// always show what reply the dialog is waiting for.
+const NPC_REPLY_HINT = {
+	next: '/npc next',
+	close: '/npc close',
+	'input-num': '/npc num <value>',
+	'input-str': '/npc str <text>'
+};
+let lastNpcText = null;
+client.on('dialog', e => {
+	if (e.text && e.text !== lastNpcText) {
+		lastNpcText = e.text;
+		log.event('[npc] ' + e.text.replace(/\^[0-9a-fA-F]{6}/g, '')); // strip ^RRGGBB color codes
+	}
+	if (e.awaiting === 'menu' && e.options.length) {
+		log.event('[npc] menu: ' + e.options.map((o, i) => i + 1 + ') ' + o).join('   ') + '   (/npc choose <i>)');
+	} else if (NPC_REPLY_HINT[e.awaiting]) {
+		log.event('[npc] awaiting → ' + NPC_REPLY_HINT[e.awaiting]);
+	}
+});
+
 log.event('REPL ready (build ' + BUILD + ') — /help for commands');
 
 // Direct-launch: start the routine alongside the live REPL.
