@@ -245,7 +245,7 @@ for (;;) {
 	try {
 		const result = await session.login(password, connectOpts);
 		persistLogin(cfg);
-		log.info('CONNECTED — in map ' + result.mapName);
+		log.info('CONNECTED — ' + (Session.Character ? Session.Character.name + ' ' : '') + 'in map ' + result.mapName);
 		break;
 	} catch (err) {
 		// Login refused (exit 4 — wrong password / unknown account): re-prompt the

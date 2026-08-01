@@ -9,6 +9,7 @@
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
+import Session from 'Engine/SessionStorage.js';
 
 export class Player {
 	constructor(state) {
@@ -45,6 +46,11 @@ export class Player {
 	}
 	get stats() {
 		return this._s.stats;
+	}
+	// Selected character name — off the Session singleton (the map lives on
+	// RoClient.currentMap, not here).
+	get name() {
+		return (Session.Character && Session.Character.name) || '';
 	}
 
 	on(event, cb) {
