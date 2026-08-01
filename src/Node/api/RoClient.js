@@ -50,7 +50,18 @@ export class RoClient extends EventEmitter {
 		// Keep the current map live so routines can gate on "same map". Both
 		// warp acks carry it — MAPMOVE within a zone, SERVERMOVE across zones.
 		// Emit 'map' on a real change so the REPL/trace records every warp.
-		observePacket(PACKET.ZC.NPCACK_MAPMOVE, pkt => this._onWarp(pkt.mapName, pkt.xPos, pkt.yPos));
+		observePacket(PACKET.ZC.NPCACK_MAPMOVE, pkt => {
+			// A live warp needs the same load-end ack as the initial map enter,
+			// or the server keeps the character off-map (rAthena: sd->prev stays
+			// null until CZ.NOTIFY_ACTORINIT) and silently drops its moves, chat
+			// and entity spawns — the browser does this in MapEngine.onMapChange.
+			// Guarded on `connected` so it doesn't race the handshake's own ack
+			// (mapPhase) during login / charselect re-entry.
+			if (this.connected) {
+				Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+			}
+			this._onWarp(pkt.mapName, pkt.xPos, pkt.yPos);
+		});
 		observePacket(PACKET.ZC.NPCACK_SERVERMOVE, pkt => this._onWarp(pkt.mapName, pkt.xPos, pkt.yPos));
 
 		// Trackers — install() taps observePacket now, before connect().
