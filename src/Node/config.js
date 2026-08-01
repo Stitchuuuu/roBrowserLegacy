@@ -203,15 +203,11 @@ export function rawPrompt(label, opts = {}) {
 			} else if (ch === '\u007f' || ch === '\b') {
 				if (buf.length) {
 					buf = buf.slice(0, -1);
-					if (!mask) {
-						stdout.write('\b \b');
-					}
+					stdout.write('\b \b');
 				}
 			} else {
 				buf += ch;
-				if (!mask) {
-					stdout.write(ch);
-				}
+				stdout.write(mask ? '*'.repeat(ch.length) : ch);
 			}
 		}
 
