@@ -130,4 +130,17 @@ export class InventoryState extends EventEmitter {
 		}
 		return null;
 	}
+
+	/**
+	 * @param {number} itid item template id (ITID) — the id `/inventory` prints
+	 * @returns {?number} the first slot holding it, or null
+	 */
+	findByItid(itid) {
+		for (const index in this.byIndex) {
+			if (this.byIndex[index].itid === itid) {
+				return Number(index);
+			}
+		}
+		return null;
+	}
 }

@@ -53,14 +53,23 @@ export class Item extends EventEmitter {
 	}
 
 	/**
-	 * Use a consumable by inventory slot index, or by name (best-effort — the
-	 * name lookup can legitimately miss even for a held item).
+	 * Use a consumable by inventory slot index, item id (ITID), or name. A number
+	 * is tried as a held slot first, then as an item id (the id `/inventory`
+	 * prints, e.g. 602 = Butterfly Wing); name is best-effort — InventoryState's
+	 * `name` is usually empty headless, so it can miss even for a held item.
 	 *
-	 * @param {number|string} indexOrName
+	 * @param {number|string} target
 	 * @returns {{sent: boolean, reason?: string, index?: number}}
 	 */
-	use(indexOrName) {
-		const index = typeof indexOrName === 'string' ? this._s.findByName(indexOrName) : indexOrName;
+	use(target) {
+		let index;
+		if (typeof target === 'string') {
+			index = this._s.findByName(target);
+		} else if (this._s.get(target)) {
+			index = target; // a held slot
+		} else {
+			index = this._s.findByItid(target); // not a slot — read the number as an item id
+		}
 		if (index == null || !this._s.get(index)) {
 			const reason = 'not in inventory';
 			this.emit('blocked', { reason });

@@ -1,18 +1,18 @@
 /**
- * /useitem <index|name> — use a consumable from inventory.
+ * /useitem <index|itemId|name> — use a consumable from inventory.
  */
 import { log } from '../../log.js';
 
 export default {
 	name: 'useitem',
-	usage: '<index|name>',
-	help: 'use a consumable from inventory (by slot index or best-effort name)',
+	usage: '<index|itemId|name>',
+	help: 'use a consumable (by slot index, item id, or best-effort name)',
 	run(ctx, args) {
 		if (!args.length) {
-			log.event('usage: /useitem <index|name>');
+			log.event('usage: /useitem <index|itemId|name>  (see /inventory)');
 			return;
 		}
-		// A numeric token is a slot index; anything else is a (best-effort) name.
+		// A number is a slot index or item id (use() tries both); else a name.
 		const arg = args.join(' ');
 		const n = Number(arg);
 		const target = Number.isNaN(n) ? arg : n;
