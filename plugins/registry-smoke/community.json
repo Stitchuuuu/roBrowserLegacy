@@ -1,0 +1,7 @@
+{
+  "name": "Community",
+  "plugins": [
+    { "slug": "hello", "name": "Hello (community dup — should LOSE to Officiel)", "version": "8.0.0", "url": "/plugins/hello/hello.esm.js" },
+    { "slug": "world", "name": "World", "version": "1.0.0", "url": "/plugins/hello/world.esm.js", "description": "Smoke: says world" }
+  ]
+}

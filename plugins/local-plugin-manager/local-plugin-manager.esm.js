@@ -23,6 +23,29 @@
 import { createPluginStore } from './plugin-store.js';
 import { dump, load, summarize } from './backup.js';
 
+/**
+ * Normalize `pars.registries` into `[{ label, url }]` (config order).
+ *   - falsy / '' / {}         → []  (local-only: drag&drop + file-picker only)
+ *   - 'https://…'             → [{ label: null, url }]
+ *   - { LocalName: url, … }   → [{ label, url }] in insertion order
+ * The local map key becomes the display label (else the listing's own `name`).
+ */
+function normalizeRegistries(registries) {
+	if (!registries) { return []; }
+	if (typeof registries === 'string') {
+		return registries ? [{ label: null, url: registries }] : [];
+	}
+	if (typeof registries === 'object') {
+		const out = [];
+		for (const label in registries) {
+			const url = registries[label];
+			if (url) { out.push({ label, url: String(url) }); }
+		}
+		return out;
+	}
+	return [];
+}
+
 export default {
 	name: 'LocalPluginManager',
 	version: '0.1.0',
@@ -47,7 +70,10 @@ export default {
 			error(...a) { console.error(...a); },
 		};
 
-		const store = createPluginStore({ W: window, PluginManager: PluginHost, logger });
+		// `pars.registries` (from the ROConfig.plugins `{ path, pars }` entry) declares
+		// the plugin registries. Empty ⇒ local-only (drag&drop + file-picker install).
+		const registries = normalizeRegistries(pars && pars.registries);
+		const store = createPluginStore({ W: window, PluginManager: PluginHost, logger, registries });
 
 		// ── ChatBox output / error surfacing ──────────────────────────────────
 		// Pre-mount (login/char-select) the ChatBox buffers but never renders, so
@@ -88,8 +114,9 @@ export default {
 
 		// ── Rich exported API (delegates to the store, fires onChange) ─────────
 		const LPM = {
-			list: (origin) => store.list(origin),
+			list: () => store.list(),
 			listInstalled: () => store.listInstalled(),
+			registries: () => registries,
 			async installFromUrl(url, opts) {
 				const slug = slugFromUrl(url);
 				const r = await store.install(slug, { ...(opts || {}), sourceUrl: url });
@@ -98,6 +125,15 @@ export default {
 			},
 			async installFromSource(source, name, opts) {
 				const r = await store.installFromSource(source, name, opts);
+				notifyChange();
+				return r;
+			},
+			// Read a dropped / picked File and install it (derives the slug from the
+			// filename). Shared by the drag&drop handler and the UI's upload button.
+			async installFromFile(file) {
+				const source = await file.text();
+				const slug = stripExt(file.name);
+				const r = await store.installFromSource(source, slug);
 				notifyChange();
 				return r;
 			},
@@ -217,10 +253,8 @@ export default {
 			for (let i = 0; i < files.length; i++) {
 				const file = files[i];
 				try {
-					const source = await file.text();
-					const slug = stripExt(file.name);
-					const r = await LPM.installFromSource(source, slug);
-					report(`PM: installed '${slug}' (${r.pluginName} v${r.version || '?'}) from drop`, false);
+					const r = await LPM.installFromFile(file);
+					report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'}) from drop`, false);
 				} catch (err) {
 					report(`PM: drop install failed for ${file.name} — ${err.message}`, true);
 				}

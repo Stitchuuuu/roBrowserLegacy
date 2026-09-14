@@ -28,11 +28,27 @@
 
 const DB_NAME = 'roframework-plugins'
 const STORE = 'plugins'
-const DEFAULT_ORIGIN = 'http://localhost:6980'
-// Discovery (GET /index.json) must fail fast when the serve is down — the Plugin
-// Manager renders installed plugins first, then merges this. A long wait here
-// would only delay the "serve down?" hint, never the installed list.
-const DISCOVERY_TIMEOUT_MS = 4000
+// Registry fetches (GET a listing url) must fail fast when a registry is down —
+// the Plugin Manager renders installed plugins first, then merges these. A long
+// wait here would only delay the merge, never the installed list.
+const REGISTRY_TIMEOUT_MS = 4000
+
+/**
+ * Compare two dotted version strings numerically (`'1.2.0'` vs `'1.10'`).
+ * Returns >0 if `a` is newer, <0 if older, 0 if equal / unparseable. A missing
+ * segment counts as 0, so `'1.2'` === `'1.2.0'`.
+ */
+function cmpVersion(a, b) {
+	const pa = String(a || '').split('.')
+	const pb = String(b || '').split('.')
+	const n = Math.max(pa.length, pb.length)
+	for (let i = 0; i < n; i++) {
+		const na = parseInt(pa[i], 10) || 0
+		const nb = parseInt(pb[i], 10) || 0
+		if (na !== nb) return na - nb
+	}
+	return 0
+}
 
 /**
  * Open (and lazily create) the IndexedDB database. Object store `plugins`,
@@ -85,8 +101,15 @@ async function dbDelete(W, name)  { return tx(W, 'readwrite', s => reqPromise(s.
  * Build the LPM store bound to a window `W` and a `PluginManager` (the native
  * runtime host `{ register, unregister, list }`). Called once from the
  * LocalPluginManager plugin's init().
+ *
+ * @param {object}   opts
+ * @param {Window}   opts.W
+ * @param {object}   opts.PluginManager  runtime host { register, unregister, list }
+ * @param {object}   [opts.logger]
+ * @param {Array<{label: string|null, url: string}>} [opts.registries]  normalized
+ *        plugin registries (from `pars.registries`). Empty ⇒ local-only mode.
  */
-export function createPluginStore({ W, PluginManager, logger }) {
+export function createPluginStore({ W, PluginManager, logger, registries = [] }) {
 	const log = (logger && logger.log)  || ((...a) => console.log(...a))
 	const warn = (logger && logger.warn) || ((...a) => console.warn(...a))
 	const err  = (logger && logger.error) || ((...a) => console.error(...a))
@@ -122,7 +145,7 @@ export function createPluginStore({ W, PluginManager, logger }) {
 		const blob = new Blob([source], { type: 'application/javascript' })
 		const blobUrl = URL.createObjectURL(blob)
 		try {
-			const mod = await import(blobUrl)
+			const mod = await import(/* @vite-ignore */ blobUrl)
 			if (!mod || !mod.default || typeof mod.default.name !== 'string') {
 				throw new Error('[plugin-store] module has no valid default export ({ name, init, ... })')
 			}
@@ -134,19 +157,62 @@ export function createPluginStore({ W, PluginManager, logger }) {
 	}
 
 	/**
-	 * Discovery — GET /index.json from the serve. Returns the `plugins` array
-	 * or `[]` on failure. In the native context there is no dist serve, so this
-	 * simply yields `[]` (install goes by explicit URL / dropped source instead).
+	 * Fetch one registry listing — GET `registryUrl` → `{ name, plugins }`.
+	 * The listing declares its own `name` and an array of installable entries
+	 * `{ slug, name, version, url, description? }`. Fails fast (short timeout) and
+	 * returns `{ name: null, plugins: [] }` on any error so one dead registry never
+	 * blocks the others.
 	 */
-	async function available(origin = DEFAULT_ORIGIN) {
+	async function available(registryUrl) {
 		try {
-			const json = await fetchText(`${origin}/index.json`, DISCOVERY_TIMEOUT_MS)
+			const json = await fetchText(registryUrl, REGISTRY_TIMEOUT_MS)
 			const data = JSON.parse(json)
-			return Array.isArray(data.plugins) ? data.plugins : []
+			return {
+				name: typeof data.name === 'string' ? data.name : null,
+				plugins: Array.isArray(data.plugins) ? data.plugins : [],
+			}
 		} catch (e) {
-			warn('[plugin-store] available() failed:', e.message)
-			return []
+			warn(`[plugin-store] registry fetch failed (${registryUrl}):`, e.message)
+			return { name: null, plugins: [] }
 		}
+	}
+
+	/** Host of a URL (registry-name fallback when neither map key nor JSON name). */
+	function urlHost(url) {
+		try { return new W.URL(url).host } catch (_e) { return String(url) }
+	}
+
+	/**
+	 * Fetch ALL configured registries in parallel, tag each plugin entry with its
+	 * resolved registry name (map label ?? listing `name` ?? url host), and merge
+	 * into one array deduped by slug — the FIRST registry (config order) that lists
+	 * a slug wins. Yields `[]` in local-only mode (no registries). Private.
+	 */
+	async function fetchRegistries() {
+		if (!registries.length) return []
+		const listings = await Promise.all(registries.map(r => available(r.url)))
+		const bySlug = {}
+		const order = []
+		for (let i = 0; i < registries.length; i++) {
+			const reg = registries[i]
+			const listing = listings[i]
+			const regName = reg.label || listing.name || urlHost(reg.url)
+			const entries = listing.plugins
+			for (let j = 0; j < entries.length; j++) {
+				const e = entries[j]
+				if (!e || !e.slug || bySlug[e.slug]) continue   // first-wins dedupe
+				bySlug[e.slug] = {
+					slug: e.slug,
+					name: e.name || null,
+					version: e.version || null,
+					url: e.url || null,
+					description: e.description || null,
+					registry: regName,
+				}
+				order.push(e.slug)
+			}
+		}
+		return order.map(slug => bySlug[slug])
 	}
 
 	/**
@@ -158,10 +224,12 @@ export function createPluginStore({ W, PluginManager, logger }) {
 	 * @param {object} [opts] { sourceUrl?, debug?, origin? }
 	 */
 	async function install(name, opts = {}) {
-		const origin = opts.origin || DEFAULT_ORIGIN
 		const debug = !!opts.debug
 		const variant = debug ? '.debug.esm.js' : '.esm.js'
-		const sourceUrl = opts.sourceUrl || `${origin}/plugins/${name}${variant}`
+		// `installFromUrl` always supplies `sourceUrl`; the `opts.origin` form builds
+		// `<origin>/plugins/<slug>` for a serve-relative install (no default origin).
+		const sourceUrl = opts.sourceUrl || (opts.origin ? `${opts.origin}/plugins/${name}${variant}` : null)
+		if (!sourceUrl) throw new Error(`[plugin-store] install '${name}': no sourceUrl (and no opts.origin)`)
 
 		log(`[plugin-store] install '${name}' from ${sourceUrl}`)
 		const source = await fetchText(sourceUrl)
@@ -233,32 +301,52 @@ export function createPluginStore({ W, PluginManager, logger }) {
 	}
 
 	/**
-	 * Merge IndexedDB (installed) with serve discovery (available). Each entry :
-	 * `{ name, version, installed, enabled, available, debug }`.
+	 * Merge IndexedDB (installed) with the registry listings. Installed rows keep
+	 * their `available:false` shape (same as `listInstalled()`) plus `url`/`registry`
+	 * from the registry and `updateAvailable` (a registry lists a newer version).
+	 * Registry-only entries render as installable rows (`installed:false`,
+	 * `available:true`). In local-only mode this equals `listInstalled()`.
 	 */
-	async function list(origin = DEFAULT_ORIGIN) {
-		const [installed, avail] = await Promise.all([
+	async function list() {
+		const [installed, registryEntries] = await Promise.all([
 			listInstalled(),
-			available(origin),
+			fetchRegistries(),
 		])
-		const byName = new Map()
-		for (const entry of installed) {
-			byName.set(entry.name, entry)
+		const bySlug = {}
+		const order = []
+		for (let i = 0; i < installed.length; i++) {
+			const entry = installed[i]
+			bySlug[entry.name] = entry
+			order.push(entry.name)
 		}
-		for (const a of avail) {
-			const existing = byName.get(a.slug)
-			if (existing) { existing.available = true; if (!existing.version) existing.version = a.version }
-			else byName.set(a.slug, {
-				name: a.slug,
-				pluginName: a.name || null,
-				version: a.version || null,
-				installed: false,
-				enabled: false,
-				debug: false,
-				available: true,
-			})
+		for (let i = 0; i < registryEntries.length; i++) {
+			const a = registryEntries[i]
+			const existing = bySlug[a.slug]
+			if (existing) {
+				existing.available = true
+				existing.url = a.url
+				existing.registry = a.registry
+				// Compare against the INSTALLED version before applying the display
+				// fallback below (else a null installed version compares equal to itself).
+				existing.updateAvailable = !!existing.version && cmpVersion(a.version, existing.version) > 0
+				if (!existing.version) existing.version = a.version
+			} else {
+				bySlug[a.slug] = {
+					name: a.slug,
+					pluginName: a.name || null,
+					version: a.version || null,
+					installed: false,
+					enabled: false,
+					debug: false,
+					available: true,
+					url: a.url,
+					registry: a.registry,
+					updateAvailable: false,
+				}
+				order.push(a.slug)
+			}
 		}
-		return Array.from(byName.values())
+		return order.map(slug => bySlug[slug])
 	}
 
 	/**
@@ -408,5 +496,5 @@ export function createPluginStore({ W, PluginManager, logger }) {
 		return { updated, failed, results }
 	}
 
-	return { list, listInstalled, available, install, installFromSource, bootLoad, uninstall, disable, enable, update, refresh, refreshAll, DEFAULT_ORIGIN }
+	return { list, listInstalled, install, installFromSource, bootLoad, uninstall, disable, enable, update, refresh, refreshAll }
 }

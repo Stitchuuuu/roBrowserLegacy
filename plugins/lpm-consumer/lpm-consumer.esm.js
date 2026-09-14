@@ -8,6 +8,7 @@
  * isn't mounted yet at plugin-init time. Zero imports, pure DI.
  */
 
+/** @type {import('../native-manager.d.ts').NativePlugin} */
 export default {
 	name: 'LpmConsumer',
 	deps: ['LocalPluginManager'],
