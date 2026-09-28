@@ -167068,8 +167068,8 @@ var init_PacketStructure = __esmMin((() => {
 		return pkt_buf;
 	};
 	PACKET.ZC.ACK_BAN_GUILD_DELNAME = function PACKET_ZC_ACK_BAN_GUILD_DELNAME(fp, end) {
-		this.GID = fp.readULong();
 		this.reasonDesc = fp.readString(40);
+		this.GID = fp.readULong();
 	};
 	PACKET.ZC.ACK_BAN_GUILD_DELNAME.size = 46;
 	PACKET.ZC.ACK_LEAVE_GUILD_DELNAME = function PACKET_ZC_ACK_LEAVE_GUILD_DELNAME(fp, end) {
@@ -228766,6 +228766,29 @@ function _hasPendingPositions() {
 	return false;
 }
 /**
+* Helper: take back the queued grades, putting their rows on the server's
+*
+* Dropping the queue is not enough: the row was moved to the picked grade when
+* it was queued, so forgetting the queue would leave that grade on show as
+* though the server had agreed to it - and the grade guard would then refuse to
+* queue it a second time, the row already reading as the value asked for.
+* @see docs/reference/guild/grade-change.md
+*/
+function _cancelPendingPositions() {
+	if (_root$13(Guild)) for (const GID in _pendingPositions) {
+		const pending = _pendingPositions[GID];
+		for (let i = 0, count = _members.length; i < count; ++i) {
+			const member = _members[i];
+			if (member.AID === pending.AID && member.GID === pending.GID) {
+				member.GPositionID = pending.previousID;
+				Guild.setMember(member);
+				break;
+			}
+		}
+	}
+	_clearPendingPositions();
+}
+/**
 * Helper: put the Positions tab back to what the server last sent
 *
 * Both the queued edits and the flag that keeps them are dropped together:
@@ -228774,9 +228797,13 @@ function _hasPendingPositions() {
 * @see docs/reference/guild/grade-change.md
 */
 function _resetPositionsTab() {
-	_clearPendingPositions();
+	_cancelPendingPositions();
 	_positionsDirty = false;
 	_positionsSelected = 0;
+	if (_root$13(Guild)) {
+		_hideApplyButton();
+		Guild.updatePositionView();
+	}
 }
 /**
 * Helper: put the Info tab back to the values its markup ships
@@ -229207,7 +229234,14 @@ function onValidate() {
 	switch (activeTab) {
 		case "members": {
 			const list = [];
-			for (const GID in _pendingPositions) list.push(_pendingPositions[GID]);
+			for (const GID in _pendingPositions) {
+				const pending = _pendingPositions[GID];
+				list.push({
+					AID: pending.AID,
+					GID: pending.GID,
+					positionID: pending.positionID
+				});
+			}
 			if (!list.length) return;
 			Guild.onChangeMemberPosRequest(list);
 			_clearPendingPositions();
@@ -229309,7 +229343,7 @@ function updateMemberSort(root, activeTab) {
 		});
 	}
 }
-var ACCESS_UNKNOWN, TAB_MEMBERS, TAB_POSITIONS, INFO_BLANK_CELLS, INFO_ZERO_CELLS, AccessTypeBit, Guild, _memberViewTemplate, _positionViewTemplate, _expelViewTemplate, _noticeSubjectTemplate, _noticeBodyTemplate, _notice, _positions, _members, _skills, _pendingPositions, _positionsDirty, _positionsSelected, _sentPayRates, GUILD_PERM_STORAGE, PERMISSION_COLUMNS, GUILD_LEVEL_MAX, EMBLEM_SIDE, _btnIncSkillTemplate, _skpoints, _btnLevelUp, _totalExp, _guildAccess, _checkbox_off, _checkbox_on, _hasMemo, GUILD_CONFIG, PORTRAIT_BOX, renderMemberFaces, Guild_default;
+var ACCESS_UNKNOWN, TAB_MEMBERS, TAB_POSITIONS, INFO_BLANK_CELLS, INFO_ZERO_CELLS, AccessTypeBit, Guild, _memberViewTemplate, _positionViewTemplate, _expelViewTemplate, _noticeSubjectTemplate, _noticeBodyTemplate, _notice, _positions, _members, _skills, _pendingPositions, _positionsDirty, _positionsSelected, _sentPayRates, GUILD_PERM_STORAGE, PERMISSION_COLUMNS, GUILD_LEVEL_MAX, EMBLEM_SIDE, _btnIncSkillTemplate, _skpoints, _btnLevelUp, _totalExp, _guildAccess, _accessRequested, _checkbox_off, _checkbox_on, _hasMemo, GUILD_CONFIG, PORTRAIT_BOX, renderMemberFaces, Guild_default;
 var init_Guild$1 = __esmMin((() => {
 	init_DBManager();
 	init_SkillInfo();
@@ -229386,6 +229420,7 @@ var init_Guild$1 = __esmMin((() => {
 	_skpoints = 0;
 	_totalExp = 0;
 	_guildAccess = ACCESS_UNKNOWN;
+	_accessRequested = false;
 	_hasMemo = false;
 	GUILD_CONFIG = {
 		memberListSort: "always",
@@ -229626,6 +229661,7 @@ var init_Guild$1 = __esmMin((() => {
 		_skills.length = 0;
 		_skpoints = 0;
 		_guildAccess = ACCESS_UNKNOWN;
+		_accessRequested = false;
 		_hasMemo = false;
 		_sentPayRates = {};
 		_resetPositionsTab();
@@ -229737,6 +229773,7 @@ var init_Guild$1 = __esmMin((() => {
 		const count = members.length;
 		_members.length = 0;
 		_totalExp = 0;
+		if (_hasPendingPositions()) ChatBox_default.addText("The guild member list changed. The grade waiting to be applied was dropped.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.GUILD);
 		_clearPendingPositions();
 		const root = _root$13(this);
 		_hasMemo = !!hasMemo;
@@ -229911,12 +229948,15 @@ var init_Guild$1 = __esmMin((() => {
 			const currentID = _members[i].GPositionID;
 			if (fromDropdown && (!positionID || !currentID || positionID === currentID)) return false;
 			_members[i].GPositionID = positionID;
-			if (fromDropdown) _pendingPositions[GID] = {
-				AID,
-				GID,
-				positionID
-			};
-			else Guild.setMember(_members[i]);
+			if (fromDropdown) {
+				const queued = _pendingPositions[GID];
+				_pendingPositions[GID] = {
+					AID,
+					GID,
+					positionID,
+					previousID: queued ? queued.previousID : currentID
+				};
+			} else Guild.setMember(_members[i]);
 			return true;
 		}
 		return false;
@@ -229934,10 +229974,7 @@ var init_Guild$1 = __esmMin((() => {
 		if (!memberInfo) return;
 		for (let i = 0, count = memberInfo.length; i < count; ++i) {
 			const entry = memberInfo[i];
-			if (!entry.positionID) {
-				SessionStorage_default.isGuildMaster = entry.AID === SessionStorage_default.AID && entry.GID === SessionStorage_default.GID;
-				continue;
-			}
+			if (!entry.positionID) continue;
 			Guild.updateMemberPosition(entry.AID, entry.GID, entry.positionID, false);
 		}
 	};
@@ -230146,6 +230183,7 @@ var init_Guild$1 = __esmMin((() => {
 		updateSkillArrows(root);
 		updateEmblemControls(root);
 		updateDisbandButton(root, getActiveTab(root));
+		_clearPendingPositions();
 		if (_members.length) Guild.setMembers([..._members], _hasMemo);
 	};
 	Guild.setExpelList = function setExpelList(list) {
@@ -230163,6 +230201,7 @@ var init_Guild$1 = __esmMin((() => {
 	};
 	Guild.setAccess = function setAccess(access) {
 		_guildAccess = access;
+		_accessRequested = false;
 		updateTabAccess(_root$13(this));
 	};
 	/**
@@ -230172,7 +230211,8 @@ var init_Guild$1 = __esmMin((() => {
 	* @see docs/reference/guild/member-view.md
 	*/
 	Guild.requestAccessIfUnknown = function requestAccessIfUnknown() {
-		if (_guildAccess !== ACCESS_UNKNOWN || !SessionStorage_default.hasGuild) return;
+		if (_guildAccess !== ACCESS_UNKNOWN || _accessRequested || !SessionStorage_default.hasGuild) return;
+		_accessRequested = true;
 		Guild.onRequestAccess();
 	};
 	/**
@@ -247603,6 +247643,8 @@ var init_Guild = __esmMin((() => {
 		*/
 		static resetForNewCharacter() {
 			SessionStorage_default.isGuildMaster = false;
+			clearTimeout(_memberInfoTimer);
+			_memberInfoTimer = 0;
 			Guild_default.reset();
 		}
 		/**
