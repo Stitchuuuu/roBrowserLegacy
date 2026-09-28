@@ -659,7 +659,7 @@ function onGuildOwnInfo(pkt) {
 	const knewRole = Session.hasGuild;
 
 	Session.hasGuild = true;
-	Session.guildRight = pkt.right;
+	Session.guildPermission = pkt.right;
 	Session.isGuildMaster = !!pkt.isMaster;
 
 	// Only on a change. This packet is not rare - an emblem change sends it to the
@@ -949,7 +949,7 @@ function onGuildDestroy(pkt) {
 			Session.hasGuild = false;
 			Session.guildName = '';
 			Session.isGuildMaster = false;
-			Session.guildRight = 0;
+			Session.guildPermission = 0;
 			Session.Entity.GUID = 0;
 			// After the flags, never before: the window is a singleton and reset
 			// repaints from them.
@@ -1074,7 +1074,7 @@ function onGuildMemberExpulsion(pkt) {
 		Session.hasGuild = false;
 		Session.guildName = '';
 		Session.isGuildMaster = false;
-		Session.guildRight = 0;
+		Session.guildPermission = 0;
 		Session.Entity.GUID = 0;
 		Guild.reset();
 	}
@@ -1108,7 +1108,7 @@ function onGuildMemberLeave(pkt) {
 		Session.hasGuild = false;
 		Session.guildName = '';
 		Session.isGuildMaster = false;
-		Session.guildRight = 0;
+		Session.guildPermission = 0;
 		Session.Entity.GUID = 0;
 		Guild.reset();
 	}
