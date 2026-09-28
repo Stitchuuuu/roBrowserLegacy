@@ -213429,7 +213429,7 @@ var init_SkillEffect = __esmMin((() => {
 		hitEffectId: 51
 	};
 	SkillEffect[SkillConst_default.MG_FROSTDIVER] = {
-		effectId: 27,
+		releaseEffectId: 27,
 		hitEffectId: 28
 	};
 	SkillEffect[SkillConst_default.MG_STONECURSE] = { effectId: 23 };
@@ -213611,7 +213611,7 @@ var init_SkillEffect = __esmMin((() => {
 		hitEffectId: 122
 	};
 	SkillEffect[SkillConst_default.AS_GRIMTOOTH] = {
-		effectId: 123,
+		releaseEffectId: 123,
 		hitEffectId: 132
 	};
 	SkillEffect[SkillConst_default.AS_ENCHANTPOISON] = { effectId: 20 };
@@ -214243,8 +214243,8 @@ var init_SkillEffect = __esmMin((() => {
 	SkillEffect[SkillConst_default.WL_SOULEXPANSION] = {};
 	SkillEffect[SkillConst_default.WL_FROSTMISTY] = { effectId: 726 };
 	SkillEffect[SkillConst_default.WL_JACKFROST] = {
-		effectId: "ef_jackfrost",
-		groundEffectId: 801
+		successEffectIdOnCaster: "ef_jackfrost",
+		hitEffectId: 28
 	};
 	SkillEffect[SkillConst_default.WL_MARSHOFABYSS] = { effectId: 729 };
 	SkillEffect[SkillConst_default.WL_RECOGNIZEDSPELL] = { effectId: 803 };
@@ -220200,19 +220200,19 @@ async function repeatedGreetingsLoop(book_information) {
 	for (let i = 0; i < text1.length; i++) {
 		if (_BOOK_INFORMATION["book_open"]) break;
 		if (text1[i] === "" && i === 0) {
-			getText("   ");
+			getText$1("   ");
 			continue;
 		}
 		if (i === 1) {
-			getText(text1[i]);
+			getText$1(text1[i]);
 			continue;
 		}
 		await sleepNow(5e3);
 		if (_BOOK_INFORMATION["book_open"]) break;
-		getText(text1[i]);
+		getText$1(text1[i]);
 	}
 }
-function getText(textbook) {
+function getText$1(textbook) {
 	let text = cleanTextColor(textbook);
 	text = CodepageManager.decodeString(text);
 	ChatBox_default.addText(text == "" ? "  " : text, ChatBox_default.TYPE.ANNOUNCE, ChatBox_default.FILTER.PUBLIC_LOG, "#ffffff");
@@ -245948,6 +245948,929 @@ var init_Inflate = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region src/UI/Components/SkillListMH/SkillListMH.js
+/**
+* Build a Homunculus/Mercenary skill window on top of the shared SkillList
+* factory, using its list-only (old-style) mode and layering the MH-specific
+* bits (window name, titlebar text, drag origin, Escape-to-close) on top.
+*/
+function createSkillListMH(type) {
+	const component = createSkillList({
+		name: `SkillList${type === "homunculus" ? "HOM" : "MER"}`,
+		htmlText: SkillList_default$2,
+		cssText: SkillList_default$1,
+		listOnly: true,
+		dragFrom: "SkillListMH",
+		titlebarText: type === "homunculus" ? "Homunculus Skills" : "Mercenary Skills",
+		containerSelector: ".SkillList",
+		preferenceDefaults: {
+			x: 100,
+			y: 200,
+			width: 8,
+			height: 5,
+			show: false
+		}
+	});
+	component.onKeyDown = function onKeyDown(event) {
+		if ((event.which === KEYS.ESCAPE || event.key === "Escape") && this.ui.is(":visible")) this.toggle();
+	};
+	return component;
+}
+var SkillListMH_default;
+var init_SkillListMH = __esmMin((() => {
+	init_KeyEventHandler();
+	init_SkillListCommon();
+	init_SkillList$3();
+	init_SkillList$2();
+	SkillListMH_default = {
+		homunculus: createSkillListMH("homunculus"),
+		mercenary: createSkillListMH("mercenary")
+	};
+}));
+//#endregion
+//#region src/UI/Components/ShortCut/ShortCut.html?raw
+var ShortCut_default$2;
+var init_ShortCut$2 = __esmMin((() => {
+	ShortCut_default$2 = "<div id=\"ShortCut\" data-background=\"basic_interface/shortitem_bg.bmp\">\r\n	<button\r\n		class=\"close\"\r\n		data-background=\"basic_interface/sys_close_off.bmp\"\r\n		data-hover=\"basic_interface/sys_close_on.bmp\"\r\n	></button>\r\n	<button class=\"resize\" data-background=\"btn_resize.bmp\"></button>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"0\"></div>\r\n		<div class=\"container\" data-index=\"1\"></div>\r\n		<div class=\"container\" data-index=\"2\"></div>\r\n		<div class=\"container\" data-index=\"3\"></div>\r\n		<div class=\"container\" data-index=\"4\"></div>\r\n		<div class=\"container\" data-index=\"5\"></div>\r\n		<div class=\"container\" data-index=\"6\"></div>\r\n		<div class=\"container\" data-index=\"7\"></div>\r\n		<div class=\"container\" data-index=\"8\"></div>\r\n		<div class=\"index\">1</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"9\"></div>\r\n		<div class=\"container\" data-index=\"10\"></div>\r\n		<div class=\"container\" data-index=\"11\"></div>\r\n		<div class=\"container\" data-index=\"12\"></div>\r\n		<div class=\"container\" data-index=\"13\"></div>\r\n		<div class=\"container\" data-index=\"14\"></div>\r\n		<div class=\"container\" data-index=\"15\"></div>\r\n		<div class=\"container\" data-index=\"16\"></div>\r\n		<div class=\"container\" data-index=\"17\"></div>\r\n		<div class=\"index\">2</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"18\"></div>\r\n		<div class=\"container\" data-index=\"19\"></div>\r\n		<div class=\"container\" data-index=\"20\"></div>\r\n		<div class=\"container\" data-index=\"21\"></div>\r\n		<div class=\"container\" data-index=\"22\"></div>\r\n		<div class=\"container\" data-index=\"23\"></div>\r\n		<div class=\"container\" data-index=\"24\"></div>\r\n		<div class=\"container\" data-index=\"25\"></div>\r\n		<div class=\"container\" data-index=\"26\"></div>\r\n		<div class=\"index\">3</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"27\"></div>\r\n		<div class=\"container\" data-index=\"28\"></div>\r\n		<div class=\"container\" data-index=\"29\"></div>\r\n		<div class=\"container\" data-index=\"30\"></div>\r\n		<div class=\"container\" data-index=\"31\"></div>\r\n		<div class=\"container\" data-index=\"32\"></div>\r\n		<div class=\"container\" data-index=\"33\"></div>\r\n		<div class=\"container\" data-index=\"34\"></div>\r\n		<div class=\"container\" data-index=\"35\"></div>\r\n		<div class=\"index\">4</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"shortcut-tooltip\"></div>\r\n</div>\r\n";
+}));
+//#endregion
+//#region src/UI/Components/ShortCut/ShortCut.css?raw
+var ShortCut_default$1;
+var init_ShortCut$1 = __esmMin((() => {
+	ShortCut_default$1 = ":host {\r\n	width: 280px;\r\n	top: 0px;\r\n	left: 480px;\r\n	overflow: hidden;\r\n}\r\n\r\n#ShortCut {\r\n	position: absolute;\r\n	width: 280px;\r\n	height: 100%;\r\n	background-repeat: repeat-y;\r\n}\r\n#ShortCut .close {\r\n	position: absolute;\r\n	top: 2px;\r\n	right: 2px;\r\n	border: none;\r\n	background-color: transparent;\r\n	width: 11px;\r\n	height: 11px;\r\n}\r\n#ShortCut .resize {\r\n	position: absolute;\r\n	bottom: 1px;\r\n	right: 1px;\r\n	border: none;\r\n	background-color: transparent;\r\n	width: 13px;\r\n	height: 13px;\r\n}\r\n\r\n#ShortCut .row {\r\n	position: relative;\r\n}\r\n#ShortCut .row .container {\r\n	float: left;\r\n	width: 24px;\r\n	height: 23px;\r\n	margin-top: 5px;\r\n	margin-left: 5px;\r\n	margin-bottom: 6px;\r\n}\r\n#ShortCut .row .container:hover {\r\n	background-color: #b5ffb5;\r\n}\r\n#ShortCut .row .index {\r\n	float: left;\r\n	position: relative;\r\n	top: 13px;\r\n	left: 5px;\r\n}\r\n#ShortCut .row .clear {\r\n}\r\n\r\n#ShortCut .icon {\r\n	position: relative;\r\n}\r\n#ShortCut .icon .img {\r\n	width: 24px;\r\n	height: 24px;\r\n	background-repeat: no-repeat;\r\n	border: none;\r\n	background-color: transparent;\r\n}\r\n#ShortCut .icon .name {\r\n	display: none;\r\n	z-index: 1;\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 0px;\r\n	background-color: rgba(0, 0, 0, 0.6);\r\n	text-shadow: 1px 1px black;\r\n	color: white;\r\n	padding: 5px;\r\n	white-space: nowrap;\r\n}\r\n#ShortCut .icon:hover .name {\r\n	display: block;\r\n}\r\n#ShortCut .icon.hide .name {\r\n	display: none;\r\n}\r\n#ShortCut .icon .amount {\r\n	position: absolute;\r\n	right: 1px;\r\n	top: 20px;\r\n	text-shadow: 1px 1px 0px white;\r\n	text-align: right;\r\n	font-weight: bold;\r\n}\r\n\r\n.shortcut-tooltip {\r\n	display: none;\r\n	position: fixed;\r\n	background-color: rgba(0, 0, 0, 0.8);\r\n	text-shadow: 1px 1px black;\r\n	color: white;\r\n	padding: 2px 6px;\r\n	white-space: nowrap;\r\n	z-index: 10000;\r\n	border-radius: 2px;\r\n	pointer-events: none;\r\n	line-height: 1.2;\r\n}\r\n.shortcut-tooltip.show {\r\n	display: block;\r\n}\r\n\r\n#ShortCut .cooldown-overlay {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 24px;\r\n	height: 24px;\r\n	pointer-events: none;\r\n	border-radius: 2px;\r\n	z-index: 999;\r\n	background: conic-gradient(rgba(0, 0, 0, 0.75) 0deg, transparent 0deg);\r\n}\r\n";
+}));
+//#endregion
+//#region src/UI/Components/ShortCut/ShortCut.js
+var ShortCut_exports = /* @__PURE__ */ __exportAll({ default: () => ShortCut_default });
+/**
+* Resolve which skill window owns a skill id
+*
+* @param {number} skill id
+* @return {object} component exposing useSkillID / getSkillById
+*/
+function getSkillOwner(id) {
+	if (id >= SkillConst_default.GD_APPROVAL && id <= SkillConst_default.GD_LAST) return Guild_default;
+	if (id >= SkillConst_default.HOMUN_BEGIN && id <= SkillConst_default.HOMUN_LAST) return SkillListMH_default.homunculus;
+	if (id >= SkillConst_default.MERCENARY_BEGIN && id <= SkillConst_default.MERCENARY_LAST) return SkillListMH_default.mercenary;
+	return Controller$4.getUI();
+}
+/**
+* Update tooltip for empty slots with hotkey only
+*/
+function updateEmptySlotTooltips() {
+	const containers = ShortCut.getRoot().querySelectorAll(".container");
+	for (let i = 0; i < containers.length; ++i) if (!_list$4[i] || !_list$4[i].isSkill && !_list$4[i].ID) {
+		const hotkey = getHotKeyString(i);
+		if (hotkey) containers[i].setAttribute("data-tooltip", hotkey);
+	}
+}
+/**
+* Get hotkey string for shortcut index
+*
+* @param {number} index of the shortcut slot
+* @return {string} hotkey string or empty string
+*/
+function getHotKeyString(index) {
+	const shortcutKeys = [
+		"F1_1",
+		"F1_2",
+		"F1_3",
+		"F1_4",
+		"F1_5",
+		"F1_6",
+		"F1_7",
+		"F1_8",
+		"F1_9",
+		"F2_1",
+		"F2_2",
+		"F2_3",
+		"F2_4",
+		"F2_5",
+		"F2_6",
+		"F2_7",
+		"F2_8",
+		"F2_9",
+		"F3_1",
+		"F3_2",
+		"F3_3",
+		"F3_4",
+		"F3_5",
+		"F3_6",
+		"F3_7",
+		"F3_8",
+		"F3_9",
+		"F4_1",
+		"F4_2",
+		"F4_3",
+		"F4_4",
+		"F4_5",
+		"F4_6",
+		"F4_7",
+		"F4_8",
+		"F4_9"
+	];
+	if (index < 0 || index >= shortcutKeys.length) return "";
+	const scKey = shortcutKeys[index];
+	const shortcut = ShortCutControls_default.ShortCuts[scKey];
+	if (!shortcut) return "";
+	const key = shortcut.cust ? shortcut.cust.key : shortcut.init.key;
+	const alt = shortcut.cust ? shortcut.cust.alt : shortcut.init.alt;
+	const ctrl = shortcut.cust ? shortcut.cust.ctrl : shortcut.init.ctrl;
+	const shift = shortcut.cust ? shortcut.cust.shift : shortcut.init.shift;
+	if (!key) return "";
+	let hotkeyStr = "";
+	if (alt) hotkeyStr += "ALT + ";
+	if (ctrl) hotkeyStr += "CTRL + ";
+	if (shift) hotkeyStr += "SHIFT + ";
+	hotkeyStr += KEYS.toReadableKey(key);
+	return hotkeyStr;
+}
+/**
+* Show fixed tooltip on container hover
+*/
+function onContainerMouseEnter(event) {
+	const tooltipText = event.currentTarget.getAttribute("data-tooltip");
+	if (tooltipText) {
+		const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
+		const hostRect = ShortCut._host.getBoundingClientRect();
+		tooltip.textContent = tooltipText;
+		tooltip.classList.add("show");
+		const tooltipRect = tooltip.getBoundingClientRect();
+		const showAbove = window.innerHeight - (hostRect.top + hostRect.height) < tooltipRect.height + 10;
+		const left = hostRect.left + hostRect.width / 2 - tooltipRect.width / 2;
+		let top;
+		if (showAbove) top = hostRect.top - tooltipRect.height - 2;
+		else top = hostRect.top + hostRect.height + 2;
+		tooltip.style.left = `${left}px`;
+		tooltip.style.top = `${top}px`;
+	}
+}
+/**
+* Hide fixed tooltip on container leave
+*/
+function onContainerMouseLeave() {
+	const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
+	if (tooltip) tooltip.classList.remove("show");
+}
+/**
+* Resizing hotkey window
+*/
+function onResize$3(event) {
+	const host = ShortCut._host;
+	const top = host.offsetTop;
+	let lastHeight = 0;
+	function resizing() {
+		let h = Math.floor((Mouse.screen.y - top) / 34 + 1);
+		h = Math.min(Math.max(h, 1), _rowCount);
+		if (h === lastHeight) return;
+		host.style.height = `${h * 34}px`;
+		_preferences$23.size = h;
+		_preferences$23.save();
+		lastHeight = h;
+	}
+	const _Interval = setInterval(resizing, 30);
+	const mouseUpHandler = (_event) => {
+		if (_event.which === 1) {
+			clearInterval(_Interval);
+			window.removeEventListener("mouseup", mouseUpHandler);
+		}
+	};
+	window.addEventListener("mouseup", mouseUpHandler);
+	event.stopImmediatePropagation();
+	event.preventDefault();
+}
+/**
+* Displays the cooldown overlay on an icon
+*
+* @param {number} index of the icon
+* @param {number} delay in ms
+*/
+function setDelayOnIndex(index, delay) {
+	if (!_list$4[index]) return;
+	if (_list$4[index].Delay && _list$4[index].Delay >= Renderer.tick + delay) return;
+	_list$4[index].Delay = Renderer.tick + delay;
+	const ui = ShortCut.getRoot().querySelector(`.container[data-index="${index}"]`);
+	if (!ui) return;
+	const existing = ui.querySelector(".cooldown-overlay");
+	if (existing) existing.remove();
+	const overlay = document.createElement("div");
+	overlay.className = "cooldown-overlay";
+	const icon = ui.querySelector(".icon");
+	if (icon) {
+		icon.appendChild(overlay);
+		const img = icon.querySelector(".img");
+		if (img) img.style.filter = "none";
+	}
+	if (_activeAnimations.has(index)) {
+		cancelAnimationFrame(_activeAnimations.get(index));
+		_activeAnimations.delete(index);
+	}
+	function updateCooldown() {
+		if (!_list$4 || !_list$4[index]) {
+			overlay.remove();
+			if (_activeAnimations.has(index)) {
+				cancelAnimationFrame(_activeAnimations.get(index));
+				_activeAnimations.delete(index);
+			}
+			return;
+		}
+		const now = Renderer.tick;
+		const remaining = _list$4[index].Delay - now;
+		if (remaining <= 0 || !_list$4[index].Delay) {
+			overlay.remove();
+			_list$4[index].Delay = 0;
+			if (_activeAnimations.has(index)) {
+				cancelAnimationFrame(_activeAnimations.get(index));
+				_activeAnimations.delete(index);
+			}
+			return;
+		}
+		const degrees = (1 - remaining / delay) * 360;
+		overlay.style.background = `conic-gradient(transparent 0deg, transparent ${degrees}deg, rgba(0,0,0,0.75) ${degrees}deg)`;
+		const animationId = requestAnimationFrame(updateCooldown);
+		_activeAnimations.set(index, animationId);
+	}
+	const animationId = requestAnimationFrame(updateCooldown);
+	_activeAnimations.set(index, animationId);
+}
+/**
+* Drop something in the shortcut
+* Does the client allow other source than shortcut, inventory
+* and skill window to save to shortcut ?
+*/
+function onDrop$8(event, target) {
+	let data, element;
+	const index = parseInt(target.getAttribute("data-index"), 10);
+	const row = Math.floor(index / 9);
+	event.stopImmediatePropagation();
+	event.preventDefault();
+	try {
+		data = JSON.parse(event.dataTransfer.getData("Text"));
+		element = data.data;
+	} catch (_e) {
+		return;
+	}
+	if (data.type !== "item" && data.type !== "skill") return;
+	switch (data.from) {
+		case "SkillList":
+		case "Guild":
+		case "SkillListMH":
+			ShortCut.removeElement(true, element.SKID, row, element.selectedLevel ? element.selectedLevel : element.level);
+			ShortCut.addElement(index, true, element.SKID, element.selectedLevel ? element.selectedLevel : element.level);
+			ShortCut.onChange(index, true, element.SKID, element.selectedLevel ? element.selectedLevel : element.level);
+			break;
+		case "Inventory":
+			ShortCut.removeElement(false, element.ITID, row);
+			ShortCut.addElement(index, false, element.ITID, 0);
+			ShortCut.onChange(index, false, element.ITID, 0);
+			break;
+		case "ShortCut":
+			ShortCut.removeElement(element.isSkill, element.ID, row, element.isSkill ? element.count : null);
+			ShortCut.addElement(index, element.isSkill, element.ID, element.count);
+			ShortCut.onChange(index, element.isSkill, element.ID, element.count);
+	}
+}
+/**
+* Stop the drag and drop
+*/
+function onDragEnd(icon) {
+	delete window._OBJ_DRAG_;
+	icon.classList.remove("hide");
+}
+/**
+* Prepare data to be stored in the dragged element
+* to change position in the shortcut.
+*/
+function onDragStart$2(event, icon) {
+	const index = parseInt(icon.parentNode.getAttribute("data-index"), 10);
+	icon.classList.add("hide");
+	const img = new Image();
+	img.decoding = "async";
+	img.src = icon.querySelector(".img").style.backgroundImage.match(/\(([^)]+)/)[1].replace(/"/g, "");
+	event.dataTransfer.setDragImage(img, 12, 12);
+	event.dataTransfer.setData("Text", JSON.stringify(window._OBJ_DRAG_ = {
+		type: _list$4[index].isSkill ? "skill" : "item",
+		from: "ShortCut",
+		data: _list$4[index]
+	}));
+}
+/**
+* Get informations from a skill/item when
+* using right click on it.
+*/
+function onElementInfo(event, icon) {
+	const index = parseInt(icon.parentNode.getAttribute("data-index"), 10);
+	const element = _list$4[index];
+	event.stopImmediatePropagation();
+	event.preventDefault();
+	if (element.isSkill) {
+		if (SkillDescription_default.uid === _list$4[index].ID) SkillDescription_default.remove();
+		else {
+			SkillDescription_default.append();
+			SkillDescription_default.setSkill(_list$4[index].ID);
+		}
+	} else {
+		if (ItemInfo_default.uid === _list$4[index].ID) {
+			ItemInfo_default.remove();
+			return;
+		}
+		ItemInfo_default.append();
+		ItemInfo_default.uid = _list$4[index].ID;
+		ItemInfo_default.setItem(InventoryController.getUI().getItemById(_list$4[index].ID));
+	}
+}
+/**
+* Double-click on a shortcut
+*/
+function onUseShortCut(icon) {
+	clickElement(parseInt(icon.parentNode.getAttribute("data-index"), 10));
+}
+/**
+* Clicking on a shortcut
+*
+* @param {number} shortcut index
+*/
+function clickElement(index) {
+	const shortcut = _list$4[index];
+	SkillTargetSelection_default.remove();
+	if (!shortcut) return;
+	if (shortcut.isSkill) ShortCut.useSkill(shortcut.ID, shortcut.count);
+	else {
+		const item = InventoryController.getUI().getItemById(_list$4[index].ID);
+		if (item) InventoryController.getUI().useItem(item);
+	}
+}
+/**
+* Closing the window
+*/
+function onClose$5() {
+	ShortCut._host.style.height = "0px";
+	_preferences$23.size = 0;
+	_preferences$23.save();
+}
+/**
+* Hook Inventory, get informations when there is a change
+* to update the shortcut
+*
+* @param {number} index
+* @param {number} count
+*/
+function onUpdateItem(index, count) {
+	ShortCut.setElement(false, index, count);
+}
+/**
+* Hook Skill List, get informations when there is a change
+* to update the shortcut
+*
+* @param {number} skill id
+* @param {number} level
+*/
+function onUpdateSkill(id, level) {
+	ShortCut.setElement(true, id, level);
+}
+function onUpdateOwnerName$1() {
+	for (const index in _list$4) if (!_list$4[index].isSkill) ShortCut.setElement(false, _list$4[index].ID, _list$4[index].count);
+}
+function convertHotkeysToServerFormat() {
+	const serverData = {
+		Type: 1,
+		data: {
+			EmotionHotkey: [],
+			UserHotkey_V2: { SkillBar_1Tab: [] }
+		}
+	};
+	[
+		"Macro1",
+		"Macro2",
+		"Macro3",
+		"Macro4",
+		"Macro5",
+		"Macro6",
+		"Macro7",
+		"Macro8",
+		"Macro9",
+		"Macro10"
+	].forEach((key, index) => {
+		const shortcut = ShortCutControls_default.ShortCuts[key];
+		if (shortcut && shortcut.cust && shortcut.cust.emotion) serverData.data.EmotionHotkey[index] = shortcut.cust.emotion;
+	});
+	[
+		"F1_1",
+		"F1_2",
+		"F1_3",
+		"F1_4",
+		"F1_5",
+		"F1_6",
+		"F1_7",
+		"F1_8",
+		"F1_9",
+		"F2_1",
+		"F2_2",
+		"F2_3",
+		"F2_4",
+		"F2_5",
+		"F2_6",
+		"F2_7",
+		"F2_8",
+		"F2_9",
+		"F3_1",
+		"F3_2",
+		"F3_3",
+		"F3_4",
+		"F3_5",
+		"F3_6",
+		"F3_7",
+		"F3_8",
+		"F3_9",
+		"F4_1",
+		"F4_2",
+		"F4_3",
+		"F4_4",
+		"F4_5",
+		"F4_6",
+		"F4_7",
+		"F4_8",
+		"F4_9"
+	].forEach((key, index) => {
+		const shortcut = ShortCutControls_default.ShortCuts[key];
+		if (shortcut) {
+			const keyData = shortcut.cust || shortcut.init;
+			serverData.data.UserHotkey_V2.SkillBar_1Tab.push({
+				desc: `Skill ${index + 1}`,
+				index,
+				key1: keyData.key || 0,
+				key2: 0
+			});
+		}
+	});
+	return serverData;
+}
+function convertHotkeysFromServerFormat(serverData) {
+	if (!serverData || !serverData.data) return;
+	if (serverData.data.EmotionHotkey) {
+		const emotionKeys = [
+			"Macro1",
+			"Macro2",
+			"Macro3",
+			"Macro4",
+			"Macro5",
+			"Macro6",
+			"Macro7",
+			"Macro8",
+			"Macro9",
+			"Macro10"
+		];
+		serverData.data.EmotionHotkey.forEach((emotion, index) => {
+			if (emotion && emotionKeys[index]) {
+				if (!ShortCutControls_default.ShortCuts[emotionKeys[index]].cust) ShortCutControls_default.ShortCuts[emotionKeys[index]].cust = {};
+				ShortCutControls_default.ShortCuts[emotionKeys[index]].cust.emotion = emotion;
+			}
+		});
+	}
+	if (serverData.data.UserHotkey_V2 && serverData.data.UserHotkey_V2.SkillBar_1Tab) {
+		const shortcutKeys = [
+			"F1_1",
+			"F1_2",
+			"F1_3",
+			"F1_4",
+			"F1_5",
+			"F1_6",
+			"F1_7",
+			"F1_8",
+			"F1_9",
+			"F2_1",
+			"F2_2",
+			"F2_3",
+			"F2_4",
+			"F2_5",
+			"F2_6",
+			"F2_7",
+			"F2_8",
+			"F2_9",
+			"F3_1",
+			"F3_2",
+			"F3_3",
+			"F3_4",
+			"F3_5",
+			"F3_6",
+			"F3_7",
+			"F3_8",
+			"F3_9",
+			"F4_1",
+			"F4_2",
+			"F4_3",
+			"F4_4",
+			"F4_5",
+			"F4_6",
+			"F4_7",
+			"F4_8",
+			"F4_9"
+		];
+		serverData.data.UserHotkey_V2.SkillBar_1Tab.forEach((skillData) => {
+			if (skillData && skillData.index < shortcutKeys.length) {
+				const key = shortcutKeys[skillData.index];
+				if (key && skillData.key1) {
+					if (!ShortCutControls_default.ShortCuts[key].cust) ShortCutControls_default.ShortCuts[key].cust = {};
+					ShortCutControls_default.ShortCuts[key].cust.key = skillData.key1;
+				}
+			}
+		});
+	}
+}
+function haveHotkeysChanged(currentData) {
+	if (!_lastServerHotkeys) return true;
+	return JSON.stringify(currentData) !== JSON.stringify(_lastServerHotkeys);
+}
+var ShortCut, _list$4, _rowCount, _lastServerHotkeys, _activeAnimations, _preferences$23, ShortCut_default;
+var init_ShortCut = __esmMin((() => {
+	init_DBManager();
+	init_ItemType();
+	init_SkillInfo();
+	init_SkillConst();
+	init_Client();
+	init_Preferences$1();
+	init_SessionStorage();
+	init_Renderer();
+	init_MouseEventHandler();
+	init_UIManager();
+	init_GUIComponent();
+	init_ItemInfo();
+	init_Inventory();
+	init_SkillListMH();
+	init_SkillDescription();
+	init_SkillTargetSelection();
+	init_Guild$1();
+	init_ShortCutControls();
+	init_KeyEventHandler();
+	init_Configs();
+	init_PacketVerManager();
+	init_SkillList();
+	init_ShortCut$2();
+	init_ShortCut$1();
+	ShortCut = new GUIComponent("ShortCut", ShortCut_default$1);
+	ShortCut.render = () => ShortCut_default$2;
+	_list$4 = [];
+	_rowCount = 0;
+	_lastServerHotkeys = null;
+	_activeAnimations = /* @__PURE__ */ new Map();
+	_preferences$23 = Preferences.get("ShortCut", {
+		x: 480,
+		y: 0,
+		size: 1,
+		magnet_top: true,
+		magnet_bottom: false,
+		magnet_left: false,
+		magnet_right: false
+	}, 1);
+	/**
+	* Initialize UI
+	*/
+	ShortCut.init = function init() {
+		const root = ShortCut.getRoot();
+		const resizeBtn = root.querySelector(".resize");
+		if (resizeBtn) resizeBtn.addEventListener("mousedown", onResize$3);
+		const closeBtn = root.querySelector(".close");
+		if (closeBtn) {
+			closeBtn.addEventListener("mousedown", (e) => {
+				e.stopImmediatePropagation();
+				e.preventDefault();
+			});
+			closeBtn.addEventListener("click", onClose$5);
+		}
+		const container = root.querySelector("#ShortCut");
+		container.addEventListener("drop", (e) => {
+			const target = e.target.closest(".container");
+			if (target) onDrop$8(e, target);
+		});
+		container.addEventListener("dragover", (e) => {
+			if (e.target.closest(".container")) {
+				e.stopImmediatePropagation();
+				e.preventDefault();
+			}
+		});
+		container.addEventListener("dragstart", (e) => {
+			const icon = e.target.closest(".icon");
+			if (icon) onDragStart$2(e, icon);
+		});
+		container.addEventListener("dragend", (e) => {
+			const icon = e.target.closest(".icon");
+			if (icon) onDragEnd(icon);
+		});
+		container.addEventListener("dblclick", (e) => {
+			const icon = e.target.closest(".icon");
+			if (icon) onUseShortCut(icon);
+		});
+		container.addEventListener("contextmenu", (e) => {
+			const icon = e.target.closest(".icon");
+			if (icon) onElementInfo(e, icon);
+		});
+		container.addEventListener("mousedown", (e) => {
+			if (e.target.closest(".icon")) e.stopImmediatePropagation();
+		});
+		this.draggable();
+		root.querySelectorAll(".container").forEach((el) => {
+			el.addEventListener("mouseenter", onContainerMouseEnter);
+			el.addEventListener("mouseleave", onContainerMouseLeave);
+		});
+		DB.UpdateOwnerName.ShortCut = onUpdateOwnerName$1;
+		InventoryController.getUI().onUpdateItem = onUpdateItem;
+	};
+	/**
+	* Append to body
+	*/
+	ShortCut.onAppend = function onAppend() {
+		this._host.style.height = `${34 * _preferences$23.size}px`;
+		const rect = this._host.getBoundingClientRect();
+		this._host.style.top = `${Math.min(Math.max(0, _preferences$23.y), Renderer.height - rect.height)}px`;
+		this._host.style.left = `${Math.min(Math.max(0, _preferences$23.x), Renderer.width - rect.width)}px`;
+		this.magnet.TOP = _preferences$23.magnet_top;
+		this.magnet.BOTTOM = _preferences$23.magnet_bottom;
+		this.magnet.LEFT = _preferences$23.magnet_left;
+		this.magnet.RIGHT = _preferences$23.magnet_right;
+		Controller$4.getUI().onUpdateSkill = onUpdateSkill;
+		updateEmptySlotTooltips();
+	};
+	/**
+	* When removed, clean up
+	*/
+	ShortCut.onRemove = function onRemove() {
+		const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
+		if (tooltip) tooltip.classList.remove("show");
+		for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
+		_activeAnimations.clear();
+		_preferences$23.y = parseInt(this._host.style.top, 10);
+		_preferences$23.x = parseInt(this._host.style.left, 10);
+		_preferences$23.size = Math.floor(parseInt(this._host.style.height, 10) / 34);
+		_preferences$23.magnet_top = this.magnet.TOP;
+		_preferences$23.magnet_bottom = this.magnet.BOTTOM;
+		_preferences$23.magnet_left = this.magnet.LEFT;
+		_preferences$23.magnet_right = this.magnet.RIGHT;
+		_preferences$23.save();
+	};
+	/**
+	* Request to clean the list
+	* Used only from MapEngine when exiting the game
+	*/
+	ShortCut.clean = function clean() {
+		for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
+		_activeAnimations.clear();
+		_list$4.length = 0;
+		ShortCut.getRoot().querySelectorAll(".container").forEach((el) => {
+			el.innerHTML = "";
+		});
+	};
+	/**
+	* Process shortcut
+	*
+	* @param {object} key
+	*/
+	ShortCut.onShortCut = function onShortCut(key) {
+		switch (key.cmd.replace(/\d+$/, "")) {
+			case "EXECUTE":
+				clickElement(parseInt(key.cmd.match(/\d+$/).toString(), 10));
+				break;
+			case "EXTEND":
+				_preferences$23.size = (_preferences$23.size + 1) % (_rowCount + 1);
+				_preferences$23.save();
+				this._host.style.height = `${_preferences$23.size * 34}px`;
+		}
+	};
+	ShortCut.useSkill = function useSkill(id, level) {
+		getSkillOwner(id).useSkillID(id, level);
+	};
+	ShortCut.getSkillById = function getSkillById(id) {
+		return getSkillOwner(id).getSkillById(id);
+	};
+	/**
+	* Bind UI with list of shortcut
+	*
+	* @param {Array} shortcut list
+	*/
+	ShortCut.setList = function setList(list) {
+		let skill;
+		let needGuildSkills = false;
+		ShortCut.getRoot().querySelectorAll(".container").forEach((el) => {
+			el.innerHTML = "";
+		});
+		_list$4.length = list.length;
+		_rowCount = Math.min(4, Math.floor(list.length / 9));
+		for (let i = 0, count = list.length; i < count; ++i) if (list[i].isSkill) {
+			skill = ShortCut.getSkillById(list[i].ID);
+			if (getSkillOwner(list[i].ID) === Guild_default) needGuildSkills = true;
+			if (skill && skill.level) ShortCut.addElement(i, true, list[i].ID, list[i].count || skill.level);
+			else {
+				if (!_list$4[i]) _list$4[i] = {};
+				_list$4[i].isSkill = true;
+				_list$4[i].ID = list[i].ID;
+				_list$4[i].count = list[i].count;
+			}
+		} else ShortCut.addElement(i, list[i].isSkill, list[i].ID, list[i].count);
+		if (needGuildSkills) ShortCut.onRequestGuildSkills();
+	};
+	/**
+	* Hook: ask the server for the guild skill list (set by MapEngine/Guild)
+	*/
+	ShortCut.onRequestGuildSkills = function onRequestGuildSkills() {};
+	/**
+	* Update all tooltips (for both empty and filled slots)
+	* Called when hotkey settings change
+	*/
+	ShortCut.updateAllTooltips = function updateAllTooltips() {
+		const root = ShortCut.getRoot();
+		for (let i = 0, size = _list$4.length; i < size; ++i) {
+			const container = root.querySelector(`.container[data-index="${i}"]`);
+			if (!container) continue;
+			const hotkey = getHotKeyString(i);
+			if (!_list$4[i] || !_list$4[i].isSkill && !_list$4[i].ID) {
+				if (hotkey) container.setAttribute("data-tooltip", hotkey);
+			} else if (_list$4[i] && (_list$4[i].isSkill || _list$4[i].ID)) {
+				let name = "";
+				if (_list$4[i].isSkill && SkillInfo[_list$4[i].ID]) name = SkillInfo[_list$4[i].ID].SkillName;
+				else if (_list$4[i].ID) {
+					const item = InventoryController.getUI().getItemById(_list$4[i].ID);
+					if (item) name = DB.getItemName(item);
+				}
+				if (name) {
+					const tooltipText = hotkey ? `[ ${hotkey} ] ${name}` : name;
+					container.setAttribute("data-tooltip", tooltipText);
+				}
+			}
+		}
+	};
+	ShortCut.setElement = function setElement(isSkill, ID, count) {
+		for (let i = 0, size = _list$4.length; i < size; ++i) if (_list$4[i] && _list$4[i].isSkill == isSkill && _list$4[i].ID === ID) {
+			if (isSkill && _list$4[i].count && _list$4[i].count <= count) ShortCut.addElement(i, isSkill, ID, _list$4[i].count);
+			else ShortCut.addElement(i, isSkill, ID, count);
+		}
+	};
+	/**
+	* Add an element to shortcut
+	*
+	* @param {number} index of the element
+	* @param {boolean} is a skill ?
+	* @param {number} ID
+	* @param {number} count or level
+	*/
+	ShortCut.addElement = function addElement(index, isSkill, ID, count) {
+		let file, name;
+		const ui = ShortCut.getRoot().querySelector(`.container[data-index="${index}"]`);
+		if (!ui) return;
+		ui.innerHTML = "";
+		if (!_list$4[index]) _list$4[index] = {};
+		_list$4[index].isSkill = isSkill;
+		_list$4[index].ID = ID;
+		if (isSkill) {
+			if (!count) return;
+			else {
+				_list$4[index].count = count;
+				file = SkillInfo[ID].Name;
+				name = SkillInfo[ID].SkillName;
+			}
+		} else {
+			_list$4[index].count = count;
+			const item = InventoryController.getUI().getItemById(ID);
+			if (!item) return;
+			const it = DB.getItemInfo(ID);
+			file = item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName;
+			name = DB.getItemName(item);
+			if (item.type === ItemType_default.WEAPON || item.type === ItemType_default.ARMOR || item.type === ItemType_default.SHADOWGEAR) count = 1;
+			else count = item.count;
+			if (!count) return;
+		}
+		const hotkey = getHotKeyString(index);
+		const tooltipText = hotkey ? `[ ${hotkey} ] ${name}` : name;
+		Client.loadFile(`${DB.INTERFACE_PATH}item/${file}.bmp`, (url) => {
+			ui.innerHTML = "<div draggable=\"true\" class=\"icon\"><div class=\"img\"></div><div class=\"amount\"></div></div>";
+			ui.querySelector(".img").style.backgroundImage = `url(${url})`;
+			ui.querySelector(".amount").textContent = count;
+			ui.setAttribute("data-tooltip", tooltipText);
+		});
+	};
+	/**
+	* Displays the cooldown over every skill
+	*
+	* @param {number} delay in ms
+	*/
+	ShortCut.setGlobalSkillDelay = function setGlobalSkillDelay(delay) {
+		_list$4.forEach((element, index) => {
+			if (element.isSkill) setDelayOnIndex(index, delay);
+		});
+	};
+	/**
+	* Displays the cooldown over a single skill
+	*
+	* @param {number} ID of the skill
+	* @param {number} delay in ms
+	*/
+	ShortCut.setSkillDelay = function setSkillDelay(ID, delay) {
+		_list$4.forEach((element, index) => {
+			if (element.isSkill && element.ID == ID) setDelayOnIndex(index, delay);
+		});
+	};
+	/**
+	* Remove an element from shortcut
+	*
+	* @param {boolean} is a skill ?
+	* @param {number} ID of the element to remove
+	* @param {number} row id
+	* @param {number} amount (optional)
+	*/
+	ShortCut.removeElement = function removeElement(isSkill, ID, row, amount) {
+		if (!ID) return;
+		const root = ShortCut.getRoot();
+		for (let i = row * 9, count = Math.min(_list$4.length, row * 9 + 9); i < count; ++i) if (_list$4[i] && _list$4[i].isSkill == isSkill && _list$4[i].ID === ID && (!isSkill || _list$4[i].count == amount)) {
+			const container = root.querySelector(`.container[data-index="${i}"]`);
+			if (container) container.innerHTML = "";
+			_list$4[i].isSkill = 0;
+			_list$4[i].ID = 0;
+			_list$4[i].count = 0;
+			ShortCut.onChange(i, 0, 0, 0);
+		}
+	};
+	Guild_default.onUpdateSkill = (id, level) => {
+		ShortCut.setElement(true, id, level);
+	};
+	SkillListMH_default.mercenary.onUpdateSkill = (id, level) => {
+		ShortCut.setElement(true, id, level);
+	};
+	SkillListMH_default.homunculus.onUpdateSkill = (id, level) => {
+		ShortCut.setElement(true, id, level);
+	};
+	/**
+	* Method to define to notify a change.
+	*
+	* @param {number} index
+	* @param {boolean} isSkill
+	* @param {number} id
+	* @param {number} count
+	*/
+	ShortCut.onChange = function onChange() {};
+	ShortCut.saveToServer = function saveToServer() {
+		if (PacketVerManager_default.value >= 20170315 && SessionStorage_default.WebToken) {
+			const hotkeys = JSON.stringify(convertHotkeysToServerFormat());
+			if (!haveHotkeysChanged(hotkeys)) return;
+			const formData = new FormData();
+			formData.append("AID", SessionStorage_default.AID);
+			formData.append("WorldName", SessionStorage_default.ServerName);
+			formData.append("AuthToken", SessionStorage_default.WebToken);
+			formData.append("data", hotkeys);
+			const xhr = new XMLHttpRequest();
+			let webserverAddress = "";
+			if (window.location.protocol !== "http:" && window.location.protocol !== "https:") webserverAddress = Configs.get("webserverAddress", "http://127.0.0.1:8888");
+			xhr.open("POST", `${webserverAddress}/userconfig/save`, true);
+			xhr.timeout = 5e3;
+			xhr.onload = () => {
+				if (xhr.status === 200) console.log("Hotkeys saved to server successfully");
+				else console.warn("Hotkey save returned non-200 status:", xhr.status);
+			};
+			xhr.onerror = () => {
+				console.warn("Hotkey save failed: web-server unreachable");
+			};
+			xhr.ontimeout = () => {
+				console.warn("Hotkey save timed out");
+			};
+			xhr.send(formData);
+		}
+	};
+	ShortCut.loadFromServer = function loadFromServer(callback) {
+		if (PacketVerManager_default.value >= 20170315 && SessionStorage_default.WebToken) {
+			const formData = new FormData();
+			formData.append("AID", SessionStorage_default.AID);
+			formData.append("WorldName", SessionStorage_default.ServerName);
+			formData.append("AuthToken", SessionStorage_default.WebToken);
+			const xhr = new XMLHttpRequest();
+			let webserverAddress = "";
+			if (window.location.protocol !== "http:" && window.location.protocol !== "https:") webserverAddress = Configs.get("webserverAddress", "http://127.0.0.1:8888");
+			xhr.open("POST", `${webserverAddress}/userconfig/load`, true);
+			xhr.timeout = 5e3;
+			xhr.onload = () => {
+				if (xhr.status === 200) try {
+					const serverData = JSON.parse(xhr.responseText);
+					_lastServerHotkeys = JSON.parse(JSON.stringify(serverData));
+					convertHotkeysFromServerFormat(serverData);
+				} catch (e) {
+					console.error("Error parsing server hotkeys:", e);
+				}
+				else console.warn("Hotkey load returned non-200 status:", xhr.status);
+				if (callback) callback();
+			};
+			xhr.onerror = () => {
+				console.warn("Hotkey load failed: web-server unreachable");
+				if (callback) callback();
+			};
+			xhr.ontimeout = () => {
+				console.warn("Hotkey load timed out");
+				if (callback) callback();
+			};
+			xhr.send(formData);
+		} else if (callback) callback();
+	};
+	ShortCut.getList = function getList() {
+		return _list$4;
+	};
+	ShortCut_default = UIManager.addComponent(ShortCut);
+}));
+//#endregion
 //#region src/Engine/MapEngine/Guild.js
 function adler32(data) {
 	let s1 = 1;
@@ -246012,6 +246935,10 @@ function onGuildOwnInfo(pkt) {
 	if (pkt.GName) SessionStorage_default.guildName = pkt.GName;
 	SessionStorage_default.Entity.GUID = pkt.GDID;
 	SessionStorage_default.Entity.GEmblemVer = pkt.emblemVersion;
+	if (_pendingGuildSkillRequest) {
+		_pendingGuildSkillRequest = false;
+		GuildEngine.requestInfo(3);
+	}
 	if (pkt.GDID && pkt.emblemVersion) GuildEngine.requestGuildEmblem(pkt.GDID, pkt.emblemVersion, (image, gif) => {
 		SessionStorage_default.Entity.setEntityGuildEmblem(image, gif);
 	});
@@ -246358,7 +247285,7 @@ function onGuildHostilityResult(pkt) {
 	}
 }
 function onGuildCastleInfo(pkt) {}
-var _emblems, _memberInfoTimer, _emblemNotified, _lastInvited, GuildEngine, onGuildEmblem;
+var _emblems, _pendingGuildSkillRequest, _memberInfoTimer, _emblemNotified, _lastInvited, GuildEngine, onGuildEmblem;
 var init_Guild = __esmMin((() => {
 	init_DBManager();
 	init_Inflate();
@@ -246375,8 +247302,10 @@ var init_Guild = __esmMin((() => {
 	init_UIManager();
 	init_Configs();
 	init_MiniMap();
+	init_ShortCut();
 	init_UI();
 	_emblems = {};
+	_pendingGuildSkillRequest = false;
 	_memberInfoTimer = 0;
 	_emblemNotified = {};
 	_lastInvited = "";
@@ -246447,6 +247376,14 @@ var init_Guild = __esmMin((() => {
 			Guild_default.onRequestBreakGuild = GuildEngine.breakGuild;
 			Guild_default.onRequestGuildEmblem = GuildEngine.requestGuildEmblem;
 			Guild_default.onSendEmblem = GuildEngine.sendEmblem;
+			ShortCut_default.onRequestGuildSkills = GuildEngine.requestGuildSkills;
+		}
+		/**
+		* Request the guild skill list, deferred until we know the player has a guild
+		*/
+		static requestGuildSkills() {
+			if (SessionStorage_default.hasGuild) GuildEngine.requestInfo(3);
+			else _pendingGuildSkillRequest = true;
 		}
 		/**
 		* Ask server to get guild informations
@@ -246840,46 +247777,6 @@ var init_Guild = __esmMin((() => {
 			}
 		};
 	})();
-}));
-//#endregion
-//#region src/UI/Components/SkillListMH/SkillListMH.js
-/**
-* Build a Homunculus/Mercenary skill window on top of the shared SkillList
-* factory, using its list-only (old-style) mode and layering the MH-specific
-* bits (window name, titlebar text, drag origin, Escape-to-close) on top.
-*/
-function createSkillListMH(type) {
-	const component = createSkillList({
-		name: `SkillList${type === "homunculus" ? "HOM" : "MER"}`,
-		htmlText: SkillList_default$2,
-		cssText: SkillList_default$1,
-		listOnly: true,
-		dragFrom: "SkillListMH",
-		titlebarText: type === "homunculus" ? "Homunculus Skills" : "Mercenary Skills",
-		containerSelector: ".SkillList",
-		preferenceDefaults: {
-			x: 100,
-			y: 200,
-			width: 8,
-			height: 5,
-			show: false
-		}
-	});
-	component.onKeyDown = function onKeyDown(event) {
-		if ((event.which === KEYS.ESCAPE || event.key === "Escape") && this.ui.is(":visible")) this.toggle();
-	};
-	return component;
-}
-var SkillListMH_default;
-var init_SkillListMH = __esmMin((() => {
-	init_KeyEventHandler();
-	init_SkillListCommon();
-	init_SkillList$3();
-	init_SkillList$2();
-	SkillListMH_default = {
-		homunculus: createSkillListMH("homunculus"),
-		mercenary: createSkillListMH("mercenary")
-	};
 }));
 //#endregion
 //#region src/Core/AIDriver.js
@@ -247279,7 +248176,7 @@ var init_HomunInformations$1 = __esmMin((() => {
 * Checks if homun should be fed or not
 */
 function autoFeedCheck() {
-	if (_preferences$23.autoFeed != 1) return;
+	if (_preferences$22.autoFeed != 1) return;
 	const player = SessionStorage_default.Entity;
 	if (!player) return;
 	if (player.life.hp <= 0) return;
@@ -247294,11 +248191,11 @@ function autoFeedCheck() {
 * Toggle AutoFeed
 */
 function homunToggleAutoFeed() {
-	HomunInformations.setFeedConfig(_preferences$23.autoFeed == 1 ? 0 : 1);
+	HomunInformations.setFeedConfig(_preferences$22.autoFeed == 1 ? 0 : 1);
 	if (PacketVerManager_default.value < 20170920) return;
-	HomunInformations.onConfigUpdate(3, _preferences$23.autoFeed ? 1 : 0);
+	HomunInformations.onConfigUpdate(3, _preferences$22.autoFeed ? 1 : 0);
 }
-var autoFeedInterval, autoFeedIntervalMs, autoFeedPercent, HomunInformations, _preferences$23, HomunInformations_default;
+var autoFeedInterval, autoFeedIntervalMs, autoFeedPercent, HomunInformations, _preferences$22, HomunInformations_default;
 var init_HomunInformations = __esmMin((() => {
 	init_DBManager();
 	init_Client();
@@ -247321,7 +248218,7 @@ var init_HomunInformations = __esmMin((() => {
 	HomunInformations = new GUIComponent("HomunInformations", HomunInformations_default$1);
 	HomunInformations.render = () => HomunInformations_default$2;
 	HomunInformations.captureKeyEvents = true;
-	_preferences$23 = Preferences.get("HomunInformations", {
+	_preferences$22 = Preferences.get("HomunInformations", {
 		x: 100,
 		y: 200,
 		show: false,
@@ -247361,7 +248258,7 @@ var init_HomunInformations = __esmMin((() => {
 		if (autoFeedBtn) autoFeedBtn.addEventListener("click", () => {
 			homunToggleAutoFeed();
 		});
-		if (!_preferences$23.show) this._host.style.display = "none";
+		if (!_preferences$22.show) this._host.style.display = "none";
 		const skillBtn = root.querySelector(".skill");
 		if (skillBtn) skillBtn.addEventListener("mousedown", () => {
 			SkillListMH_default.homunculus.toggle();
@@ -247371,7 +248268,7 @@ var init_HomunInformations = __esmMin((() => {
 	};
 	HomunInformations.onAppend = function onAppend() {
 		const root = HomunInformations.getRoot();
-		Client.loadFile(DB.INTERFACE_PATH + `checkbox_${_preferences$23.autoFeed ? "1" : "0"}.bmp`, (data) => {
+		Client.loadFile(DB.INTERFACE_PATH + `checkbox_${_preferences$22.autoFeed ? "1" : "0"}.bmp`, (data) => {
 			const el = root.querySelector(".homun_auto_feed");
 			if (el) el.style.backgroundImage = `url(${data})`;
 		});
@@ -247382,8 +248279,8 @@ var init_HomunInformations = __esmMin((() => {
 				if (feeding) feeding.style.display = "none";
 			}
 		}
-		this._host.style.top = `${Math.min(Math.max(0, _preferences$23.y), Renderer.height - this._host.getBoundingClientRect().height)}px`;
-		this._host.style.left = `${Math.min(Math.max(0, _preferences$23.x), Renderer.width - this._host.getBoundingClientRect().width)}px`;
+		this._host.style.top = `${Math.min(Math.max(0, _preferences$22.y), Renderer.height - this._host.getBoundingClientRect().height)}px`;
+		this._host.style.left = `${Math.min(Math.max(0, _preferences$22.x), Renderer.width - this._host.getBoundingClientRect().width)}px`;
 	};
 	HomunInformations.startAutoFeed = function startAutoFeed() {
 		window.clearInterval(autoFeedInterval);
@@ -247397,10 +248294,10 @@ var init_HomunInformations = __esmMin((() => {
 	* Once remove from body, save user preferences
 	*/
 	HomunInformations.onRemove = function onRemove() {
-		_preferences$23.show = this._host.style.display !== "none";
-		_preferences$23.y = parseInt(this._host.style.top, 10);
-		_preferences$23.x = parseInt(this._host.style.left, 10);
-		_preferences$23.save();
+		_preferences$22.show = this._host.style.display !== "none";
+		_preferences$22.y = parseInt(this._host.style.top, 10);
+		_preferences$22.x = parseInt(this._host.style.left, 10);
+		_preferences$22.save();
 		HomunInformations.stopAutoFeed();
 		this.stopAI();
 	};
@@ -247641,10 +248538,10 @@ var init_HomunInformations = __esmMin((() => {
 		this.startAI();
 	};
 	HomunInformations.setFeedConfig = function setFeedConfig(flag) {
-		_preferences$23.autoFeed = flag;
-		_preferences$23.save();
+		_preferences$22.autoFeed = flag;
+		_preferences$22.save();
 		const root = HomunInformations.getRoot();
-		if (root) Client.loadFile(DB.INTERFACE_PATH + `checkbox_${_preferences$23.autoFeed ? "1" : "0"}.bmp`, (data) => {
+		if (root) Client.loadFile(DB.INTERFACE_PATH + `checkbox_${_preferences$22.autoFeed ? "1" : "0"}.bmp`, (data) => {
 			const el = root.querySelector(".homun_auto_feed");
 			if (el) el.style.backgroundImage = `url(${data})`;
 		});
@@ -247676,7 +248573,7 @@ var init_MercenaryInformations$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/UI/Components/MercenaryInformations/MercenaryInformations.js
-var MercenaryInformations, _preferences$22, MercenaryInformations_default;
+var MercenaryInformations, _preferences$21, MercenaryInformations_default;
 var init_MercenaryInformations = __esmMin((() => {
 	init_DBManager();
 	init_Client();
@@ -247694,7 +248591,7 @@ var init_MercenaryInformations = __esmMin((() => {
 	init_MercenaryInformations$1();
 	MercenaryInformations = new GUIComponent("MercenaryInformations", MercenaryInformations_default$1);
 	MercenaryInformations.render = () => MercenaryInformations_default$2;
-	_preferences$22 = Preferences.get("MercenaryInformations", {
+	_preferences$21 = Preferences.get("MercenaryInformations", {
 		x: 100,
 		y: 100,
 		show: false,
@@ -247723,7 +248620,7 @@ var init_MercenaryInformations = __esmMin((() => {
 		if (dismissBtn) dismissBtn.addEventListener("click", () => {
 			MercenaryInformations.reqDeleteMercenary();
 		});
-		if (!_preferences$22.show) this._host.style.display = "none";
+		if (!_preferences$21.show) this._host.style.display = "none";
 		const skillBtn = root.querySelector(".skill");
 		if (skillBtn) skillBtn.addEventListener("mousedown", () => {
 			SkillListMH_default.mercenary.toggle();
@@ -247735,18 +248632,18 @@ var init_MercenaryInformations = __esmMin((() => {
 	* Once append to body
 	*/
 	MercenaryInformations.onAppend = function onAppend() {
-		if (!_preferences$22.show) this._host.style.display = "none";
-		this._host.style.top = `${Math.min(Math.max(0, _preferences$22.y), Renderer.height - this._host.getBoundingClientRect().height)}px`;
-		this._host.style.left = `${Math.min(Math.max(0, _preferences$22.x), Renderer.width - this._host.getBoundingClientRect().width)}px`;
+		if (!_preferences$21.show) this._host.style.display = "none";
+		this._host.style.top = `${Math.min(Math.max(0, _preferences$21.y), Renderer.height - this._host.getBoundingClientRect().height)}px`;
+		this._host.style.left = `${Math.min(Math.max(0, _preferences$21.x), Renderer.width - this._host.getBoundingClientRect().width)}px`;
 	};
 	/**
 	* Once remove from body
 	*/
 	MercenaryInformations.onRemove = function onRemove() {
-		_preferences$22.show = this._host.style.display !== "none";
-		_preferences$22.y = parseInt(this._host.style.top, 10);
-		_preferences$22.x = parseInt(this._host.style.left, 10);
-		_preferences$22.save();
+		_preferences$21.show = this._host.style.display !== "none";
+		_preferences$21.y = parseInt(this._host.style.top, 10);
+		_preferences$21.x = parseInt(this._host.style.left, 10);
+		_preferences$21.save();
 		this.stopAI();
 	};
 	/**
@@ -247972,7 +248869,7 @@ var init_CaptchaUpload$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/UI/Components/Captcha/CaptchaUpload.js
-var CaptchaUpload, _preferences$21, CaptchaUpload_default;
+var CaptchaUpload, _preferences$20, CaptchaUpload_default;
 var init_CaptchaUpload = __esmMin((() => {
 	init_UIManager();
 	init_GUIComponent();
@@ -247983,7 +248880,7 @@ var init_CaptchaUpload = __esmMin((() => {
 	init_CaptchaUpload$2();
 	init_CaptchaUpload$1();
 	CaptchaUpload = new GUIComponent("CaptchaUpload", CaptchaUpload_default$1);
-	_preferences$21 = Preferences.get("CaptchaUpload", {
+	_preferences$20 = Preferences.get("CaptchaUpload", {
 		x: 230,
 		y: 295
 	}, 2);
@@ -248054,16 +248951,16 @@ var init_CaptchaUpload = __esmMin((() => {
 	* Append to DOM
 	*/
 	CaptchaUpload.onAppend = function onAppend() {
-		this._host.style.top = `${Math.min(Math.max(0, _preferences$21.y), Renderer.height - this._host.offsetHeight)}px`;
-		this._host.style.left = `${Math.min(Math.max(0, _preferences$21.x), Renderer.width - this._host.offsetWidth)}px`;
+		this._host.style.top = `${Math.min(Math.max(0, _preferences$20.y), Renderer.height - this._host.offsetHeight)}px`;
+		this._host.style.left = `${Math.min(Math.max(0, _preferences$20.x), Renderer.width - this._host.offsetWidth)}px`;
 	};
 	/**
 	* Remove data from UI
 	*/
 	CaptchaUpload.onRemove = function onRemove() {
-		_preferences$21.y = parseInt(this._host.style.top, 10);
-		_preferences$21.x = parseInt(this._host.style.left, 10);
-		_preferences$21.save();
+		_preferences$20.y = parseInt(this._host.style.top, 10);
+		_preferences$20.x = parseInt(this._host.style.left, 10);
+		_preferences$20.save();
 		const root = this.getRoot();
 		const previewBox = root.querySelector(".preview_box");
 		if (previewBox) previewBox.innerHTML = "";
@@ -248101,7 +248998,7 @@ var init_CaptchaSelector$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/UI/Components/Captcha/CaptchaSelector.js
-var CaptchaSelector, _preferences$20, _aidList, _aidInformation, _range, _active$2, CaptchaSelector_default;
+var CaptchaSelector, _preferences$19, _aidList, _aidInformation, _range, _active$2, CaptchaSelector_default;
 var init_CaptchaSelector = __esmMin((() => {
 	init_UIManager();
 	init_GUIComponent();
@@ -248115,7 +249012,7 @@ var init_CaptchaSelector = __esmMin((() => {
 	init_CaptchaSelector$2();
 	init_CaptchaSelector$1();
 	CaptchaSelector = new GUIComponent("CaptchaSelector", CaptchaSelector_default$1);
-	_preferences$20 = Preferences.get("CaptchaSelector", {
+	_preferences$19 = Preferences.get("CaptchaSelector", {
 		x: 230,
 		y: 295
 	}, 2);
@@ -248178,16 +249075,16 @@ var init_CaptchaSelector = __esmMin((() => {
 	* Append to DOM
 	*/
 	CaptchaSelector.onAppend = function onAppend() {
-		this._host.style.top = `${Math.min(Math.max(0, _preferences$20.y), Renderer.height - this._host.offsetHeight)}px`;
-		this._host.style.left = `${Math.min(Math.max(0, _preferences$20.x), Renderer.width - this._host.offsetWidth)}px`;
+		this._host.style.top = `${Math.min(Math.max(0, _preferences$19.y), Renderer.height - this._host.offsetHeight)}px`;
+		this._host.style.left = `${Math.min(Math.max(0, _preferences$19.x), Renderer.width - this._host.offsetWidth)}px`;
 	};
 	/**
 	* Remove data from UI
 	*/
 	CaptchaSelector.onRemove = function onRemove() {
-		_preferences$20.y = parseInt(this._host.style.top, 10);
-		_preferences$20.x = parseInt(this._host.style.left, 10);
-		_preferences$20.save();
+		_preferences$19.y = parseInt(this._host.style.top, 10);
+		_preferences$19.x = parseInt(this._host.style.left, 10);
+		_preferences$19.save();
 		const charInfo = this.getRoot().querySelector(".character_info");
 		if (charInfo) charInfo.style.display = "none";
 		this.cleanUIList();
@@ -253057,7 +253954,7 @@ var init_QuadHorn$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/Renderer/Effects/QuadHorn.js
-var _program$17, mat4$14, blendMode, vertices, texCoords, rand, QuadHorn;
+var _program$17, mat4$14, blendMode, vertices, texCoords, rand$1, QuadHorn;
 var init_QuadHorn = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
@@ -253130,7 +254027,7 @@ var init_QuadHorn = __esmMin((() => {
 		0,
 		0
 	];
-	rand = (min, max) => parseFloat(Math.min(min + Math.random() * (max - min), max).toFixed(3));
+	rand$1 = (min, max) => parseFloat(Math.min(min + Math.random() * (max - min), max).toFixed(3));
 	QuadHorn = class {
 		constructor(effect, EF_Inst_Par, EF_Init_Par) {
 			this._zRotationMatrix = mat4$14.create();
@@ -253138,23 +254035,26 @@ var init_QuadHorn = __esmMin((() => {
 			this._xRotationMatrix = mat4$14.create();
 			this.position = EF_Inst_Par.position;
 			this.blendMode = effect.blendMode || 1;
-			this.height = (effect.height && effect.height instanceof Array ? rand(effect.height[0], effect.height[1]) : effect.height) || 0;
-			this.rotateX = (effect.rotateX && effect.rotateX instanceof Array ? rand(effect.rotateX[0], effect.rotateX[1]) : effect.rotateX) || 0;
-			this.rotateY = (effect.rotateY && effect.rotateY instanceof Array ? rand(effect.rotateY[0], effect.rotateY[1]) : effect.rotateY) || 0;
-			this.rotateZ = (effect.rotateZ && effect.rotateZ instanceof Array ? rand(effect.rotateZ[0], effect.rotateZ[1]) : effect.rotateZ) || 0;
-			this.offsetX = (effect.offsetX && effect.offsetX instanceof Array ? rand(effect.offsetX[0], effect.offsetX[1]) : effect.offsetX) || .5;
-			this.offsetY = (effect.offsetY && effect.offsetY instanceof Array ? rand(effect.offsetY[0], effect.offsetY[1]) : effect.offsetY) || .5;
-			this.offsetZ = (effect.offsetZ && effect.offsetZ instanceof Array ? rand(effect.offsetZ[0], effect.offsetZ[1]) : effect.offsetZ) || .5;
-			this.bottomSize = (effect.bottomSize && effect.bottomSize instanceof Array ? rand(effect.bottomSize[0], effect.bottomSize[1]) : effect.bottomSize) || 0;
-			this.color = effect.color || [
+			this.height = (effect.height && effect.height instanceof Array ? rand$1(effect.height[0], effect.height[1]) : effect.height) || 0;
+			this.rotateX = (effect.rotateX && effect.rotateX instanceof Array ? rand$1(effect.rotateX[0], effect.rotateX[1]) : effect.rotateX) || 0;
+			this.rotateY = (effect.rotateY && effect.rotateY instanceof Array ? rand$1(effect.rotateY[0], effect.rotateY[1]) : effect.rotateY) || 0;
+			this.rotateZ = (effect.rotateZ && effect.rotateZ instanceof Array ? rand$1(effect.rotateZ[0], effect.rotateZ[1]) : effect.rotateZ) || 0;
+			this.offsetX = (effect.offsetX && effect.offsetX instanceof Array ? rand$1(effect.offsetX[0], effect.offsetX[1]) : effect.offsetX) ?? .5;
+			this.offsetY = (effect.offsetY && effect.offsetY instanceof Array ? rand$1(effect.offsetY[0], effect.offsetY[1]) : effect.offsetY) ?? .5;
+			this.offsetZ = (effect.offsetZ && effect.offsetZ instanceof Array ? rand$1(effect.offsetZ[0], effect.offsetZ[1]) : effect.offsetZ) || .5;
+			this.bottomSize = (effect.bottomSize && effect.bottomSize instanceof Array ? rand$1(effect.bottomSize[0], effect.bottomSize[1]) : effect.bottomSize) || 0;
+			this.color = effect.color ? effect.color.slice() : [
 				1,
 				1,
 				1,
 				1
 			];
+			this.baseAlpha = this.color[3];
 			this.animation = effect.animation || 0;
 			this.animationSpeed = effect.animationSpeed || 100;
 			this.animationOut = effect.animationOut || false;
+			this.riseDistance = (effect.riseDistance && effect.riseDistance instanceof Array ? rand$1(effect.riseDistance[0], effect.riseDistance[1]) : effect.riseDistance) || 0;
+			this.fadeOut = effect.fadeOut || 0;
 			this.textureFile = effect.textureFile;
 			this.startTick = EF_Inst_Par.startTick;
 			this.endTick = EF_Inst_Par.endTick;
@@ -253167,16 +254067,26 @@ var init_QuadHorn = __esmMin((() => {
 			this.texCoordBuffer = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
 			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
-			const self = this;
-			Client.loadFile("data/texture/" + this.textureFile, function(buffer) {
-				WebGL_default.texture(gl, buffer, function(texture) {
-					self.texture = texture;
-					self.ready = true;
+			this.freed = false;
+			Client.loadFile(`data/texture/${this.textureFile}`, (buffer) => {
+				WebGL_default.texture(gl, buffer, (texture) => {
+					if (this.freed) {
+						gl.deleteTexture(texture);
+						return;
+					}
+					this.texture = texture;
+					this.ready = true;
 				});
 			});
 		}
 		free(gl) {
 			gl.deleteBuffer(this.buffer);
+			gl.deleteBuffer(this.texCoordBuffer);
+			if (this.texture) {
+				gl.deleteTexture(this.texture);
+				this.texture = null;
+			}
+			this.freed = true;
 			this.ready = false;
 		}
 		render(gl, tick) {
@@ -253204,6 +254114,12 @@ var init_QuadHorn = __esmMin((() => {
 					gl.uniform1f(uniform.uOffsetZ, this.offsetZ);
 				} else gl.uniform1f(uniform.uOffsetZ, lerpZOffset);
 				gl.uniform1f(uniform.uHeight, this.height);
+			} else if (this.animation === 4 && !this._endAnimation) {
+				const progress = Math.min(deltaStart / (this.animationSpeed / 1e3), 1);
+				const eased = 1 - (1 - progress) * (1 - progress);
+				if (progress >= 1) this._endAnimation = true;
+				gl.uniform1f(uniform.uOffsetZ, this.offsetZ - this.riseDistance * (1 - eased));
+				gl.uniform1f(uniform.uHeight, this.height);
 			} else if (this.animation === 3 && !this._endAnimation) {
 				const lerpZOffset = deltaStart / (this.animationSpeed / 1e3);
 				if (lerpZOffset > this.height / 2) {
@@ -253214,6 +254130,10 @@ var init_QuadHorn = __esmMin((() => {
 			} else {
 				gl.uniform1f(uniform.uHeight, this.height);
 				gl.uniform1f(uniform.uOffsetZ, this.offsetZ);
+			}
+			if (this.fadeOut > 0 && this.endTick > 0) {
+				const remaining = this.endTick - tick;
+				this.color[3] = this.baseAlpha * Math.max(0, Math.min(1, remaining / this.fadeOut));
 			}
 			if (this.endTick > 0 && this.endTick < tick) {
 				if (this.animationOut && this._endAnimation) {
@@ -253303,6 +254223,119 @@ var init_QuadHorn = __esmMin((() => {
 			gl.disableVertexAttribArray(_program$17.attribute.aColor);
 			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 		}
+	};
+}));
+//#endregion
+//#region src/Renderer/Effects/Trail.js
+var rand, Trail;
+var init_Trail = __esmMin((() => {
+	init_EffectManager();
+	init_Altitude();
+	init_Map();
+	rand = (min, max) => min + Math.random() * (max - min);
+	Trail = class {
+		constructor(effect, EF_Inst_Par, EF_Init_Par) {
+			const owner = EF_Inst_Par.position;
+			const other = EF_Inst_Par.otherPosition || owner;
+			const source = effect.angles || effect.sourceIsOwner ? owner : other;
+			const target = effect.sourceIsOwner ? other : owner;
+			this.source = [source[0], source[1]];
+			EF_Inst_Par.position = effect.angles ? [
+				source[0],
+				source[1],
+				source[2]
+			] : [
+				(source[0] + target[0]) / 2,
+				(source[1] + target[1]) / 2,
+				source[2]
+			];
+			this.position = EF_Inst_Par.position;
+			if (effect.angles) {
+				this.targetDistance = Infinity;
+				this.directions = effect.angles.map((angle) => {
+					const rad = angle * Math.PI / 180;
+					return [Math.cos(rad), Math.sin(rad)];
+				});
+			} else {
+				const dx = target[0] - this.source[0];
+				const dy = target[1] - this.source[1];
+				this.targetDistance = Math.sqrt(dx * dx + dy * dy);
+				this.directions = [this.targetDistance > 0 ? [dx / this.targetDistance, dy / this.targetDistance] : [0, -1]];
+			}
+			this.spawn = effect.spawn || [];
+			this.speed = effect.speed || 24;
+			this.interval = effect.interval || 17;
+			this.startOffset = effect.startOffset || 0;
+			this.stopAtTarget = !!effect.stopAtTarget;
+			this.overshoot = effect.overshoot || 0;
+			this.spread = effect.spread || 0;
+			this.startTick = EF_Inst_Par.startTick;
+			this.endTick = EF_Inst_Par.endTick > 0 ? EF_Inst_Par.endTick : this.startTick + 2500;
+			this.nextSpawnTick = this.startTick;
+			this.Init = EF_Init_Par;
+			this.ready = true;
+		}
+		init() {}
+		free() {}
+		render(gl, tick) {
+			if (Map_default.mineffect || tick >= this.endTick) {
+				this.needCleanUp = true;
+				return;
+			}
+			const maxDistance = this.stopAtTarget ? this.targetDistance + this.overshoot : Infinity;
+			const cellsPerMs = this.speed / 1e3;
+			while (this.nextSpawnTick <= tick) {
+				const distance = this.startOffset + (this.nextSpawnTick - this.startTick) * cellsPerMs;
+				if (distance > maxDistance || this.nextSpawnTick >= this.endTick) {
+					this.needCleanUp = true;
+					return;
+				}
+				this.spawnAt(distance, this.nextSpawnTick);
+				this.nextSpawnTick += this.interval;
+			}
+		}
+		spawnAt(distance, startTick) {
+			for (const direction of this.directions) {
+				const angle = Math.random() * Math.PI * 2;
+				const radius = Array.isArray(this.spread) ? rand(this.spread[0], this.spread[1]) : Math.random() * this.spread;
+				const x = this.source[0] + direction[0] * distance + Math.cos(angle) * radius;
+				const y = this.source[1] + direction[1] * distance + Math.sin(angle) * radius;
+				this.spawnDefinitions([
+					x,
+					y,
+					Altitude.getCellHeight(x, y)
+				], startTick);
+			}
+		}
+		spawnDefinitions(position, startTick) {
+			for (const definition of this.spawn) EffectManager.spamEffect({
+				effect: definition,
+				Inst: {
+					effectID: this.Init.effectId,
+					duplicateID: 0,
+					startTick
+				},
+				Init: {
+					effectId: this.Init.effectId,
+					ownerAID: this.Init.ownerAID,
+					ownerEntity: this.Init.ownerEntity,
+					otherAID: this.Init.otherAID,
+					otherEntity: this.Init.otherEntity,
+					position,
+					otherPosition: this.Init.otherPosition,
+					startTick
+				}
+			});
+		}
+		static init() {
+			this.ready = true;
+			this.renderBeforeEntities = true;
+		}
+		static free() {
+			this.ready = false;
+		}
+		static beforeRender() {}
+		static afterRender() {}
 	};
 }));
 //#endregion
@@ -253772,7 +254805,7 @@ function repeatEffect(effect) {
 function clean(name, AID, effectID) {
 	const effectIdList = Array.isArray(effectID) ? effectID : [effectID];
 	let i, count;
-	const list = _list$4[name];
+	const list = _list$3[name];
 	count = list.length;
 	for (i = 0; i < count; ++i) if ((!AID || list[i]._Params.Init.ownerAID === AID) && (!effectID || effectIdList.includes(list[i]._Params.Inst.effectID))) {
 		if (list[i].free) list[i].free(_gl);
@@ -253780,18 +254813,18 @@ function clean(name, AID, effectID) {
 		i--;
 		count--;
 	}
-	if (!count) delete _list$4[name];
+	if (!count) delete _list$3[name];
 }
 function cleanRepeat(name, AID, effectID) {
 	const effectIdList = Array.isArray(effectID) ? effectID : [effectID];
-	_list$4[name].forEach((item) => {
+	_list$3[name].forEach((item) => {
 		if ((!AID || item._Params.Init.ownerAID === AID) && (!effectID || effectIdList.includes(item.effectID))) {
 			if (item._Params.Inst.persistent) item._Params.Inst.persistent = false;
 			if (item._Params.Inst.repeatEnd) item._Params.Inst.repeatEnd = false;
 		}
 	});
 }
-var _gl, _list$4, _uniqueId, targetableUnits, traps, EffectManager;
+var _gl, _list$3, _uniqueId, targetableUnits, traps, EffectManager;
 var init_EffectManager = __esmMin((() => {
 	init_EffectTable();
 	init_SkillEffect();
@@ -253813,10 +254846,11 @@ var init_EffectManager = __esmMin((() => {
 	init_SoundManager();
 	init_Map();
 	init_QuadHorn();
+	init_Trail();
 	init_WaterfallEffect();
 	init_SessionStorage();
 	init_Graphics();
-	_list$4 = {};
+	_list$3 = {};
 	_uniqueId = 1;
 	targetableUnits = [SkillUnitConst_default.UNT_ICEWALL, SkillUnitConst_default.UNT_REVERBERATION];
 	traps = [
@@ -253860,8 +254894,8 @@ var init_EffectManager = __esmMin((() => {
 		*/
 		static add(effect, Params) {
 			const name = effect.constructor.name || effect.constructor._uid || (effect.constructor._uid = _uniqueId++);
-			if (!(name in _list$4)) {
-				_list$4[name] = [];
+			if (!(name in _list$3)) {
+				_list$3[name] = [];
 				if (effect.constructor.init) effect.constructor.needInit = true;
 			}
 			if (effect.init) effect.needInit = true;
@@ -253879,20 +254913,20 @@ var init_EffectManager = __esmMin((() => {
 					881
 				].indexOf(effect._Params.Inst.effectID) !== -1) effect.renderBeforeEntities = true;
 			}
-			_list$4[name].push(effect);
+			_list$3[name].push(effect);
 		}
 		/**
 		* Destroy all effects
 		*/
 		static free(gl) {
-			Object.keys(_list$4).forEach((key) => {
-				const list = _list$4[key];
+			Object.keys(_list$3).forEach((key) => {
+				const list = _list$3[key];
 				const constructor = list[0].constructor;
 				list.forEach((item) => {
 					if (item.free) item.free(gl);
 				});
 				if (constructor.free) constructor.free(gl);
-				delete _list$4[key];
+				delete _list$3[key];
 			});
 		}
 		/**
@@ -253908,7 +254942,7 @@ var init_EffectManager = __esmMin((() => {
 		* @param {boolean} render before entities ?
 		*/
 		static render(gl, modelView, projection, fog, tick, renderBeforeEntities) {
-			const keys = Object.keys(_list$4);
+			const keys = Object.keys(_list$3);
 			const count = keys.length;
 			let i, j, size, list, constructor;
 			let center = [
@@ -253920,9 +254954,9 @@ var init_EffectManager = __esmMin((() => {
 			const area_size = GraphicsSettings.performanceMode ? GraphicsSettings.viewArea : 20;
 			const cullDistanceSq = area_size * area_size;
 			for (i = 0; i < count; ++i) {
-				list = _list$4[keys[i]];
+				list = _list$3[keys[i]];
 				if (!list.length) {
-					delete _list$4[keys[i]];
+					delete _list$3[keys[i]];
 					continue;
 				}
 				constructor = list[0].constructor;
@@ -253968,7 +255002,7 @@ var init_EffectManager = __esmMin((() => {
 					constructor.afterRender(gl);
 					if (size === 0) {
 						if (constructor.free) constructor.free(gl);
-						delete _list$4[keys[i]];
+						delete _list$3[keys[i]];
 					}
 				}
 			}
@@ -254086,6 +255120,9 @@ var init_EffectManager = __esmMin((() => {
 					break;
 				case "QuadHorn":
 					EffectManager.add(new QuadHorn(Params.effect, Params.Inst, Params.Init), Params);
+					break;
+				case "TRAIL":
+					EffectManager.add(new Trail(Params.effect, Params.Inst, Params.Init), Params);
 					break;
 				case "FUNC": if (Params.effect.func) {
 					if (Params.effect.attachedEntity) {
@@ -254243,6 +255280,25 @@ var init_EffectManager = __esmMin((() => {
 					EffectManager.spam(EF_Init_Par);
 				});
 			}
+		}
+		/**
+		* Spam skill effect when the skill is released on its target (hit or miss)
+		*
+		* @param {number} skill id
+		* @param {number} target aid
+		* @param {number} tick
+		* @param {number} source aid
+		*/
+		static spamSkillRelease(skillId, destAID, tick, srcAID) {
+			if (!(skillId in SkillEffect) || !SkillEffect[skillId].releaseEffectId) return;
+			(Array.isArray(SkillEffect[skillId].releaseEffectId) ? SkillEffect[skillId].releaseEffectId : [SkillEffect[skillId].releaseEffectId]).forEach((effectId) => {
+				EffectManager.spam({
+					effectId,
+					ownerAID: destAID,
+					startTick: tick,
+					otherAID: srcAID
+				});
+			});
 		}
 		/**
 		* Spam skill before the hit lands (regardless of damage)
@@ -254419,7 +255475,7 @@ var init_EffectManager = __esmMin((() => {
 			if (hatEffects) delete hatEffects[effectID];
 		}
 		static debug() {
-			console.log("%c[DEBUG] EffectManager _list: ", "color:#F5B342", _list$4);
+			console.log("%c[DEBUG] EffectManager _list: ", "color:#F5B342", _list$3);
 		}
 		/**
 		* Remove an effect
@@ -254428,7 +255484,7 @@ var init_EffectManager = __esmMin((() => {
 		* @param {mixed} effect owner ID
 		*/
 		static remove(effect, AID, effectID) {
-			if (!effect || !(effect.name in _list$4)) Object.keys(_list$4).forEach((key) => clean(key, AID, effectID));
+			if (!effect || !(effect.name in _list$3)) Object.keys(_list$3).forEach((key) => clean(key, AID, effectID));
 			else clean(effect.name, AID, effectID);
 			if (!(AID == null)) {
 				const entity = EntityManager.get(AID);
@@ -254449,8 +255505,8 @@ var init_EffectManager = __esmMin((() => {
 		* @param {mixed} effect ID
 		*/
 		static endRepeat(effect, AID, effectID) {
-			if (!effect || !(effect.name in _list$4)) {
-				Object.keys(_list$4).forEach((key) => cleanRepeat(key, AID, effectID));
+			if (!effect || !(effect.name in _list$3)) {
+				Object.keys(_list$3).forEach((key) => cleanRepeat(key, AID, effectID));
 				return;
 			}
 			cleanRepeat(effect.name, AID, effectID);
@@ -254463,26 +255519,26 @@ var init_EffectManager = __esmMin((() => {
 * Add 3D sound to the list
 */
 function add(mapEffect) {
-	_list$3.push(mapEffect);
+	_list$2.push(mapEffect);
 }
 /**
 * Remove data from memory
 */
 function free$1() {
-	_list$3.length = 0;
+	_list$2.length = 0;
 }
 /**
 * Get effect from list
 */
 function get(GID) {
-	return _list$3.find((mapEffect) => mapEffect.name == GID) || null;
+	return _list$2.find((mapEffect) => mapEffect.name == GID) || null;
 }
 /**
 * Remove effect from list
 */
 function remove(GID) {
-	const index = _list$3.findIndex((mapEffect) => mapEffect.name == GID);
-	if (index !== -1) _list$3.splice(index, 1);
+	const index = _list$2.findIndex((mapEffect) => mapEffect.name == GID);
+	if (index !== -1) _list$2.splice(index, 1);
 }
 /**
 * Add effects to scene
@@ -254490,7 +255546,7 @@ function remove(GID) {
 * @param {vec3} position
 */
 function spam(position, tick) {
-	_list$3.forEach((mapEffect) => {
+	_list$2.forEach((mapEffect) => {
 		if (!mapEffect.isVisible && vec3$2.dist(mapEffect.pos, position) < 25) {
 			const EF_Init_Par = {
 				effectId: mapEffect.id,
@@ -254507,12 +255563,12 @@ function spam(position, tick) {
 		}
 	});
 }
-var vec3$2, _list$3, Effects_default;
+var vec3$2, _list$2, Effects_default;
 var init_Effects = __esmMin((() => {
 	init_gl_matrix();
 	init_EffectManager();
 	vec3$2 = gl_matrix_default.vec3;
-	_list$3 = [];
+	_list$2 = [];
 	Effects_default = {
 		add,
 		free: free$1,
@@ -255354,7 +256410,7 @@ var init_Sky = __esmMin((() => {
 }));
 //#endregion
 //#region src/Renderer/Effects/Damage.js
-var EndureSound, dpr$1, procCanvas$1, procCtx$1, _skin, _damageSkins, _loadedSkinsData, _enableSuffix, _msgNames, _list$2, _rgbaFrame, prevCombo, Damage;
+var EndureSound, dpr$1, procCanvas$1, procCtx$1, _skin, _damageSkins, _loadedSkinsData, _enableSuffix, _msgNames, _list$1, _rgbaFrame, prevCombo, Damage;
 var init_Damage = __esmMin((() => {
 	init_WebGL();
 	init_Client();
@@ -255408,7 +256464,7 @@ var init_Damage = __esmMin((() => {
 		4: "luckybg",
 		5: "lucky"
 	};
-	_list$2 = [];
+	_list$1 = [];
 	_rgbaFrame = { type: 1 };
 	prevCombo = [];
 	Damage = class Damage {
@@ -255602,7 +256658,7 @@ var init_Damage = __esmMin((() => {
 				bgObj.height = msgData.critbg.canvas.height * .6;
 				bgObj.offset = [0, -6];
 				bgObj.isDisposable = false;
-				_list$2.push(bgObj);
+				_list$1.push(bgObj);
 				const EF_Init_Par = {
 					effectId: 1,
 					ownerAID: entity.GID,
@@ -255630,7 +256686,7 @@ var init_Damage = __esmMin((() => {
 				bgObj.height = msgBlueData.critbg.canvas.height * .6;
 				bgObj.offset = [0, -6];
 				bgObj.isDisposable = false;
-				_list$2.push(bgObj);
+				_list$1.push(bgObj);
 			} else {
 				obj.color[0] = 1;
 				obj.color[1] = 1;
@@ -255642,7 +256698,7 @@ var init_Damage = __esmMin((() => {
 					obj.width = msgData.miss.canvas.width;
 					obj.height = msgData.miss.canvas.height;
 					obj.isDisposable = false;
-					_list$2.push(obj);
+					_list$1.push(obj);
 				}
 				return;
 			}
@@ -255680,7 +256736,7 @@ var init_Damage = __esmMin((() => {
 			if (entity.objecttype === Entity.TYPE_PC) hitSound = DB.getJobHitSound(entity._job);
 			else if (weapon || weapon === 0) hitSound = DB.getWeaponHitSound(weapon);
 			if (hitSound) obj.soundFile = hitSound;
-			_list$2.push(obj);
+			_list$1.push(obj);
 		}
 		/**
 		* Remove damages from map, clean up memory
@@ -255688,10 +256744,10 @@ var init_Damage = __esmMin((() => {
 		* @param {object} gl context
 		*/
 		static free(gl) {
-			_list$2.forEach((item) => {
+			_list$1.forEach((item) => {
 				if (item.isDisposable) gl.deleteTexture(item.texture);
 			});
-			_list$2.length = 0;
+			_list$1.length = 0;
 		}
 		/**
 		* Rendering damages on maps
@@ -255703,7 +256759,7 @@ var init_Damage = __esmMin((() => {
 		* @param {number} tick - game tick
 		*/
 		static render(gl, modelView, projection, fog, tick) {
-			if (!_list$2.length) return;
+			if (!_list$1.length) return;
 			SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
 			SpriteRenderer.shadow = 1;
 			SpriteRenderer.angle = 0;
@@ -255713,12 +256769,12 @@ var init_Damage = __esmMin((() => {
 			let damage;
 			let size;
 			const skinData = _loadedSkinsData[_skin];
-			for (i = 0, count = _list$2.length; i < count; ++i) {
-				damage = _list$2[i];
+			for (i = 0, count = _list$1.length; i < count; ++i) {
+				damage = _list$1[i];
 				if (damage.startTick > tick) continue;
 				if (damage.startTick + damage.delay < tick) {
 					if (damage.isDisposable) gl.deleteTexture(damage.texture);
-					_list$2.splice(i, 1);
+					_list$1.splice(i, 1);
 					count--;
 					i--;
 					continue;
@@ -255834,879 +256890,6 @@ var init_JoystickSetManager = __esmMin((() => {
 			currentSet = currentSet === 1 ? 2 : 1;
 		}
 	};
-}));
-//#endregion
-//#region src/UI/Components/ShortCut/ShortCut.html?raw
-var ShortCut_default$2;
-var init_ShortCut$2 = __esmMin((() => {
-	ShortCut_default$2 = "<div id=\"ShortCut\" data-background=\"basic_interface/shortitem_bg.bmp\">\r\n	<button\r\n		class=\"close\"\r\n		data-background=\"basic_interface/sys_close_off.bmp\"\r\n		data-hover=\"basic_interface/sys_close_on.bmp\"\r\n	></button>\r\n	<button class=\"resize\" data-background=\"btn_resize.bmp\"></button>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"0\"></div>\r\n		<div class=\"container\" data-index=\"1\"></div>\r\n		<div class=\"container\" data-index=\"2\"></div>\r\n		<div class=\"container\" data-index=\"3\"></div>\r\n		<div class=\"container\" data-index=\"4\"></div>\r\n		<div class=\"container\" data-index=\"5\"></div>\r\n		<div class=\"container\" data-index=\"6\"></div>\r\n		<div class=\"container\" data-index=\"7\"></div>\r\n		<div class=\"container\" data-index=\"8\"></div>\r\n		<div class=\"index\">1</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"9\"></div>\r\n		<div class=\"container\" data-index=\"10\"></div>\r\n		<div class=\"container\" data-index=\"11\"></div>\r\n		<div class=\"container\" data-index=\"12\"></div>\r\n		<div class=\"container\" data-index=\"13\"></div>\r\n		<div class=\"container\" data-index=\"14\"></div>\r\n		<div class=\"container\" data-index=\"15\"></div>\r\n		<div class=\"container\" data-index=\"16\"></div>\r\n		<div class=\"container\" data-index=\"17\"></div>\r\n		<div class=\"index\">2</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"18\"></div>\r\n		<div class=\"container\" data-index=\"19\"></div>\r\n		<div class=\"container\" data-index=\"20\"></div>\r\n		<div class=\"container\" data-index=\"21\"></div>\r\n		<div class=\"container\" data-index=\"22\"></div>\r\n		<div class=\"container\" data-index=\"23\"></div>\r\n		<div class=\"container\" data-index=\"24\"></div>\r\n		<div class=\"container\" data-index=\"25\"></div>\r\n		<div class=\"container\" data-index=\"26\"></div>\r\n		<div class=\"index\">3</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"row\">\r\n		<div class=\"container\" data-index=\"27\"></div>\r\n		<div class=\"container\" data-index=\"28\"></div>\r\n		<div class=\"container\" data-index=\"29\"></div>\r\n		<div class=\"container\" data-index=\"30\"></div>\r\n		<div class=\"container\" data-index=\"31\"></div>\r\n		<div class=\"container\" data-index=\"32\"></div>\r\n		<div class=\"container\" data-index=\"33\"></div>\r\n		<div class=\"container\" data-index=\"34\"></div>\r\n		<div class=\"container\" data-index=\"35\"></div>\r\n		<div class=\"index\">4</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n\r\n	<div class=\"shortcut-tooltip\"></div>\r\n</div>\r\n";
-}));
-//#endregion
-//#region src/UI/Components/ShortCut/ShortCut.css?raw
-var ShortCut_default$1;
-var init_ShortCut$1 = __esmMin((() => {
-	ShortCut_default$1 = ":host {\r\n	width: 280px;\r\n	top: 0px;\r\n	left: 480px;\r\n	overflow: hidden;\r\n}\r\n\r\n#ShortCut {\r\n	position: absolute;\r\n	width: 280px;\r\n	height: 100%;\r\n	background-repeat: repeat-y;\r\n}\r\n#ShortCut .close {\r\n	position: absolute;\r\n	top: 2px;\r\n	right: 2px;\r\n	border: none;\r\n	background-color: transparent;\r\n	width: 11px;\r\n	height: 11px;\r\n}\r\n#ShortCut .resize {\r\n	position: absolute;\r\n	bottom: 1px;\r\n	right: 1px;\r\n	border: none;\r\n	background-color: transparent;\r\n	width: 13px;\r\n	height: 13px;\r\n}\r\n\r\n#ShortCut .row {\r\n	position: relative;\r\n}\r\n#ShortCut .row .container {\r\n	float: left;\r\n	width: 24px;\r\n	height: 23px;\r\n	margin-top: 5px;\r\n	margin-left: 5px;\r\n	margin-bottom: 6px;\r\n}\r\n#ShortCut .row .container:hover {\r\n	background-color: #b5ffb5;\r\n}\r\n#ShortCut .row .index {\r\n	float: left;\r\n	position: relative;\r\n	top: 13px;\r\n	left: 5px;\r\n}\r\n#ShortCut .row .clear {\r\n}\r\n\r\n#ShortCut .icon {\r\n	position: relative;\r\n}\r\n#ShortCut .icon .img {\r\n	width: 24px;\r\n	height: 24px;\r\n	background-repeat: no-repeat;\r\n	border: none;\r\n	background-color: transparent;\r\n}\r\n#ShortCut .icon .name {\r\n	display: none;\r\n	z-index: 1;\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 0px;\r\n	background-color: rgba(0, 0, 0, 0.6);\r\n	text-shadow: 1px 1px black;\r\n	color: white;\r\n	padding: 5px;\r\n	white-space: nowrap;\r\n}\r\n#ShortCut .icon:hover .name {\r\n	display: block;\r\n}\r\n#ShortCut .icon.hide .name {\r\n	display: none;\r\n}\r\n#ShortCut .icon .amount {\r\n	position: absolute;\r\n	right: 1px;\r\n	top: 20px;\r\n	text-shadow: 1px 1px 0px white;\r\n	text-align: right;\r\n	font-weight: bold;\r\n}\r\n\r\n.shortcut-tooltip {\r\n	display: none;\r\n	position: fixed;\r\n	background-color: rgba(0, 0, 0, 0.8);\r\n	text-shadow: 1px 1px black;\r\n	color: white;\r\n	padding: 2px 6px;\r\n	white-space: nowrap;\r\n	z-index: 10000;\r\n	border-radius: 2px;\r\n	pointer-events: none;\r\n	line-height: 1.2;\r\n}\r\n.shortcut-tooltip.show {\r\n	display: block;\r\n}\r\n\r\n#ShortCut .cooldown-overlay {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 24px;\r\n	height: 24px;\r\n	pointer-events: none;\r\n	border-radius: 2px;\r\n	z-index: 999;\r\n	background: conic-gradient(rgba(0, 0, 0, 0.75) 0deg, transparent 0deg);\r\n}\r\n";
-}));
-//#endregion
-//#region src/UI/Components/ShortCut/ShortCut.js
-var ShortCut_exports = /* @__PURE__ */ __exportAll({ default: () => ShortCut_default });
-/**
-* Update tooltip for empty slots with hotkey only
-*/
-function updateEmptySlotTooltips() {
-	const containers = ShortCut.getRoot().querySelectorAll(".container");
-	for (let i = 0; i < containers.length; ++i) if (!_list$1[i] || !_list$1[i].isSkill && !_list$1[i].ID) {
-		const hotkey = getHotKeyString(i);
-		if (hotkey) containers[i].setAttribute("data-tooltip", hotkey);
-	}
-}
-/**
-* Get hotkey string for shortcut index
-*
-* @param {number} index of the shortcut slot
-* @return {string} hotkey string or empty string
-*/
-function getHotKeyString(index) {
-	const shortcutKeys = [
-		"F1_1",
-		"F1_2",
-		"F1_3",
-		"F1_4",
-		"F1_5",
-		"F1_6",
-		"F1_7",
-		"F1_8",
-		"F1_9",
-		"F2_1",
-		"F2_2",
-		"F2_3",
-		"F2_4",
-		"F2_5",
-		"F2_6",
-		"F2_7",
-		"F2_8",
-		"F2_9",
-		"F3_1",
-		"F3_2",
-		"F3_3",
-		"F3_4",
-		"F3_5",
-		"F3_6",
-		"F3_7",
-		"F3_8",
-		"F3_9",
-		"F4_1",
-		"F4_2",
-		"F4_3",
-		"F4_4",
-		"F4_5",
-		"F4_6",
-		"F4_7",
-		"F4_8",
-		"F4_9"
-	];
-	if (index < 0 || index >= shortcutKeys.length) return "";
-	const scKey = shortcutKeys[index];
-	const shortcut = ShortCutControls_default.ShortCuts[scKey];
-	if (!shortcut) return "";
-	const key = shortcut.cust ? shortcut.cust.key : shortcut.init.key;
-	const alt = shortcut.cust ? shortcut.cust.alt : shortcut.init.alt;
-	const ctrl = shortcut.cust ? shortcut.cust.ctrl : shortcut.init.ctrl;
-	const shift = shortcut.cust ? shortcut.cust.shift : shortcut.init.shift;
-	if (!key) return "";
-	let hotkeyStr = "";
-	if (alt) hotkeyStr += "ALT + ";
-	if (ctrl) hotkeyStr += "CTRL + ";
-	if (shift) hotkeyStr += "SHIFT + ";
-	hotkeyStr += KEYS.toReadableKey(key);
-	return hotkeyStr;
-}
-/**
-* Show fixed tooltip on container hover
-*/
-function onContainerMouseEnter(event) {
-	const tooltipText = event.currentTarget.getAttribute("data-tooltip");
-	if (tooltipText) {
-		const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
-		const hostRect = ShortCut._host.getBoundingClientRect();
-		tooltip.textContent = tooltipText;
-		tooltip.classList.add("show");
-		const tooltipRect = tooltip.getBoundingClientRect();
-		const showAbove = window.innerHeight - (hostRect.top + hostRect.height) < tooltipRect.height + 10;
-		const left = hostRect.left + hostRect.width / 2 - tooltipRect.width / 2;
-		let top;
-		if (showAbove) top = hostRect.top - tooltipRect.height - 2;
-		else top = hostRect.top + hostRect.height + 2;
-		tooltip.style.left = `${left}px`;
-		tooltip.style.top = `${top}px`;
-	}
-}
-/**
-* Hide fixed tooltip on container leave
-*/
-function onContainerMouseLeave() {
-	const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
-	if (tooltip) tooltip.classList.remove("show");
-}
-/**
-* Resizing hotkey window
-*/
-function onResize$3(event) {
-	const host = ShortCut._host;
-	const top = host.offsetTop;
-	let lastHeight = 0;
-	function resizing() {
-		let h = Math.floor((Mouse.screen.y - top) / 34 + 1);
-		h = Math.min(Math.max(h, 1), _rowCount);
-		if (h === lastHeight) return;
-		host.style.height = `${h * 34}px`;
-		_preferences$19.size = h;
-		_preferences$19.save();
-		lastHeight = h;
-	}
-	const _Interval = setInterval(resizing, 30);
-	const mouseUpHandler = (_event) => {
-		if (_event.which === 1) {
-			clearInterval(_Interval);
-			window.removeEventListener("mouseup", mouseUpHandler);
-		}
-	};
-	window.addEventListener("mouseup", mouseUpHandler);
-	event.stopImmediatePropagation();
-	event.preventDefault();
-}
-/**
-* Displays the cooldown overlay on an icon
-*
-* @param {number} index of the icon
-* @param {number} delay in ms
-*/
-function setDelayOnIndex(index, delay) {
-	if (!_list$1[index]) return;
-	if (_list$1[index].Delay && _list$1[index].Delay >= Renderer.tick + delay) return;
-	_list$1[index].Delay = Renderer.tick + delay;
-	const ui = ShortCut.getRoot().querySelector(`.container[data-index="${index}"]`);
-	if (!ui) return;
-	const existing = ui.querySelector(".cooldown-overlay");
-	if (existing) existing.remove();
-	const overlay = document.createElement("div");
-	overlay.className = "cooldown-overlay";
-	const icon = ui.querySelector(".icon");
-	if (icon) {
-		icon.appendChild(overlay);
-		const img = icon.querySelector(".img");
-		if (img) img.style.filter = "none";
-	}
-	if (_activeAnimations.has(index)) {
-		cancelAnimationFrame(_activeAnimations.get(index));
-		_activeAnimations.delete(index);
-	}
-	function updateCooldown() {
-		if (!_list$1 || !_list$1[index]) {
-			overlay.remove();
-			if (_activeAnimations.has(index)) {
-				cancelAnimationFrame(_activeAnimations.get(index));
-				_activeAnimations.delete(index);
-			}
-			return;
-		}
-		const now = Renderer.tick;
-		const remaining = _list$1[index].Delay - now;
-		if (remaining <= 0 || !_list$1[index].Delay) {
-			overlay.remove();
-			_list$1[index].Delay = 0;
-			if (_activeAnimations.has(index)) {
-				cancelAnimationFrame(_activeAnimations.get(index));
-				_activeAnimations.delete(index);
-			}
-			return;
-		}
-		const degrees = (1 - remaining / delay) * 360;
-		overlay.style.background = `conic-gradient(transparent 0deg, transparent ${degrees}deg, rgba(0,0,0,0.75) ${degrees}deg)`;
-		const animationId = requestAnimationFrame(updateCooldown);
-		_activeAnimations.set(index, animationId);
-	}
-	const animationId = requestAnimationFrame(updateCooldown);
-	_activeAnimations.set(index, animationId);
-}
-/**
-* Drop something in the shortcut
-* Does the client allow other source than shortcut, inventory
-* and skill window to save to shortcut ?
-*/
-function onDrop$8(event, target) {
-	let data, element;
-	const index = parseInt(target.getAttribute("data-index"), 10);
-	const row = Math.floor(index / 9);
-	event.stopImmediatePropagation();
-	event.preventDefault();
-	try {
-		data = JSON.parse(event.dataTransfer.getData("Text"));
-		element = data.data;
-	} catch (_e) {
-		return;
-	}
-	if (data.type !== "item" && data.type !== "skill") return;
-	switch (data.from) {
-		case "SkillList":
-		case "Guild":
-		case "SkillListMH":
-			ShortCut.removeElement(true, element.SKID, row, element.selectedLevel ? element.selectedLevel : element.level);
-			ShortCut.addElement(index, true, element.SKID, element.selectedLevel ? element.selectedLevel : element.level);
-			ShortCut.onChange(index, true, element.SKID, element.selectedLevel ? element.selectedLevel : element.level);
-			break;
-		case "Inventory":
-			ShortCut.removeElement(false, element.ITID, row);
-			ShortCut.addElement(index, false, element.ITID, 0);
-			ShortCut.onChange(index, false, element.ITID, 0);
-			break;
-		case "ShortCut":
-			ShortCut.removeElement(element.isSkill, element.ID, row, element.isSkill ? element.count : null);
-			ShortCut.addElement(index, element.isSkill, element.ID, element.count);
-			ShortCut.onChange(index, element.isSkill, element.ID, element.count);
-	}
-}
-/**
-* Stop the drag and drop
-*/
-function onDragEnd(icon) {
-	delete window._OBJ_DRAG_;
-	icon.classList.remove("hide");
-}
-/**
-* Prepare data to be stored in the dragged element
-* to change position in the shortcut.
-*/
-function onDragStart$2(event, icon) {
-	const index = parseInt(icon.parentNode.getAttribute("data-index"), 10);
-	icon.classList.add("hide");
-	const img = new Image();
-	img.decoding = "async";
-	img.src = icon.querySelector(".img").style.backgroundImage.match(/\(([^)]+)/)[1].replace(/"/g, "");
-	event.dataTransfer.setDragImage(img, 12, 12);
-	event.dataTransfer.setData("Text", JSON.stringify(window._OBJ_DRAG_ = {
-		type: _list$1[index].isSkill ? "skill" : "item",
-		from: "ShortCut",
-		data: _list$1[index]
-	}));
-}
-/**
-* Get informations from a skill/item when
-* using right click on it.
-*/
-function onElementInfo(event, icon) {
-	const index = parseInt(icon.parentNode.getAttribute("data-index"), 10);
-	const element = _list$1[index];
-	event.stopImmediatePropagation();
-	event.preventDefault();
-	if (element.isSkill) {
-		if (SkillDescription_default.uid === _list$1[index].ID) SkillDescription_default.remove();
-		else {
-			SkillDescription_default.append();
-			SkillDescription_default.setSkill(_list$1[index].ID);
-		}
-	} else {
-		if (ItemInfo_default.uid === _list$1[index].ID) {
-			ItemInfo_default.remove();
-			return;
-		}
-		ItemInfo_default.append();
-		ItemInfo_default.uid = _list$1[index].ID;
-		ItemInfo_default.setItem(InventoryController.getUI().getItemById(_list$1[index].ID));
-	}
-}
-/**
-* Double-click on a shortcut
-*/
-function onUseShortCut(icon) {
-	clickElement(parseInt(icon.parentNode.getAttribute("data-index"), 10));
-}
-/**
-* Clicking on a shortcut
-*
-* @param {number} shortcut index
-*/
-function clickElement(index) {
-	const shortcut = _list$1[index];
-	SkillTargetSelection_default.remove();
-	if (!shortcut) return;
-	if (shortcut.isSkill) ShortCut.useSkill(shortcut.ID, shortcut.count);
-	else {
-		const item = InventoryController.getUI().getItemById(_list$1[index].ID);
-		if (item) InventoryController.getUI().useItem(item);
-	}
-}
-/**
-* Closing the window
-*/
-function onClose$5() {
-	ShortCut._host.style.height = "0px";
-	_preferences$19.size = 0;
-	_preferences$19.save();
-}
-/**
-* Hook Inventory, get informations when there is a change
-* to update the shortcut
-*
-* @param {number} index
-* @param {number} count
-*/
-function onUpdateItem(index, count) {
-	ShortCut.setElement(false, index, count);
-}
-/**
-* Hook Skill List, get informations when there is a change
-* to update the shortcut
-*
-* @param {number} skill id
-* @param {number} level
-*/
-function onUpdateSkill(id, level) {
-	ShortCut.setElement(true, id, level);
-}
-function onUpdateOwnerName$1() {
-	for (const index in _list$1) if (!_list$1[index].isSkill) ShortCut.setElement(false, _list$1[index].ID, _list$1[index].count);
-}
-function convertHotkeysToServerFormat() {
-	const serverData = {
-		Type: 1,
-		data: {
-			EmotionHotkey: [],
-			UserHotkey_V2: { SkillBar_1Tab: [] }
-		}
-	};
-	[
-		"Macro1",
-		"Macro2",
-		"Macro3",
-		"Macro4",
-		"Macro5",
-		"Macro6",
-		"Macro7",
-		"Macro8",
-		"Macro9",
-		"Macro10"
-	].forEach((key, index) => {
-		const shortcut = ShortCutControls_default.ShortCuts[key];
-		if (shortcut && shortcut.cust && shortcut.cust.emotion) serverData.data.EmotionHotkey[index] = shortcut.cust.emotion;
-	});
-	[
-		"F1_1",
-		"F1_2",
-		"F1_3",
-		"F1_4",
-		"F1_5",
-		"F1_6",
-		"F1_7",
-		"F1_8",
-		"F1_9",
-		"F2_1",
-		"F2_2",
-		"F2_3",
-		"F2_4",
-		"F2_5",
-		"F2_6",
-		"F2_7",
-		"F2_8",
-		"F2_9",
-		"F3_1",
-		"F3_2",
-		"F3_3",
-		"F3_4",
-		"F3_5",
-		"F3_6",
-		"F3_7",
-		"F3_8",
-		"F3_9",
-		"F4_1",
-		"F4_2",
-		"F4_3",
-		"F4_4",
-		"F4_5",
-		"F4_6",
-		"F4_7",
-		"F4_8",
-		"F4_9"
-	].forEach((key, index) => {
-		const shortcut = ShortCutControls_default.ShortCuts[key];
-		if (shortcut) {
-			const keyData = shortcut.cust || shortcut.init;
-			serverData.data.UserHotkey_V2.SkillBar_1Tab.push({
-				desc: `Skill ${index + 1}`,
-				index,
-				key1: keyData.key || 0,
-				key2: 0
-			});
-		}
-	});
-	return serverData;
-}
-function convertHotkeysFromServerFormat(serverData) {
-	if (!serverData || !serverData.data) return;
-	if (serverData.data.EmotionHotkey) {
-		const emotionKeys = [
-			"Macro1",
-			"Macro2",
-			"Macro3",
-			"Macro4",
-			"Macro5",
-			"Macro6",
-			"Macro7",
-			"Macro8",
-			"Macro9",
-			"Macro10"
-		];
-		serverData.data.EmotionHotkey.forEach((emotion, index) => {
-			if (emotion && emotionKeys[index]) {
-				if (!ShortCutControls_default.ShortCuts[emotionKeys[index]].cust) ShortCutControls_default.ShortCuts[emotionKeys[index]].cust = {};
-				ShortCutControls_default.ShortCuts[emotionKeys[index]].cust.emotion = emotion;
-			}
-		});
-	}
-	if (serverData.data.UserHotkey_V2 && serverData.data.UserHotkey_V2.SkillBar_1Tab) {
-		const shortcutKeys = [
-			"F1_1",
-			"F1_2",
-			"F1_3",
-			"F1_4",
-			"F1_5",
-			"F1_6",
-			"F1_7",
-			"F1_8",
-			"F1_9",
-			"F2_1",
-			"F2_2",
-			"F2_3",
-			"F2_4",
-			"F2_5",
-			"F2_6",
-			"F2_7",
-			"F2_8",
-			"F2_9",
-			"F3_1",
-			"F3_2",
-			"F3_3",
-			"F3_4",
-			"F3_5",
-			"F3_6",
-			"F3_7",
-			"F3_8",
-			"F3_9",
-			"F4_1",
-			"F4_2",
-			"F4_3",
-			"F4_4",
-			"F4_5",
-			"F4_6",
-			"F4_7",
-			"F4_8",
-			"F4_9"
-		];
-		serverData.data.UserHotkey_V2.SkillBar_1Tab.forEach((skillData) => {
-			if (skillData && skillData.index < shortcutKeys.length) {
-				const key = shortcutKeys[skillData.index];
-				if (key && skillData.key1) {
-					if (!ShortCutControls_default.ShortCuts[key].cust) ShortCutControls_default.ShortCuts[key].cust = {};
-					ShortCutControls_default.ShortCuts[key].cust.key = skillData.key1;
-				}
-			}
-		});
-	}
-}
-function haveHotkeysChanged(currentData) {
-	if (!_lastServerHotkeys) return true;
-	return JSON.stringify(currentData) !== JSON.stringify(_lastServerHotkeys);
-}
-var ShortCut, _list$1, _rowCount, _lastServerHotkeys, _activeAnimations, _preferences$19, ShortCut_default;
-var init_ShortCut = __esmMin((() => {
-	init_DBManager();
-	init_ItemType();
-	init_SkillInfo();
-	init_Client();
-	init_Preferences$1();
-	init_SessionStorage();
-	init_Renderer();
-	init_MouseEventHandler();
-	init_UIManager();
-	init_GUIComponent();
-	init_ItemInfo();
-	init_Inventory();
-	init_SkillListMH();
-	init_SkillDescription();
-	init_SkillTargetSelection();
-	init_Guild$1();
-	init_ShortCutControls();
-	init_KeyEventHandler();
-	init_Configs();
-	init_PacketVerManager();
-	init_SkillList();
-	init_ShortCut$2();
-	init_ShortCut$1();
-	ShortCut = new GUIComponent("ShortCut", ShortCut_default$1);
-	ShortCut.render = () => ShortCut_default$2;
-	_list$1 = [];
-	_rowCount = 0;
-	_lastServerHotkeys = null;
-	_activeAnimations = /* @__PURE__ */ new Map();
-	_preferences$19 = Preferences.get("ShortCut", {
-		x: 480,
-		y: 0,
-		size: 1,
-		magnet_top: true,
-		magnet_bottom: false,
-		magnet_left: false,
-		magnet_right: false
-	}, 1);
-	/**
-	* Initialize UI
-	*/
-	ShortCut.init = function init() {
-		const root = ShortCut.getRoot();
-		const resizeBtn = root.querySelector(".resize");
-		if (resizeBtn) resizeBtn.addEventListener("mousedown", onResize$3);
-		const closeBtn = root.querySelector(".close");
-		if (closeBtn) {
-			closeBtn.addEventListener("mousedown", (e) => {
-				e.stopImmediatePropagation();
-				e.preventDefault();
-			});
-			closeBtn.addEventListener("click", onClose$5);
-		}
-		const container = root.querySelector("#ShortCut");
-		container.addEventListener("drop", (e) => {
-			const target = e.target.closest(".container");
-			if (target) onDrop$8(e, target);
-		});
-		container.addEventListener("dragover", (e) => {
-			if (e.target.closest(".container")) {
-				e.stopImmediatePropagation();
-				e.preventDefault();
-			}
-		});
-		container.addEventListener("dragstart", (e) => {
-			const icon = e.target.closest(".icon");
-			if (icon) onDragStart$2(e, icon);
-		});
-		container.addEventListener("dragend", (e) => {
-			const icon = e.target.closest(".icon");
-			if (icon) onDragEnd(icon);
-		});
-		container.addEventListener("dblclick", (e) => {
-			const icon = e.target.closest(".icon");
-			if (icon) onUseShortCut(icon);
-		});
-		container.addEventListener("contextmenu", (e) => {
-			const icon = e.target.closest(".icon");
-			if (icon) onElementInfo(e, icon);
-		});
-		container.addEventListener("mousedown", (e) => {
-			if (e.target.closest(".icon")) e.stopImmediatePropagation();
-		});
-		this.draggable();
-		root.querySelectorAll(".container").forEach((el) => {
-			el.addEventListener("mouseenter", onContainerMouseEnter);
-			el.addEventListener("mouseleave", onContainerMouseLeave);
-		});
-		DB.UpdateOwnerName.ShortCut = onUpdateOwnerName$1;
-		InventoryController.getUI().onUpdateItem = onUpdateItem;
-	};
-	/**
-	* Append to body
-	*/
-	ShortCut.onAppend = function onAppend() {
-		this._host.style.height = `${34 * _preferences$19.size}px`;
-		const rect = this._host.getBoundingClientRect();
-		this._host.style.top = `${Math.min(Math.max(0, _preferences$19.y), Renderer.height - rect.height)}px`;
-		this._host.style.left = `${Math.min(Math.max(0, _preferences$19.x), Renderer.width - rect.width)}px`;
-		this.magnet.TOP = _preferences$19.magnet_top;
-		this.magnet.BOTTOM = _preferences$19.magnet_bottom;
-		this.magnet.LEFT = _preferences$19.magnet_left;
-		this.magnet.RIGHT = _preferences$19.magnet_right;
-		Controller$4.getUI().onUpdateSkill = onUpdateSkill;
-		updateEmptySlotTooltips();
-	};
-	/**
-	* When removed, clean up
-	*/
-	ShortCut.onRemove = function onRemove() {
-		const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
-		if (tooltip) tooltip.classList.remove("show");
-		for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
-		_activeAnimations.clear();
-		_preferences$19.y = parseInt(this._host.style.top, 10);
-		_preferences$19.x = parseInt(this._host.style.left, 10);
-		_preferences$19.size = Math.floor(parseInt(this._host.style.height, 10) / 34);
-		_preferences$19.magnet_top = this.magnet.TOP;
-		_preferences$19.magnet_bottom = this.magnet.BOTTOM;
-		_preferences$19.magnet_left = this.magnet.LEFT;
-		_preferences$19.magnet_right = this.magnet.RIGHT;
-		_preferences$19.save();
-	};
-	/**
-	* Request to clean the list
-	* Used only from MapEngine when exiting the game
-	*/
-	ShortCut.clean = function clean() {
-		for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
-		_activeAnimations.clear();
-		_list$1.length = 0;
-		ShortCut.getRoot().querySelectorAll(".container").forEach((el) => {
-			el.innerHTML = "";
-		});
-	};
-	/**
-	* Process shortcut
-	*
-	* @param {object} key
-	*/
-	ShortCut.onShortCut = function onShortCut(key) {
-		switch (key.cmd.replace(/\d+$/, "")) {
-			case "EXECUTE":
-				clickElement(parseInt(key.cmd.match(/\d+$/).toString(), 10));
-				break;
-			case "EXTEND":
-				_preferences$19.size = (_preferences$19.size + 1) % (_rowCount + 1);
-				_preferences$19.save();
-				this._host.style.height = `${_preferences$19.size * 34}px`;
-		}
-	};
-	ShortCut.useSkill = function useSkill(id, level) {
-		if (id > 1e4 && id < 10100) Guild_default.useSkillID(id, level);
-		else if (id > 8e3 && id < 8044) {
-			SkillListMH_default.mercenary.useSkillID(id, level);
-			SkillListMH_default.homunculus.useSkillID(id, level);
-		} else Controller$4.getUI().useSkillID(id, level);
-	};
-	ShortCut.getSkillById = function getSkillById(id) {
-		let skill;
-		if (id > 1e4 && id < 10100) skill = Guild_default.getSkillById(id);
-		else if (id > 8e3 && id < 8044) {
-			skill = SkillListMH_default.mercenary.getSkillById(id);
-			if (!skill) skill = SkillListMH_default.homunculus.getSkillById(id);
-		} else skill = Controller$4.getUI().getSkillById(id);
-		return skill;
-	};
-	/**
-	* Bind UI with list of shortcut
-	*
-	* @param {Array} shortcut list
-	*/
-	ShortCut.setList = function setList(list) {
-		let skill;
-		ShortCut.getRoot().querySelectorAll(".container").forEach((el) => {
-			el.innerHTML = "";
-		});
-		_list$1.length = list.length;
-		_rowCount = Math.min(4, Math.floor(list.length / 9));
-		for (let i = 0, count = list.length; i < count; ++i) if (list[i].isSkill) {
-			skill = ShortCut.getSkillById(list[i].ID);
-			if (skill && skill.level) ShortCut.addElement(i, true, list[i].ID, list[i].count || skill.level);
-			else {
-				if (!_list$1[i]) _list$1[i] = {};
-				_list$1[i].isSkill = true;
-				_list$1[i].ID = list[i].ID;
-				_list$1[i].count = list[i].count;
-			}
-		} else ShortCut.addElement(i, list[i].isSkill, list[i].ID, list[i].count);
-	};
-	/**
-	* Update all tooltips (for both empty and filled slots)
-	* Called when hotkey settings change
-	*/
-	ShortCut.updateAllTooltips = function updateAllTooltips() {
-		const root = ShortCut.getRoot();
-		for (let i = 0, size = _list$1.length; i < size; ++i) {
-			const container = root.querySelector(`.container[data-index="${i}"]`);
-			if (!container) continue;
-			const hotkey = getHotKeyString(i);
-			if (!_list$1[i] || !_list$1[i].isSkill && !_list$1[i].ID) {
-				if (hotkey) container.setAttribute("data-tooltip", hotkey);
-			} else if (_list$1[i] && (_list$1[i].isSkill || _list$1[i].ID)) {
-				let name = "";
-				if (_list$1[i].isSkill && SkillInfo[_list$1[i].ID]) name = SkillInfo[_list$1[i].ID].SkillName;
-				else if (_list$1[i].ID) {
-					const item = InventoryController.getUI().getItemById(_list$1[i].ID);
-					if (item) name = DB.getItemName(item);
-				}
-				if (name) {
-					const tooltipText = hotkey ? `[ ${hotkey} ] ${name}` : name;
-					container.setAttribute("data-tooltip", tooltipText);
-				}
-			}
-		}
-	};
-	ShortCut.setElement = function setElement(isSkill, ID, count) {
-		for (let i = 0, size = _list$1.length; i < size; ++i) if (_list$1[i] && _list$1[i].isSkill == isSkill && _list$1[i].ID === ID) {
-			if (isSkill && _list$1[i].count && _list$1[i].count <= count) ShortCut.addElement(i, isSkill, ID, _list$1[i].count);
-			else ShortCut.addElement(i, isSkill, ID, count);
-		}
-	};
-	/**
-	* Add an element to shortcut
-	*
-	* @param {number} index of the element
-	* @param {boolean} is a skill ?
-	* @param {number} ID
-	* @param {number} count or level
-	*/
-	ShortCut.addElement = function addElement(index, isSkill, ID, count) {
-		let file, name;
-		const ui = ShortCut.getRoot().querySelector(`.container[data-index="${index}"]`);
-		if (!ui) return;
-		ui.innerHTML = "";
-		if (!_list$1[index]) _list$1[index] = {};
-		_list$1[index].isSkill = isSkill;
-		_list$1[index].ID = ID;
-		if (isSkill) {
-			if (!count) return;
-			else {
-				_list$1[index].count = count;
-				file = SkillInfo[ID].Name;
-				name = SkillInfo[ID].SkillName;
-			}
-		} else {
-			_list$1[index].count = count;
-			const item = InventoryController.getUI().getItemById(ID);
-			if (!item) return;
-			const it = DB.getItemInfo(ID);
-			file = item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName;
-			name = DB.getItemName(item);
-			if (item.type === ItemType_default.WEAPON || item.type === ItemType_default.ARMOR || item.type === ItemType_default.SHADOWGEAR) count = 1;
-			else count = item.count;
-			if (!count) return;
-		}
-		const hotkey = getHotKeyString(index);
-		const tooltipText = hotkey ? `[ ${hotkey} ] ${name}` : name;
-		Client.loadFile(`${DB.INTERFACE_PATH}item/${file}.bmp`, (url) => {
-			ui.innerHTML = "<div draggable=\"true\" class=\"icon\"><div class=\"img\"></div><div class=\"amount\"></div></div>";
-			ui.querySelector(".img").style.backgroundImage = `url(${url})`;
-			ui.querySelector(".amount").textContent = count;
-			ui.setAttribute("data-tooltip", tooltipText);
-		});
-	};
-	/**
-	* Displays the cooldown over every skill
-	*
-	* @param {number} delay in ms
-	*/
-	ShortCut.setGlobalSkillDelay = function setGlobalSkillDelay(delay) {
-		_list$1.forEach((element, index) => {
-			if (element.isSkill) setDelayOnIndex(index, delay);
-		});
-	};
-	/**
-	* Displays the cooldown over a single skill
-	*
-	* @param {number} ID of the skill
-	* @param {number} delay in ms
-	*/
-	ShortCut.setSkillDelay = function setSkillDelay(ID, delay) {
-		_list$1.forEach((element, index) => {
-			if (element.isSkill && element.ID == ID) setDelayOnIndex(index, delay);
-		});
-	};
-	/**
-	* Remove an element from shortcut
-	*
-	* @param {boolean} is a skill ?
-	* @param {number} ID of the element to remove
-	* @param {number} row id
-	* @param {number} amount (optional)
-	*/
-	ShortCut.removeElement = function removeElement(isSkill, ID, row, amount) {
-		if (!ID) return;
-		const root = ShortCut.getRoot();
-		for (let i = row * 9, count = Math.min(_list$1.length, row * 9 + 9); i < count; ++i) if (_list$1[i] && _list$1[i].isSkill == isSkill && _list$1[i].ID === ID && (!isSkill || _list$1[i].count == amount)) {
-			const container = root.querySelector(`.container[data-index="${i}"]`);
-			if (container) container.innerHTML = "";
-			_list$1[i].isSkill = 0;
-			_list$1[i].ID = 0;
-			_list$1[i].count = 0;
-			ShortCut.onChange(i, 0, 0, 0);
-		}
-	};
-	Guild_default.onUpdateSkill = (id, level) => {
-		ShortCut.setElement(true, id, level);
-	};
-	SkillListMH_default.mercenary.onUpdateSkill = (id, level) => {
-		ShortCut.setElement(true, id, level);
-	};
-	SkillListMH_default.homunculus.onUpdateSkill = (id, level) => {
-		ShortCut.setElement(true, id, level);
-	};
-	/**
-	* Method to define to notify a change.
-	*
-	* @param {number} index
-	* @param {boolean} isSkill
-	* @param {number} id
-	* @param {number} count
-	*/
-	ShortCut.onChange = function onChange() {};
-	ShortCut.saveToServer = function saveToServer() {
-		if (PacketVerManager_default.value >= 20170315 && SessionStorage_default.WebToken) {
-			const hotkeys = JSON.stringify(convertHotkeysToServerFormat());
-			if (!haveHotkeysChanged(hotkeys)) return;
-			const formData = new FormData();
-			formData.append("AID", SessionStorage_default.AID);
-			formData.append("WorldName", SessionStorage_default.ServerName);
-			formData.append("AuthToken", SessionStorage_default.WebToken);
-			formData.append("data", hotkeys);
-			const xhr = new XMLHttpRequest();
-			let webserverAddress = "";
-			if (window.location.protocol !== "http:" && window.location.protocol !== "https:") webserverAddress = Configs.get("webserverAddress", "http://127.0.0.1:8888");
-			xhr.open("POST", `${webserverAddress}/userconfig/save`, true);
-			xhr.timeout = 5e3;
-			xhr.onload = () => {
-				if (xhr.status === 200) console.log("Hotkeys saved to server successfully");
-				else console.warn("Hotkey save returned non-200 status:", xhr.status);
-			};
-			xhr.onerror = () => {
-				console.warn("Hotkey save failed: web-server unreachable");
-			};
-			xhr.ontimeout = () => {
-				console.warn("Hotkey save timed out");
-			};
-			xhr.send(formData);
-		}
-	};
-	ShortCut.loadFromServer = function loadFromServer(callback) {
-		if (PacketVerManager_default.value >= 20170315 && SessionStorage_default.WebToken) {
-			const formData = new FormData();
-			formData.append("AID", SessionStorage_default.AID);
-			formData.append("WorldName", SessionStorage_default.ServerName);
-			formData.append("AuthToken", SessionStorage_default.WebToken);
-			const xhr = new XMLHttpRequest();
-			let webserverAddress = "";
-			if (window.location.protocol !== "http:" && window.location.protocol !== "https:") webserverAddress = Configs.get("webserverAddress", "http://127.0.0.1:8888");
-			xhr.open("POST", `${webserverAddress}/userconfig/load`, true);
-			xhr.timeout = 5e3;
-			xhr.onload = () => {
-				if (xhr.status === 200) try {
-					const serverData = JSON.parse(xhr.responseText);
-					_lastServerHotkeys = JSON.parse(JSON.stringify(serverData));
-					convertHotkeysFromServerFormat(serverData);
-				} catch (e) {
-					console.error("Error parsing server hotkeys:", e);
-				}
-				else console.warn("Hotkey load returned non-200 status:", xhr.status);
-				if (callback) callback();
-			};
-			xhr.onerror = () => {
-				console.warn("Hotkey load failed: web-server unreachable");
-				if (callback) callback();
-			};
-			xhr.ontimeout = () => {
-				console.warn("Hotkey load timed out");
-				if (callback) callback();
-			};
-			xhr.send(formData);
-		} else if (callback) callback();
-	};
-	ShortCut.getList = function getList() {
-		return _list$1;
-	};
-	ShortCut_default = UIManager.addComponent(ShortCut);
 }));
 //#endregion
 //#region src/UI/Components/JoystickUI/JoystickUIRenderer.js
@@ -264279,8 +264462,38 @@ var init_EffectTable = __esmMin((() => {
 			attachedEntity: false
 		}],
 		27: [{
-			file: "effect/ice",
-			attachedEntity: false
+			type: "TRAIL",
+			attachedEntity: false,
+			duration: 2500,
+			speed: 24,
+			interval: 17,
+			stopAtTarget: true,
+			overshoot: 2,
+			spread: [.1, .3],
+			spawn: [{
+				type: "QuadHorn",
+				textureFile: "effect/ice.tga",
+				attachedEntity: false,
+				duration: 670,
+				height: [.2, 1.8],
+				offsetX: 0,
+				offsetY: 0,
+				offsetZ: 0,
+				bottomSize: [.06, .22],
+				blendMode: 8,
+				rotateX: [-15, 15],
+				rotateY: [0, 360],
+				color: [
+					1,
+					1,
+					1,
+					1
+				],
+				animation: 4,
+				animationSpeed: 330,
+				riseDistance: 2,
+				fadeOut: 170
+			}]
 		}],
 		28: [{
 			attachedEntity: true,
@@ -266014,6 +266227,38 @@ var init_EffectTable = __esmMin((() => {
 		123: [{
 			wav: "effect/ef_frostdiver",
 			attachedEntity: true
+		}, {
+			type: "TRAIL",
+			attachedEntity: false,
+			duration: 2500,
+			speed: 24,
+			interval: 50,
+			stopAtTarget: true,
+			overshoot: 3,
+			spawn: [{
+				type: "QuadHorn",
+				textureFile: "effect/stone.bmp",
+				attachedEntity: false,
+				duration: 670,
+				height: [.6, 1],
+				offsetX: 0,
+				offsetY: 0,
+				offsetZ: 0,
+				bottomSize: [.05, .1],
+				blendMode: 8,
+				rotateX: [-15, 15],
+				rotateY: [0, 360],
+				color: [
+					1,
+					1,
+					1,
+					1
+				],
+				animation: 4,
+				animationSpeed: 330,
+				riseDistance: .8,
+				fadeOut: 170
+			}]
 		}],
 		124: [{
 			type: "STR",
@@ -266063,7 +266308,7 @@ var init_EffectTable = __esmMin((() => {
 				attachedEntity: false,
 				duration: 15e3,
 				height: 2.5,
-				offsetX: 0,
+				offsetX: .5,
 				offsetY: .4,
 				offsetZ: -.2,
 				bottomSize: .15,
@@ -266109,7 +266354,7 @@ var init_EffectTable = __esmMin((() => {
 				attachedEntity: false,
 				duration: 15e3,
 				height: 2.5,
-				offsetX: 0,
+				offsetX: .5,
 				offsetY: .5,
 				offsetZ: 0,
 				bottomSize: .15,
@@ -275184,6 +275429,48 @@ var init_EffectTable = __esmMin((() => {
 		ef_jackfrost: [{
 			wav: "effect/wl_jackfrost",
 			attachedEntity: true
+		}, {
+			type: "TRAIL",
+			attachedEntity: false,
+			duration: 1e3,
+			speed: 24,
+			interval: 34,
+			startOffset: 1,
+			angles: [
+				0,
+				45,
+				90,
+				135,
+				180,
+				225,
+				270,
+				315
+			],
+			spread: [.1, .4],
+			spawn: [{
+				type: "QuadHorn",
+				textureFile: "effect/ice.tga",
+				attachedEntity: false,
+				duration: 670,
+				height: [.2, 1.8],
+				offsetX: 0,
+				offsetY: 0,
+				offsetZ: 0,
+				bottomSize: [.06, .22],
+				blendMode: 8,
+				rotateX: [-15, 15],
+				rotateY: [0, 360],
+				color: [
+					1,
+					1,
+					1,
+					1
+				],
+				animation: 4,
+				animationSpeed: 330,
+				riseDistance: 2,
+				fadeOut: 170
+			}]
 		}],
 		ef_siennaexecrate: [{
 			wav: "effect/wl_siennaexecrate",
@@ -308794,13 +309081,19 @@ var init_GUIComponent = __esmMin((() => {
 //#region src/UI/Components/MobileUI/MobileUI.html?raw
 var MobileUI_default$2;
 var init_MobileUI$2 = __esmMin((() => {
-	MobileUI_default$2 = "<div id=\"MobileUI\">\r\n	<div id=\"buttonTip\" class=\"buttonTip disabled\"></div>\r\n	<button id=\"toggleUIButton\" data-tip=\"Show / hide the mobile controls\" class=\"buttons\">🛠️</button>\r\n\r\n	<div id=\"topBar\" class=\"buttonBar disabled\">\r\n		<button id=\"fullscreenButton\" data-tip=\"Toggle full screen\" class=\"buttons mobileKeys secondary horizontal\">\r\n			⛶\r\n		</button>\r\n	</div>\r\n\r\n	<!-- Joystick -MicromeX -->\r\n	<div id=\"joystickContainer\" class=\"joystick-container disabled\">\r\n		<div id=\"joystickBase\" class=\"joystick-base\">\r\n			<div id=\"joystickThumb\" class=\"joystick-thumb\"></div>\r\n		</div>\r\n	</div>\r\n\r\n	<!-- Functional Buttons -MicromeX -->\r\n	<div id=\"buttonContainer\" class=\"buttonContainer disabled\">\r\n		<!-- Functional Buttons -->\r\n		<button id=\"f1Button\" data-tip=\"Skill bar hotkey F1\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F1\r\n		</button>\r\n		<button id=\"f2Button\" data-tip=\"Skill bar hotkey F2\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F2\r\n		</button>\r\n		<button id=\"f3Button\" data-tip=\"Skill bar hotkey F3\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F3\r\n		</button>\r\n		<button id=\"f4Button\" data-tip=\"Skill bar hotkey F4\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F4\r\n		</button>\r\n		<button id=\"f5Button\" data-tip=\"Skill bar hotkey F5\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F5\r\n		</button>\r\n		<button id=\"f6Button\" data-tip=\"Skill bar hotkey F6\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F6\r\n		</button>\r\n		<button id=\"f7Button\" data-tip=\"Skill bar hotkey F7\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F7\r\n		</button>\r\n		<button id=\"f8Button\" data-tip=\"Skill bar hotkey F8\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F8\r\n		</button>\r\n		<button id=\"f9Button\" data-tip=\"Skill bar hotkey F9\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F9\r\n		</button>\r\n\r\n		<button id=\"n1Button\" data-tip=\"Skill bar hotkey 1\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			1\r\n		</button>\r\n		<button id=\"n2Button\" data-tip=\"Skill bar hotkey 2\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			2\r\n		</button>\r\n		<button id=\"n3Button\" data-tip=\"Skill bar hotkey 3\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			3\r\n		</button>\r\n		<button id=\"n4Button\" data-tip=\"Skill bar hotkey 4\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			4\r\n		</button>\r\n		<button id=\"n5Button\" data-tip=\"Skill bar hotkey 5\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			5\r\n		</button>\r\n		<button id=\"n6Button\" data-tip=\"Skill bar hotkey 6\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			6\r\n		</button>\r\n		<button id=\"n7Button\" data-tip=\"Skill bar hotkey 7\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			7\r\n		</button>\r\n		<button id=\"n8Button\" data-tip=\"Skill bar hotkey 8\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			8\r\n		</button>\r\n		<button id=\"n9Button\" data-tip=\"Skill bar hotkey 9\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			9\r\n		</button>\r\n\r\n		<button id=\"qButton\" data-tip=\"Skill bar hotkey Q\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			Q\r\n		</button>\r\n		<button id=\"wButton\" data-tip=\"Skill bar hotkey W\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			W\r\n		</button>\r\n		<button id=\"eButton\" data-tip=\"Skill bar hotkey E\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			E\r\n		</button>\r\n		<button id=\"rButton\" data-tip=\"Skill bar hotkey R\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			R\r\n		</button>\r\n		<button id=\"tButton\" data-tip=\"Skill bar hotkey T\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			T\r\n		</button>\r\n		<button id=\"yButton\" data-tip=\"Skill bar hotkey Y\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			Y\r\n		</button>\r\n		<button id=\"uButton\" data-tip=\"Skill bar hotkey U\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			U\r\n		</button>\r\n		<button id=\"iButton\" data-tip=\"Skill bar hotkey I\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			I\r\n		</button>\r\n		<button id=\"oButton\" data-tip=\"Skill bar hotkey O\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			O\r\n		</button>\r\n\r\n		<button id=\"aButton\" data-tip=\"Skill bar hotkey A\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			A\r\n		</button>\r\n		<button id=\"sButton\" data-tip=\"Skill bar hotkey S\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			S\r\n		</button>\r\n		<button id=\"dButton\" data-tip=\"Skill bar hotkey D\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			D\r\n		</button>\r\n		<button id=\"fButton\" data-tip=\"Skill bar hotkey F\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			F\r\n		</button>\r\n		<button id=\"gButton\" data-tip=\"Skill bar hotkey G\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			G\r\n		</button>\r\n		<button id=\"hButton\" data-tip=\"Skill bar hotkey H\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			H\r\n		</button>\r\n		<button id=\"jButton\" data-tip=\"Skill bar hotkey J\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			J\r\n		</button>\r\n		<button id=\"kButton\" data-tip=\"Skill bar hotkey K\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			K\r\n		</button>\r\n		<button id=\"lButton\" data-tip=\"Skill bar hotkey L\" class=\"FButton mobileKeys vertical secondary disabled\">\r\n			L\r\n		</button>\r\n\r\n		<button\r\n			id=\"pickupButton\"\r\n			data-tip=\"Pick up the nearest item\"\r\n			class=\"pickupButton mobileKeys vertical secondary disabled\"\r\n		>\r\n			🖐\r\n		</button>\r\n		<!-- Pick Up Button -MicromeX -->\r\n		<button\r\n			id=\"talktonpcButton\"\r\n			data-tip=\"Talk to the nearest NPC\"\r\n			class=\"talktonpcButton mobileKeys vertical secondary disabled\"\r\n		>\r\n			💬\r\n		</button>\r\n		<!-- Talk to NPC Button -MicromeX -->\r\n		<button\r\n			id=\"switchshorcutButton\"\r\n			data-tip=\"Switch skill bar row (F1-F9 / 1-9 / Q-O / A-L)\"\r\n			class=\"switchshorcutButton mobileKeys vertical secondary disabled\"\r\n		>\r\n			🔄\r\n		</button>\r\n		<!-- Auto Skill Button -MicromeX -->\r\n\r\n		<!-- Attack Button -MicromeX -->\r\n		<button\r\n			id=\"attackButton\"\r\n			data-tip=\"Attack the selected target\"\r\n			class=\"atkButton mobileKeys vertical secondary disabled\"\r\n		>\r\n			⚔️\r\n		</button>\r\n	</div>\r\n\r\n	<div id=\"leftBar\" class=\"buttonBar disabled\">\r\n		<button id=\"f10Button\" data-tip=\"Change chat box size (F10)\" class=\"buttons mobileKeys secondary vertical\">\r\n			⏫</button\r\n		><br />\r\n		<button id=\"f12Button\" data-tip=\"Change skill bar size (F12)\" class=\"buttons mobileKeys secondary vertical\">\r\n			🔢</button\r\n		><br />\r\n		<button id=\"insButton\" data-tip=\"Sit down / stand up\" class=\"buttons mobileKeys secondary vertical\">🧎</button\r\n		><br />\r\n	</div>\r\n\r\n	<div id=\"rightBar\" class=\"buttonBar disabled\">\r\n		<button\r\n			id=\"toggleStatusButton\"\r\n			data-tip=\"Show / hide status icons\"\r\n			class=\"buttons mobileKeys secondary vertical active\"\r\n		>\r\n			👀</button\r\n		><br />\r\n		<button\r\n			id=\"toggleTargetingButton\"\r\n			data-tip=\"Toggle touch targeting\"\r\n			class=\"buttons mobileKeys secondary vertical\"\r\n		>\r\n			⚙️</button\r\n		><br />\r\n		<button\r\n			id=\"toggleAutoFollowButton\"\r\n			data-tip=\"Auto follow the selected target\"\r\n			class=\"buttons mobileKeys vertical secondary disabled\"\r\n		>\r\n			👥</button\r\n		><br />\r\n		<button\r\n			id=\"toggleAutoTargetButton\"\r\n			data-tip=\"Auto target the nearest monster\"\r\n			class=\"buttons mobileKeys vertical secondary disabled\"\r\n		>\r\n			🎯</button\r\n		><br />\r\n	</div>\r\n</div>\r\n";
+	MobileUI_default$2 = "<div id=\"MobileUI\">\r\n	<div id=\"buttonTip\" class=\"buttonTip disabled\"></div>\r\n\r\n	<div id=\"guideWindow\" class=\"guideWindow disabled\">\r\n		<div class=\"guideHeader\">\r\n			<span id=\"guideTitle\" class=\"guideTitle\"></span>\r\n			<label class=\"guideNever\"\r\n				><input id=\"guideNeverShow\" type=\"checkbox\" /><span id=\"guideNeverLabel\"></span\r\n			></label>\r\n			<button id=\"guideCloseButton\" class=\"guideClose\">✕</button>\r\n		</div>\r\n		<div id=\"guideBody\" class=\"guideBody\"></div>\r\n	</div>\r\n	<button id=\"toggleUIButton\" class=\"buttons\">🛠️</button>\r\n\r\n	<div id=\"topBar\" class=\"buttonBar disabled\">\r\n		<button id=\"fullscreenButton\" class=\"buttons mobileKeys secondary horizontal\">⛶</button>\r\n	</div>\r\n\r\n	<!-- Joystick -MicromeX -->\r\n	<div id=\"joystickContainer\" class=\"joystick-container disabled\">\r\n		<div id=\"joystickBase\" class=\"joystick-base\">\r\n			<div id=\"joystickThumb\" class=\"joystick-thumb\"></div>\r\n		</div>\r\n	</div>\r\n\r\n	<!-- Functional Buttons -MicromeX -->\r\n	<div id=\"buttonContainer\" class=\"buttonContainer disabled\">\r\n		<!-- Functional Buttons -->\r\n		<button id=\"f1Button\" data-tip-arg=\"F1\" class=\"FButton mobileKeys vertical secondary disabled\">F1</button>\r\n		<button id=\"f2Button\" data-tip-arg=\"F2\" class=\"FButton mobileKeys vertical secondary disabled\">F2</button>\r\n		<button id=\"f3Button\" data-tip-arg=\"F3\" class=\"FButton mobileKeys vertical secondary disabled\">F3</button>\r\n		<button id=\"f4Button\" data-tip-arg=\"F4\" class=\"FButton mobileKeys vertical secondary disabled\">F4</button>\r\n		<button id=\"f5Button\" data-tip-arg=\"F5\" class=\"FButton mobileKeys vertical secondary disabled\">F5</button>\r\n		<button id=\"f6Button\" data-tip-arg=\"F6\" class=\"FButton mobileKeys vertical secondary disabled\">F6</button>\r\n		<button id=\"f7Button\" data-tip-arg=\"F7\" class=\"FButton mobileKeys vertical secondary disabled\">F7</button>\r\n		<button id=\"f8Button\" data-tip-arg=\"F8\" class=\"FButton mobileKeys vertical secondary disabled\">F8</button>\r\n		<button id=\"f9Button\" data-tip-arg=\"F9\" class=\"FButton mobileKeys vertical secondary disabled\">F9</button>\r\n\r\n		<button id=\"n1Button\" data-tip-arg=\"1\" class=\"FButton mobileKeys vertical secondary disabled\">1</button>\r\n		<button id=\"n2Button\" data-tip-arg=\"2\" class=\"FButton mobileKeys vertical secondary disabled\">2</button>\r\n		<button id=\"n3Button\" data-tip-arg=\"3\" class=\"FButton mobileKeys vertical secondary disabled\">3</button>\r\n		<button id=\"n4Button\" data-tip-arg=\"4\" class=\"FButton mobileKeys vertical secondary disabled\">4</button>\r\n		<button id=\"n5Button\" data-tip-arg=\"5\" class=\"FButton mobileKeys vertical secondary disabled\">5</button>\r\n		<button id=\"n6Button\" data-tip-arg=\"6\" class=\"FButton mobileKeys vertical secondary disabled\">6</button>\r\n		<button id=\"n7Button\" data-tip-arg=\"7\" class=\"FButton mobileKeys vertical secondary disabled\">7</button>\r\n		<button id=\"n8Button\" data-tip-arg=\"8\" class=\"FButton mobileKeys vertical secondary disabled\">8</button>\r\n		<button id=\"n9Button\" data-tip-arg=\"9\" class=\"FButton mobileKeys vertical secondary disabled\">9</button>\r\n\r\n		<button id=\"qButton\" data-tip-arg=\"Q\" class=\"FButton mobileKeys vertical secondary disabled\">Q</button>\r\n		<button id=\"wButton\" data-tip-arg=\"W\" class=\"FButton mobileKeys vertical secondary disabled\">W</button>\r\n		<button id=\"eButton\" data-tip-arg=\"E\" class=\"FButton mobileKeys vertical secondary disabled\">E</button>\r\n		<button id=\"rButton\" data-tip-arg=\"R\" class=\"FButton mobileKeys vertical secondary disabled\">R</button>\r\n		<button id=\"tButton\" data-tip-arg=\"T\" class=\"FButton mobileKeys vertical secondary disabled\">T</button>\r\n		<button id=\"yButton\" data-tip-arg=\"Y\" class=\"FButton mobileKeys vertical secondary disabled\">Y</button>\r\n		<button id=\"uButton\" data-tip-arg=\"U\" class=\"FButton mobileKeys vertical secondary disabled\">U</button>\r\n		<button id=\"iButton\" data-tip-arg=\"I\" class=\"FButton mobileKeys vertical secondary disabled\">I</button>\r\n		<button id=\"oButton\" data-tip-arg=\"O\" class=\"FButton mobileKeys vertical secondary disabled\">O</button>\r\n\r\n		<button id=\"aButton\" data-tip-arg=\"A\" class=\"FButton mobileKeys vertical secondary disabled\">A</button>\r\n		<button id=\"sButton\" data-tip-arg=\"S\" class=\"FButton mobileKeys vertical secondary disabled\">S</button>\r\n		<button id=\"dButton\" data-tip-arg=\"D\" class=\"FButton mobileKeys vertical secondary disabled\">D</button>\r\n		<button id=\"fButton\" data-tip-arg=\"F\" class=\"FButton mobileKeys vertical secondary disabled\">F</button>\r\n		<button id=\"gButton\" data-tip-arg=\"G\" class=\"FButton mobileKeys vertical secondary disabled\">G</button>\r\n		<button id=\"hButton\" data-tip-arg=\"H\" class=\"FButton mobileKeys vertical secondary disabled\">H</button>\r\n		<button id=\"jButton\" data-tip-arg=\"J\" class=\"FButton mobileKeys vertical secondary disabled\">J</button>\r\n		<button id=\"kButton\" data-tip-arg=\"K\" class=\"FButton mobileKeys vertical secondary disabled\">K</button>\r\n		<button id=\"lButton\" data-tip-arg=\"L\" class=\"FButton mobileKeys vertical secondary disabled\">L</button>\r\n\r\n		<button id=\"pickupButton\" class=\"pickupButton mobileKeys vertical secondary disabled\">🖐</button>\r\n		<!-- Pick Up Button -MicromeX -->\r\n		<button id=\"talktonpcButton\" class=\"talktonpcButton mobileKeys vertical secondary disabled\">💬</button>\r\n		<!-- Talk to NPC Button -MicromeX -->\r\n		<button id=\"switchshorcutButton\" class=\"switchshorcutButton mobileKeys vertical secondary disabled\">🔄</button>\r\n		<!-- Auto Skill Button -MicromeX -->\r\n\r\n		<!-- Attack Button -MicromeX -->\r\n		<button id=\"attackButton\" class=\"atkButton mobileKeys vertical secondary disabled\">⚔️</button>\r\n	</div>\r\n\r\n	<div id=\"leftBar\" class=\"buttonBar disabled\">\r\n		<button id=\"f10Button\" class=\"buttons mobileKeys secondary vertical\">⏫</button><br />\r\n		<button id=\"f12Button\" class=\"buttons mobileKeys secondary vertical\">🔢</button><br />\r\n		<button id=\"insButton\" class=\"buttons mobileKeys secondary vertical\">🧎</button><br />\r\n	</div>\r\n\r\n	<div id=\"rightBar\" class=\"buttonBar disabled\">\r\n		<button id=\"toggleStatusButton\" class=\"buttons mobileKeys secondary vertical active\">👀</button><br />\r\n		<button id=\"toggleTargetingButton\" class=\"buttons mobileKeys secondary vertical\">⚙️</button><br />\r\n		<button id=\"toggleAutoFollowButton\" class=\"buttons mobileKeys vertical secondary disabled\">👥</button><br />\r\n		<button id=\"toggleAutoTargetButton\" class=\"buttons mobileKeys vertical secondary disabled\">🎯</button><br />\r\n	</div>\r\n</div>\r\n";
 }));
 //#endregion
 //#region src/UI/Components/MobileUI/MobileUI.css?raw
 var MobileUI_default$1;
 var init_MobileUI$1 = __esmMin((() => {
-	MobileUI_default$1 = ":host {\r\n	width: 100%;\r\n	height: 100%;\r\n	pointer-events: none;\r\n}\r\n\r\n#MobileUI {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 100%;\r\n	height: 100%;\r\n	pointer-events: none;\r\n}\r\n\r\n#MobileUI button,\r\n#MobileUI .joystick-base {\r\n	pointer-events: auto;\r\n}\r\n\r\n#MobileUI * {\r\n	z-index: 1000;\r\n}\r\n\r\n#MobileUI .buttonBar,\r\n#MobileUI #toggleUIButton {\r\n	position: absolute;\r\n}\r\n\r\n#MobileUI #toggleUIButton {\r\n	top: 1%;\r\n	left: 1%;\r\n	width: 6.5vmin;\r\n	height: 6.5vmin;\r\n}\r\n\r\n#MobileUI .buttons {\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border-radius: 6px;\r\n	border: 1px solid grey;\r\n	font-size: 4vmin;\r\n	font-weight: bold;\r\n}\r\n\r\n#MobileUI .mobileKeys {\r\n	visibility: inherit;\r\n}\r\n\r\n#MobileUI .horizontal {\r\n	margin: 0 3.5vmin;\r\n}\r\n\r\n#MobileUI .vertical {\r\n	margin: 3.5vmin 0;\r\n}\r\n\r\n#MobileUI .disabled {\r\n	visibility: hidden;\r\n}\r\n\r\n#MobileUI #topBar {\r\n	left: 50%;\r\n	top: 1%;\r\n	transform: translate(-50%, 0);\r\n}\r\n\r\n#MobileUI #leftBar {\r\n	left: 1%;\r\n	bottom: 35%;\r\n	transform: translate(0, 50%);\r\n}\r\n\r\n#MobileUI #rightBar {\r\n	right: 1%;\r\n	bottom: 35%;\r\n	transform: translate(0, 50%);\r\n}\r\n\r\n#MobileUI #rightBar .buttons {\r\n	float: right;\r\n}\r\n\r\n#MobileUI .active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 8px;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n#MobileUI #toggleUIButton:active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 8px;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n@keyframes pulse {\r\n	0% {\r\n		box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	}\r\n	50% {\r\n		box-shadow: 0px 6px 12px rgba(144, 238, 144, 0.6);\r\n	}\r\n	100% {\r\n		box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	}\r\n}\r\n\r\n#MobileUI .pressed {\r\n	background: rgba(193, 255, 255, 0.33);\r\n}\r\n\r\n#MobileUI .buttonTip {\r\n	position: fixed;\r\n	z-index: 1001;\r\n	max-width: 70vw;\r\n	padding: 1.2vmin 2vmin;\r\n	background: rgba(0, 0, 0, 0.8);\r\n	border: 1px solid #c6c6c6;\r\n	border-radius: 6px;\r\n	color: white;\r\n	font-size: 3.5vmin;\r\n	text-align: center;\r\n	text-shadow: 1px 1px black;\r\n	pointer-events: none;\r\n}\r\n\r\n#MobileUI .primary {\r\n	width: 11vmin;\r\n	height: 11vmin;\r\n}\r\n\r\n#MobileUI .secondary {\r\n	width: 7.5vmin;\r\n	height: 7.5vmin;\r\n}\r\n\r\n/* Container for all buttons -MicromeX */\r\n#MobileUI #buttonContainer {\r\n	display: flex;\r\n	flex-direction: column;\r\n	align-items: center;\r\n	position: absolute;\r\n	bottom: 10%;\r\n	right: max(10%, 80px);\r\n	width: 37.5vmin;\r\n	height: 37.5vmin;\r\n	z-index: 1000;\r\n}\r\n\r\n/* Attack Button (center and larger) -MicromeX */\r\n#MobileUI .atkButton {\r\n	position: absolute;\r\n	width: 17.5vmin;\r\n	height: 17.5vmin;\r\n	background-color: #f44336;\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 7vmin;\r\n	color: white;\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n/* Functional Buttons (around the attack button) -MicromeX */\r\n#MobileUI .pickupButton {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 6.25vmin;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n#MobileUI .talktonpcButton {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 6.25vmin;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n#MobileUI .switchshorcutButton {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 6.25vmin;\r\n	font-weight: bold;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n/* Functional Buttons (smaller and proportional) -MicromeX */\r\n#MobileUI .FButton {\r\n	position: absolute;\r\n	width: 7.5vmin;\r\n	height: 7.5vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 3.75vmin;\r\n	font-weight: bold;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #f1Button {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f2Button {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f3Button {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f4Button {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f5Button {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f6Button {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f7Button {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f8Button {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f9Button {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #n1Button {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n2Button {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n3Button {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n4Button {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n5Button {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n6Button {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n7Button {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n8Button {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n9Button {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #qButton {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #wButton {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #eButton {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #rButton {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #tButton {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #yButton {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #uButton {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #iButton {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #oButton {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #aButton {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #sButton {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #dButton {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #fButton {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #gButton {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #hButton {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #jButton {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #kButton {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #lButton {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Pickup Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #attackButton {\r\n	bottom: -10%;\r\n	left: 60%;\r\n	transform: translate(-50%, 0);\r\n}\r\n/* Pickup Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #pickupButton {\r\n	bottom: 10%;\r\n	left: 105%;\r\n	transform: translate(-50%, 0);\r\n}\r\n\r\n/* TalkToNpc Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #talktonpcButton {\r\n	bottom: -23%;\r\n	left: 105%;\r\n	transform: translate(-50%, 0);\r\n}\r\n/* TalkToNpc Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #switchshorcutButton {\r\n	bottom: 43%;\r\n	left: 105%;\r\n	transform: translate(-50%, 0);\r\n}\r\n\r\n/* Hover Effect for Buttons -MicromeX */\r\n#MobileUI #f1Button:active,\r\n#MobileUI #f2Button:active,\r\n#MobileUI #f3Button:active,\r\n#MobileUI #f4Button:active,\r\n#MobileUI #f5Button:active,\r\n#MobileUI #f6Button:active,\r\n#MobileUI #f7Button:active,\r\n#MobileUI #f8Button:active,\r\n#MobileUI #f9Button:active,\r\n#MobileUI #n1Button:active,\r\n#MobileUI #n2Button:active,\r\n#MobileUI #n3Button:active,\r\n#MobileUI #n4Button:active,\r\n#MobileUI #n5Button:active,\r\n#MobileUI #n6Button:active,\r\n#MobileUI #n7Button:active,\r\n#MobileUI #n8Button:active,\r\n#MobileUI #n9Button:active,\r\n#MobileUI #qButton:active,\r\n#MobileUI #wButton:active,\r\n#MobileUI #eButton:active,\r\n#MobileUI #rButton:active,\r\n#MobileUI #tButton:active,\r\n#MobileUI #yButton:active,\r\n#MobileUI #uButton:active,\r\n#MobileUI #iButton:active,\r\n#MobileUI #oButton:active,\r\n#MobileUI #aButton:active,\r\n#MobileUI #sButton:active,\r\n#MobileUI #dButton:active,\r\n#MobileUI #fButton:active,\r\n#MobileUI #gButton:active,\r\n#MobileUI #hButton:active,\r\n#MobileUI #jButton:active,\r\n#MobileUI #kButton:active,\r\n#MobileUI #lButton:active,\r\n#MobileUI #switchshorcutButton:active,\r\n#MobileUI #pickupButton:active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 50%;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n#MobileUI #talktonpcButton:active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 50%;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n#MobileUI #attackButton:active {\r\n	background-color: #4caf50;\r\n	box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.4);\r\n	border: 2px solid #388e3c;\r\n	transition:\r\n		transform 0.2s ease,\r\n		background-color 0.2s ease,\r\n		box-shadow 0.2s ease,\r\n		border 0.2s ease;\r\n}\r\n\r\n/* Joystick container -MicromeX */\r\n#MobileUI .joystick-container {\r\n	position: absolute;\r\n	bottom: 7%;\r\n	left: 10%;\r\n	width: 25vmin;\r\n	height: 25vmin;\r\n	z-index: 1000;\r\n}\r\n\r\n/* Joystick base -MicromeX */\r\n#MobileUI .joystick-base {\r\n	position: relative;\r\n	width: 100%;\r\n	height: 100%;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border-radius: 50%;\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n}\r\n\r\n/* Joystick thumb -MicromeX */\r\n#MobileUI .joystick-thumb {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: radial-gradient(circle, rgba(236, 240, 241, 1) 70%, rgba(189, 195, 199, 1) 100%);\r\n	border-radius: 50%;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);\r\n	touch-action: none;\r\n	cursor: grab;\r\n}\r\n";
+	MobileUI_default$1 = ":host {\r\n	width: 100%;\r\n	height: 100%;\r\n	pointer-events: none;\r\n}\r\n\r\n#MobileUI {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 100%;\r\n	height: 100%;\r\n	pointer-events: none;\r\n}\r\n\r\n#MobileUI button,\r\n#MobileUI .joystick-base {\r\n	pointer-events: auto;\r\n}\r\n\r\n#MobileUI * {\r\n	z-index: 1000;\r\n}\r\n\r\n#MobileUI .buttonBar,\r\n#MobileUI #toggleUIButton {\r\n	position: absolute;\r\n}\r\n\r\n#MobileUI #toggleUIButton {\r\n	top: 1%;\r\n	left: 1%;\r\n	width: 6.5vmin;\r\n	height: 6.5vmin;\r\n}\r\n\r\n#MobileUI .buttons {\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border-radius: 6px;\r\n	border: 1px solid grey;\r\n	font-size: 4vmin;\r\n	font-weight: bold;\r\n}\r\n\r\n#MobileUI .mobileKeys {\r\n	visibility: inherit;\r\n}\r\n\r\n#MobileUI .horizontal {\r\n	margin: 0 3.5vmin;\r\n}\r\n\r\n#MobileUI .vertical {\r\n	margin: 3.5vmin 0;\r\n}\r\n\r\n#MobileUI .disabled {\r\n	visibility: hidden;\r\n}\r\n\r\n#MobileUI #topBar {\r\n	left: 50%;\r\n	top: 1%;\r\n	transform: translate(-50%, 0);\r\n}\r\n\r\n#MobileUI #leftBar {\r\n	left: 1%;\r\n	bottom: 35%;\r\n	transform: translate(0, 50%);\r\n}\r\n\r\n#MobileUI #rightBar {\r\n	right: 1%;\r\n	bottom: 35%;\r\n	transform: translate(0, 50%);\r\n}\r\n\r\n#MobileUI #rightBar .buttons {\r\n	float: right;\r\n}\r\n\r\n#MobileUI .active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 8px;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n#MobileUI #toggleUIButton:active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 8px;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n@keyframes pulse {\r\n	0% {\r\n		box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	}\r\n	50% {\r\n		box-shadow: 0px 6px 12px rgba(144, 238, 144, 0.6);\r\n	}\r\n	100% {\r\n		box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	}\r\n}\r\n\r\n#MobileUI .pressed {\r\n	background: rgba(193, 255, 255, 0.33);\r\n}\r\n\r\n#MobileUI .buttonTip {\r\n	position: fixed;\r\n	z-index: 1001;\r\n	max-width: 70vw;\r\n	padding: 1.2vmin 2vmin;\r\n	background: rgba(0, 0, 0, 0.8);\r\n	border: 1px solid #c6c6c6;\r\n	border-radius: 6px;\r\n	color: white;\r\n	font-size: 3.5vmin;\r\n	text-align: center;\r\n	text-shadow: 1px 1px black;\r\n	pointer-events: none;\r\n}\r\n\r\n#MobileUI .guideWindow {\r\n	position: fixed;\r\n	z-index: 1002;\r\n	top: 50%;\r\n	left: 50%;\r\n	transform: translate(-50%, -50%);\r\n	width: min(90vw, 640px);\r\n	max-height: 85vh;\r\n	display: flex;\r\n	flex-direction: column;\r\n	background: rgba(20, 20, 20, 0.92);\r\n	border: 1px solid #c6c6c6;\r\n	border-radius: 8px;\r\n	color: white;\r\n	font-size: 3.2vmin;\r\n	text-shadow: 1px 1px black;\r\n	pointer-events: auto;\r\n	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);\r\n}\r\n\r\n#MobileUI .guideWindow.disabled {\r\n	display: none;\r\n}\r\n\r\n/* Guide opened on a non-touch device: hide all the mobile controls */\r\n#MobileUI.guideOnly > :not(#guideWindow) {\r\n	visibility: hidden;\r\n}\r\n\r\n#MobileUI .guideHeader {\r\n	flex: 0 0 auto;\r\n	display: flex;\r\n	align-items: center;\r\n	gap: 2vmin;\r\n	padding: 1.5vmin 2vmin;\r\n	border-bottom: 1px solid #666;\r\n	background: rgba(60, 60, 60, 0.9);\r\n	border-radius: 8px 8px 0 0;\r\n}\r\n\r\n#MobileUI .guideTitle {\r\n	flex: 1 1 auto;\r\n	font-weight: bold;\r\n	font-size: 3.8vmin;\r\n}\r\n\r\n#MobileUI .guideNever {\r\n	display: flex;\r\n	align-items: center;\r\n	gap: 1vmin;\r\n	white-space: nowrap;\r\n	font-size: 2.8vmin;\r\n	cursor: pointer;\r\n}\r\n\r\n#MobileUI .guideNever input {\r\n	width: 3.5vmin;\r\n	height: 3.5vmin;\r\n	margin: 0;\r\n}\r\n\r\n#MobileUI .guideClose {\r\n	width: 6vmin;\r\n	height: 6vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid grey;\r\n	border-radius: 6px;\r\n	color: white;\r\n	font-size: 3.5vmin;\r\n	font-weight: bold;\r\n}\r\n\r\n#MobileUI .guideBody {\r\n	flex: 1 1 auto;\r\n	overflow-y: auto;\r\n	-webkit-overflow-scrolling: touch;\r\n	touch-action: pan-y;\r\n	padding: 2vmin;\r\n	line-height: 1.4;\r\n}\r\n\r\n#MobileUI .guideBody p {\r\n	margin: 0 0 2vmin;\r\n}\r\n\r\n#MobileUI .guideSection {\r\n	margin: 2.5vmin 0 1vmin;\r\n	font-weight: bold;\r\n	color: #ffd97a;\r\n	border-bottom: 1px solid #555;\r\n}\r\n\r\n#MobileUI .guideEntry {\r\n	display: flex;\r\n	align-items: flex-start;\r\n	gap: 2vmin;\r\n	margin-bottom: 1.5vmin;\r\n}\r\n\r\n#MobileUI .guideIcon {\r\n	flex: 0 0 9vmin;\r\n	text-align: center;\r\n	font-size: 4.5vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid grey;\r\n	border-radius: 6px;\r\n	padding: 0.5vmin 0;\r\n}\r\n\r\n#MobileUI .guideText {\r\n	flex: 1 1 auto;\r\n	white-space: pre-line;\r\n}\r\n\r\n#MobileUI .guideLabel {\r\n	font-weight: bold;\r\n}\r\n\r\n#MobileUI .primary {\r\n	width: 11vmin;\r\n	height: 11vmin;\r\n}\r\n\r\n#MobileUI .secondary {\r\n	width: 7.5vmin;\r\n	height: 7.5vmin;\r\n}\r\n\r\n/* Container for all buttons -MicromeX */\r\n#MobileUI #buttonContainer {\r\n	display: flex;\r\n	flex-direction: column;\r\n	align-items: center;\r\n	position: absolute;\r\n	bottom: 10%;\r\n	right: max(10%, 80px);\r\n	width: 37.5vmin;\r\n	height: 37.5vmin;\r\n	z-index: 1000;\r\n}\r\n\r\n/* Attack Button (center and larger) -MicromeX */\r\n#MobileUI .atkButton {\r\n	position: absolute;\r\n	width: 17.5vmin;\r\n	height: 17.5vmin;\r\n	background-color: #f44336;\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 7vmin;\r\n	color: white;\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n/* Functional Buttons (around the attack button) -MicromeX */\r\n#MobileUI .pickupButton {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 6.25vmin;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n#MobileUI .talktonpcButton {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 6.25vmin;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n#MobileUI .switchshorcutButton {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 6.25vmin;\r\n	font-weight: bold;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n/* Functional Buttons (smaller and proportional) -MicromeX */\r\n#MobileUI .FButton {\r\n	position: absolute;\r\n	width: 7.5vmin;\r\n	height: 7.5vmin;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border: 1px solid #666;\r\n	border-radius: 50%;\r\n	font-size: 3.75vmin;\r\n	font-weight: bold;\r\n	color: rgb(0, 0, 0);\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.2);\r\n	cursor: pointer;\r\n}\r\n\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #f1Button {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f2Button {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f3Button {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f4Button {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f5Button {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f6Button {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f7Button {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f8Button {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #f9Button {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #n1Button {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n2Button {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n3Button {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n4Button {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n5Button {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n6Button {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n7Button {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n8Button {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #n9Button {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #qButton {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #wButton {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #eButton {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #rButton {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #tButton {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #yButton {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #uButton {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #iButton {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #oButton {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Positioning Buttons Around Attack Button -MicromeX */\r\n#MobileUI #aButton {\r\n	top: 97%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #sButton {\r\n	top: 78%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #dButton {\r\n	top: 56%;\r\n	left: 24%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #fButton {\r\n	top: 37%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #gButton {\r\n	top: 30%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #hButton {\r\n	top: 37%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #jButton {\r\n	top: 7%;\r\n	left: 35%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #kButton {\r\n	top: 7%;\r\n	left: 57%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n#MobileUI #lButton {\r\n	top: 7%;\r\n	left: 80%;\r\n	transform: translate(-50%, -50%);\r\n}\r\n/* Pickup Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #attackButton {\r\n	bottom: -10%;\r\n	left: 60%;\r\n	transform: translate(-50%, 0);\r\n}\r\n/* Pickup Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #pickupButton {\r\n	bottom: 10%;\r\n	left: 105%;\r\n	transform: translate(-50%, 0);\r\n}\r\n\r\n/* TalkToNpc Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #talktonpcButton {\r\n	bottom: -23%;\r\n	left: 105%;\r\n	transform: translate(-50%, 0);\r\n}\r\n/* TalkToNpc Button (slightly below attackButton) -MicromeX */\r\n#MobileUI #switchshorcutButton {\r\n	bottom: 43%;\r\n	left: 105%;\r\n	transform: translate(-50%, 0);\r\n}\r\n\r\n/* Hover Effect for Buttons -MicromeX */\r\n#MobileUI #f1Button:active,\r\n#MobileUI #f2Button:active,\r\n#MobileUI #f3Button:active,\r\n#MobileUI #f4Button:active,\r\n#MobileUI #f5Button:active,\r\n#MobileUI #f6Button:active,\r\n#MobileUI #f7Button:active,\r\n#MobileUI #f8Button:active,\r\n#MobileUI #f9Button:active,\r\n#MobileUI #n1Button:active,\r\n#MobileUI #n2Button:active,\r\n#MobileUI #n3Button:active,\r\n#MobileUI #n4Button:active,\r\n#MobileUI #n5Button:active,\r\n#MobileUI #n6Button:active,\r\n#MobileUI #n7Button:active,\r\n#MobileUI #n8Button:active,\r\n#MobileUI #n9Button:active,\r\n#MobileUI #qButton:active,\r\n#MobileUI #wButton:active,\r\n#MobileUI #eButton:active,\r\n#MobileUI #rButton:active,\r\n#MobileUI #tButton:active,\r\n#MobileUI #yButton:active,\r\n#MobileUI #uButton:active,\r\n#MobileUI #iButton:active,\r\n#MobileUI #oButton:active,\r\n#MobileUI #aButton:active,\r\n#MobileUI #sButton:active,\r\n#MobileUI #dButton:active,\r\n#MobileUI #fButton:active,\r\n#MobileUI #gButton:active,\r\n#MobileUI #hButton:active,\r\n#MobileUI #jButton:active,\r\n#MobileUI #kButton:active,\r\n#MobileUI #lButton:active,\r\n#MobileUI #switchshorcutButton:active,\r\n#MobileUI #pickupButton:active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 50%;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n#MobileUI #talktonpcButton:active {\r\n	background: linear-gradient(135deg, rgba(144, 238, 144, 0.5), rgba(193, 255, 193, 0.8));\r\n	border: 2px solid rgba(144, 238, 144, 0.8);\r\n	box-shadow: 0px 4px 8px rgba(144, 238, 144, 0.4);\r\n	border-radius: 50%;\r\n	animation: pulse 1.5s infinite;\r\n	transition:\r\n		background 0.3s ease,\r\n		box-shadow 0.3s ease,\r\n		transform 0.3s ease;\r\n}\r\n\r\n#MobileUI #attackButton:active {\r\n	background-color: #4caf50;\r\n	box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.4);\r\n	border: 2px solid #388e3c;\r\n	transition:\r\n		transform 0.2s ease,\r\n		background-color 0.2s ease,\r\n		box-shadow 0.2s ease,\r\n		border 0.2s ease;\r\n}\r\n\r\n/* Joystick container -MicromeX */\r\n#MobileUI .joystick-container {\r\n	position: absolute;\r\n	bottom: 7%;\r\n	left: 10%;\r\n	width: 25vmin;\r\n	height: 25vmin;\r\n	z-index: 1000;\r\n}\r\n\r\n/* Joystick base -MicromeX */\r\n#MobileUI .joystick-base {\r\n	position: relative;\r\n	width: 100%;\r\n	height: 100%;\r\n	background: rgba(193, 193, 193, 0.33);\r\n	border-radius: 50%;\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: center;\r\n}\r\n\r\n/* Joystick thumb -MicromeX */\r\n#MobileUI .joystick-thumb {\r\n	position: absolute;\r\n	width: 10vmin;\r\n	height: 10vmin;\r\n	background: radial-gradient(circle, rgba(236, 240, 241, 1) 70%, rgba(189, 195, 199, 1) 100%);\r\n	border-radius: 50%;\r\n	box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);\r\n	touch-action: none;\r\n	cursor: grab;\r\n}\r\n";
+}));
+//#endregion
+//#region src/UI/Components/MobileUI/robrowser_mobileui.txt?raw
+var robrowser_mobileui_default;
+var init_robrowser_mobileui = __esmMin((() => {
+	robrowser_mobileui_default = "// roBrowser Mobile UI texts (default: English)\r\n//\r\n// This file holds every text shown by the Mobile UI: the long-press help tips of\r\n// the buttons and the content of the Mobile UI guide window (/mobileguide).\r\n//\r\n// === Server owners: how to add your own translation ===\r\n// 1. Copy this file and translate the text after the \"=\" sign on every line.\r\n//    Do NOT change the ID before the \"=\" sign, the client looks up texts by ID.\r\n// 2. Save the file as UTF-8 and name it exactly:  robrowser_mobileui.txt\r\n// 3. Place it into the \"data\" folder of your remote client (next to files such\r\n//    as data/msgstringtable.txt), so it is reachable as: data/robrowser_mobileui.txt\r\n// The client loads it automatically when the Mobile UI starts. Any ID missing from\r\n// your file falls back to the English text bundled with the client, so a partial\r\n// translation is fine. If the file is not present, this bundled English text is used.\r\n//\r\n// Format: one entry per line -> ID = text\r\n// Lines starting with \"//\" are comments. Use \\n inside a text for a line break.\r\n\r\n// --- Guide window ---\r\nGUIDE_TITLE = Mobile UI guide\r\nGUIDE_INTRO = Welcome to the touch controls! Tap a button to use it, or hold a button for a second to see a short description of it. This guide lists every button of the Mobile UI.\r\nGUIDE_COMMAND = You can open this guide again at any time by typing /mobileguide into the chat.\r\nGUIDE_NEVER_SHOW = Don't show again\r\nGUIDE_CLOSE = Close\r\nGUIDE_SECTION_GENERAL = General\r\nGUIDE_SECTION_SKILLBAR = Skill bar\r\nGUIDE_SECTION_ACTIONS = Actions\r\nGUIDE_SECTION_LEFT = Left bar\r\nGUIDE_SECTION_RIGHT = Right bar\r\nGUIDE_JOYSTICK_LABEL = Joystick\r\nGUIDE_JOYSTICK = Drag the joystick in the bottom left corner to walk. Your character keeps walking in that direction while you hold it.\r\nGUIDE_SKILLROWS_LABEL = F1-F9 / 1-9 / Q-O / A-L\r\nGUIDE_SKILLROWS = The nine buttons around the attack button trigger the skill bar hotkeys of the currently selected row. Use the switch button to cycle through the rows.\r\n\r\n// --- Button descriptions (long-press tips and guide) ---\r\n// Long-press tip: TIP_<button> | Guide description: DESC_<button>\r\nTIP_toggleUIButton = Show / hide the mobile controls\r\nDESC_toggleUIButton = Shows or hides all the other mobile buttons. Hide them when you only want to look at the game and show them again when you need them.\r\n\r\nTIP_fullscreenButton = Toggle full screen\r\nDESC_fullscreenButton = Switches the game between full screen and windowed mode.\r\n\r\nTIP_skillKey = Skill bar hotkey %s\r\nDESC_skillKey = Triggers the skill or item placed on slot %s of the skill bar.\r\n\r\nTIP_switchshorcutButton = Switch skill bar row (F1-F9 / 1-9 / Q-O / A-L)\r\nDESC_switchshorcutButton = Cycles the nine skill buttons through the four hotkey rows: F1-F9, 1-9, Q-O and A-L.\r\n\r\nTIP_attackButton = Attack the selected target\r\nDESC_attackButton = Attacks the selected target. If nothing is selected, the nearest monster gets targeted and attacked.\r\n\r\nTIP_pickupButton = Pick up the nearest item\r\nDESC_pickupButton = Walks to the nearest item on the ground and picks it up.\r\n\r\nTIP_talktonpcButton = Talk to the nearest NPC\r\nDESC_talktonpcButton = Starts a conversation with the nearest NPC within 3 cells.\r\n\r\nTIP_f10Button = Change chat box size (F10)\r\nDESC_f10Button = Changes the size of the chat box, same as pressing F10 on a keyboard.\r\n\r\nTIP_f12Button = Change skill bar size (F12)\r\nDESC_f12Button = Changes the size of the skill bar, same as pressing F12 on a keyboard.\r\n\r\nTIP_insButton = Sit down / stand up\r\nDESC_insButton = Makes your character sit down or stand up (the /sit command).\r\n\r\nTIP_toggleStatusButton = Show / hide status icons\r\nDESC_toggleStatusButton = Shows or hides the status effect icons on the right side of the screen.\r\n\r\nTIP_toggleTargetingButton = Toggle touch targeting\r\nDESC_toggleTargetingButton = Turns touch targeting on or off. While it is on, tapping a monster or player only selects it instead of attacking, and the auto follow and auto target buttons become available.\r\n\r\nTIP_toggleAutoFollowButton = Auto follow the selected target\r\nDESC_toggleAutoFollowButton = Makes your character follow the selected target around until you turn it off. Requires touch targeting.\r\n\r\nTIP_toggleAutoTargetButton = Auto target the nearest monster\r\nDESC_toggleAutoTargetButton = Keeps selecting the nearest monster automatically so the attack button always has a target. Requires touch targeting.\r\n";
 }));
 //#endregion
 //#region src/UI/Components/StatusIcons/StatusIcons.html?raw
@@ -309075,6 +309368,180 @@ var init_StatusIcons = __esmMin((() => {
 }));
 //#endregion
 //#region src/UI/Components/MobileUI/MobileUI.js
+/**
+* Parse a "ID = text" language file into an object
+*
+* @param {string} content
+* @param {object} [out]
+* @returns {object}
+*/
+function parseTexts(content, out = {}) {
+	content.split(/\r?\n/).forEach((line) => {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("//")) return;
+		const separator = trimmed.indexOf("=");
+		if (separator < 1) return;
+		const id = trimmed.slice(0, separator).trim();
+		const text = trimmed.slice(separator + 1).trim().replace(/\\n/g, "\n");
+		if (id) out[id] = text;
+	});
+	return out;
+}
+/**
+* Get a text by id, replacing %s with the given argument
+*
+* @param {string} id
+* @param {string} [arg]
+* @returns {string}
+*/
+function getText(id, arg) {
+	const text = _texts[id] ?? id;
+	return arg === void 0 ? text : text.replace("%s", arg);
+}
+/**
+* Load the optional translation from the remote client, then apply the texts
+*/
+function loadTexts() {
+	Client.loadFile(C_LANG_FILE, (buffer) => {
+		const data = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
+		parseTexts(new TextDecoder("utf-8").decode(data), _texts);
+		applyTexts();
+	}, () => {});
+}
+/**
+* Write the language texts into the button tips and the guide window
+*/
+function applyTexts() {
+	const root = MobileUI.getRoot();
+	root.querySelectorAll("button[id]").forEach((button) => {
+		const arg = button.dataset.tipArg;
+		const id = arg !== void 0 ? "TIP_skillKey" : `TIP_${button.id}`;
+		if (id in _texts) button.dataset.tip = getText(id, arg);
+	});
+	root.querySelector("#guideTitle").textContent = getText("GUIDE_TITLE");
+	root.querySelector("#guideNeverLabel").textContent = getText("GUIDE_NEVER_SHOW");
+	root.querySelector("#guideCloseButton").title = getText("GUIDE_CLOSE");
+	buildGuide(root);
+}
+/**
+* Build the guide body from the GUIDE_SECTIONS layout
+*
+* @param {ShadowRoot} root
+*/
+function buildGuide(root) {
+	const body = root.querySelector("#guideBody");
+	body.textContent = "";
+	const addParagraph = (id) => {
+		const p = document.createElement("p");
+		p.textContent = getText(id);
+		body.appendChild(p);
+	};
+	addParagraph("GUIDE_INTRO");
+	addParagraph("GUIDE_COMMAND");
+	GUIDE_SECTIONS.forEach((section) => {
+		const title = document.createElement("div");
+		title.className = "guideSection";
+		title.textContent = getText(section.title);
+		body.appendChild(title);
+		section.entries.forEach((entry) => {
+			const button = entry.button ? root.querySelector(entry.button) : null;
+			const row = document.createElement("div");
+			row.className = "guideEntry";
+			const icon = document.createElement("span");
+			icon.className = "guideIcon";
+			icon.textContent = button ? button.textContent.trim() : entry.icon;
+			const text = document.createElement("div");
+			text.className = "guideText";
+			const label = document.createElement("div");
+			label.className = "guideLabel";
+			label.textContent = getText(entry.key ? `TIP_${entry.key}` : entry.label);
+			const desc = document.createElement("div");
+			desc.textContent = getText(entry.key ? `DESC_${entry.key}` : entry.desc);
+			text.appendChild(label);
+			text.appendChild(desc);
+			row.appendChild(icon);
+			row.appendChild(text);
+			body.appendChild(row);
+		});
+	});
+}
+/**
+* Show the guide window
+*/
+function showGuide() {
+	const root = MobileUI.getRoot();
+	const guide = root.querySelector("#guideWindow");
+	if (MobileUI._host.style.display === "none") {
+		MobileUI._host.style.display = "block";
+		root.querySelector("#MobileUI").classList.add("guideOnly");
+	}
+	root.querySelector("#guideNeverShow").checked = _preferences$17.guideNeverShow;
+	root.querySelector("#guideBody").scrollTop = 0;
+	guide.classList.remove("disabled");
+	guideShownThisSession = true;
+}
+/**
+* Hide the guide window
+*/
+function hideGuide() {
+	const root = MobileUI.getRoot();
+	const container = root.querySelector("#MobileUI");
+	root.querySelector("#guideWindow").classList.add("disabled");
+	if (container.classList.contains("guideOnly")) {
+		container.classList.remove("guideOnly");
+		MobileUI._host.style.display = "none";
+	}
+}
+/**
+* Show the guide on the first MobileUI activation of the session,
+* unless the player asked to never see it again
+*
+* @returns {boolean} guide got opened
+*/
+function showGuideOnActivate() {
+	if (guideShownThisSession || _preferences$17.guideNeverShow) return false;
+	showGuide();
+	return true;
+}
+/**
+* Bind the guide window controls
+*
+* @param {ShadowRoot} root
+*/
+function setupGuide(root) {
+	const guide = root.querySelector("#guideWindow");
+	[
+		"touchstart",
+		"touchmove",
+		"touchend",
+		"touchcancel",
+		"mousedown",
+		"mouseup",
+		"click"
+	].forEach((type) => {
+		guide.addEventListener(type, (event) => event.stopPropagation());
+	});
+	const body = root.querySelector("#guideBody");
+	let lastY = 0;
+	body.addEventListener("touchstart", (event) => {
+		lastY = event.touches[0].clientY;
+	}, { passive: true });
+	body.addEventListener("touchmove", (event) => {
+		const y = event.touches[0].clientY;
+		body.scrollTop += lastY - y;
+		lastY = y;
+		event.preventDefault();
+	}, { passive: false });
+	root.querySelector("#guideNeverShow").addEventListener("change", (event) => {
+		_preferences$17.guideNeverShow = event.target.checked;
+		_preferences$17.save();
+	});
+	bindButton(root, "#guideCloseButton", (e) => {
+		hideGuide();
+		stopPropagation$7(e);
+	});
+	ProcessCommand_default.add("mobileguide", getText("GUIDE_TITLE"), showGuide, [], false);
+}
 /**
 * Show the long-press help tip above a button
 *
@@ -309721,7 +310188,7 @@ function isFreeCell$2(x, y) {
 	});
 	return free;
 }
-var vec2, mat2, direction, rotate, targetPos, movementTimer, MobileUI, _preferences$17, showButtons, C_AUTOTARGET_DELAY, C_TOUCH_CLICK_GUARD, C_LONG_PRESS_DELAY, C_TOUCH_MOVE_TOLERANCE, centerX, centerY, maxDistance, normalizedX, normalizedY, _joystickBase, _joystickThumb, MobileUI_default;
+var vec2, mat2, direction, rotate, targetPos, movementTimer, MobileUI, _preferences$17, C_LANG_FILE, _texts, guideShownThisSession, GUIDE_SECTIONS, showButtons, C_AUTOTARGET_DELAY, C_TOUCH_CLICK_GUARD, C_LONG_PRESS_DELAY, C_TOUCH_MOVE_TOLERANCE, centerX, centerY, maxDistance, normalizedX, normalizedY, _joystickBase, _joystickThumb, MobileUI_default;
 var init_MobileUI = __esmMin((() => {
 	init_Context();
 	init_UIManager();
@@ -309736,8 +310203,10 @@ var init_MobileUI = __esmMin((() => {
 	init_PathFinding();
 	init_Altitude();
 	init_Events();
+	init_Client();
 	init_MobileUI$2();
 	init_MobileUI$1();
+	init_robrowser_mobileui();
 	init_gl_matrix$1();
 	init_Camera();
 	init_BattleMode();
@@ -309758,8 +310227,98 @@ var init_MobileUI = __esmMin((() => {
 		zIndex: 1e3,
 		width: window.innerWidth,
 		height: window.innerHeight,
-		show: false
+		show: false,
+		guideNeverShow: false
 	}, 1);
+	C_LANG_FILE = "data/robrowser_mobileui.txt";
+	_texts = parseTexts(robrowser_mobileui_default);
+	guideShownThisSession = false;
+	GUIDE_SECTIONS = [
+		{
+			title: "GUIDE_SECTION_GENERAL",
+			entries: [
+				{
+					button: "#toggleUIButton",
+					key: "toggleUIButton"
+				},
+				{
+					button: "#fullscreenButton",
+					key: "fullscreenButton"
+				},
+				{
+					icon: "🕹️",
+					label: "GUIDE_JOYSTICK_LABEL",
+					desc: "GUIDE_JOYSTICK"
+				}
+			]
+		},
+		{
+			title: "GUIDE_SECTION_SKILLBAR",
+			entries: [{
+				icon: "F1",
+				label: "GUIDE_SKILLROWS_LABEL",
+				desc: "GUIDE_SKILLROWS"
+			}, {
+				button: "#switchshorcutButton",
+				key: "switchshorcutButton"
+			}]
+		},
+		{
+			title: "GUIDE_SECTION_ACTIONS",
+			entries: [
+				{
+					button: "#attackButton",
+					key: "attackButton"
+				},
+				{
+					button: "#pickupButton",
+					key: "pickupButton"
+				},
+				{
+					button: "#talktonpcButton",
+					key: "talktonpcButton"
+				}
+			]
+		},
+		{
+			title: "GUIDE_SECTION_LEFT",
+			entries: [
+				{
+					button: "#f10Button",
+					key: "f10Button"
+				},
+				{
+					button: "#f12Button",
+					key: "f12Button"
+				},
+				{
+					button: "#insButton",
+					key: "insButton"
+				}
+			]
+		},
+		{
+			title: "GUIDE_SECTION_RIGHT",
+			entries: [
+				{
+					button: "#toggleStatusButton",
+					key: "toggleStatusButton"
+				},
+				{
+					button: "#toggleTargetingButton",
+					key: "toggleTargetingButton"
+				},
+				{
+					button: "#toggleAutoFollowButton",
+					key: "toggleAutoFollowButton"
+				},
+				{
+					button: "#toggleAutoTargetButton",
+					key: "toggleAutoTargetButton"
+				}
+			]
+		}
+	];
 	showButtons = false;
 	C_AUTOTARGET_DELAY = 500;
 	C_TOUCH_CLICK_GUARD = 750;
@@ -309889,13 +310448,18 @@ var init_MobileUI = __esmMin((() => {
 		});
 		setupJoystick();
 		setupTalkToNpcButton();
+		setupGuide(root);
+		applyTexts();
+		loadTexts();
 	};
 	/**
 	* Apply preferences once append to body
 	*/
 	MobileUI.onAppend = function onAppend() {
-		if (SessionStorage_default.isTouchDevice) this._host.style.display = "block";
-		else this._host.style.display = "none";
+		if (SessionStorage_default.isTouchDevice) {
+			this._host.style.display = "block";
+			showGuideOnActivate();
+		} else this._host.style.display = "none";
 		this._host.style.top = "0px";
 		this._host.style.left = "0px";
 		this._host.style.zIndex = "1000";
@@ -309937,9 +310501,13 @@ var init_MobileUI = __esmMin((() => {
 	};
 	/**
 	* Shows MobileUI
+	*
+	* @returns {boolean} the guide popup got opened by this activation
 	*/
 	MobileUI.show = function show() {
+		this.getRoot().querySelector("#MobileUI").classList.remove("guideOnly");
 		this._host.style.display = "block";
+		return showGuideOnActivate();
 	};
 	MobileUI_default = UIManager.addComponent(MobileUI);
 }));
@@ -310089,9 +310657,14 @@ function onTouchMove(event) {
 		Camera.zoomFinal = Math.max(Camera.zoomFinal, 2);
 	}
 }
-function touchDevice() {
+function touchDevice(event) {
 	SessionStorage_default.isTouchDevice = true;
-	if (SessionStorage_default.Playing) MobileUI_default.show();
+	if (SessionStorage_default.Playing) {
+		if (MobileUI_default.show()) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+		}
+	}
 }
 var _processGesture, _scale, _touches, _intersect, _timer$1, _uiTouch, _pageZoomed, VIEWPORT_META, UI_TOUCH_SELECTOR, Mobile, delayedClick, onTouchStart, onPointerInput;
 var init_Mobile = __esmMin((() => {
@@ -310155,7 +310728,10 @@ var init_Mobile = __esmMin((() => {
 	if (Math.max(screen.availHeight, screen.availWidth) <= 800) window.addEventListener("touchstart", () => {
 		if (!Context.isFullScreen()) Context.requestFullScreen();
 	});
-	window.addEventListener("touchstart", touchDevice, { once: true });
+	window.addEventListener("touchstart", touchDevice, {
+		once: true,
+		passive: false
+	});
 	ensureViewportMeta();
 	if (window.visualViewport) {
 		window.visualViewport.addEventListener("resize", onVisualViewportResize);
@@ -321671,7 +322247,10 @@ function onEntityUseSkillToAttack(pkt) {
 			if (pushedEntity) pushedEntity.fastMoveTo(pkt.xPos, pkt.yPos, 20, null, true);
 		}
 	}
-	if (srcEntity && dstEntity && pkt.action != SkillAction$1.SPLASH) EffectManager.spamSkill(pkt.SKID, pkt.targetID, null, Renderer.tick + pkt.attackMT, pkt.AID);
+	if (srcEntity && dstEntity && pkt.action != SkillAction$1.SPLASH) {
+		EffectManager.spamSkillRelease(pkt.SKID, pkt.targetID, Renderer.tick, pkt.AID);
+		EffectManager.spamSkill(pkt.SKID, pkt.targetID, null, Renderer.tick + pkt.attackMT, pkt.AID);
+	}
 }
 /**
 * Cast a skill to someone
@@ -326357,8 +326936,8 @@ function onIncreaseSkill(SKID) {
 function onUseSkill(id, level, targetID) {
 	let entity;
 	let range;
-	const isHomun = id > SkillConst_default.HOMUN_BEGIN && id < SkillConst_default.HOMUN_LAST;
-	const isMerc = id > SkillConst_default.MERCENARY_BEGIN && id < SkillConst_default.MERCENARY_LAST;
+	const isHomun = id >= SkillConst_default.HOMUN_BEGIN && id <= SkillConst_default.HOMUN_LAST;
+	const isMerc = id >= SkillConst_default.MERCENARY_BEGIN && id <= SkillConst_default.MERCENARY_LAST;
 	if (isHomun) entity = EntityManager.get(SessionStorage_default.homunId);
 	else if (isMerc) entity = EntityManager.get(SessionStorage_default.mercId);
 	else entity = SessionStorage_default.Entity;
@@ -326575,8 +327154,10 @@ var init_Skill = __esmMin((() => {
 	SkillTargetSelection_default.onUseSkillToPos = function onUseSkillToPos(id, level, x, y) {
 		let entity;
 		let range;
-		const isHomun = id > 8e3 && id < 8044;
+		const isHomun = id >= SkillConst_default.HOMUN_BEGIN && id <= SkillConst_default.HOMUN_LAST;
+		const isMerc = id >= SkillConst_default.MERCENARY_BEGIN && id <= SkillConst_default.MERCENARY_LAST;
 		if (isHomun) entity = EntityManager.get(SessionStorage_default.homunId);
+		else if (isMerc) entity = EntityManager.get(SessionStorage_default.mercId);
 		else {
 			entity = SessionStorage_default.Entity;
 			if (entity.isOverWeight) {
@@ -326611,6 +327192,9 @@ var init_Skill = __esmMin((() => {
 		if (isHomun) {
 			pkt = new PACKET.CZ.REQUEST_MOVENPC();
 			pkt.GID = SessionStorage_default.homunId;
+		} else if (isMerc) {
+			pkt = new PACKET.CZ.REQUEST_MOVENPC();
+			pkt.GID = SessionStorage_default.mercId;
 		} else if (PacketVerManager_default.value >= 20180307) pkt = new PACKET.CZ.REQUEST_MOVE2();
 		else pkt = new PACKET.CZ.REQUEST_MOVE();
 		pkt.dest[0] = out[(count - 1) * 2 + 0];
