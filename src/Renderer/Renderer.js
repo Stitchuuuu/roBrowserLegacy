@@ -130,6 +130,10 @@ class Renderer {
 	 */
 	static init(param) {
 		if (!this.gl) {
+			// Fixed viewport: see `body.ro-viewport` in UI/Common.css
+			document.body.classList.add('ro-viewport');
+
+			this.canvas.className = 'ro-scene';
 			this.canvas.style.position = 'absolute';
 			this.canvas.style.top = '0px';
 			this.canvas.style.left = '0px';
@@ -413,7 +417,7 @@ class Renderer {
 	 * Start rendering
 	 */
 	static render(fn) {
-		if (fn) {
+		if (fn && !this.renderCallbacks.includes(fn)) {
 			this.renderCallbacks.push(fn);
 		}
 

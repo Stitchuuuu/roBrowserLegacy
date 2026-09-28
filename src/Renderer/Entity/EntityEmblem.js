@@ -9,6 +9,7 @@
  */
 
 import glMatrix from 'Utils/gl-matrix.js';
+import EntityOverlay from 'Renderer/Entity/EntityOverlay.js';
 
 /**
  * Global methods
@@ -18,13 +19,21 @@ const _pos = new Float32Array(4);
 const _size = new Float32Array(2);
 
 /**
- * Emblem class
+ * Emblem class — standalone guild / siege emblem rendering
+ *
+ * @class Emblem
+ * @property {Image|null} emblem Guild emblem image element
+ * @property {boolean} display Whether emblem GUI is visible
+ * @property {HTMLCanvasElement} canvas Emblem canvas element
+ * @property {CanvasRenderingContext2D} ctx 2d context for emblem
+ * @property {Entity|null} entity Target entity
  */
 class Emblem {
 	constructor() {
 		this.emblem = null;
 		this.display = false;
 		this.canvas = document.createElement('canvas');
+		this.canvas.className = 'entity-emblem';
 		this.ctx = this.canvas.getContext('2d');
 		this.canvas.style.position = 'absolute';
 		this.canvas.style.zIndex = 1;
@@ -36,9 +45,7 @@ class Emblem {
 	 */
 	remove() {
 		this.display = false;
-		if (this.canvas.parentNode) {
-			document.body.removeChild(this.canvas);
-		}
+		this.canvas.remove();
 	}
 
 	/**
@@ -99,10 +106,8 @@ class Emblem {
 		canvas.style.top = (_pos[1] | 0) + 'px';
 		canvas.style.left = ((_pos[0] - canvas.width / 2) | 0) + 'px';
 
-		// Append to body
-		if (!canvas.parentNode) {
-			document.body.appendChild(canvas);
-		}
+		// Append to the clipped overlay layer
+		EntityOverlay.append(canvas);
 	}
 }
 /**

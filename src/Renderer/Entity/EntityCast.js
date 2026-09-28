@@ -9,6 +9,7 @@
  */
 
 import glMatrix from 'Utils/gl-matrix.js';
+import EntityOverlay from 'Renderer/Entity/EntityOverlay.js';
 
 /**
  * Global methods
@@ -18,7 +19,17 @@ const _pos = new Float32Array(4);
 const _size = new Float32Array(2);
 
 /**
- * Cast constructor
+ * Cast class — progressbar rendering when an Entity casts a skill
+ *
+ * @class Cast
+ * @property {number} tick Start tick of skill cast
+ * @property {number} delay Total cast delay in ms
+ * @property {number} percent Current progress percentage (0..1)
+ * @property {boolean} display Whether cast bar is active/visible
+ * @property {string} color Progressbar color hex string
+ * @property {function|null} onComplete Cast completion callback
+ * @property {HTMLCanvasElement} canvas Progressbar canvas element
+ * @property {CanvasRenderingContext2D} ctx Progressbar 2d rendering context
  */
 class Cast {
 	constructor() {
@@ -30,6 +41,7 @@ class Cast {
 		this.onComplete = null;
 
 		this.canvas = document.createElement('canvas');
+		this.canvas.className = 'entity-cast';
 		this.ctx = this.canvas.getContext('2d');
 		this.canvas.style.position = 'absolute';
 		this.canvas.style.zIndex = 1;
@@ -56,9 +68,7 @@ class Cast {
 	remove() {
 		this.percent = -1;
 		this.display = false;
-		if (this.canvas.parentNode) {
-			document.body.removeChild(this.canvas);
-		}
+		this.canvas.remove();
 	}
 
 	/**
@@ -142,10 +152,8 @@ class Cast {
 		canvas.style.top = (_pos[1] | 0) + 'px';
 		canvas.style.left = ((_pos[0] - canvas.width / 2) | 0) + 'px';
 
-		// Append to body
-		if (!canvas.parentNode) {
-			document.body.appendChild(canvas);
-		}
+		// Append to the clipped overlay layer
+		EntityOverlay.append(canvas);
 	}
 }
 /**

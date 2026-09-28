@@ -22,14 +22,21 @@ import PACKET from 'Network/PacketStructure.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import Guild from 'UI/Components/Guild/Guild.js';
+import GuildCompanion from 'UI/Components/GuildCompanion/GuildCompanion.js';
 import UIManager from 'UI/UIManager.js';
 import Configs from 'Core/Configs.js';
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
+import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 
 /**
  * @var {Object} emblem list
  */
 const _emblems = {};
+
+/**
+ * @var {boolean} shortcut bar asked for guild skills before guild info arrived
+ */
+let _pendingGuildSkillRequest = false;
 
 /**
  * Engine namespace
@@ -64,6 +71,7 @@ class GuildEngine {
 		Network.hookPacket(PACKET.ZC.ACK_GUILD_MENUINTERFACE, onGuildAccess);
 		Network.hookPacket(PACKET.ZC.RESULT_MAKE_GUILD, onGuildCreationResult);
 		Network.hookPacket(PACKET.ZC.UPDATE_GDID, onGuildOwnInfo);
+		Network.hookPacket(PACKET.ZC.UPDATE_GDID2, onGuildOwnInfo);
 		Network.hookPacket(PACKET.ZC.BAN_LIST, onGuildExpelList);
 		Network.hookPacket(PACKET.ZC.ACK_DISORGANIZE_GUILD_RESULT, onGuildDestroy);
 		Network.hookPacket(PACKET.ZC.REQ_JOIN_GUILD, onGuildInviteRequest);
@@ -90,8 +98,24 @@ class GuildEngine {
 		Guild.onRequestMemberInfo = GuildEngine.requestMemberInfo;
 		Guild.onRequestDeleteRelation = GuildEngine.requestDeleteRelatedGuild;
 		Guild.onRequestAccess = GuildEngine.requestAccess;
+		Guild.onRequestCreateGuild = GuildEngine.createGuild;
+		GuildCompanion.onRequestCreateGuild = GuildEngine.createGuild;
+		GuildCompanion.onRequestBreakGuild = GuildEngine.breakGuild;
+		Guild.onRequestBreakGuild = GuildEngine.breakGuild;
 		Guild.onRequestGuildEmblem = GuildEngine.requestGuildEmblem;
 		Guild.onSendEmblem = GuildEngine.sendEmblem;
+		ShortCut.onRequestGuildSkills = GuildEngine.requestGuildSkills;
+	}
+
+	/**
+	 * Request the guild skill list, deferred until we know the player has a guild
+	 */
+	static requestGuildSkills() {
+		if (Session.hasGuild) {
+			GuildEngine.requestInfo(3);
+		} else {
+			_pendingGuildSkillRequest = true;
+		}
 	}
 
 	/**
@@ -338,6 +362,32 @@ class GuildEngine {
 	}
 
 	/**
+	 * Send an invitation to the player by name
+	 *
+	 * @param {string} target character name
+	 *
+	 * @note Sends CZ.REQ_JOIN_GUILD2 (0x916), which is only valid for
+	 *   PACKETVER >= 20120131 (length table defines 0x916 from that date).
+	 *   Older clients can't invite by name — see REVIEW.md (Packet changes /
+	 *   PACKETVER range).
+	 */
+	static requestPlayerInvitationByName(name) {
+		if (PACKETVER.value < 20120131) {
+			ChatBox.addText(
+				'Guild invite by name requires client 2012-01-31 or newer.',
+				ChatBox.TYPE.ERROR,
+				ChatBox.FILTER.PUBLIC_LOG
+			);
+			return;
+		}
+
+		const pkt = new PACKET.CZ.REQ_JOIN_GUILD2();
+		pkt.name = name;
+
+		Network.sendPacket(pkt);
+	}
+
+	/**
 	 * Send a guild alliance to a target player
 	 *
 	 * @param {number} target account id
@@ -553,14 +603,27 @@ function onGuildAccess(pkt) {
  * @param {object} pkt - PACKET.ZC.UPDATE_GDID
  */
 function onGuildOwnInfo(pkt) {
+	if (pkt.GDID === undefined) {
+		return;
+	}
+
 	GuildEngine.guild_id = pkt.GDID;
 
 	Session.hasGuild = true;
 	Session.guildRight = pkt.right;
 	Session.isGuildMaster = !!pkt.isMaster;
 
+	if (pkt.GName) {
+		Session.guildName = pkt.GName;
+	}
+
 	Session.Entity.GUID = pkt.GDID;
 	Session.Entity.GEmblemVer = pkt.emblemVersion;
+
+	if (_pendingGuildSkillRequest) {
+		_pendingGuildSkillRequest = false;
+		GuildEngine.requestInfo(3);
+	}
 
 	// Request emblem for the player's own entity
 	if (pkt.GDID && pkt.emblemVersion) {
@@ -732,6 +795,11 @@ function onGuildExpelList(pkt) {
  * @param {object} pkt - PACKET.ZC.RESULT_MAKE_GUILD
  */
 function onGuildCreationResult(pkt) {
+	const createFailed = message => {
+		ChatBox.addText(message, ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+		UIManager.showMessageBox(message, 'ok');
+	};
+
 	switch (pkt.result) {
 		case 0: // Success
 			Session.hasGuild = true;
@@ -740,15 +808,15 @@ function onGuildCreationResult(pkt) {
 			break;
 
 		case 1: // You are already in a Guild.#
-			ChatBox.addText(DB.getMessage(375), ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+			createFailed(DB.getMessage(375, 'You are already in a Guild.'));
 			break;
 
 		case 2: // That Guild Name already exists.
-			ChatBox.addText(DB.getMessage(376), ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+			createFailed(DB.getMessage(376, 'That Guild Name already exists.'));
 			break;
 
 		case 3: // You need the neccessary item to create a Guild.
-			ChatBox.addText(DB.getMessage(405), ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+			createFailed(DB.getMessage(405, 'You need the necessary item to create a Guild.'));
 			break;
 	}
 }
@@ -759,19 +827,31 @@ function onGuildCreationResult(pkt) {
  * @param {object} pkt - PACKET.ZC.ACK_DISORGANIZE_GUILD_RESULT
  */
 function onGuildDestroy(pkt) {
+	const fail = message => {
+		ChatBox.addText(message, ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+		UIManager.showMessageBox(message, 'ok', () => {
+			GuildCompanion.closeDisband();
+		});
+	};
+
 	switch (pkt.reason) {
 		case 0: // success
+			GuildCompanion.closeDisband();
 			Guild.hide();
 			Session.hasGuild = false;
+			Session.guildName = '';
+			Session.isGuildMaster = false;
+			Session.guildRight = 0;
+			Session.Entity.GUID = 0;
 			ChatBox.addText(DB.getMessage(400), ChatBox.TYPE.BLUE, ChatBox.FILTER.GUILD);
 			break;
 
 		case 1: // invalid guild name
-			ChatBox.addText(DB.getMessage(401), ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+			fail(DB.getMessage(401, 'You have failed to disband the guild.'));
 			break;
 
 		case 2: // still members on the guild
-			ChatBox.addText(DB.getMessage(402), ChatBox.TYPE.ERROR, ChatBox.FILTER.GUILD);
+			fail(DB.getMessage(402, 'There are still members in the guild.'));
 			break;
 	}
 }
@@ -857,6 +937,7 @@ function onGuildMemberExpulsion(pkt) {
 	if (pkt.charName === Session.Entity.display.name) {
 		Guild.hide();
 		Session.hasGuild = false;
+		Session.guildName = '';
 		Session.isGuildMaster = false;
 		Session.guildRight = 0;
 		Session.Entity.GUID = 0;
@@ -889,6 +970,7 @@ function onGuildMemberLeave(pkt) {
 	if (pkt.charName === Session.Entity.display.name) {
 		Guild.hide();
 		Session.hasGuild = false;
+		Session.guildName = '';
 		Session.isGuildMaster = false;
 		Session.guildRight = 0;
 		Session.Entity.GUID = 0;

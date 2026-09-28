@@ -140,6 +140,64 @@ function onSkillToGround(pkt) {
 	position[2] = Altitude.getCellHeight(pkt.xPos, pkt.yPos);
 
 	EffectManager.spamSkill(pkt.SKID, pkt.AID, position, null, pkt.AID);
+
+	// Ground Truth / Canonical C++ (GameActorMsgHandler.cpp line 1069):
+	// Relocation skills on ground: SKID_MO_BODYRELOCATION, SKID_NJ_SHADOWJUMP, SKID_RL_FALLEN_ANGEL, SKID_SU_LOPE
+	switch (pkt.SKID) {
+		case SkillId.MO_BODYRELOCATION: {
+			const entity = EntityManager.get(pkt.AID);
+			if (entity && entity.fastMoveTo(pkt.xPos, pkt.yPos, 15, null, false)) {
+				entity._fastMoveTrail = true;
+				if (entity.objecttype === entity.constructor.TYPE_PC) {
+					entity.setAction({
+						action: entity.ACTION.ATTACK,
+						frame: 0,
+						repeat: false,
+						play: false
+					});
+				}
+			}
+			break;
+		}
+		case SkillId.NJ_SHADOWJUMP: {
+			const entity = EntityManager.get(pkt.AID);
+			if (entity && entity.fastMoveTo(pkt.xPos, pkt.yPos, 15, null, false)) {
+				entity._fastMoveTrail = true;
+				entity.setAction({
+					action: entity.ACTION.SKILL,
+					frame: 0,
+					repeat: false,
+					play: false
+				});
+			}
+			break;
+		}
+		case SkillId.RL_FALLEN_ANGEL: {
+			const entity = EntityManager.get(pkt.AID);
+			if (entity && entity.fastMoveTo(pkt.xPos, pkt.yPos, 15, null, false)) {
+				entity._fastMoveTrail = true;
+				entity.setAction({
+					action: entity.ACTION.SKILL,
+					frame: 0,
+					repeat: false,
+					play: false
+				});
+			}
+			break;
+		}
+		case SkillId.SU_LOPE: {
+			const entity = EntityManager.get(pkt.AID);
+			if (entity && entity.fastMoveTo(pkt.xPos, pkt.yPos, 15, null, false)) {
+				entity.setAction({
+					action: entity.ACTION.SKILL,
+					frame: 0,
+					repeat: false,
+					play: true
+				});
+			}
+			break;
+		}
+	}
 }
 
 /**
@@ -607,8 +665,8 @@ function onUseSkill(id, level, targetID) {
 	let entity;
 	let range;
 
-	const isHomun = id > SkillId.HOMUN_BEGIN && id < SkillId.HOMUN_LAST;
-	const isMerc = id > SkillId.MERCENARY_BEGIN && id < SkillId.MERCENARY_LAST;
+	const isHomun = id >= SkillId.HOMUN_BEGIN && id <= SkillId.HOMUN_LAST;
+	const isMerc = id >= SkillId.MERCENARY_BEGIN && id <= SkillId.MERCENARY_LAST;
 
 	// Not used so far
 	//var isElem = (id > SkillId.ELEMENTAL_BEGIN && id < SkillId.ELEMENTAL_LAST);
@@ -719,10 +777,13 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	let entity;
 	let range;
 
-	const isHomun = id > 8000 && id < 8044;
+	const isHomun = id >= SkillId.HOMUN_BEGIN && id <= SkillId.HOMUN_LAST;
+	const isMerc = id >= SkillId.MERCENARY_BEGIN && id <= SkillId.MERCENARY_LAST;
 
 	if (isHomun) {
 		entity = EntityManager.get(Session.homunId);
+	} else if (isMerc) {
+		entity = EntityManager.get(Session.mercId);
 	} else {
 		entity = Session.Entity;
 		if (entity.isOverWeight) {
@@ -785,6 +846,9 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	if (isHomun) {
 		pkt = new PACKET.CZ.REQUEST_MOVENPC();
 		pkt.GID = Session.homunId;
+	} else if (isMerc) {
+		pkt = new PACKET.CZ.REQUEST_MOVENPC();
+		pkt.GID = Session.mercId;
 	} else {
 		if (PACKETVER.value >= 20180307) {
 			pkt = new PACKET.CZ.REQUEST_MOVE2();

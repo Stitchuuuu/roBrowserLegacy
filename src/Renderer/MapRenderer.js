@@ -27,6 +27,7 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import Water from 'Renderer/Map/Water.js';
 import Models from 'Renderer/Map/Models.js';
 import AnimatedModels from 'Renderer/Map/AnimatedModels.js';
+import OccluderFade from 'Renderer/Map/OccluderFade.js';
 import GR2ModelRenderer from 'Renderer/GR2/GR2ModelRenderer.js';
 import Sounds from 'Renderer/Map/Sounds.js';
 import Effects from 'Renderer/Map/Effects.js';
@@ -57,6 +58,15 @@ import WebGL from 'Utils/WebGL.js';
 
 const mat4 = glMatrix.mat4;
 const _pos = new Uint16Array(2);
+
+/**
+ * @param {string} mapname
+ * @returns {string} map name without its extension
+ */
+function stripMapExtension(mapname) {
+	return (mapname || '').replace(/\.[^.]*$/, '');
+}
+
 /**
  * Renderer Namespace
  */
@@ -131,8 +141,12 @@ class MapRenderer {
 		UIManager.removeComponents();
 		Cursor.setType(Cursor.ACTION.DEFAULT);
 
+		// The server may address the same map with different extensions (.gat/.rsw)
+		const oldMap = stripMapExtension(this.currentMap);
+		const newMap = stripMapExtension(mapname);
+
 		// Don't reload a map when it's just a local teleportation
-		if (this.currentMap !== mapname) {
+		if (oldMap !== newMap) {
 			this.loading = true;
 			BGM.stop();
 			this.currentMap = mapname;
@@ -162,6 +176,7 @@ class MapRenderer {
 		EntityManager.free();
 		Damage.free(gl);
 		EffectManager.free(gl);
+		JoystickUI.onRestore();
 
 		// Basic TP
 		Mouse.intersect = false;
@@ -189,6 +204,7 @@ class MapRenderer {
 		Water.free(gl);
 		Models.free(gl);
 		AnimatedModels.free(gl);
+		OccluderFade.free(gl);
 		GR2ModelRenderer.free(gl);
 		Damage.free(gl);
 		EffectManager.free(gl);
@@ -278,6 +294,7 @@ class MapRenderer {
 		// Display zone effects and entities
 		Sky.render(gl, modelView, projection, fog, tick);
 
+		OccluderFade.beginFrame(gl, modelView, tick);
 		Models.render(gl, modelView, projection, normalMat, fog, light);
 		AnimatedModels.render(gl, modelView, projection, normalMat, fog, light, tick);
 		// GR2 mobs render here with the opaque world models, before EntityManager.render below
@@ -293,8 +310,16 @@ class MapRenderer {
 		//Render Entities (no effects)
 		EntityManager.render(gl, modelView, projection, fog, false);
 
+		// Depth-only pass so the water covers the submerged part of entities standing in it
+		EntityManager.renderWaterDepth(gl, modelView, projection, fog);
+
 		// Rendering water (after sprites, billboard projection pushes it to back)
 		Water.render(gl, modelView, projection, fog, light, tick);
+
+		// Third person see-through: translucent part of the models blocking
+		// the player, drawn over the entities so they stay visible through it
+		Models.renderFaded(gl, modelView, projection, normalMat, fog, light);
+		AnimatedModels.renderFaded(gl, modelView, projection, normalMat, fog, light);
 
 		EffectManager.render(gl, modelView, projection, fog, tick, false);
 		EntityManager.render(gl, modelView, projection, fog, true);

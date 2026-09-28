@@ -11,19 +11,26 @@
  * @author Vincent Thibault
  */
 
-import DB from 'DB/DBManager.js';
-import SkillInfo from 'DB/Skills/SkillInfo.js';
-import SkillTreeView from 'DB/Skills/SkillTreeView.js';
-import Session from 'Engine/SessionStorage.js';
+import 'UI/Elements/Elements.js';
+
 import Client from 'Core/Client.js';
+import DB from 'DB/DBManager.js';
+import GUIComponent from 'UI/GUIComponent.js';
+import Mouse from 'Controls/MouseEventHandler.js';
 import Preferences from 'Core/Preferences.js';
 import Renderer from 'Renderer/Renderer.js';
-import Mouse from 'Controls/MouseEventHandler.js';
-import UIManager from 'UI/UIManager.js';
-import GUIComponent from 'UI/GUIComponent.js';
-import 'UI/Elements/Elements.js';
-import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
+import Session from 'Engine/SessionStorage.js';
 import SkillDescription from 'UI/Components/SkillDescription/SkillDescription.js';
+import SkillInfo from 'DB/Skills/SkillInfo.js';
+import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
+import SkillTreeView from 'DB/Skills/SkillTreeView.js';
+import { attachTouchDrag } from 'UI/TouchDrag.js';
+import {
+	createSkillUpgradeOrder,
+	resolveSkillRequirements,
+	stageSkillPlan
+} from 'UI/Components/SkillList/SkillRequirements.js';
+import UIManager from 'UI/UIManager.js';
 
 function _escapeHTML(text) {
 	const div = document.createElement('div');
@@ -40,10 +47,7 @@ export function createSkillList({
 	htmlText,
 	cssText,
 	hasTabs = false,
-	needSkillListKey = '_NeedSkillList',
 	showDescOnMiniHover = false,
-	touchDrag = false,
-	incrementalRemember = false,
 	guardMissingJob = false,
 	readdSkillOnUpdate = false,
 	listOnly = false,
@@ -76,17 +80,10 @@ export function createSkillList({
 	let _lArrow, _rArrow;
 	let skillPosition = [];
 	const skillDependencyTree = [];
-	let rememberChoice = [];
+	let skillJobId = null;
+	let rememberChoice = new Map();
 	const hasSkills = [];
 	let _justDragged = false;
-
-	const _touchDrag = {
-		timer: null,
-		dragging: false,
-		ghost: null,
-		startX: 0,
-		startY: 0
-	};
 
 	Component.init = function init() {
 		const root = this.getRoot();
@@ -105,6 +102,7 @@ export function createSkillList({
 			onResize(e, this);
 		});
 		root.querySelector('.titlebar .close')?.addEventListener('click', () => {
+			onResetChoice(this);
 			this.ui.hide();
 		});
 		root.querySelector('.titlebar .mini')?.addEventListener('click', () => {
@@ -272,28 +270,20 @@ export function createSkillList({
 			}, 0);
 		});
 
-		if (touchDrag) {
-			container.addEventListener('touchstart', e => {
-				const iconTarget = e.target.closest('.skill .icon');
-				if (iconTarget) {
-					onSkillTouchStart(e, iconTarget);
-				}
-			});
-
-			container.addEventListener('touchmove', e => {
-				const iconTarget = e.target.closest('.skill .icon');
-				if (iconTarget) {
-					onSkillTouchMove(e);
-				}
-			});
-
-			container.addEventListener('touchend', e => {
-				const iconTarget = e.target.closest('.skill .icon');
-				if (iconTarget) {
-					onSkillTouchEnd(e);
-				}
-			});
-		}
+		attachTouchDrag(container, {
+			itemSelector: '.skill .icon',
+			getPayload: iconEl => {
+				const skillDiv = iconEl.closest('.skill');
+				const skill = getSkillById(parseInt(skillDiv.getAttribute('data-index'), 10));
+				return skill && skill.level && skill.type
+					? {
+							type: 'skill',
+							from: _dragFrom,
+							data: skill
+						}
+					: null;
+			}
+		});
 
 		this.draggable('.titlebar');
 
@@ -341,6 +331,7 @@ export function createSkillList({
 
 	Component.toggle = function toggle() {
 		if (this.ui.is(':visible')) {
+			onResetChoice(this);
 			this.ui.hide();
 			if (_btnLevelUp && _btnLevelUp.parentNode) {
 				_btnLevelUp.remove();
@@ -357,7 +348,6 @@ export function createSkillList({
 				this.toggle();
 				break;
 		}
-		onResetChoice(this);
 	};
 
 	Component.setSkills = function setSkills(skills) {
@@ -382,13 +372,12 @@ export function createSkillList({
 
 		root.querySelectorAll('.upgradable').forEach(el => el.classList.remove('upgradable'));
 
-		let skillJobId = Session.Character.job;
-		const originalJobId = Session.Entity._job;
-		if (originalJobId && originalJobId !== Session.Character.job) {
-			skillJobId = originalJobId;
-		}
+		// The skill tree follows the real job, never a transformation/disguise
+		const entity = Session.Entity;
+		skillJobId = entity ? entity._job || entity.job : 0;
 
 		skillPosition = getSkillPosition(skillJobId);
+		skillDependencyTree.length = 0;
 		createSkillDependencyTree();
 
 		for (let i = 0, count = _list.length; i < count; ++i) {
@@ -396,6 +385,7 @@ export function createSkillList({
 		}
 
 		_list.length = 0;
+		hasSkills.length = 0;
 		if (hasTabs) {
 			root.querySelectorAll('.content table').forEach(t => {
 				t.innerHTML = '';
@@ -460,11 +450,9 @@ export function createSkillList({
 							MaxLv: sk.MaxLv
 						};
 
-						if (sk?.[needSkillListKey] !== undefined) {
-							sk[needSkillListKey].forEach(item => {
-								skillDependencyTree[skid]['dependency'][item[0]] = item[1];
-							});
-						}
+						resolveSkillRequirements(sk, skillJobId, SkillTreeView).forEach(item => {
+							skillDependencyTree[skid]['dependency'][item[0]] = item[1];
+						});
 					} else {
 						console.error('Something wrong with this skill: %d', skid);
 					}
@@ -476,45 +464,42 @@ export function createSkillList({
 						MaxLv: sk.MaxLv
 					};
 
-					if (sk?.[needSkillListKey] !== undefined) {
-						sk[needSkillListKey].forEach(item => {
-							skillDependencyTree[skid]['dependency'][item[0]] = item[1];
-						});
-					}
+					resolveSkillRequirements(sk, skillJobId, SkillTreeView).forEach(item => {
+						skillDependencyTree[skid]['dependency'][item[0]] = item[1];
+					});
 				}
 			});
 		});
 	}
 
-	function specifyRequirements(skillId, count, root) {
-		const showAll = true;
-		const skdt = skillDependencyTree[skillId];
-
-		if (skdt?.dependency || count != null) {
-			skillPosition.forEach((items, list) => {
-				if (items[skillId] !== undefined) {
-					const skillbox = root.querySelector(`#positionSkills${list} .s${items[skillId]}`);
-					if (skillbox) {
-						const child = skillbox.querySelector('.disabled');
-						if (child || showAll) {
-							skillbox.classList.add('needleSkill');
-							if (count !== null && count !== undefined) {
-								const counterEl = document.createElement('div');
-								counterEl.className = 'counterSkill';
-								counterEl.textContent = count;
-								skillbox.appendChild(counterEl);
-							}
-						}
+	function highlightNecessarySkill(skillId, count, root) {
+		skillPosition.forEach((items, list) => {
+			if (items[skillId] !== undefined) {
+				const skillbox = root.querySelector(`#positionSkills${list} .s${items[skillId]}`);
+				if (skillbox) {
+					skillbox.classList.add('needleSkill');
+					if (count !== null && count !== undefined) {
+						const counterEl = document.createElement('div');
+						counterEl.className = 'counterSkill';
+						counterEl.textContent = count;
+						skillbox.appendChild(counterEl);
 					}
 				}
-			});
+			}
+		});
+	}
+
+	function collectNecessarySkills(skillId, requirements, visiting = new Set()) {
+		if (visiting.has(skillId)) {
+			return;
 		}
 
-		if (skdt?.dependency) {
-			skdt.dependency.forEach((item, key) => {
-				specifyRequirements(key, item, root);
-			});
-		}
+		visiting.add(skillId);
+		skillDependencyTree[skillId]?.dependency.forEach((level, requiredSkillId) => {
+			requirements.set(requiredSkillId, Math.max(requirements.get(requiredSkillId) ?? 0, level));
+			collectNecessarySkills(requiredSkillId, requirements, visiting);
+		});
+		visiting.delete(skillId);
 	}
 
 	function onRememberChoice(target, root) {
@@ -526,112 +511,49 @@ export function createSkillList({
 			main = main.parentElement;
 		}
 		const skillId = parseInt(main.getAttribute('data-index'), 10);
+		const result = stageSkillPlan({
+			plan: rememberChoice,
+			skillId,
+			ownedSkills: hasSkills,
+			skillInfo: SkillInfo,
+			skillTreeView: SkillTreeView,
+			jobId: skillJobId,
+			availablePoints: _points
+		});
+		if (!result) {
+			return;
+		}
 
-		rememberChoice = setRememberChoice(skillId);
+		rememberChoice = result.plan;
+		totalCounter = result.cost;
+		renderRememberChoice(root);
+	}
 
-		rememberChoice.forEach((item, skId) => {
-			if (!rememberChoice[skId]['isQuest'] && totalCounter < _points) {
-				const sk = skillDependencyTree[skId];
-				if (!sk) {
-					return;
-				}
-				const skillbox = root.querySelector(`#positionSkills${sk.list} .s${sk.position}`);
-				if (skillbox) {
-					const currentEl = skillbox.querySelector('.current');
-					if (incrementalRemember) {
-						if (
-							currentEl &&
-							currentEl.textContent !== String(sk.MaxLv) &&
-							currentEl.textContent !== String(item.count)
-						) {
-							const level = currentEl.textContent;
-							let diff = 0;
-							if (item.count > level) {
-								diff = item.count - level;
-							}
-							totalCounter += diff;
-							skillbox.querySelectorAll('.skill').forEach(el => el.classList.remove('disabled'));
-							const levelEl = skillbox.querySelector('.level');
-							if (levelEl) {
-								levelEl.style.display = '';
-							}
-							if (currentEl) {
-								currentEl.textContent = rememberChoice[skId]['count'];
-							}
-							const maxEl = skillbox.querySelector('.max');
-							if (maxEl) {
-								maxEl.textContent = rememberChoice[skId]['count'];
-							}
-						}
-					} else {
-						if (currentEl && currentEl.textContent !== String(sk.MaxLv)) {
-							totalCounter += rememberChoice[skId]['count'];
-							const disabledEl = skillbox.querySelector('.disabled');
-							if (disabledEl) {
-								disabledEl.classList.remove('disabled');
-							}
-							const levelEl = skillbox.querySelector('.level');
-							if (levelEl) {
-								levelEl.style.display = '';
-							}
-							if (currentEl) {
-								currentEl.textContent = rememberChoice[skId]['count'];
-							}
-							const maxEl = skillbox.querySelector('.max');
-							if (maxEl) {
-								maxEl.textContent = rememberChoice[skId]['count'];
-							}
-						}
-					}
-				}
+	function renderRememberChoice(root) {
+		rememberChoice.forEach((choice, skillId) => {
+			if (choice.isQuest) {
+				return;
 			}
+
+			const skill = hasSkills[skillId];
+			root.querySelectorAll(`.skill.id${skillId}`).forEach(element => {
+				element.classList.remove('active', 'passive', 'disabled');
+				element.classList.add(skill?.type ? 'active' : 'passive');
+
+				const levelEl = element.querySelector('.level');
+				if (levelEl) {
+					levelEl.style.display = '';
+				}
+				element.querySelectorAll('.current, .max').forEach(level => {
+					level.textContent = choice.count;
+				});
+			});
 		});
 
 		const skpointsEl = root.querySelector('.skpoints_count');
 		if (skpointsEl) {
 			skpointsEl.textContent = `${_points - totalCounter}/${_points}`;
 		}
-	}
-
-	function setRememberChoice(skillId, count = null, isQuest = false) {
-		const sk = SkillInfo[skillId];
-
-		if (!isQuest && sk['Type'] === 'Quest') {
-			const skill = getSkillById(skillId);
-			isQuest = !skill?.level || skill?.level <= 0;
-		}
-
-		rememberChoice[skillId] = rememberChoice[skillId] ?? {
-			count: hasSkills?.[skillId]?.level ?? 0,
-			list: null,
-			isQuest: isQuest
-		};
-
-		if (!isQuest) {
-			if (count) {
-				if (count > rememberChoice[skillId]['count']) {
-					rememberChoice[skillId]['count'] = count;
-				}
-			} else {
-				if (sk['MaxLv'] > rememberChoice[skillId]['count']) {
-					rememberChoice[skillId]['count']++;
-				}
-			}
-		}
-
-		if (sk[needSkillListKey] !== undefined) {
-			sk[needSkillListKey].forEach(item => {
-				rememberChoice[skillId][item[0]] = setRememberChoice(item[0], item[1], isQuest)[item[0]];
-			});
-
-			Object.entries(rememberChoice[skillId]).forEach(([key, value]) => {
-				if (_isNumeric(key) && value.isQuest) {
-					rememberChoice[skillId]['isQuest'] = value.isQuest;
-				}
-			});
-		}
-
-		return rememberChoice;
 	}
 
 	function getSkillPosition(JobId) {
@@ -1210,62 +1132,54 @@ export function createSkillList({
 	}
 
 	function onApplyChoice(comp) {
-		const applyArr = [];
-		rememberChoice.forEach((item, skillId) => {
-			applyArr[skillId] = 0;
-			const level = hasSkills?.[skillId]?.level ?? 0;
-
-			if (item.count > level) {
-				applyArr[skillId] = item.count - level;
-			} else {
-				applyArr[skillId] = item.count;
-			}
+		const order = createSkillUpgradeOrder({
+			plan: rememberChoice,
+			ownedSkills: hasSkills,
+			skillInfo: SkillInfo,
+			skillTreeView: SkillTreeView,
+			jobId: skillJobId,
+			availablePoints: _points
 		});
-
-		applyArr.forEach((c, k) => {
-			for (let i = 0; i < c; i++) {
-				Component.onIncreaseSkill(parseInt(k, 10));
-			}
-		});
-
-		totalCounter = 0;
-		const root = comp.getRoot();
-		const skpointsEl = root.querySelector('.skpoints_count');
-		if (skpointsEl) {
-			skpointsEl.textContent = `${_points - totalCounter}`;
+		if (!order) {
+			onResetChoice(comp);
+			return;
 		}
-		rememberChoice = [];
+
+		order.forEach(skillId => Component.onIncreaseSkill(skillId));
+		onResetChoice(comp);
 	}
 
 	function onResetChoice(comp) {
 		const root = comp.getRoot();
-		rememberChoice.forEach((_count, skillId) => {
-			if (!skillDependencyTree[skillId]) {
-				return;
-			}
-			const skillbox = root.querySelector(`.skillCol.s${skillDependencyTree[skillId].position}`);
-			if (skillbox) {
-				if (!hasSkills?.[skillId]?.level) {
-					skillbox.querySelectorAll('.skill').forEach(el => el.classList.add('disabled'));
-				}
-				const selectable = skillbox.querySelector('.selectable');
+		rememberChoice.forEach((_choice, skillId) => {
+			const skill = hasSkills[skillId];
+			const level = skill?.level ?? 0;
+
+			root.querySelectorAll(`.skill.id${skillId}`).forEach(element => {
+				element.classList.remove('active', 'passive', 'disabled');
+				element.classList.add(level ? (skill?.type ? 'active' : 'passive') : 'disabled');
+
+				const selectable = element.querySelector('.selectable');
 				if (selectable) {
 					selectable.style.display = '';
 				}
-				skillbox.querySelectorAll('.current').forEach(el => {
-					el.textContent = hasSkills?.[skillId]?.level ?? 0;
+				element.querySelectorAll('.current, .max').forEach(value => {
+					value.textContent = level;
 				});
-				skillbox.querySelectorAll('.max').forEach(el => {
-					el.textContent = hasSkills?.[skillId]?.level ?? 0;
-				});
-			}
+
+				const levelEl = element.querySelector('.level');
+				if (levelEl) {
+					levelEl.style.display =
+						!level && element.parentElement?.classList.contains('skillCol') ? 'none' : '';
+				}
+			});
 		});
 		totalCounter = 0;
 		const skpointsEl = root.querySelector('.skpoints_count');
 		if (skpointsEl) {
 			skpointsEl.textContent = _points;
 		}
-		rememberChoice = [];
+		rememberChoice = new Map();
 	}
 
 	function onNecessarySkills(target, root) {
@@ -1274,7 +1188,12 @@ export function createSkillList({
 			main = main.parentElement;
 		}
 		const skillId = parseInt(main.getAttribute('data-index'), 10);
-		specifyRequirements(skillId, null, root);
+		const requirements = new Map();
+		collectNecessarySkills(skillId, requirements);
+		highlightNecessarySkill(skillId, null, root);
+		requirements.forEach((level, requiredSkillId) => {
+			highlightNecessarySkill(requiredSkillId, level, root);
+		});
 	}
 
 	function _resolveSkillID(el) {
@@ -1285,103 +1204,6 @@ export function createSkillList({
 		const id = parseInt(main.getAttribute('data-index'), 10);
 		const skill = getSkillById(id);
 		return skill?.SKID ?? id;
-	}
-
-	function onSkillTouchStart(event, iconEl) {
-		const touch = event.touches[0];
-		const skillDiv = iconEl.closest('.skill');
-		const index = parseInt(skillDiv.getAttribute('data-index'), 10);
-		const skill = getSkillById(index);
-
-		if (!skill || !skill.level || !skill.type) {
-			return;
-		}
-
-		_touchDrag.startX = touch.pageX;
-		_touchDrag.startY = touch.pageY;
-		_touchDrag.ghost = null;
-		_touchDrag.dragging = false;
-
-		_touchDrag.timer = setTimeout(() => {
-			_touchDrag.dragging = true;
-
-			const ghost = iconEl.cloneNode(true);
-			ghost.classList.add('drag-ghost');
-			ghost.style.position = 'absolute';
-			ghost.style.zIndex = '10000';
-			ghost.style.left = `${touch.pageX - 12}px`;
-			ghost.style.top = `${touch.pageY - 12}px`;
-			ghost.style.opacity = '0.8';
-			ghost.style.pointerEvents = 'none';
-			document.body.appendChild(ghost);
-			_touchDrag.ghost = ghost;
-
-			window._OBJ_DRAG_ = {
-				type: 'skill',
-				from: _dragFrom,
-				data: skill
-			};
-		}, 300);
-	}
-
-	function onSkillTouchMove(event) {
-		if (!_touchDrag.timer && !_touchDrag.dragging) {
-			return;
-		}
-
-		const touch = event.touches[0];
-
-		if (_touchDrag.dragging) {
-			event.preventDefault();
-			if (_touchDrag.ghost) {
-				_touchDrag.ghost.style.left = `${touch.pageX - 12}px`;
-				_touchDrag.ghost.style.top = `${touch.pageY - 12}px`;
-			}
-		} else {
-			const dx = touch.pageX - _touchDrag.startX;
-			const dy = touch.pageY - _touchDrag.startY;
-			if (dx * dx + dy * dy > 100) {
-				clearTimeout(_touchDrag.timer);
-				_touchDrag.timer = null;
-			}
-		}
-	}
-
-	function onSkillTouchEnd(event) {
-		if (_touchDrag.timer) {
-			clearTimeout(_touchDrag.timer);
-			_touchDrag.timer = null;
-		}
-
-		if (_touchDrag.dragging) {
-			_touchDrag.dragging = false;
-
-			if (_touchDrag.ghost) {
-				_touchDrag.ghost.remove();
-				_touchDrag.ghost = null;
-			}
-
-			const touch = event.changedTouches[0];
-			const target = document.elementFromPoint(touch.clientX, touch.clientY);
-
-			if (target) {
-				const dropTarget = target.closest('.container');
-				if (dropTarget) {
-					const dropEvent = new Event('drop', { bubbles: true });
-					dropEvent.dataTransfer = {
-						getData(type) {
-							if (type === 'Text') {
-								return JSON.stringify(window._OBJ_DRAG_);
-							}
-							return '';
-						}
-					};
-					dropTarget.dispatchEvent(dropEvent);
-				}
-			}
-
-			delete window._OBJ_DRAG_;
-		}
 	}
 
 	function skillLevelSelectUp(skill, root) {
