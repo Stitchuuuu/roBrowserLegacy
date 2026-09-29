@@ -168282,9 +168282,9 @@ var init_PacketStructure = __esmMin((() => {
 	PACKET.ZC.CHANGE_GUILD2 = function PACKET_ZC_CHANGE_GUILD2(fp, end) {
 		this.GDID = fp.readULong();
 		this.emblemVersion = fp.readULong();
-		this.AID = fp.readULong();
+		if (end - fp.tell() >= 4) this.AID = fp.readULong();
 	};
-	PACKET.ZC.CHANGE_GUILD2.size = 14;
+	PACKET.ZC.CHANGE_GUILD2.size = PacketVerManager_default.value >= 20190619 ? 14 : 10;
 	PACKET.ZC.CHANGE_GUILD3 = function PACKET_ZC_CHANGE_GUILD3(fp, end) {
 		this.GDID = fp.readULong();
 		this.emblemVersion = fp.readULong();
@@ -228748,9 +228748,14 @@ function _root$13(comp) {
 	return comp.getRoot();
 }
 /**
-* Helper: drop the queued grade changes, and the marks that showed them
+* Helper: forget the queued grade changes, and the marks that showed them
+*
+* Leaves the rows on the grades they display, so this is only ever right where
+* those grades have just been sent. Every other drop goes through
+* _clearPendingPositions, which puts them back first.
+* @see docs/reference/guild/grade-change.md
 */
-function _clearPendingPositions() {
+function _dropPendingPositions() {
 	_pendingPositions = {};
 	const root = _root$13(Guild);
 	if (!root) return;
@@ -228766,16 +228771,19 @@ function _hasPendingPositions() {
 	return false;
 }
 /**
-* Helper: take back the queued grades, putting their rows on the server's
+* Helper: drop the queued grades, putting their rows back on the server's
 *
-* Dropping the queue is not enough: the row was moved to the picked grade when
-* it was queued, so forgetting the queue would leave that grade on show as
+* Forgetting the queue is not enough: the row was moved to the picked grade when
+* it was queued, so dropping the queue alone would leave that grade on show as
 * though the server had agreed to it - and the grade guard would then refuse to
-* queue it a second time, the row already reading as the value asked for.
+* queue it a second time, the row already reading as the value asked for. Every
+* drop restores, so no call site has to work out whether it is the one that has
+* to; Apply is the exception and says so.
 * @see docs/reference/guild/grade-change.md
 */
-function _cancelPendingPositions() {
-	if (_root$13(Guild)) for (const GID in _pendingPositions) {
+function _clearPendingPositions() {
+	const root = _root$13(Guild);
+	if (root) for (const GID in _pendingPositions) {
 		const pending = _pendingPositions[GID];
 		for (let i = 0, count = _members.length; i < count; ++i) {
 			const member = _members[i];
@@ -228786,7 +228794,8 @@ function _cancelPendingPositions() {
 			}
 		}
 	}
-	_clearPendingPositions();
+	_dropPendingPositions();
+	if (root) _refreshApplyButton(getActiveTab(root));
 }
 /**
 * Helper: put the Positions tab back to what the server last sent
@@ -228797,7 +228806,7 @@ function _cancelPendingPositions() {
 * @see docs/reference/guild/grade-change.md
 */
 function _resetPositionsTab() {
-	_cancelPendingPositions();
+	_clearPendingPositions();
 	_positionsDirty = false;
 	_positionsSelected = 0;
 	if (_root$13(Guild)) {
@@ -228845,6 +228854,21 @@ function _showApplyButton() {
 function _hideApplyButton() {
 	const btnOk = _root$13(Guild).querySelector(".footer .btn_ok");
 	if (btnOk) btnOk.style.display = "none";
+}
+/**
+* Helper: offer Apply only while the tab on show has an edit to apply
+*
+* The positions tab holds its edits in its rows and the members tab in the
+* queue, so which one is up decides whether there is anything left to send.
+*
+* @param {string} tab - class of the tab on show
+*/
+function _refreshApplyButton(tab) {
+	if (tab === "positions" && _positionsDirty || tab === "members" && _hasPendingPositions()) {
+		_showApplyButton();
+		return;
+	}
+	_hideApplyButton();
 }
 /**
 * Helper: put a value where the guild master gets a control
@@ -229143,8 +229167,7 @@ function onChangeTab(event) {
 	const targetClass = this.className.replace(/\s*active\s*/g, "").trim();
 	const targetContent = root.querySelector(`.content.${targetClass}`);
 	if (targetContent) targetContent.style.display = "block";
-	_hideApplyButton();
-	if (targetClass === "positions" && _positionsDirty || targetClass === "members" && _hasPendingPositions()) _showApplyButton();
+	_refreshApplyButton(targetClass);
 	updateDisbandButton(root, targetClass);
 	updateSkillFooter(root, targetClass);
 	updateMemberSort(root, targetClass);
@@ -229244,7 +229267,7 @@ function onValidate() {
 			}
 			if (!list.length) return;
 			Guild.onChangeMemberPosRequest(list);
-			_clearPendingPositions();
+			_dropPendingPositions();
 			break;
 		}
 		case "positions": {
@@ -229964,7 +229987,10 @@ var init_Guild$1 = __esmMin((() => {
 	/**
 	* Apply the grades the server acknowledged
 	*
-	* The ack is server truth, so it also drops whatever was still queued.
+	* The ack is server truth, so it also drops whatever was still queued. Every row
+	* goes back to the server's grade first and the acknowledged ones are then moved
+	* again: an ack can carry fewer entries than were sent, and the rest have to end
+	* on what the server holds rather than on what it never answered.
 	* @see docs/reference/guild/grade-change.md
 	*
 	* @param {Array} memberInfo - PACKET.ZC.ACK_REQ_CHANGE_MEMBERS entries
@@ -247071,7 +247097,7 @@ function onGuildEmblemChanged(pkt) {
 	GuildEngine.requestGuildEmblem(pkt.GDID, pkt.emblemVersion, (image) => {
 		if (isOwnGuild) Guild_default.setEmblem(image);
 	}, () => {
-		delete _emblemNotified[pkt.GDID];
+		if (_emblemNotified[pkt.GDID] === pkt.emblemVersion) delete _emblemNotified[pkt.GDID];
 	});
 }
 /**
@@ -247562,6 +247588,18 @@ var init_Guild = __esmMin((() => {
 				xhr.open("POST", webserverAddress + "/emblem/download", true);
 				xhr.responseType = "blob";
 				xhr.timeout = 5e3;
+				const commit = (img, gifCanvas) => {
+					if (version < emblem.version) return;
+					if (version > emblem.version) {
+						emblem.version = version;
+						emblem.image = img;
+						emblem.gif = gifCanvas;
+					}
+					callback(emblem.image, emblem.gif);
+					EntityManager.forEach((entity) => {
+						if (entity.GUID === guild_id) entity.setEntityGuildEmblem(emblem.image, emblem.gif);
+					});
+				};
 				xhr.onload = () => {
 					if (xhr.status !== 200) {
 						console.warn("Emblem download returned non-200 status:", xhr.status);
@@ -247572,13 +247610,7 @@ var init_Guild = __esmMin((() => {
 						if (!(xhr.getResponseHeader("Content-Type") === "image/gif")) {
 							const img = new Image();
 							img.onload = () => {
-								emblem.version = version;
-								emblem.image = img;
-								emblem.gif = null;
-								callback(emblem.image, emblem.gif);
-								EntityManager.forEach((entity) => {
-									if (entity.GUID === guild_id) entity.setEntityGuildEmblem(img);
-								});
+								commit(img, null);
 							};
 							img.decoding = "async";
 							const blobUrl = URL.createObjectURL(xhr.response);
@@ -247591,13 +247623,7 @@ var init_Guild = __esmMin((() => {
 								const gifCanvas = this;
 								const img = new Image();
 								img.onload = () => {
-									emblem.version = version;
-									emblem.image = img;
-									emblem.gif = gifCanvas;
-									callback(emblem.image, emblem.gif);
-									EntityManager.forEach((entity) => {
-										if (entity.GUID === guild_id) entity.setEntityGuildEmblem(img, gifCanvas);
-									});
+									commit(img, gifCanvas);
 								};
 								img.decoding = "async";
 								const blobUrl = URL.createObjectURL(xhr.response);
