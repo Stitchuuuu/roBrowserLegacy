@@ -247602,7 +247602,10 @@ var init_Guild = __esmMin((() => {
 				return;
 			}
 			if (PacketVerManager_default.value >= 20170315) {
-				if (!guild_id || typeof guild_id === "undefined" || !SessionStorage_default.AID || SessionStorage_default.AID === 0 || !SessionStorage_default.ServerName || SessionStorage_default.ServerName === void 0 || !SessionStorage_default.WebToken || SessionStorage_default.WebToken === void 0) return;
+				if (!guild_id || typeof guild_id === "undefined" || !SessionStorage_default.AID || SessionStorage_default.AID === 0 || !SessionStorage_default.ServerName || SessionStorage_default.ServerName === void 0 || !SessionStorage_default.WebToken || SessionStorage_default.WebToken === void 0) {
+					failed();
+					return;
+				}
 				const formData = new FormData();
 				formData.append("GDID", guild_id);
 				formData.append("WorldName", SessionStorage_default.ServerName);
