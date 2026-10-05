@@ -170,8 +170,8 @@ let _runtimeChain = Promise.resolve();
  * @returns {Promise<*>} the plugin's init()-return
  */
 function registerRuntime(def, pars, mod) {
-	const run = () => _doRegisterRuntime(def, pars, mod);
-	const result = _runtimeChain.then(run, run); // run regardless of prior outcome
+	const step = () => _doRegisterRuntime(def, pars, mod);
+	const result = _runtimeChain.then(step, step); // run regardless of prior outcome
 	_runtimeChain = result.then(_noop, _noop);   // next waits, ignoring our result
 	return result;
 }
