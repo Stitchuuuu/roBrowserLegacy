@@ -446,6 +446,7 @@ var ROConfig = {
 	enableDmgSuffix: false, // Enable Damage Suffix (>1M = K, >100M = M) - Requires client data (GRF) newer or equals to 2019.05.08
 	enableCheckAttendance: false, // Enable Check Attendance? (Requires PACKETVER 20180307 above)
 	enableHomunAutoFeed: false, // Enable Homunculus Auto Feed for older PACKETVER than 20170920
+	enableSCDreamFont: false, // Load the client's SCDream font (System/Font/SCDream4/6.otf) as the UI font? Arial otherwise
 	loadLua: false, // Enable this option to load LUA tables (currently only item table) from client/System/...
 	customItemInfo: ['kRO.lua', 'jRO.lua', 'lua files514/iteminfo.lua'], // Customized iteminfo array-list, it loads using firt to last priority
 
