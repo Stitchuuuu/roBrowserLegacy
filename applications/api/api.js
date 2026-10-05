@@ -254,6 +254,11 @@
 		enableHomunAutoFeed: false,
 
 		/**
+		 * @type {boolean} Load the client's SCDream font as the UI font (falls back to Arial)
+		 */
+		enableSCDreamFont: false,
+
+		/**
 		 * @type {boolean} User interface version selection mode (PacketVer | PreRenewal | Renewal)
 		 */
 		clientVersionMode: 'PacketVer',
