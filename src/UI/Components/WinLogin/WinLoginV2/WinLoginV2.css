@@ -2,13 +2,38 @@
 	top: 60%;
 	left: calc(50% - 140px);
 	width: 301px;
-	height: 132px;
+	/* 132px frame + the auto-retry strip below it */
+	height: 158px;
 }
 
 #WinLogin {
 	position: absolute;
 	width: 301px;
 	height: 132px;
+}
+#WinLogin .autoretry {
+	position: absolute;
+	top: 136px;
+	left: 0;
+	width: 301px;
+	height: 20px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 6px;
+	background-color: rgba(0, 0, 0, 0.45);
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	border-radius: 2px;
+	color: #ffffff;
+	font-size: 11px;
+}
+#WinLogin .autoretry label {
+	cursor: pointer;
+}
+#WinLogin .autoretry .autoretry-check {
+	margin: 0;
+	cursor: pointer;
 }
 #WinLogin .win_login {
 	width: 100%;

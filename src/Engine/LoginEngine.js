@@ -17,6 +17,7 @@ import Sound from 'Audio/SoundManager.js';
 import Configs from 'Core/Configs.js';
 import Thread from 'Core/Thread.js';
 import Session from 'Engine/SessionStorage.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import CharEngine from 'Engine/CharEngine.js';
 import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -43,7 +44,11 @@ WinLoading.init = function () {
 		top: (Renderer.height - 120) / 1.5 + 'px',
 		left: (Renderer.width - 280) / 2.0 + 'px'
 	});
-	this._shadow.querySelector('.text').textContent = DB.getMessage(121);
+	const text = this._shadow.querySelector('.text');
+	// Set here and not in WinPopup.css, which every popup shares: this is the
+	// only one that renders a second line (the auto-retry attempt number).
+	text.style.whiteSpace = 'pre-line';
+	text.textContent = DB.getMessage(121);
 };
 UIManager.addComponent(WinLoading);
 
@@ -150,15 +155,19 @@ class LoginEngine {
 
 		// Handle unexpected disconnects during login phase
 		Network.onDisconnect = () => {
-			UIManager.showMessageBox(
-				DB.getMessage(1),
-				'ok',
-				() => {
-					UIManager.removeComponents();
-					WinLogin.getUI().append();
-				},
-				true
-			);
+			failLogin(DB.getMessage(1), 'network');
+		};
+
+		// Auto-retry needs a clean socket: a retry can also start from a
+		// failure on the char-server side, where ours is still open.
+		AutoRetry.onRetry = (username, password) => {
+			Network.close();
+			UIManager.removeComponents();
+			onConnectionRequest(username, password);
+		};
+		AutoRetry.onCancel = () => {
+			Network.close();
+			backToLogin();
 		};
 
 		// Autologin features
@@ -222,6 +231,45 @@ class LoginEngine {
 }
 
 /**
+ * Back to a clean login window. Also the 'ok' callback of every login error,
+ * which is why it stops auto-retry: clicking through a failure is how the
+ * player cancels the loop.
+ */
+function backToLogin() {
+	AutoRetry.disarm();
+	UIManager.removeComponents();
+	WinLogin.getUI().append();
+}
+
+/**
+ * Report a failed login attempt.
+ *
+ * @param {string} text - message to display
+ * @param {string} kind - 'network', 'refuse' or 'ban', for the retry policy
+ * @param {number} [code] - server error code, unused for 'network'
+ */
+function failLogin(text, kind, code) {
+	const box = UIManager.showMessageBox(text, 'ok', backToLogin, true);
+
+	if (AutoRetry.canRetry(kind, code)) {
+		AutoRetry.schedule(box);
+	}
+}
+
+/**
+ * The loading popup's text, with the attempt number while auto-retry runs.
+ */
+function setLoadingText() {
+	let text = DB.getMessage(121);
+
+	if (AutoRetry.armed()) {
+		text += '\nAttempt #' + AutoRetry.attempt();
+	}
+
+	WinLoading._shadow.querySelector('.text').textContent = text;
+}
+
+/**
  * Trying to connect to Login server
  *
  * @param {string} username
@@ -231,25 +279,22 @@ function onConnectionRequest(username, password) {
 	// Play "¹öÆ°¼Ò¸®.wav" (possible problem with charset)
 	Sound.play('\xB9\xF6\xC6\xB0\xBC\xD2\xB8\xAE.wav');
 
+	if (AutoRetry.isEnabled()) {
+		AutoRetry.arm(username, password);
+	}
+
 	// Add the loading screen
 	// Store the ID to use for the ping
 	WinLogin.getUI().remove();
 	WinLoading.append();
+	setLoadingText();
 	_loginID = username;
 
 	// Try to connect
 	Network.connect(_server.address, _server.port, success => {
 		// Fail to connect...
 		if (!success) {
-			UIManager.showMessageBox(
-				DB.getMessage(1),
-				'ok',
-				() => {
-					UIManager.removeComponents();
-					WinLogin.getUI().append();
-				},
-				true
-			);
+			failLogin(DB.getMessage(1), 'network');
 			return;
 		}
 
@@ -368,6 +413,7 @@ function onCharServerSelected(index) {
 
 	WinList.remove();
 	WinLoading.append();
+	setLoadingText();
 
 	Session.ServerName = _charServers[index].name; // Save server name
 	Network.onDisconnect = null; // Let CharEngine handle its own disconnects
@@ -408,6 +454,7 @@ function onConnectionAccepted(pkt) {
 	// No choice, connect directly to the server
 	if (count === 1 && Configs.get('skipServerList')) {
 		WinLoading.append();
+		setLoadingText();
 		Session.ServerName = _charServers[0].name; // Save server name
 		Network.onDisconnect = null; // Let CharEngine handle its own disconnects
 		CharEngine.init(_charServers[0]);
@@ -478,15 +525,9 @@ function onTarenConnectionRefused(pkt) {
 			break; // MSI_TAREN_LOGINREFUSE_FAIL_UNKNOWN = unknown error found
 	}
 
-	UIManager.showMessageBox(
-		DB.getMessage(msg_id),
-		'ok',
-		() => {
-			UIManager.removeComponents();
-			WinLogin.getUI().append();
-		},
-		true
-	);
+	// 'unknown': the Taren codes are their own space, not the AC_REFUSE_LOGIN
+	// one the retry policy is written against, so nothing here auto-retries.
+	failLogin(DB.getMessage(msg_id), 'unknown');
 
 	Network.close();
 }
@@ -537,15 +578,7 @@ function onTarenConnectionRefused2(pkt) {
 			break; // MSI_TAREN_LOGINREFUSE_FAIL_UNKNOWN = unknown error found.
 	}
 
-	UIManager.showMessageBox(
-		DB.getMessage(msg_id).replace('%s', pkt.blockDate),
-		'ok',
-		() => {
-			UIManager.removeComponents();
-			WinLogin.getUI().append();
-		},
-		true
-	);
+	failLogin(DB.getMessage(msg_id).replace('%s', pkt.blockDate), 'unknown');
 }
 
 /**
@@ -604,15 +637,8 @@ function onInternationalConnectionRefused(pkt) {
 			break; // MSI_USA_LOGINERRORMSG_SYSTEM = ERROR SYSTEM
 	}
 
-	UIManager.showMessageBox(
-		DB.getMessage(msg_id).replace('%d', pkt.blockDate),
-		'ok',
-		() => {
-			UIManager.removeComponents();
-			WinLogin.getUI().append();
-		},
-		true
-	);
+	// 'unknown' for the same reason as the Taren variants: MSI_USA codes.
+	failLogin(DB.getMessage(msg_id).replace('%d', pkt.blockDate), 'unknown');
 
 	Network.close();
 }
@@ -814,15 +840,7 @@ function onConnectionRefused(pkt) {
 			break;
 	}
 
-	UIManager.showMessageBox(
-		DB.getMessage(error).replace('%s', pkt.blockDate),
-		'ok',
-		() => {
-			UIManager.removeComponents();
-			WinLogin.getUI().append();
-		},
-		true
-	);
+	failLogin(DB.getMessage(error).replace('%s', pkt.blockDate), 'refuse', pkt.ErrorCode);
 
 	Network.close();
 }
@@ -926,15 +944,7 @@ function onServerClosed(pkt) {
 			break; // MSI_BAN_NOT_ALLOWED_JOBCLASS = Sorry the character you are trying to use is banned for testing connection.
 	}
 
-	UIManager.showMessageBox(
-		DB.getMessage(msg_id),
-		'ok',
-		() => {
-			UIManager.removeComponents();
-			WinLogin.getUI().append();
-		},
-		true
-	);
+	failLogin(DB.getMessage(msg_id), 'ban', pkt.ErrorCode);
 	Network.close();
 }
 

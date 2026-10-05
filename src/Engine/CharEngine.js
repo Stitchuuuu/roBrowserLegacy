@@ -15,6 +15,7 @@ import Events from 'Core/Events.js';
 import Sound from 'Audio/SoundManager.js';
 import BGM from 'Audio/BGM.js';
 import Session from 'Engine/SessionStorage.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import MapEngine from 'Engine/MapEngine.js';
 import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -80,6 +81,13 @@ class CharEngine {
 		Network.connect(ip, server.port, success => {
 			// Fail to connect...
 			if (!success) {
+				// Auto-retry starts over from the login server instead, since
+				// showErrorBox's only exit is a full game reload.
+				if (AutoRetry.canRetry('network')) {
+					const box = UIManager.showMessageBox(DB.getMessage(1), 'ok', AutoRetry.cancel, true);
+					AutoRetry.schedule(box);
+					return;
+				}
 				UIManager.showErrorBox(DB.getMessage(1));
 				return;
 			}
@@ -192,6 +200,9 @@ function onConnectionAccepted(pkt) {
 	}
 
 	UIManager.getComponent('WinLoading').remove();
+
+	// We are on the char server — the only thing auto-retry was waiting for.
+	AutoRetry.disarm();
 
 	// Initialize window
 	const ChSel = CharSelect.getUI();
