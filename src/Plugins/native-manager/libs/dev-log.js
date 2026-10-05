@@ -27,7 +27,7 @@ let _disabled = false
 let _disabledPermanent = false
 let _healthChecked = false
 let _healthCheckedAt = 0
-let _queue = []
+const _queue = []
 let _timer = null
 const _stats = {
 	sent: 0,
