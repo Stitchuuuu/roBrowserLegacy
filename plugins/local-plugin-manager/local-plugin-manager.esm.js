@@ -21,6 +21,7 @@
  */
 
 import { createPluginStore } from './plugin-store.js';
+import { dump, load, summarize } from './backup.js';
 
 export default {
 	name: 'LocalPluginManager',
@@ -144,6 +145,38 @@ export default {
 			try { const r = await LPM.remove(name); report(r.ok ? `PM: removed '${name}'` : `PM: remove '${name}' — ${r.error}`, !r.ok); }
 			catch (e) { report('PM: remove failed — ' + e.message, true); }
 		}
+		async function pmBackup(flags) {
+			try {
+				const words = flags.map(w => w.toLowerCase());
+				const dataOnly = words.includes('data');
+				const backup = await dump({ excludeWinLogin: words.includes('nologin'), excludePlugins: dataOnly });
+				const file = (dataOnly ? 'ro-backup-data-' : 'ro-backup-') + backup.date.replace(/:/g, '-') + '.json';
+				const url = URL.createObjectURL(new Blob([JSON.stringify(backup)], { type: 'application/json' }));
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = file;
+				a.click();
+				URL.revokeObjectURL(url);
+				const n = summarize(backup);
+				report(`PM: backup — ${n.keys} key(s), ${n.databases} database(s) / ${n.records} record(s), ${n.plugins} plugin(s) → ${file}`, false);
+			} catch (e) { report('PM: backup failed — ' + e.message, true); }
+		}
+		// Synchronous on purpose: the picker needs the ChatBox Enter as its user gesture.
+		function pmRestore() {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = '.json,application/json';
+			input.onchange = async () => {
+				const file = input.files && input.files[0];
+				if (!file) { return; }
+				try {
+					const r = await load(await file.text());
+					report(`PM: restored ${r.keys} key(s), ${r.databases} database(s) / ${r.records} record(s), ${r.plugins} plugin(s) from ${file.name} — reload now (a live window would overwrite its restored key)`, false);
+					if (r.skipped.length) { report('PM: restore skipped (newer schema here): ' + r.skipped.join(', '), true); }
+				} catch (e) { report('PM: restore failed — ' + e.message, true); }
+			};
+			input.click();
+		}
 		// Commands binds the callback to ChatBox; we use captured refs, not `this`.
 		// `text` is the whole line minus the leading slash, incl. the command word.
 		function pmHandler(text) {
@@ -156,11 +189,13 @@ export default {
 				case 'disable': pmDisable(args[1]); break;
 				case 'remove':
 				case 'uninstall': pmRemove(args[1]); break;
+				case 'backup':  pmBackup(args.slice(1)); break;
+				case 'restore': pmRestore(); break;
 				default:
-					report('PM: usage — /pm list | install <url> | enable <name> | disable <name> | remove <name>', false);
+					report('PM: usage — /pm list | install <url> | enable <name> | disable <name> | remove <name> | backup [data] [nologin] | restore', false);
 			}
 		}
-		Commands.add('pm', 'Local plugin manager: list / install <url> / enable / disable / remove', pmHandler);
+		Commands.add('pm', 'Local plugin manager: list / install <url> / enable / disable / remove / backup [data] [nologin] / restore', pmHandler);
 
 		// ── Drag-and-drop `.esm.js` install ───────────────────────────────────
 		// Capture phase so we run before the canvas / Intro / component handlers
