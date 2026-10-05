@@ -13,12 +13,12 @@
  *   - graceful degrade       — LPM absent → "not loaded" line, no crash.
  *
  * Ported from robrowser/tools/v3/libs/plugin-manager-ui (old UIComponent → the
- * native Shadow-DOM GUIComponent). Data source = `listInstalled()` (IndexedDB,
- * no network) : the v3 serve-discovery path (`list()` → GET :6980/index.json)
- * logs a connection error when the serve is down and LPM exposes no
- * install-by-slug, so discovery/available rows are dropped — installation goes
- * exclusively through the URL field (`installFromUrl`). Drag-drop install is
- * owned by LPM itself (document capture-phase), not this UI.
+ * native Shadow-DOM GUIComponent). Data source = `LPM.list()` when registries
+ * are configured (installed rows merged with installable registry rows and
+ * update badges), else `listInstalled()` (IndexedDB only). Install goes through
+ * a registry row, the URL field (registries only) or the upload button
+ * (`installFromFile`). Drag-drop install is owned by LPM itself (document
+ * capture-phase), not this UI.
  *
  * Wire it via ROConfig.plugins as `/plugins/plugin-manager-ui/plugin-manager-ui.esm.js`.
  */
