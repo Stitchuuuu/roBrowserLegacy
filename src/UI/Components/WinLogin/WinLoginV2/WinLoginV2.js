@@ -15,6 +15,7 @@ import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import Preferences from 'Core/Preferences.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import UIComponent from 'UI/UIComponent.js';
@@ -60,6 +61,11 @@ let _inputPassword;
 let _buttonSave;
 
 /**
+ * @var {jQuery} auto-retry until the char server ?
+ */
+let _checkAutoRetry;
+
+/**
  * Initialize win_login UI - Inherit from UIComponent
  */
 WinLoginV2.init = function init() {
@@ -82,6 +88,15 @@ WinLoginV2.init = function init() {
 	});
 	_buttonSave = WinLoginV2.ui.find('.save').mousedown(toggleSaveButton);
 
+	_checkAutoRetry = WinLoginV2.ui
+		.find('.autoretry-check')
+		.change(function () {
+			AutoRetry.setEnabled(this.checked);
+		})
+		.mousedown(function (event) {
+			event.stopImmediatePropagation();
+		});
+
 	// Connect / Exit
 
 	WinLoginV2.ui.find('.signup').click(signup);
@@ -97,6 +112,7 @@ WinLoginV2.onAppend = function onAppend() {
 	// Complete element
 	_inputUsername.val(_preferences.saveID ? _preferences.ID : '');
 	_inputPassword.val('');
+	_checkAutoRetry.prop('checked', AutoRetry.isEnabled());
 
 	// Display save button
 	Client.loadFile(

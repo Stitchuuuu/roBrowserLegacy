@@ -11,6 +11,7 @@
 
 // Load dependencies
 import Configs from 'Core/Configs.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import BinaryReader from 'Utils/BinaryReader.js';
 import PACKETVER from './PacketVerManager.js';
 import PacketVersions from './PacketVersions.js';
@@ -353,6 +354,15 @@ function onClose() {
 		}
 
 		import('UI/UIManager.js').then(UIManager => {
+			// While auto-retry is armed this is a drop in the login phase, not
+			// an in-game one (it disarms on reaching the char server), so the
+			// page has to stay alive for the next attempt — showErrorBox would
+			// reload the game out from under it.
+			if (AutoRetry.canRetry('network')) {
+				const box = UIManager.default.showMessageBox('Disconnected from Server.', 'ok', AutoRetry.cancel, true);
+				AutoRetry.schedule(box);
+				return;
+			}
 			UIManager.default.showErrorBox('Disconnected from Server.');
 		});
 	}

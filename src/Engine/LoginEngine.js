@@ -17,6 +17,7 @@ import Sound from 'Audio/SoundManager.js';
 import Configs from 'Core/Configs.js';
 import Thread from 'Core/Thread.js';
 import Session from 'Engine/SessionStorage.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import CharEngine from 'Engine/CharEngine.js';
 import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -39,7 +40,9 @@ import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
 const WinLoading = WinPopup.clone('WinLoading');
 WinLoading.init = function () {
 	this.ui.css({ top: (Renderer.height - 120) / 1.5, left: (Renderer.width - 280) / 2.0 });
-	this.ui.find('.text').text(DB.getMessage(121));
+	// white-space set here and not in WinPopup.css, which every popup shares:
+	// this is the only one that renders a second line (the attempt number).
+	this.ui.find('.text').css('white-space', 'pre-line').text(DB.getMessage(121));
 };
 UIManager.addComponent(WinLoading);
 
@@ -142,6 +145,18 @@ function init(server) {
 	WinLogin.getUI().onConnectionRequest = onConnectionRequest;
 	WinLogin.getUI().onExitRequest = onExitRequest;
 
+	// Auto-retry needs a clean socket: a retry can also start from a failure on
+	// the char-server side, where ours is still open.
+	AutoRetry.onRetry = function (username, password) {
+		Network.close();
+		UIManager.removeComponents();
+		onConnectionRequest(username, password);
+	};
+	AutoRetry.onCancel = function () {
+		Network.close();
+		backToLogin();
+	};
+
 	// Autologin features
 	if (autoLogin instanceof Array && autoLogin[0] && autoLogin[1]) {
 		onConnectionRequest.apply(null, autoLogin);
@@ -179,6 +194,45 @@ function reload() {
 }
 
 /**
+ * Back to a clean login window. Also the 'ok' callback of every login error
+ * that offers one, which is why it stops auto-retry: clicking through a failure
+ * is how the player cancels the loop.
+ */
+function backToLogin() {
+	AutoRetry.disarm();
+	UIManager.removeComponents();
+	WinLogin.getUI().append();
+}
+
+/**
+ * Report a failed login attempt.
+ *
+ * @param {string} text - message to display
+ * @param {string} kind - 'network', 'refuse' or 'ban', for the retry policy
+ * @param {number} [code] - server error code, unused for 'network'
+ */
+function failLogin(text, kind, code) {
+	const box = UIManager.showMessageBox(text, 'ok', backToLogin, true);
+
+	if (AutoRetry.canRetry(kind, code)) {
+		AutoRetry.schedule(box);
+	}
+}
+
+/**
+ * The loading popup's text, with the attempt number while auto-retry runs.
+ */
+function setLoadingText() {
+	let text = DB.getMessage(121);
+
+	if (AutoRetry.armed()) {
+		text += '\nAttempt #' + AutoRetry.attempt();
+	}
+
+	WinLoading.ui.find('.text').text(text);
+}
+
+/**
  * Trying to connect to Login server
  *
  * @param {string} username
@@ -188,16 +242,27 @@ function onConnectionRequest(username, password) {
 	// Play "¹öÆ°¼Ò¸®.wav" (possible problem with charset)
 	Sound.play('\xB9\xF6\xC6\xB0\xBC\xD2\xB8\xAE.wav');
 
+	if (AutoRetry.isEnabled()) {
+		AutoRetry.arm(username, password);
+	}
+
 	// Add the loading screen
 	// Store the ID to use for the ping
 	WinLogin.getUI().remove();
 	WinLoading.append();
+	setLoadingText();
 	_loginID = username;
 
 	// Try to connect
 	Network.connect(_server.address, _server.port, function (success) {
 		// Fail to connect...
 		if (!success) {
+			// Auto-retry goes back to the form instead: showErrorBox's only
+			// exit is a full game reload.
+			if (AutoRetry.canRetry('network')) {
+				failLogin(DB.getMessage(1), 'network');
+				return;
+			}
 			UIManager.showErrorBox(DB.getMessage(1));
 			return;
 		}
@@ -287,6 +352,7 @@ function onCharServerSelected(index) {
 
 	WinList.remove();
 	WinLoading.append();
+	setLoadingText();
 
 	CharEngine.onExitRequest = reload;
 	Session.ServerName = _charServers[index].name; // Save server name
@@ -327,6 +393,7 @@ function onConnectionAccepted(pkt) {
 	// No choice, connect directly to the server
 	if (count === 1 && Configs.get('skipServerList')) {
 		WinLoading.append();
+		setLoadingText();
 		CharEngine.onExitRequest = reload;
 		Session.ServerName = _charServers[0].name; // Save server name
 		CharEngine.init(_charServers[0]);
@@ -435,15 +502,7 @@ function onConnectionRefused(pkt) {
 			break; // 104 = This character is being deleted. Login is temporarily unavailable for the time being
 	}
 
-	UIManager.showMessageBox(
-		DB.getMessage(error).replace('%s', pkt.blockDate),
-		'ok',
-		function () {
-			UIManager.removeComponents();
-			WinLogin.getUI().append();
-		},
-		true
-	);
+	failLogin(DB.getMessage(error).replace('%s', pkt.blockDate), 'refuse', pkt.ErrorCode);
 
 	Network.close();
 }
@@ -497,6 +556,14 @@ function onServerClosed(pkt) {
 		case 102:
 			msg_id = 1179;
 			break; // More than 10 connections sharing the same IP have logged into the game for an hour. (1176)
+	}
+
+	// Auto-retry goes back to the form instead: showErrorBox's only exit is a
+	// full game reload.
+	if (AutoRetry.canRetry('ban', pkt.ErrorCode)) {
+		failLogin(DB.getMessage(msg_id), 'ban', pkt.ErrorCode);
+		Network.close();
+		return;
 	}
 
 	UIManager.showErrorBox(DB.getMessage(msg_id));
