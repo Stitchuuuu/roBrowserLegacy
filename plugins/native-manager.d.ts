@@ -101,6 +101,31 @@ export interface PluginHostAPI {
 	list(): Array<{ name: string }>;
 }
 
+/** One item record — see `robrowser/tools/v3/libs/item-db/src/index.js` for the
+ *  full shape (name/type/buy/sell/weight/script/effect/bonuses/…); typed loosely
+ *  here since consumers mostly read `.name` and pass records through. */
+export interface ItemDbRecord {
+	id: number;
+	name: string;
+	[key: string]: unknown;
+}
+
+/** ItemDb's `init()`-return — the pre-renewal item database, keyed under
+ *  `ItemDb` in a consumer's DI map. `ready` resolves once the IndexedDB cache
+ *  (`ROFW_items`) is populated from the same-origin bundle fetch; getters are
+ *  safe to call before `ready` resolves (they return `null`/`[]`/`0`). */
+export interface ItemDbApi {
+	get(id: number | string): ItemDbRecord | null;
+	search(query: string): Array<{ id: number; name: string }>;
+	all(): Record<string, ItemDbRecord> | null;
+	usedBy(id: number | string): unknown | null;
+	producedBy(id: number | string): unknown | null;
+	unlocks(id: number | string): unknown | null;
+	count(): number;
+	version: string;
+	ready: Promise<Record<string, ItemDbRecord>>;
+}
+
 declare global {
 	/**
 	 * Cross-plugin exports contributed to the DI map. A plugin that exposes an API
@@ -122,6 +147,7 @@ declare global {
 	 */
 	interface ROPluginExports {
 		LocalPluginManager?: LocalPluginManagerAPI;
+		ItemDb?: ItemDbApi;
 	}
 }
 
