@@ -10,6 +10,7 @@
 
 import glMatrix from 'Utils/gl-matrix.js';
 import DB from 'DB/DBManager.js';
+import EntityOverlay from 'Renderer/Entity/EntityOverlay.js';
 
 /**
  * Global methods
@@ -19,7 +20,21 @@ const _pos = new Float32Array(4);
 const _size = new Float32Array(2);
 
 /**
- * Life class
+ * Life class — HP / SP / AP health bar rendering above entity
+ *
+ * @class Life
+ * @property {number} hp Current health points
+ * @property {number} sp Current spell points
+ * @property {number} ap Current action points
+ * @property {number} hp_max Maximum health points
+ * @property {number} sp_max Maximum spell points
+ * @property {number} ap_max Maximum action points
+ * @property {number} hunger Current companion hunger
+ * @property {number} hunger_max Max companion hunger
+ * @property {boolean} display Whether health bar is visible
+ * @property {HTMLCanvasElement} canvas Health bar canvas element
+ * @property {CanvasRenderingContext2D} ctx 2d context for health bar
+ * @property {Entity|null} entity Attached entity reference
  */
 class Life {
 	constructor() {
@@ -31,6 +46,7 @@ class Life {
 		this.ap_max = -1;
 		this.display = false;
 		this.canvas = document.createElement('canvas');
+		this.canvas.className = 'entity-life';
 		this.ctx = this.canvas.getContext('2d');
 		this.canvas.style.position = 'absolute';
 		this.canvas.style.zIndex = 1;
@@ -44,9 +60,7 @@ class Life {
 	 */
 	remove() {
 		this.display = false;
-		if (this.canvas.parentNode) {
-			document.body.removeChild(this.canvas);
-		}
+		this.canvas.remove();
 	}
 
 	/**
@@ -185,10 +199,8 @@ class Life {
 		canvas.style.top = (_pos[1] | 0) + 'px';
 		canvas.style.left = ((_pos[0] - canvas.width / 2) | 0) + 'px';
 
-		// Append to body
-		if (!canvas.parentNode) {
-			document.body.appendChild(canvas);
-		}
+		// Append to the clipped overlay layer
+		EntityOverlay.append(canvas);
 	}
 }
 /**

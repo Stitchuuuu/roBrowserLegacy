@@ -1,11 +1,23 @@
 /**
  * Renderer/EntityRender.js
  *
- * Entity class
+ * Entity rendering pipeline — WebGL sprite rendering, action animation frame
+ * calculation, picking, shadow rendering, palette binding, and 3D GR2 model attachments.
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
  *
  * @author Vincent Thibault
+ */
+
+/**
+ * EntityRender mixin
+ * Adds rendering methods (render, renderEntityGUI, renderShadow, isVisible, depth) to Entity.
+ *
+ * @mixin EntityRender
+ * @property {function(mat4, mat4): void} render Render WebGL entity sprite / 3D model
+ * @property {function(mat4, mat4): void} renderEntityGUI Render entity health bar, speech bubble, and nameplate
+ * @property {function(mat4, mat4): void} renderShadow Render entity ground shadow
+ * @property {function(): boolean} isVisible Check if entity is currently visible
  */
 
 import glMatrix from 'Utils/gl-matrix.js';
@@ -15,8 +27,8 @@ import StatusConst from 'DB/Status/StatusState.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import Ground from 'Renderer/Map/Ground.js';
 import Altitude from 'Renderer/Map/Altitude.js';
+import Water from 'Renderer/Map/Water.js';
 import Session from 'Engine/SessionStorage.js';
-import JobId from 'DB/Jobs/JobConst.js';
 import DB from 'DB/DBManager.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
 import GR2ModelRenderer from 'Renderer/GR2/GR2ModelRenderer.js';
@@ -100,6 +112,7 @@ const renderGUI = (function renderGUIClosure() {
 	const vec4 = glMatrix.vec4;
 	const _matrix = mat4.create();
 	const _vector = vec4.create();
+	const _pickMatrix = mat4.create();
 
 	return function _renderGUI(entity, modelView, projection) {
 		// Move to camera
@@ -123,7 +136,22 @@ const renderGUI = (function renderGUIClosure() {
 		mat4.multiply(_matrix, projection, _matrix);
 
 		if (entity.effectColor[3] && entity._job !== 139) {
-			calculateBoundingRect(entity, _matrix);
+			// Same billboard as above, lifted the way the sprite itself is.
+			_vector[0] = entity.position[0] + 0.5;
+			_vector[1] = -(entity.position[2] + SPRITE_LIFT);
+			_vector[2] = entity.position[1] + 0.5;
+			mat4.translate(_pickMatrix, modelView, _vector);
+			_pickMatrix[0] = 1.0;
+			_pickMatrix[1] = 0.0;
+			_pickMatrix[2] = 0.0;
+			_pickMatrix[4] = 0.0;
+			_pickMatrix[5] = 1.0;
+			_pickMatrix[6] = 0.0;
+			_pickMatrix[8] = 0.0;
+			_pickMatrix[9] = 0.0;
+			_pickMatrix[10] = 1.0;
+			mat4.multiply(_pickMatrix, projection, _pickMatrix);
+			calculateBoundingRect(entity, _pickMatrix);
 		}
 
 		// Get depth for rendering order
@@ -163,6 +191,12 @@ const renderGUI = (function renderGUIClosure() {
  * @param {Entity}
  * @param {mat4}
  */
+/**
+ * Vertical lift renderEntity applies to every sprite before drawing it.
+ * The picking rectangle has to use it too, or it lands below the sprite.
+ */
+const SPRITE_LIFT = 0.2;
+
 const calculateBoundingRect = (function calculateBoundingRectClosure() {
 	const vec4 = glMatrix.vec4;
 	const size = glMatrix.vec2.create();
@@ -503,6 +537,8 @@ const renderEntity = (function renderEntityClosure() {
 				// Non-player entities:
 				// - Do not write depth to avoid breaking PC occlusion and internal layer issues
 				// - Still use depth test for correct ordering
+				// (submerged bodies get their depth from renderWaterDepth, just before the water pass)
+				self.waterDepthFrame = null;
 				SpriteRenderer.runWithDepth(true, false, false, function () {
 					renderElement(self, self.files.body, 'body', _position, true);
 				});
@@ -511,6 +547,38 @@ const renderEntity = (function renderEntityClosure() {
 		SpriteRenderer.zIndex = 1;
 	};
 })();
+
+/**
+ * Depth-only redraw of the body for entities standing in water, so the water
+ * pass (drawn after entities, depth tested) covers only the submerged part.
+ * Runs after every entity has been drawn, with colour writes disabled by the
+ * caller, so the written depth cannot hide other sprites. Replays the exact
+ * layers the colour pass drew this frame (`waterDepthFrame`), so no animation,
+ * sound or trail state is touched. Only set for the non-player body pass;
+ * entity types that already write depth never get a frame.
+ */
+function renderWaterDepth() {
+	const frame = this.waterDepthFrame;
+
+	if (!frame || this.hideEntity || !this.effectColor[3]) {
+		return;
+	}
+
+	if (!Water.isSubmerged(this.position[0], this.position[1])) {
+		return;
+	}
+
+	const self = this;
+	SpriteRenderer.position.set(this.position);
+	SpriteRenderer.position[2] = SpriteRenderer.position[2] + 0.2;
+	SpriteRenderer.zIndex = 150;
+	SpriteRenderer.runWithDepth(true, true, false, function () {
+		for (let i = 0, count = frame.layers.length; i < count; ++i) {
+			self.renderLayer(frame.layers[i], frame.spr, frame.pal, frame.size, frame.position, 'body', false);
+		}
+	});
+	SpriteRenderer.zIndex = 1;
+}
 
 /**
  * Render second body (BL_DOUBLE_BODY + EF_MAKEBLUR)
@@ -598,7 +666,7 @@ function renderSecondBody(entity, layers, spr, pal, files, type, _position, opti
 		const now = Date.now();
 
 		// Determine blur type: 1 (standard), 3 (10f), 4 (once), 5 (10f, attack only)
-		const interval = blurType === 3 || blurType === 5 ? 560 : 80; // 10 frames vs 5 frames
+		const interval = entity.isFastMoving ? 30 : blurType === 3 || blurType === 5 ? 560 : 80; // Fast moves capture at 30ms interval
 		const maxLen =
 			blurType === 4 ? 1 : GraphicsSettings.performanceMode ? Math.floor(trailLength / 2) : trailLength;
 
@@ -606,7 +674,8 @@ function renderSecondBody(entity, layers, spr, pal, files, type, _position, opti
 
 		// Snapshot logic
 		if (blurType === 1 || blurType === 3) {
-			shouldCapture = entity.action === entity.ACTION.WALK && now - trail.lastTick > interval;
+			shouldCapture =
+				(entity.action === entity.ACTION.WALK || entity.isFastMoving) && now - trail.lastTick > interval;
 		} else if (blurType === 4) {
 			shouldCapture = trail.snapshots.length === 0;
 		} else if (blurType === 5) {
@@ -617,7 +686,7 @@ function renderSecondBody(entity, layers, spr, pal, files, type, _position, opti
 				entity.ACTION.ATTACK3,
 				entity.ACTION.SKILL
 			].includes(entity.action);
-			shouldCapture = isCombat && now - trail.lastTick > interval;
+			shouldCapture = (isCombat || entity.isFastMoving) && now - trail.lastTick > interval;
 		}
 
 		if (shouldCapture) {
@@ -815,6 +884,7 @@ const renderElement = (function renderElementClosure() {
 				isOVERTHRUST ||
 				isEXPLOSIONSPIRITS ||
 				isBERSERK ||
+				!!entity._fastMoveTrail ||
 				!!entity._enableTrail,
 			blurType: isBUNSIN ? 5 : isHALLUCINATIONWALK ? 3 : entity._blurType || 1
 		});
@@ -822,6 +892,17 @@ const renderElement = (function renderElementClosure() {
 		// Render all frames
 		for (let i = 0, count = layers.length; i < count; ++i) {
 			entity.renderLayer(layers[i], spr, pal, files.size, _position, type, isBlendModeOne);
+		}
+
+		if (is_main && type === 'body' && entity.waterDepthFrame === null) {
+			const frame =
+				entity._waterDepthFrameBuffer || (entity._waterDepthFrameBuffer = { position: new Int32Array(2) });
+			frame.layers = layers;
+			frame.spr = spr;
+			frame.pal = pal;
+			frame.size = files.size;
+			frame.position.set(_position);
+			entity.waterDepthFrame = frame;
 		}
 
 		// Save reference
@@ -846,17 +927,25 @@ function getAnimationDelay(type, entity, act) {
 		return (act.delay / 150) * entity.walk.speed;
 	}
 
-	// Delay on attack
+	// Delay on attack (fallback when animation.speed is not explicitly set)
+	// Uses the ACT file delay directly (matching official C++ client m_motionSpeed = actRes->GetDelay(action)).
+	// Player normal attacks already provide animation.speed = pkt.attackMT / m_attackMotion in onEntityAttack.
 	if (
 		entity.action === entity.ACTION.ATTACK ||
 		entity.action === entity.ACTION.ATTACK1 ||
 		entity.action === entity.ACTION.ATTACK2 ||
 		entity.action === entity.ACTION.ATTACK3
 	) {
-		return entity.attack_speed / act.animations.length;
+		if (act && act.delay && act.delay > 0) {
+			return act.delay;
+		}
+		if (entity.attack_speed && act && act.animations && act.animations.length > 0) {
+			return Math.max(entity.attack_speed / act.animations.length, 100);
+		}
+		return 150;
 	}
 
-	return act.delay;
+	return (act && act.delay) || 150;
 }
 
 /**
@@ -979,17 +1068,17 @@ function calcAnimation(entity, act, type, tick) {
 	}
 
 	// No repeat
-	anim = Math.min((tick / delay) | 0, animCount || animCount - 1); // Avoid an error if animation = 0, search for -1 :(
+	anim = Math.min((tick / delay) | 0, animCount ? animCount - 1 : 0);
 
 	anim %= animCount;
 	anim += animCount * headDir; // get rid of doridori
 	anim += animation.frame; // previous frame
 	anim %= animSize; // avoid overflow
 
-	const lastFrame = animation.frame + animSize - 1;
+	const lastFrame = animation.frame + animCount - 1;
 
-	if (type === 'body' && anim >= lastFrame) {
-		animation.frame = anim = lastFrame;
+	if (type === 'body' && ((tick / delay) | 0) >= animCount - 1) {
+		animation.frame = anim = Math.min(lastFrame, animSize - 1);
 		animation.play = false;
 		if (animation.next) {
 			entity.setAction(animation.next);
@@ -1107,4 +1196,7 @@ export default function Init() {
 	this.render = render;
 	this.renderLayer = renderLayer;
 	this.renderEntity = renderEntity;
+	this.renderWaterDepth = renderWaterDepth;
+	this.waterDepthFrame = undefined;
+	this._waterDepthFrameBuffer = null;
 }
