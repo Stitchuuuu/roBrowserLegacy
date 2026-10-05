@@ -38,7 +38,7 @@ const CSS = `
 .pm-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .pm-status { color: #ad6; font-size: 10px; min-height: 13px; }
 .pm-install { display: flex; align-items: center; gap: 6px; }
-.pm-search-wrap { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; }
+.pm-search-wrap { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; gap: 6px; }
 .pm-search-ico { position: absolute; left: 6px; font-size: 13px; color: #9ab; pointer-events: none; }
 .pm-url, .pm-search { flex: 1; min-width: 0; background: rgba(0,0,0,0.4); border: 1px solid #4af; border-radius: 3px; color: #fff; font: 11px inherit; padding: 3px 6px; outline: none; }
 .pm-search { padding-left: 24px; }
@@ -316,14 +316,16 @@ const init = (pars, deps) => {
 				if (host) { host.style.left = '70px'; host.style.top = '70px'; }
 				ui.makeDraggable(p, '.pm-header');
 				bindOnce(p);
-				// Local-only (no registries) : hide the URL install field — install is
-				// file-only (drag&drop + the upload button). Registries are config-static,
-				// so this is decided once at mount.
+				// Local-only (no registries) : no URL install — install is file-only
+				// (drag&drop + the upload button), so the upload button moves to the end
+				// of the search row and the install row goes. Registries are
+				// config-static, so this is decided once at mount.
 				if (!LPM || LPM.registries().length === 0) {
-					const urlEl = ui.find(p, '.pm-url');
-					if (urlEl) { urlEl.style.display = 'none'; }
-					const instBtn = ui.find(p, '.pm-install-btn');
-					if (instBtn) { instBtn.style.display = 'none'; }
+					const installRow = ui.find(p, '.pm-install');
+					const uploadBtn = ui.find(p, '.pm-upload-btn');
+					const searchRow = ui.find(p, '.pm-search-wrap');
+					if (uploadBtn && searchRow) { searchRow.appendChild(uploadBtn); }
+					if (installRow) { installRow.style.display = 'none'; }
 				}
 				refresh();
 				// Re-render on every LPM mutation (install/enable/disable/remove/update).
