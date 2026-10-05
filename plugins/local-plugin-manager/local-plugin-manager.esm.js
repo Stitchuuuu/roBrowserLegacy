@@ -90,6 +90,8 @@ export default {
 
 		// ── onChange subscribers (let a UI re-render after every mutation) ────
 		const changeSubs = [];
+		// `/pm <name>` subcommands contributed by other plugins (built-ins win).
+		const extraSubs = {};
 		function notifyChange() {
 			for (let i = 0; i < changeSubs.length; i++) {
 				try { changeSubs[i](); }
@@ -146,6 +148,12 @@ export default {
 				if (typeof cb !== 'function') { return () => {}; }
 				changeSubs.push(cb);
 				return () => { const i = changeSubs.indexOf(cb); if (i >= 0) { changeSubs.splice(i, 1); } };
+			},
+			addSubcommand(name, fn, usage) {
+				if (typeof fn !== 'function') { return () => {}; }
+				const key = String(name).toLowerCase();
+				extraSubs[key] = { fn, usage: usage || key };
+				return () => { if (extraSubs[key] && extraSubs[key].fn === fn) { delete extraSubs[key]; } };
 			},
 		};
 
@@ -227,8 +235,17 @@ export default {
 				case 'uninstall': pmRemove(args[1]); break;
 				case 'backup':  pmBackup(args.slice(1)); break;
 				case 'restore': pmRestore(); break;
-				default:
-					report('PM: usage — /pm list | install <url> | enable <name> | disable <name> | remove <name> | backup [data] [nologin] | restore', false);
+				default: {
+					const extra = extraSubs[sub];
+					if (extra) {
+						try { extra.fn(args.slice(1)); }
+						catch (e) { report(`PM: ${sub} failed — ${e.message}`, true); }
+						break;
+					}
+					let usage = 'PM: usage — /pm list | install <url> | enable <name> | disable <name> | remove <name> | backup [data] [nologin] | restore';
+					for (const k in extraSubs) { usage += ' | ' + extraSubs[k].usage; }
+					report(usage, false);
+				}
 			}
 		}
 		Commands.add('pm', 'Local plugin manager: list / install <url> / enable / disable / remove / backup [data] [nologin] / restore', pmHandler);

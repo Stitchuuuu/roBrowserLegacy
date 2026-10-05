@@ -7,6 +7,8 @@
  *   - `ui.registerPlayerWindow` — mount + reassert across map cycles (subsumes
  *     the v3 lib's hand-rolled reassert()); preserves user-toggled visibility.
  *   - Alt+Shift+P            — toggle the window (composedPath for shadow retarget).
+ *   - `/pm open`             — show it, via `LPM.addSubcommand` ; a ChatBox line
+ *                              at first map entry names both ways in.
  *   - `icons.injectIconCss`  — Lucide icons inside the component's shadow root.
  *   - `LPM.onChange`         — re-render rows after every mutation; unsubscribed
  *                              in a `registerCleanup`.
@@ -326,6 +328,11 @@ const init = (pars, deps) => {
 				refresh();
 				// Re-render on every LPM mutation (install/enable/disable/remove/update).
 				if (LPM) { unsub = LPM.onChange(refresh); }
+				// The window starts hidden : say once how to open it.
+				const ChatBox = deps.ChatBox;
+				if (ChatBox) {
+					ChatBox.addText(LPM ? 'Plugin Manager: Alt+Shift+P or /pm open' : 'Plugin Manager: Alt+Shift+P', ChatBox.TYPE.INFO, ChatBox.FILTER.PUBLIC_LOG);
+				}
 			},
 		},
 	);
@@ -343,9 +350,12 @@ const init = (pars, deps) => {
 	}
 	window.addEventListener('keydown', onKeyDown, true);
 
+	const offOpen = LPM ? LPM.addSubcommand('open', () => winHandle.show(), 'open') : null;
+
 	// ── teardown : unsubscribe onChange, drop the hotkey, dispose the window ──
 	lifecycle.registerCleanup(function () {
 		if (unsub) { unsub(); }
+		if (offOpen) { offOpen(); }
 		window.removeEventListener('keydown', onKeyDown, true);
 		winHandle.dispose();
 	});

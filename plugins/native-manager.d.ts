@@ -79,6 +79,11 @@ export interface LocalPluginManagerAPI {
 	refreshAll(): Promise<{ updated: number; failed: number; results: LpmResult[] }>;
 	/** Fires (zero-arg) after every mutation. Returns an unsubscribe function. */
 	onChange(cb: () => void): () => void;
+	/**
+	 * Adds a `/pm <name>` subcommand (built-ins win on a name clash) ; `usage` is
+	 * appended to the `/pm` usage line. Returns a function that removes it.
+	 */
+	addSubcommand(name: string, fn: (args: string[]) => void, usage?: string): () => void;
 }
 
 /** LocalPluginManager's own config — passed as `pars` via its `ROConfig.plugins`
