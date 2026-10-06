@@ -201,6 +201,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			for (let j = 0; j < entries.length; j++) {
 				const e = entries[j]
 				if (!e || !e.slug || bySlug[e.slug]) continue   // first-wins dedupe
+				if (!/\.di\.esm\.js(?:[?#]|$)/i.test(e.url || '')) continue   // DI builds only, for now
 				bySlug[e.slug] = {
 					slug: e.slug,
 					name: e.name || null,
@@ -225,10 +226,9 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	 */
 	async function install(name, opts = {}) {
 		const debug = !!opts.debug
-		const variant = debug ? '.debug.esm.js' : '.esm.js'
 		// `installFromUrl` always supplies `sourceUrl`; the `opts.origin` form builds
-		// `<origin>/plugins/<slug>` for a serve-relative install (no default origin).
-		const sourceUrl = opts.sourceUrl || (opts.origin ? `${opts.origin}/plugins/${name}${variant}` : null)
+		// `<origin>/plugins/<slug>.di.esm.js` for a serve-relative install (no default origin).
+		const sourceUrl = opts.sourceUrl || (opts.origin ? `${opts.origin}/plugins/${name}.di.esm.js` : null)
 		if (!sourceUrl) throw new Error(`[plugin-store] install '${name}': no sourceUrl (and no opts.origin)`)
 
 		log(`[plugin-store] install '${name}' from ${sourceUrl}`)

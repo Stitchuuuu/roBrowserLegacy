@@ -194,6 +194,19 @@ type EventBus = typeof import('../src/Plugins/native-manager/libs/event-bus.js')
 type PacketObserver = typeof import('../src/Plugins/native-manager/libs/packet-observer.js');
 type SocketObserver = typeof import('../src/Plugins/native-manager/libs/socket-observer.js');
 type DevLogLib = typeof import('../src/Plugins/native-manager/libs/dev-log.js');
+type PluginApi = typeof import('../src/Plugins/native-manager/libs/plugin-api.js');
+
+/** Every native lib namespace, keyed by its plain lib name (`deps.libs`). */
+export interface Libs {
+	'plugin-api': PluginApi;
+	'event-bus': EventBus;
+	lifecycle: Lifecycle;
+	ui: Ui;
+	icons: Icons;
+	'packet-observer': PacketObserver;
+	'socket-observer': SocketObserver;
+	'dev-log': DevLogLib;
+}
 
 // ── The DI map (2nd arg of init(pars, deps)) ──────────────────────────────────
 
@@ -222,6 +235,7 @@ export interface DiMap extends ROPluginExports {
 	observeSocket: SocketObserver['observeSocket'];
 	devLog: DevLogLib['devLog'];
 	icon: Icons['icon'];
+	libs: Readonly<Libs>;
 
 	// runtime host + the cross-plugin exports (via `extends ROPluginExports`
 	// above — augmentable). Any other key is `undefined` (no-crash contract).

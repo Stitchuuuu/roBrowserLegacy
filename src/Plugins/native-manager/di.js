@@ -21,6 +21,26 @@ import { on, off, once, emit, EVENTS } from 'Plugins/native-manager/libs/event-b
 import { observePacket, observeSendPacket } from 'Plugins/native-manager/libs/packet-observer.js';
 import { observeSocket } from 'Plugins/native-manager/libs/socket-observer.js';
 import { devLog } from 'Plugins/native-manager/libs/dev-log.js';
+import * as pluginApi from 'Plugins/native-manager/libs/plugin-api.js';
+import * as eventBus from 'Plugins/native-manager/libs/event-bus.js';
+import * as packetObserver from 'Plugins/native-manager/libs/packet-observer.js';
+import * as socketObserver from 'Plugins/native-manager/libs/socket-observer.js';
+import * as devLogLib from 'Plugins/native-manager/libs/dev-log.js';
+
+/**
+ * Every lib's whole namespace, keyed by its plain lib name. A plugin built
+ * against the lib names (rather than the flattened keys below) reads them here.
+ */
+const LIBS = Object.freeze({
+	'plugin-api': pluginApi,
+	'event-bus': eventBus,
+	lifecycle,
+	ui,
+	icons,
+	'packet-observer': packetObserver,
+	'socket-observer': socketObserver,
+	'dev-log': devLogLib,
+});
 
 /**
  * Build the DI map for a plugin's `init(pars, diMap)`.
@@ -43,6 +63,8 @@ export function buildDiMap(pluginExports) {
 		// Misc helpers
 		devLog,
 		icon: icons.icon,
+		// Whole lib namespaces by lib name
+		libs: LIBS,
 		// Cross-plugin exports (session 3+)
 		...(pluginExports || {}),
 	};
