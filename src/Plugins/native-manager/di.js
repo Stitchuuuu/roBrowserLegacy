@@ -14,6 +14,7 @@
  */
 
 import { ENGINE } from 'Plugins/native-manager/engine-modules.js';
+import LegacyUIComponent from 'Plugins/native-manager/legacy-ui-component.js';
 import * as ui from 'Plugins/native-manager/libs/ui.js';
 import * as lifecycle from 'Plugins/native-manager/libs/lifecycle.js';
 import * as icons from 'Plugins/native-manager/libs/icons.js';
@@ -52,6 +53,8 @@ export function buildDiMap(pluginExports) {
 	return {
 		// Engine modules (session 1)
 		...ENGINE,
+		// `(name, html, css)` window class for plugins on the old UIComponent
+		LegacyUIComponent,
 		// Lib namespaces
 		ui,
 		lifecycle,

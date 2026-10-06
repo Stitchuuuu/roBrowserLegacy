@@ -187,6 +187,8 @@ export interface PacketStructure extends _PacketMod {}
 
 /** GUIComponent (Shadow-DOM base) constructor — `deps.UIComponent === GUIComponent`. */
 export type GUIComponentClass = typeof import('../src/UI/GUIComponent.js').default;
+/** The `(name, html, css)` window class (`deps.LegacyUIComponent`) — transitional. */
+export type LegacyUIComponentClass = typeof import('../src/Plugins/native-manager/legacy-ui-component.js').default;
 /** Preferences (localStorage-backed) — `static get/save`. */
 export type PreferencesClass = typeof import('../src/Core/Preferences.js').default;
 
@@ -215,6 +217,7 @@ export interface DiMap extends ROPluginExports {
 	PACKET: PacketStructure;
 	ChatBox: ChatBox;
 	UIComponent: GUIComponentClass;
+	LegacyUIComponent: LegacyUIComponentClass;
 	Preferences: PreferencesClass;
 	Commands: Commands;
 	EntityManager: EntityManager;
