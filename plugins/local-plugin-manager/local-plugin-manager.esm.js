@@ -101,17 +101,28 @@ export default {
 
 		// Derive a slug (IDB key) from a URL or a dropped filename.
 		function stripExt(base) {
-			return base.replace(/\.debug\.esm\.js$|\.esm\.js$/i, '') || base;
+			return base.replace(/\.di\.esm\.js$|\.debug\.esm\.js$|\.esm\.js$/i, '') || base;
 		}
-		function slugFromUrl(url) {
+		function baseFromUrl(url) {
 			try {
 				const u = new URL(url, window.location.href);
-				const base = (u.pathname.split('/').pop() || '').split(/[?#]/)[0];
-				return stripExt(base) || url;
+				return (u.pathname.split('/').pop() || '').split(/[?#]/)[0];
 			} catch (_e) {
-				const base = String(url).split('/').pop().split(/[?#]/)[0];
-				return stripExt(base) || String(url);
+				return String(url).split('/').pop().split(/[?#]/)[0];
 			}
+		}
+		function slugFromUrl(url) {
+			return stripExt(baseFromUrl(url)) || String(url);
+		}
+		// Transitional : only DI builds (`<slug>.di.esm.js`) install here, until
+		// the v3 host passes `deps` too and only DI artefacts remain. Reports to
+		// the ChatBox itself, so callers skip their own report (`reported`).
+		function refuseNonDi(base) {
+			if (/\.di\.esm\.js$/i.test(base)) { return; }
+			const err = new Error(`'${base}' is not a DI build — only <slug>.di.esm.js installs here`);
+			err.reported = true;
+			report('PM: install refused — ' + err.message, true);
+			throw err;
 		}
 
 		// ── Rich exported API (delegates to the store, fires onChange) ─────────
@@ -120,6 +131,7 @@ export default {
 			listInstalled: () => store.listInstalled(),
 			registries: () => registries,
 			async installFromUrl(url, opts) {
+				refuseNonDi(baseFromUrl(url));
 				const slug = slugFromUrl(url);
 				const r = await store.install(slug, { ...(opts || {}), sourceUrl: url });
 				notifyChange();
@@ -133,6 +145,7 @@ export default {
 			// Read a dropped / picked File and install it (derives the slug from the
 			// filename). Shared by the drag&drop handler and the UI's upload button.
 			async installFromFile(file) {
+				refuseNonDi(file.name);
 				const source = await file.text();
 				const slug = stripExt(file.name);
 				const r = await store.installFromSource(source, slug);
@@ -172,7 +185,7 @@ export default {
 		async function pmInstall(url) {
 			if (!url) { report('PM: usage — /pm install <url>', true); return; }
 			try { const r = await LPM.installFromUrl(url); report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'})`, false); }
-			catch (e) { report('PM: install failed — ' + e.message, true); }
+			catch (e) { if (!e.reported) { report('PM: install failed — ' + e.message, true); } }
 		}
 		async function pmEnable(name) {
 			if (!name) { report('PM: usage — /pm enable <name>', true); return; }
@@ -273,7 +286,7 @@ export default {
 					const r = await LPM.installFromFile(file);
 					report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'}) from drop`, false);
 				} catch (err) {
-					report(`PM: drop install failed for ${file.name} — ${err.message}`, true);
+					if (!err.reported) { report(`PM: drop install failed for ${file.name} — ${err.message}`, true); }
 				}
 			}
 		}
