@@ -24,6 +24,7 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PluginManager from 'Plugins/PluginManager.js';
 import Renderer from 'Renderer/Renderer.js';
+import MapRenderer from 'Renderer/MapRenderer.js';
 import UIManager from 'UI/UIManager.js';
 import WinList from 'UI/Components/WinList/WinList.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
@@ -237,7 +238,12 @@ class LoginEngine {
  */
 function backToLogin() {
 	AutoRetry.disarm();
+	// A ban can arrive in game: stop the map before showing the login screen
+	Renderer.stop();
+	MapRenderer.free();
+	BGM.play('01.mp3');
 	UIManager.removeComponents();
+	Background.setLoginBackground();
 	WinLogin.getUI().append();
 }
 
