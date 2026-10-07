@@ -206418,10 +206418,6 @@ var init_Background = __esmMin((() => {
 		* @param {function} callback once the overlay hide the window (optional)
 		*/
 		static remove(callback) {
-			if (!!!_container.parentNode) {
-				if (callback) callback();
-				return;
-			}
 			transition$1(() => {
 				_container.style.zIndex = "0";
 				_canvas.style.zIndex = "0";
@@ -347284,7 +347280,11 @@ var LoginEngine_exports = /* @__PURE__ */ __exportAll({ default: () => LoginEngi
 */
 function backToLogin() {
 	AutoRetry.disarm();
+	Renderer.stop();
+	MapRenderer.free();
+	BGM.play("01.mp3");
 	UIManager.removeComponents();
+	Background.setLoginBackground();
 	Controller.getUI().append();
 }
 /**
@@ -347907,6 +347907,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_PacketStructure();
 	init_PluginManager();
 	init_Renderer();
+	init_MapRenderer();
 	init_UIManager();
 	init_WinList();
 	init_WinPopup();
