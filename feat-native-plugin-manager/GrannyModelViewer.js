@@ -114,6 +114,7 @@ var init_Thread = __esmMin((() => {
 		* @param {string} type
 		* @param {mixed} data
 		* @param {function} callback
+		* @return {number} request id, also carried by the hook events the request sends (0 without callback)
 		*/
 		static send = (type, data, callback) => {
 			let uid = 0;
@@ -126,6 +127,7 @@ var init_Thread = __esmMin((() => {
 				data,
 				uid
 			}, _origin);
+			return uid;
 		};
 		/**
 		* Receive data from Thread
@@ -140,7 +142,7 @@ var init_Thread = __esmMin((() => {
 				_memory$1[uid].apply(null, event.data.arguments);
 				delete _memory$1[uid];
 			}
-			if (type && _hook[type]) _hook[type].call(null, event.data.data);
+			if (type && _hook[type]) _hook[type].call(null, event.data.data, event.data.request);
 		};
 		/**
 		* Hook receive data
@@ -206250,6 +206252,10 @@ var init_Background = __esmMin((() => {
 		*/
 		static _loading = [];
 		/**
+		* @var {object|null} removal in progress, dropped when a background is set during its fade
+		*/
+		static _removal = null;
+		/**
 		* Initialize Background component
 		*
 		* @param {Array} loading - Array of loading filenames stored in clientinfo.xml
@@ -206292,6 +206298,7 @@ var init_Background = __esmMin((() => {
 		static setImage(filename, callback) {
 			const exist = !!_container.parentNode;
 			Background._progress = -1;
+			Background._removal = null;
 			_container.innerHTML = "";
 			_container.style.backgroundImage = "none";
 			render$16();
@@ -206391,13 +206398,18 @@ var init_Background = __esmMin((() => {
 		* @param {function} callback once the overlay hide the window (optional)
 		*/
 		static remove(callback) {
+			const removal = {};
+			Background._removal = removal;
 			transition(() => {
-				_container.style.zIndex = "0";
-				_canvas.style.zIndex = "0";
-				if (_container.parentNode) _container.parentNode.removeChild(_container);
-				if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
-				_container.innerHTML = "";
-				_container.style.backgroundImage = "none";
+				if (Background._removal === removal) {
+					Background._removal = null;
+					_container.style.zIndex = "0";
+					_canvas.style.zIndex = "0";
+					if (_container.parentNode) _container.parentNode.removeChild(_container);
+					if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
+					_container.innerHTML = "";
+					_container.style.backgroundImage = "none";
+				}
 				if (callback) callback();
 			});
 		}
@@ -260210,6 +260222,16 @@ function loadStep(loadId, step) {
 	};
 }
 /**
+* Bind a worker event of map loading, so that it only reaches the load whose request sent it
+*
+* @param {function} step
+*/
+function loadEvent(step) {
+	return (data, request) => {
+		if (request === MapRenderer._loadRequest) step.call(MapRenderer, data);
+	};
+}
+/**
 * Received progress from Thread
 *
 * @param {number} percent (progress)
@@ -260430,6 +260452,10 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static _loadId = 0;
 		/**
+		* @var {number} worker request of the map load in progress, 0 when none
+		*/
+		static _loadRequest = 0;
+		/**
 		* @var {Float32Array} diffuse Modified diffuse color
 		*/
 		static diffuse = null;
@@ -260468,15 +260494,15 @@ var init_MapRenderer = __esmMin((() => {
 				const filename = mapname.replace(/\.gat$/i, ".rsw");
 				Background.setLoading(function() {
 					if (loadId !== MapRenderer._loadId) return;
-					Thread.hook("MAP_PROGRESS", loadStep(loadId, onProgressUpdate));
-					Thread.hook("MAP_WORLD", loadStep(loadId, onWorldComplete));
-					Thread.hook("MAP_GROUND", loadStep(loadId, onGroundComplete));
-					Thread.hook("MAP_ALTITUDE", loadStep(loadId, onAltitudeComplete));
-					Thread.hook("MAP_MODELS", loadStep(loadId, onModelsComplete));
-					Thread.hook("MAP_ANIMATED_MODEL", loadStep(loadId, onAnimatedModelComplete));
+					Thread.hook("MAP_PROGRESS", loadEvent(onProgressUpdate));
+					Thread.hook("MAP_WORLD", loadEvent(onWorldComplete));
+					Thread.hook("MAP_GROUND", loadEvent(onGroundComplete));
+					Thread.hook("MAP_ALTITUDE", loadEvent(onAltitudeComplete));
+					Thread.hook("MAP_MODELS", loadEvent(onModelsComplete));
+					Thread.hook("MAP_ANIMATED_MODEL", loadEvent(onAnimatedModelComplete));
 					MapRenderer.free();
 					Renderer.remove();
-					Thread.send("LOAD_MAP", filename, loadStep(loadId, onMapComplete));
+					MapRenderer._loadRequest = Thread.send("LOAD_MAP", filename, loadStep(loadId, onMapComplete));
 				});
 				return;
 			}
@@ -260499,6 +260525,7 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static cancelLoad() {
 			this._loadId++;
+			this._loadRequest = 0;
 			this.loading = false;
 		}
 		/**
