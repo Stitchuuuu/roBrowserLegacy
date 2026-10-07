@@ -240,6 +240,7 @@ function backToLogin() {
 	AutoRetry.disarm();
 	// A ban can arrive in game: stop the map before showing the login screen
 	Renderer.stop();
+	MapRenderer.cancelLoad();
 	MapRenderer.free();
 	BGM.play('01.mp3');
 	UIManager.removeComponents();
