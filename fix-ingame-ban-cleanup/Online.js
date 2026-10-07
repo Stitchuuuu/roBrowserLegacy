@@ -11049,6 +11049,7 @@ var init_Thread = __esmMin((() => {
 		* @param {string} type
 		* @param {mixed} data
 		* @param {function} callback
+		* @return {number} request id, also carried by the hook events the request sends (0 without callback)
 		*/
 		static send = (type, data, callback) => {
 			let uid = 0;
@@ -11061,6 +11062,7 @@ var init_Thread = __esmMin((() => {
 				data,
 				uid
 			}, _origin);
+			return uid;
 		};
 		/**
 		* Receive data from Thread
@@ -11075,7 +11077,7 @@ var init_Thread = __esmMin((() => {
 				_memory$1[uid].apply(null, event.data.arguments);
 				delete _memory$1[uid];
 			}
-			if (type && _hook[type]) _hook[type].call(null, event.data.data);
+			if (type && _hook[type]) _hook[type].call(null, event.data.data, event.data.request);
 		};
 		/**
 		* Hook receive data
@@ -206219,7 +206221,7 @@ var init_HtmlHelper = __esmMin((() => {
 */
 function render$14() {
 	_ctx$6.clearRect(0, 0, _canvas.width, _canvas.height);
-	if (_progress > -1) Background.setPercent(_progress);
+	if (Background._progress > -1) Background.setPercent(Background._progress);
 }
 /**
 * Play with the overlay
@@ -206228,17 +206230,17 @@ function render$14() {
 */
 function transition(callback) {
 	const transitionDuration = Configs.get("transitionDuration") ? Configs.get("transitionDuration") : 500;
-	if (_overlayAnim) _overlayAnim.stop();
+	if (Background._overlayAnim) Background._overlayAnim.stop();
 	_overlay.style.opacity = "0.01";
 	document.body.appendChild(_overlay);
-	_overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, () => {
+	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, () => {
 		callback();
-		_overlayAnim = animateElement(_overlay, { opacity: .01 }, transitionDuration, () => {
+		Background._overlayAnim = animateElement(_overlay, { opacity: .01 }, transitionDuration, () => {
 			if (_overlay.parentNode) _overlay.parentNode.removeChild(_overlay);
 		});
 	});
 }
-var _overlay, _container, _canvas, _ctx$6, _progress, _overlayAnim, _loading, Background;
+var _overlay, _container, _canvas, _ctx$6, Background;
 var init_Background = __esmMin((() => {
 	init_DBManager();
 	init_Client();
@@ -206272,10 +206274,24 @@ var init_Background = __esmMin((() => {
 		zIndex: "2"
 	});
 	_ctx$6 = _canvas.getContext("2d");
-	_progress = -1;
-	_overlayAnim = null;
-	_loading = [];
 	Background = class Background {
+		/**
+		* Background loading progress
+		* @var {number} percent
+		*/
+		static _progress = -1;
+		/**
+		* @var {object|null} current overlay animation handle
+		*/
+		static _overlayAnim = null;
+		/**
+		* @var {Array} loading screen filenames
+		*/
+		static _loading = [];
+		/**
+		* @var {object|null} removal in progress, dropped when a background is set during its fade
+		*/
+		static _removal = null;
 		/**
 		* Initialize Background component
 		*
@@ -206283,15 +206299,15 @@ var init_Background = __esmMin((() => {
 		*/
 		static init(loading) {
 			let i;
-			_progress = 0;
+			Background._progress = 0;
 			_canvas.style.zIndex = "1";
 			render$14();
 			if (loading) {
-				_loading = loading;
+				Background._loading = loading;
 				return;
 			}
-			_loading.length = 10;
-			for (i = 1; i <= 10; ++i) _loading[i - 1] = `loading${i < 10 ? "0" + i : i}.jpg`;
+			Background._loading.length = 10;
+			for (i = 1; i <= 10; ++i) Background._loading[i - 1] = `loading${i < 10 ? "0" + i : i}.jpg`;
 		}
 		/**
 		* Resize the background
@@ -206318,7 +206334,8 @@ var init_Background = __esmMin((() => {
 		*/
 		static setImage(filename, callback) {
 			const exist = !!_container.parentNode;
-			_progress = -1;
+			Background._progress = -1;
+			Background._removal = null;
 			_container.innerHTML = "";
 			_container.style.backgroundImage = "none";
 			render$14();
@@ -206405,8 +206422,8 @@ var init_Background = __esmMin((() => {
 		* @param {function} callback once the loading is display (optional)
 		*/
 		static setLoading(callback) {
-			const index = Math.floor(Math.random() * _loading.length);
-			Background.setImage(_loading[index] || "loading01.jpg", () => {
+			const index = Math.floor(Math.random() * Background._loading.length);
+			Background.setImage(Background._loading[index] || "loading01.jpg", () => {
 				_canvas.style.zIndex = "999";
 				Background.setPercent(0);
 				if (callback) callback();
@@ -206418,17 +206435,18 @@ var init_Background = __esmMin((() => {
 		* @param {function} callback once the overlay hide the window (optional)
 		*/
 		static remove(callback) {
-			if (!!!_container.parentNode) {
-				if (callback) callback();
-				return;
-			}
+			const removal = {};
+			Background._removal = removal;
 			transition(() => {
-				_container.style.zIndex = "0";
-				_canvas.style.zIndex = "0";
-				if (_container.parentNode) _container.parentNode.removeChild(_container);
-				if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
-				_container.innerHTML = "";
-				_container.style.backgroundImage = "none";
+				if (Background._removal === removal) {
+					Background._removal = null;
+					_container.style.zIndex = "0";
+					_canvas.style.zIndex = "0";
+					if (_container.parentNode) _container.parentNode.removeChild(_container);
+					if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
+					_container.innerHTML = "";
+					_container.style.backgroundImage = "none";
+				}
 				if (callback) callback();
 			});
 		}
@@ -206438,7 +206456,7 @@ var init_Background = __esmMin((() => {
 		* @param {number} percent
 		*/
 		static setPercent(percent) {
-			_progress = Math.min(Math.floor(percent), 100);
+			Background._progress = Math.min(Math.floor(percent), 100);
 			const width = 240;
 			const height = 15;
 			const x = Math.floor((_canvas.width - width) * .5);
@@ -260045,6 +260063,16 @@ function loadStep(loadId, step) {
 	};
 }
 /**
+* Bind a worker event of map loading, so that it only reaches the load whose request sent it
+*
+* @param {function} step
+*/
+function loadEvent(step) {
+	return (data, request) => {
+		if (request === MapRenderer._loadRequest) step.call(MapRenderer, data);
+	};
+}
+/**
 * Received progress from Thread
 *
 * @param {number} percent (progress)
@@ -260265,6 +260293,10 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static _loadId = 0;
 		/**
+		* @var {number} worker request of the map load in progress, 0 when none
+		*/
+		static _loadRequest = 0;
+		/**
 		* @var {Float32Array} diffuse Modified diffuse color
 		*/
 		static diffuse = null;
@@ -260303,15 +260335,15 @@ var init_MapRenderer = __esmMin((() => {
 				const filename = mapname.replace(/\.gat$/i, ".rsw");
 				Background.setLoading(function() {
 					if (loadId !== MapRenderer._loadId) return;
-					Thread.hook("MAP_PROGRESS", loadStep(loadId, onProgressUpdate));
-					Thread.hook("MAP_WORLD", loadStep(loadId, onWorldComplete));
-					Thread.hook("MAP_GROUND", loadStep(loadId, onGroundComplete));
-					Thread.hook("MAP_ALTITUDE", loadStep(loadId, onAltitudeComplete));
-					Thread.hook("MAP_MODELS", loadStep(loadId, onModelsComplete));
-					Thread.hook("MAP_ANIMATED_MODEL", loadStep(loadId, onAnimatedModelComplete));
+					Thread.hook("MAP_PROGRESS", loadEvent(onProgressUpdate));
+					Thread.hook("MAP_WORLD", loadEvent(onWorldComplete));
+					Thread.hook("MAP_GROUND", loadEvent(onGroundComplete));
+					Thread.hook("MAP_ALTITUDE", loadEvent(onAltitudeComplete));
+					Thread.hook("MAP_MODELS", loadEvent(onModelsComplete));
+					Thread.hook("MAP_ANIMATED_MODEL", loadEvent(onAnimatedModelComplete));
 					MapRenderer.free();
 					Renderer.remove();
-					Thread.send("LOAD_MAP", filename, loadStep(loadId, onMapComplete));
+					MapRenderer._loadRequest = Thread.send("LOAD_MAP", filename, loadStep(loadId, onMapComplete));
 				});
 				return;
 			}
@@ -260334,6 +260366,7 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static cancelLoad() {
 			this._loadId++;
+			this._loadRequest = 0;
 			this.loading = false;
 		}
 		/**
