@@ -349954,6 +349954,7 @@ var onWorldClick = (() => {
 	let ready = false;
 	let App = null;
 	const element = document.createElement("div");
+	const previewRequests = {};
 	function initApp() {
 		if (App) return true;
 		if (typeof ROBrowser === "undefined") return false;
@@ -349978,19 +349979,24 @@ var onWorldClick = (() => {
 				break;
 			case "SET_HOST":
 			case "CLEAN_GRF": return;
-			default: Thread.send(event.data.type, event.data.data, function() {
-				App._APP.postMessage({
-					arguments: Array.prototype.slice.call(arguments, 0),
-					uid: event.data.uid
-				}, location.origin);
-			});
+			default: {
+				const request = Thread.send(event.data.type, event.data.data, function() {
+					delete previewRequests[request];
+					App._APP.postMessage({
+						arguments: Array.prototype.slice.call(arguments, 0),
+						uid: event.data.uid
+					}, location.origin);
+				});
+				previewRequests[request] = event.data.uid;
+			}
 		}
 	}
 	function threadRedirect(type) {
-		Thread.hook(type, (data) => {
+		Thread.hook(type, (data, request) => {
 			App._APP.postMessage({
 				type,
-				data
+				data,
+				request: previewRequests[request]
 			}, location.origin);
 		});
 	}
