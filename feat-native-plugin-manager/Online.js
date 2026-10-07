@@ -218252,7 +218252,7 @@ var init_CardIllustration = __esmMin((() => {
 	init_GUIComponent();
 	init_CardIllustration$2();
 	init_CardIllustration$1();
-	CardIllustration = new GUIComponent("CardIllustration", CardIllustration_default$1);
+	CardIllustration = new GUIComponent$1("CardIllustration", CardIllustration_default$1);
 	/**
 	* Render HTML
 	*/
@@ -218278,7 +218278,7 @@ var init_CardIllustration = __esmMin((() => {
 			r.querySelector(".content").style.backgroundImage = `url(${data})`;
 		});
 	};
-	CardIllustration.mouseMode = GUIComponent.MouseMode.STOP;
+	CardIllustration.mouseMode = GUIComponent$1.MouseMode.STOP;
 	CardIllustration.needFocus = true;
 	CardIllustration_default = UIManager.addComponent(CardIllustration);
 }));
@@ -218316,11 +218316,11 @@ var init_Announce = __esmMin((() => {
 	init_GUIComponent();
 	init_Announce$2();
 	init_Announce$1();
-	Announce = new GUIComponent("Announce", Announce_default$1);
+	Announce = new GUIComponent$1("Announce", Announce_default$1);
 	/**
 	* Mouse can cross this UI
 	*/
-	Announce.mouseMode = GUIComponent.MouseMode.CROSS;
+	Announce.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	/**
 	* @var {boolean} do not focus this UI
 	*/
@@ -219504,7 +219504,7 @@ var init_ContextMenu = __esmMin((() => {
 	init_UIManager();
 	init_GUIComponent();
 	init_ContextMenu$1();
-	ContextMenu = new GUIComponent("ContextMenu", ContextMenu_default$1);
+	ContextMenu = new GUIComponent$1("ContextMenu", ContextMenu_default$1);
 	/**
 	* Render HTML
 	*/
@@ -219666,7 +219666,7 @@ var init_ChatBoxSettings = __esmMin((() => {
 	init_GUIComponent();
 	init_ChatBoxSettings$2();
 	init_ChatBoxSettings$1();
-	ChatBoxSettings = new GUIComponent("ChatBoxSettings", ChatBoxSettings_default$1);
+	ChatBoxSettings = new GUIComponent$1("ChatBoxSettings", ChatBoxSettings_default$1);
 	/**
 	* Render HTML
 	*/
@@ -219746,7 +219746,7 @@ var init_ChatBoxSettings = __esmMin((() => {
 		_preferences$43.x = parseInt(this._host.style.left, 10) || 0;
 		_preferences$43.save();
 	};
-	ChatBoxSettings.mouseMode = GUIComponent.MouseMode.STOP;
+	ChatBoxSettings.mouseMode = GUIComponent$1.MouseMode.STOP;
 	ChatBoxSettings_default = UIManager.addComponent(ChatBoxSettings);
 }));
 //#endregion
@@ -220056,7 +220056,7 @@ var init_ChatBox = __esmMin((() => {
 		tabOption: [],
 		activeTab: 0
 	}, 1);
-	ChatBox$1 = new GUIComponent("ChatBox", ChatBox_default$1);
+	ChatBox$1 = new GUIComponent$1("ChatBox", ChatBox_default$1);
 	/**
 	* Render HTML
 	*/
@@ -220955,7 +220955,7 @@ var init_ChatBox = __esmMin((() => {
 		input.appendChild(document.createTextNode(text));
 		input.focus();
 	};
-	ChatBox$1.mouseMode = GUIComponent.MouseMode.CROSS;
+	ChatBox$1.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	ChatBox_default = UIManager.addComponent(ChatBox$1);
 }));
 //#endregion
@@ -221043,7 +221043,7 @@ var init_MakeReadBook = __esmMin((() => {
 	init_Announce();
 	init_ChatBox();
 	sleepNow = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
-	MakeReadBook = new GUIComponent("MakeReadBook", MakeReadBook_default$1);
+	MakeReadBook = new GUIComponent$1("MakeReadBook", MakeReadBook_default$1);
 	MakeReadBook.render = () => MakeReadBook_default$2;
 	_BOOK_INFORMATION = Preferences$1.get("_BOOK_INFORMATION", {
 		itid: 0,
@@ -221471,7 +221471,7 @@ var init_ItemCompare = __esmMin((() => {
 	init_Entity$1();
 	_type$7 = 0;
 	_start$2 = 0;
-	ItemCompare = new GUIComponent("ItemCompare", ItemCompare_default$1);
+	ItemCompare = new GUIComponent$1("ItemCompare", ItemCompare_default$1);
 	ItemCompare.render = () => ItemCompare_default$2;
 	/**
 	* @let {number} ItemCompare unique id
@@ -221680,7 +221680,7 @@ var init_ItemPreview = __esmMin((() => {
 	init_ItemPreview$1();
 	init_ItemInfo();
 	init_Entity$1();
-	ItemPreview = new GUIComponent("ItemPreview", ItemPreview_default$1);
+	ItemPreview = new GUIComponent$1("ItemPreview", ItemPreview_default$1);
 	/**
 	* Render HTML
 	*/
@@ -221943,12 +221943,12 @@ var init_InputBox = __esmMin((() => {
 	init_Elements();
 	init_InputBox$2();
 	init_InputBox$1();
-	InputBox = new GUIComponent("InputBox", InputBox_default$1);
+	InputBox = new GUIComponent$1("InputBox", InputBox_default$1);
 	InputBox.render = () => InputBox_default$2;
 	/**
 	* Freeze mouse — modal dialog
 	*/
-	InputBox.mouseMode = GUIComponent.MouseMode.FREEZE;
+	InputBox.mouseMode = GUIComponent$1.MouseMode.FREEZE;
 	/**
 	* Capture key events to allow typing in the input
 	*/
@@ -222295,7 +222295,7 @@ var init_SwitchEquip = __esmMin((() => {
 	init_Entity$1();
 	init_Equipment();
 	init_Inventory();
-	SwitchEquip = new GUIComponent("SwitchEquip", SwitchEquip_default$1);
+	SwitchEquip = new GUIComponent$1("SwitchEquip", SwitchEquip_default$1);
 	SwitchEquip.render = () => SwitchEquip_default$2;
 	/**
 	* @var {Array} switchequipment list
@@ -222617,11 +222617,11 @@ function createMiniMap({ name, htmlText, cssText, worldMap = null, townInfoToggl
 	/**
 	* Create MiniMap component
 	*/
-	const MiniMap = new GUIComponent(name, cssText);
+	const MiniMap = new GUIComponent$1(name, cssText);
 	/**
 	* Mouse cant cross this UI
 	*/
-	MiniMap.mouseMode = GUIComponent.MouseMode.STOP;
+	MiniMap.mouseMode = GUIComponent$1.MouseMode.STOP;
 	/**
 	* @var {boolean} do not focus this UI
 	*/
@@ -223443,7 +223443,7 @@ var init_Navigation = __esmMin((() => {
 	init_Navigation$2();
 	init_Navigation$1();
 	init_MapPathFinder();
-	Navigation = new GUIComponent("Navigation", Navigation_default$1);
+	Navigation = new GUIComponent$1("Navigation", Navigation_default$1);
 	Navigation.render = () => Navigation_default$2;
 	_arrow = createAsyncImage();
 	_toolDealer = createAsyncImage();
@@ -224504,7 +224504,7 @@ var init_WorldMap = __esmMin((() => {
 	init_WorldMap$2();
 	init_WorldMap$1();
 	init_Navigation();
-	WorldMap = new GUIComponent("WorldMap", WorldMap_default$1);
+	WorldMap = new GUIComponent$1("WorldMap", WorldMap_default$1);
 	WorldMap.render = () => WorldMap_default$2;
 	_preferences$40 = Preferences$1.get("WorldMap", {
 		x: 0,
@@ -224642,7 +224642,7 @@ var init_WorldMap = __esmMin((() => {
 			if (el) el.classList.add("membersonmap");
 		}
 	};
-	WorldMap.mouseMode = GUIComponent.MouseMode.STOP;
+	WorldMap.mouseMode = GUIComponent$1.MouseMode.STOP;
 	WorldMap_default = UIManager.addComponent(WorldMap);
 }));
 //#endregion
@@ -224775,12 +224775,12 @@ var init_NpcMenu = __esmMin((() => {
 	init_NpcMenu$2();
 	init_NpcMenu$1();
 	init_InputBox();
-	NpcMenu = new GUIComponent("NpcMenu", NpcMenu_default$1);
+	NpcMenu = new GUIComponent$1("NpcMenu", NpcMenu_default$1);
 	NpcMenu.render = () => NpcMenu_default$2;
 	/**
 	* Freeze mouse — NPC menu blocks interaction
 	*/
-	NpcMenu.mouseMode = GUIComponent.MouseMode.FREEZE;
+	NpcMenu.mouseMode = GUIComponent$1.MouseMode.FREEZE;
 	_index = 0;
 	_ownerID = 0;
 	/**
@@ -225173,7 +225173,7 @@ var init_WhisperBox = __esmMin((() => {
 	init_NpcMenu();
 	init_InputBox();
 	init_preload_helper();
-	WhisperBox = new GUIComponent("WhisperBox", WhisperBox_default);
+	WhisperBox = new GUIComponent$1("WhisperBox", WhisperBox_default);
 	WhisperBox.render = () => WhisperBox_default$1;
 	/**
 	* @var {Object} active whisper windows indexed by nickname
@@ -225193,7 +225193,7 @@ var init_WhisperBox = __esmMin((() => {
 		alarm1to1: true
 	}, 1);
 	_preferences$39 = WhisperBox.preferences;
-	WhisperBox.mouseMode = GUIComponent.MouseMode.STOP;
+	WhisperBox.mouseMode = GUIComponent$1.MouseMode.STOP;
 	WhisperBox.captureKeyEvents = true;
 	/**
 	* Initialize component
@@ -225411,7 +225411,7 @@ var init_PartyHelper = __esmMin((() => {
 	init_PartyHelper$2();
 	init_PartyHelper$1();
 	init_WhisperBox();
-	PartyHelper = new GUIComponent("PartyHelper", PartyHelper_default$1);
+	PartyHelper = new GUIComponent$1("PartyHelper", PartyHelper_default$1);
 	/**
 	* Window type constants
 	*/
@@ -225714,7 +225714,7 @@ var init_PartyHelper = __esmMin((() => {
 	PartyHelper.onCreate = function onCreate() {};
 	PartyHelper.onInvite = function onInvite() {};
 	PartyHelper.onSetupUpdate = function onSetUpUpdate() {};
-	PartyHelper.mouseMode = GUIComponent.MouseMode.STOP;
+	PartyHelper.mouseMode = GUIComponent$1.MouseMode.STOP;
 	PartyHelper_default = UIManager.addComponent(PartyHelper);
 }));
 //#endregion
@@ -225868,12 +225868,12 @@ var init_SkillTargetSelection = __esmMin((() => {
 	init_PartyFriends();
 	init_SkillTargetSelection$2();
 	init_SkillTargetSelection$1();
-	SkillTargetSelection = new GUIComponent("SkillTargetSelection", SkillTargetSelection_default$1);
+	SkillTargetSelection = new GUIComponent$1("SkillTargetSelection", SkillTargetSelection_default$1);
 	SkillTargetSelection.render = () => SkillTargetSelection_default$2;
 	/**
 	* Mouse can cross this UI
 	*/
-	SkillTargetSelection.mouseMode = GUIComponent.MouseMode.CROSS;
+	SkillTargetSelection.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	/**
 	* Do not focus this UI
 	*/
@@ -226182,7 +226182,7 @@ var init_Rodex$1 = __esmMin((() => {
 	init_GUIComponent();
 	init_Rodex$3();
 	init_Rodex$2();
-	Rodex = new GUIComponent("Rodex", Rodex_default$1);
+	Rodex = new GUIComponent$1("Rodex", Rodex_default$1);
 	/**
 	* Store Rodex items
 	*/
@@ -226314,7 +226314,7 @@ var init_Rodex$1 = __esmMin((() => {
 			total++;
 		}
 		content.querySelectorAll("[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]").forEach((node) => {
-			GUIComponent.processDataAttrs(node);
+			GUIComponent$1.processDataAttrs(node);
 		});
 	};
 	Rodex.getMailsByTabID = function getMailsByTabID(tabID) {
@@ -226458,7 +226458,7 @@ var init_PartyMemberExternal = __esmMin((() => {
 	init_SessionStorage();
 	init_WhisperBox();
 	init_PartyFriends();
-	PartyMemberExternal = new GUIComponent("PartyMemberExternal", PartyMemberExternal_default$1);
+	PartyMemberExternal = new GUIComponent$1("PartyMemberExternal", PartyMemberExternal_default$1);
 	/**
 	* Render HTML
 	*/
@@ -227046,7 +227046,7 @@ var init_Mail$1 = __esmMin((() => {
 	init_Elements();
 	init_Mail$3();
 	init_Mail$2();
-	Mail = new GUIComponent("Mail", Mail_default$1);
+	Mail = new GUIComponent$1("Mail", Mail_default$1);
 	/**
 	* Store Mail items
 	*/
@@ -227328,7 +227328,7 @@ function createPartyFriends(config) {
 	/**
 	* Create Component
 	*/
-	const Component = new GUIComponent(componentName, cssText);
+	const Component = new GUIComponent$1(componentName, cssText);
 	/**
 	* @var {number} index of selection
 	*/
@@ -228733,7 +228733,7 @@ function createPartyFriends(config) {
 		} else if (recipient) Mail_default.replyNewMailFriends(recipient);
 		else Mail_default.append();
 	}
-	Component.mouseMode = GUIComponent.MouseMode.STOP;
+	Component.mouseMode = GUIComponent$1.MouseMode.STOP;
 	/**
 	* Storing Requirement
 	*/
@@ -228887,7 +228887,7 @@ var init_GuildCompanion = __esmMin((() => {
 	init_Elements();
 	init_GuildCompanion$2();
 	init_GuildCompanion$1();
-	GuildCompanion = new GUIComponent("GuildCompanion", GuildCompanion_default$1);
+	GuildCompanion = new GUIComponent$1("GuildCompanion", GuildCompanion_default$1);
 	GuildCompanion.render = () => GuildCompanion_default$2;
 	_mode = "create";
 	GuildCompanion.onRequestCreateGuild = function onRequestCreateGuild() {};
@@ -228976,7 +228976,7 @@ var init_GuildCompanion = __esmMin((() => {
 		}
 		GuildCompanion.openCreate();
 	};
-	GuildCompanion.mouseMode = GUIComponent.MouseMode.STOP;
+	GuildCompanion.mouseMode = GUIComponent$1.MouseMode.STOP;
 	GuildCompanion.needFocus = true;
 	GuildCompanion_default = UIManager.addComponent(GuildCompanion);
 }));
@@ -229031,7 +229031,7 @@ var init_SkillDescription = __esmMin((() => {
 		"i",
 		"b"
 	]);
-	SkillDescription$1 = new GUIComponent("SkillDescription", SkillDescription_default$1);
+	SkillDescription$1 = new GUIComponent$1("SkillDescription", SkillDescription_default$1);
 	SkillDescription$1.render = () => SkillDescription_default$2;
 	/**
 	* SkillDescription unique id
@@ -229111,7 +229111,7 @@ var init_WinStats$2 = __esmMin((() => {
 * @param {boolean} hasTraits - whether this version has trait stats
 */
 function createWinStats({ name, htmlText, cssText, hasTraits }) {
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	const _preferences = Preferences$1.get("WinStats", {
 		x: 0,
@@ -230193,7 +230193,7 @@ var init_Guild$1 = __esmMin((() => {
 		5: 64,
 		6: 128
 	};
-	Guild = new GUIComponent("Guild", Guild_default$1);
+	Guild = new GUIComponent$1("Guild", Guild_default$1);
 	Guild.render = () => Guild_default$2;
 	_notice = {
 		subject: "",
@@ -231250,7 +231250,7 @@ var init_Bank$1 = __esmMin((() => {
 	init_NpcBox();
 	init_NpcMenu();
 	init_InputBox();
-	Bank = new GUIComponent("Bank", Bank_default$1);
+	Bank = new GUIComponent$1("Bank", Bank_default$1);
 	/**
 	* Render HTML
 	*/
@@ -231410,7 +231410,7 @@ var init_Bank$1 = __esmMin((() => {
 		if (inbank) return inbank.textContent;
 		return "0z";
 	};
-	Bank.mouseMode = GUIComponent.MouseMode.STOP;
+	Bank.mouseMode = GUIComponent$1.MouseMode.STOP;
 	Bank.captureKeyEvents = true;
 	Bank.needFocus = true;
 	Bank_default = UIManager.addComponent(Bank);
@@ -231467,7 +231467,7 @@ var init_SoundOption = __esmMin((() => {
 	init_Elements();
 	init_SoundOption$2();
 	init_SoundOption$1();
-	SoundOption = new GUIComponent("SoundOption", SoundOption_default$1);
+	SoundOption = new GUIComponent$1("SoundOption", SoundOption_default$1);
 	SoundOption.render = () => SoundOption_default$2;
 	_preferences$35 = Preferences$1.get("SoundOption", {
 		x: 300,
@@ -231536,7 +231536,7 @@ var init_FPS = __esmMin((() => {
 	init_Elements();
 	init_FPS$2();
 	init_FPS$1();
-	FPS = new GUIComponent("FPS", FPS_default$1);
+	FPS = new GUIComponent$1("FPS", FPS_default$1);
 	FPS.render = () => FPS_default$2;
 	_maxFPSRegistered = 0;
 	_tickFn = null;
@@ -231917,7 +231917,7 @@ var init_GraphicsOption = __esmMin((() => {
 	init_GraphicsOption$1();
 	init_MemoryManager();
 	init_ChatBox();
-	GraphicsOption = new GUIComponent("GraphicsOption", GraphicsOption_default$1);
+	GraphicsOption = new GUIComponent$1("GraphicsOption", GraphicsOption_default$1);
 	_preferences$33 = Preferences$1.get("GraphicsOption", {
 		x: 300,
 		y: 300
@@ -232027,7 +232027,7 @@ var init_GraphicsOption = __esmMin((() => {
 		_preferences$33.save();
 	};
 	GraphicsOption.needFocus = true;
-	GraphicsOption.mouseMode = GUIComponent.MouseMode.STOP;
+	GraphicsOption.mouseMode = GUIComponent$1.MouseMode.STOP;
 	GraphicsOption_default = UIManager.addComponent(GraphicsOption);
 }));
 //#endregion
@@ -232223,7 +232223,7 @@ var init_ShortCutOption = __esmMin((() => {
 	init_ShortCutOption$2();
 	init_ShortCutOption$1();
 	init_Controls();
-	ShortCutOption = new GUIComponent("ShortCutOption", ShortCutOption_default$1);
+	ShortCutOption = new GUIComponent$1("ShortCutOption", ShortCutOption_default$1);
 	ShortCuts$1 = ShortCutControls_default.ShortCuts;
 	ShortCutsTemp = {};
 	ShortCutOption.isCapturing = false;
@@ -232391,7 +232391,7 @@ var init_ShortCutOption = __esmMin((() => {
 			}
 		}
 	};
-	ShortCutOption.mouseMode = GUIComponent.MouseMode.STOP;
+	ShortCutOption.mouseMode = GUIComponent$1.MouseMode.STOP;
 	ShortCutOption.needFocus = true;
 	ShortCutOption_default = UIManager.addComponent(ShortCutOption);
 }));
@@ -232441,7 +232441,7 @@ var init_Escape = __esmMin((() => {
 	init_ShortCutOption();
 	init_Escape$2();
 	init_Escape$1();
-	Escape = new GUIComponent("Escape", Escape_default$1);
+	Escape = new GUIComponent$1("Escape", Escape_default$1);
 	/**
 	* Render HTML
 	*/
@@ -232561,7 +232561,7 @@ var init_Escape = __esmMin((() => {
 	* @var {function} callback when player want to return to char selection
 	*/
 	Escape.onCharSelectionRequest = function onCharSelectionRequest() {};
-	Escape.mouseMode = GUIComponent.MouseMode.STOP;
+	Escape.mouseMode = GUIComponent$1.MouseMode.STOP;
 	Escape.needFocus = true;
 	Escape_default = UIManager.addComponent(Escape);
 }));
@@ -232592,7 +232592,7 @@ function onClickAttendance(e) {
 	completedDiv.className = "completed";
 	completedDiv.dataset.background = "check_attendance/bt_slot_complete.tga";
 	el.appendChild(completedDiv);
-	GUIComponent.processDataAttrs(completedDiv);
+	GUIComponent$1.processDataAttrs(completedDiv);
 	const total_days_string = `${parseInt(_checkAttendanceData / 10) + 1} Day attendance success`;
 	const totalDaysEl = root.querySelector(".total-days");
 	if (totalDaysEl) totalDaysEl.innerHTML = total_days_string;
@@ -232612,7 +232612,7 @@ var init_CheckAttendance = __esmMin((() => {
 	init_CheckAttendance$1();
 	init_ChatBox();
 	init_Elements();
-	CheckAttendance = new GUIComponent("CheckAttendance", CheckAttendance_default$1);
+	CheckAttendance = new GUIComponent$1("CheckAttendance", CheckAttendance_default$1);
 	CheckAttendance.render = () => CheckAttendance_default$2;
 	_preferences$31 = Preferences$1.get("CheckAttendance", {
 		x: 200,
@@ -232725,7 +232725,7 @@ var init_CheckAttendance = __esmMin((() => {
 			}
 			const dataAttrSelector = "[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]";
 			if (daysList) daysList.querySelectorAll(dataAttrSelector).forEach((node) => {
-				GUIComponent.processDataAttrs(node);
+				GUIComponent$1.processDataAttrs(node);
 			});
 		}
 	};
@@ -233077,7 +233077,7 @@ function createSkillList({ name, htmlText, cssText, hasTabs = false, showDescOnM
 	mini: true,
 	skillInfo: false
 } }) {
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	const _dragFrom = dragFrom ?? name;
 	const _containerSelector = containerSelector ?? `#${name}`;
@@ -234009,7 +234009,7 @@ function createQuest(config) {
 	/**
 	* Create Component
 	*/
-	const Quest = new GUIComponent(name, cssText);
+	const Quest = new GUIComponent$1(name, cssText);
 	Quest.render = () => htmlText;
 	/**
 	* @var {number} index of selection (classic layout)
@@ -234581,7 +234581,7 @@ function createQuestHelper(config) {
 	/**
 	* Create Component
 	*/
-	const QuestHelper = new GUIComponent(name, cssText);
+	const QuestHelper = new GUIComponent$1(name, cssText);
 	QuestHelper.render = () => htmlText;
 	/**
 	* @var {Preferences} structure
@@ -234871,12 +234871,12 @@ var init_QuestWindow = __esmMin((() => {
 		show: false,
 		showwindow: true
 	}, 1);
-	QuestWindow = new GUIComponent("QuestWindow", QuestWindow_default$1);
+	QuestWindow = new GUIComponent$1("QuestWindow", QuestWindow_default$1);
 	QuestWindow.render = () => QuestWindow_default$2;
 	/**
 	* Mouse can cross this UI
 	*/
-	QuestWindow.mouseMode = GUIComponent.MouseMode.CROSS;
+	QuestWindow.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	/**
 	* Initialize the component (event listener, etc.)
 	*/
@@ -235072,7 +235072,7 @@ var init_Achievement$1 = __esmMin((() => {
 		y: 100
 	}, 1);
 	MAJOR_CATEGORIES = [];
-	AchievementComponent = class extends GUIComponent {
+	AchievementComponent = class extends GUIComponent$1 {
 		constructor() {
 			super("Achievement", Achievement_default$1);
 		}
@@ -235289,7 +235289,7 @@ var init_Achievement$1 = __esmMin((() => {
 				mDiv.setAttribute("data-hover", "achievement_re/tab_over.bmp");
 				mDiv.setAttribute("data-down", "achievement_re/tab_press.bmp");
 				mDiv.setAttribute("data-active", "achievement_re/tab_press.bmp");
-				GUIComponent.processDataAttrs(mDiv);
+				GUIComponent$1.processDataAttrs(mDiv);
 				const tNode = document.createTextNode(major.name);
 				mDiv.appendChild(tNode);
 				mDiv.addEventListener("click", () => {
@@ -235310,7 +235310,7 @@ var init_Achievement$1 = __esmMin((() => {
 						minDiv.setAttribute("data-hover", "achievement_re/tab_sub_over.bmp");
 						minDiv.setAttribute("data-down", "achievement_re/tab_sub_press.bmp");
 						minDiv.setAttribute("data-active", "achievement_re/tab_sub_press.bmp");
-						GUIComponent.processDataAttrs(minDiv);
+						GUIComponent$1.processDataAttrs(minDiv);
 						minDiv.textContent = minor.name;
 						minDiv.addEventListener("click", () => {
 							this.currentMinor = minor.id;
@@ -235433,8 +235433,8 @@ var init_Achievement$1 = __esmMin((() => {
 					<div class="reward-pts">${info.score || 0}</div>
 					<div class="date-completed" data-background="${rewardBoxBg}">${dtStr}</div>
 				`;
-					GUIComponent.processDataAttrs(item);
-					item.querySelectorAll("[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]").forEach((node) => GUIComponent.processDataAttrs(node));
+					GUIComponent$1.processDataAttrs(item);
+					item.querySelectorAll("[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]").forEach((node) => GUIComponent$1.processDataAttrs(node));
 					recentItems.appendChild(item);
 				});
 				recentContainer.appendChild(recentItems);
@@ -235513,8 +235513,8 @@ var init_Achievement$1 = __esmMin((() => {
 			<div class="reward-pts">${info.score || 0}</div>
 			<div class="date-completed" data-background="${rewardBoxBg}">${dtStr}</div>
 		`;
-				GUIComponent.processDataAttrs(item);
-				item.querySelectorAll("[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]").forEach((node) => GUIComponent.processDataAttrs(node));
+				GUIComponent$1.processDataAttrs(item);
+				item.querySelectorAll("[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]").forEach((node) => GUIComponent$1.processDataAttrs(node));
 				item.addEventListener("click", () => {
 					this.selectedAchId = parseInt(achId, 10);
 					listEl.querySelectorAll(".ach-item").forEach((el) => el.classList.remove("selected"));
@@ -235990,7 +235990,7 @@ var init_Reputation = __esmMin((() => {
 	init_Elements();
 	init_Reputation$2();
 	init_Reputation$1();
-	Reputation = new GUIComponent("Reputation", Reputation_default$1);
+	Reputation = new GUIComponent$1("Reputation", Reputation_default$1);
 	_preferences$28 = Preferences$1.get("Reputation", {
 		x: 400,
 		y: 200,
@@ -236120,7 +236120,7 @@ var init_Reputation = __esmMin((() => {
 //#region src/UI/Components/BasicInfo/BasicInfoCommon.js
 function createBasicInfo(config) {
 	const { name, htmlText, cssText, prefKey, reduceDefault = true, innerId, topbarItemSelector = ".topbar button", topbarDblClick = false, toggleButtonsEvent = "mousedown", buttonsSelector = ".buttons button", buttonsEvent = "mousedown", buttonKeyBy = "class", infoOpensWinStats = true, partyViaGetUI = false, hasToolbarToggle = false, miniLayout = false, hideIds = [], barScale = 1.27, hasApBar = false } = config;
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	/**
 	* Stored data
 	*/
@@ -237521,7 +237521,7 @@ var init_Refine = __esmMin((() => {
 	init_Elements();
 	init_Refine$2();
 	init_Refine$1();
-	Refine = new GUIComponent("Refine", Refine_default$1);
+	Refine = new GUIComponent$1("Refine", Refine_default$1);
 	BSB_ITID = 6635;
 	refiningMaterials = [];
 	blacksmithBlessing = 0;
@@ -238371,7 +238371,7 @@ var init_EnchantGrade = __esmMin((() => {
 	init_ItemInfo();
 	init_EnchantGrade$2();
 	init_EnchantGrade$1();
-	EnchantGrade = new GUIComponent("EnchantGrade", EnchantGrade_default$1);
+	EnchantGrade = new GUIComponent$1("EnchantGrade", EnchantGrade_default$1);
 	/**
 	* Render HTML
 	*/
@@ -239440,7 +239440,7 @@ function renderMaterials(materials) {
 		entry.appendChild(nameEl);
 		entry.appendChild(count);
 		list.appendChild(entry);
-		GUIComponent.processDataAttrs(entry);
+		GUIComponent$1.processDataAttrs(entry);
 		icon.dataset.name = label;
 		if (matId) {
 			icon.dataset.itid = matId;
@@ -239485,7 +239485,7 @@ function renderEnchantList(entries, selectedKey) {
 		row.appendChild(icon);
 		row.appendChild(text);
 		list.appendChild(row);
-		GUIComponent.processDataAttrs(row);
+		GUIComponent$1.processDataAttrs(row);
 		if (itid) loadItemIcon(icon, itid, true);
 	});
 }
@@ -239556,7 +239556,7 @@ function renderItemList() {
 		entry.appendChild(slot);
 		entry.appendChild(info);
 		list.appendChild(entry);
-		GUIComponent.processDataAttrs(entry);
+		GUIComponent$1.processDataAttrs(entry);
 		slot.dataset.itid = item.ITID;
 		slot.dataset.name = itemName;
 		loadItemIcon(slot, item.ITID, item.IsIdentified);
@@ -240089,7 +240089,7 @@ var init_Enchant = __esmMin((() => {
 	init_KeyEventHandler();
 	init_Enchant$2();
 	init_Enchant$1();
-	Enchant = new GUIComponent("Enchant", Enchant_default$1);
+	Enchant = new GUIComponent$1("Enchant", Enchant_default$1);
 	Enchant.render = () => Enchant_default$2;
 	Enchant.captureKeyEvents = true;
 	EnchantState = {
@@ -240596,7 +240596,7 @@ var init_WriteRodex = __esmMin((() => {
 	init_InputBox();
 	init_Rodex$1();
 	init_Inventory();
-	WriteRodex = new GUIComponent("WriteRodex", WriteRodex_default$1);
+	WriteRodex = new GUIComponent$1("WriteRodex", WriteRodex_default$1);
 	WriteRodex.list = [];
 	WriteRodex.receiver = null;
 	WriteRodex.tax = 0;
@@ -240810,7 +240810,7 @@ function _sanitizeHtml$7(str) {
 */
 function createInventory(config) {
 	const { name, htmlText, cssText, defaultHeight, resizableHeight = false, tabSprite = false, favoriteTab = false, equipSwitch = false, enchantGrade = false, inventoryExpansion = false, refineEnchant = false, useHiddenClass = false, hostDropPreventDefault = false, tabDropPreventDefault = false } = config;
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	Component.TAB = {
 		USABLE: 0,
@@ -242074,7 +242074,7 @@ var init_Inventory = __esmMin((() => {
 //#region src/UI/Components/Storage/StorageCommon.js
 function createStorage(config) {
 	const { name, htmlText, cssText, StorageFilter = null, hasFilters = false, hasSearch = false, hasOrderBy = false, asyncDragImage = false } = config;
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	Component.TAB = {
 		ITEM: 0,
@@ -242507,7 +242507,7 @@ function createStorage(config) {
 	Component.reqAddItemFromCart = function reqAddItemFromCart() {};
 	Component.reqRemoveItem = function reqRemoveItem() {};
 	Component.reqMoveItemToCart = function reqMoveItemToCart() {};
-	Component.mouseMode = GUIComponent.MouseMode.STOP;
+	Component.mouseMode = GUIComponent$1.MouseMode.STOP;
 	return UIManager.addComponent(Component);
 }
 var init_StorageCommon = __esmMin((() => {
@@ -242568,7 +242568,7 @@ var init_StorageFilter$1 = __esmMin((() => {
 //#region src/UI/Components/Storage/StorageV3/StorageFilter.js
 function StorageFilter(tabId) {
 	const prefName = "StorageFilter_" + tabId;
-	GUIComponent.call(this, prefName, StorageFilter_default);
+	GUIComponent$1.call(this, prefName, StorageFilter_default);
 	this.render = () => StorageFilter_default$1;
 	this.onRemove = function() {
 		const root = this.getRoot();
@@ -242602,7 +242602,7 @@ var init_StorageFilter = __esmMin((() => {
 	init_ItemInfo();
 	init_StorageFilter$2();
 	init_StorageFilter$1();
-	StorageFilter.prototype = Object.create(GUIComponent.prototype);
+	StorageFilter.prototype = Object.create(GUIComponent$1.prototype);
 	StorageFilter.prototype.constructor = StorageFilter;
 	StorageFilter.prototype.init = function init() {
 		const self = this;
@@ -242811,7 +242811,7 @@ var init_StorageFilter = __esmMin((() => {
 		this._list.push(JSON.parse(JSON.stringify(item)));
 		this.renderItem(item);
 	};
-	StorageFilter.prototype.mouseMode = GUIComponent.MouseMode.STOP;
+	StorageFilter.prototype.mouseMode = GUIComponent$1.MouseMode.STOP;
 }));
 //#endregion
 //#region src/UI/Components/Storage/StorageV3/Storage.html?raw
@@ -243116,7 +243116,7 @@ var init_CartItems = __esmMin((() => {
 	init_Storage$1();
 	init_Inventory();
 	init_Equipment();
-	CartItems = new GUIComponent("CartItems", CartItems_default$1);
+	CartItems = new GUIComponent$1("CartItems", CartItems_default$1);
 	CartItems.render = () => CartItems_default$2;
 	/**
 	* Store inventory items
@@ -243386,7 +243386,7 @@ var init_CartItems = __esmMin((() => {
 		}
 	};
 	CartItems.reqRemoveItem = function reqRemoveItem() {};
-	CartItems.mouseMode = GUIComponent.MouseMode.STOP;
+	CartItems.mouseMode = GUIComponent$1.MouseMode.STOP;
 	CartItems_default = UIManager.addComponent(CartItems);
 }));
 //#endregion
@@ -243429,7 +243429,7 @@ function getSelectorFromLocation$1(location) {
 	return selector.join(", ");
 }
 function createEquipment({ name, htmlText, cssText, entityRender = true, enchantGrade = false, switchEquip = false, titles = false, costumeConfig = false, damageSkin = false, statsDefault = true }) {
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	const _preferences = Preferences$1.get(name, {
 		x: 480,
@@ -244644,7 +244644,7 @@ var init_ItemInfo = __esmMin((() => {
 	init_Entity$1();
 	init_Equipment();
 	init_Inventory();
-	ItemInfo = new GUIComponent("ItemInfo", ItemInfo_default$1);
+	ItemInfo = new GUIComponent$1("ItemInfo", ItemInfo_default$1);
 	ItemInfo.render = () => ItemInfo_default$2;
 	_type$5 = 0;
 	_start$1 = 0;
@@ -244952,12 +244952,12 @@ var init_NpcBox = __esmMin((() => {
 	init_NpcBox$1();
 	init_NpcMenu();
 	init_InputBox();
-	NpcBox = new GUIComponent("NpcBox", NpcBox_default$1);
+	NpcBox = new GUIComponent$1("NpcBox", NpcBox_default$1);
 	NpcBox.render = () => NpcBox_default$2;
 	/**
 	* Freeze mouse — NPC dialog blocks interaction
 	*/
-	NpcBox.mouseMode = GUIComponent.MouseMode.FREEZE;
+	NpcBox.mouseMode = GUIComponent$1.MouseMode.FREEZE;
 	_needCleanUp = false;
 	/**
 	* @var {integer} NPC GID
@@ -245156,7 +245156,7 @@ var init_ChatRoomCreate = __esmMin((() => {
 	init_NpcBox();
 	init_NpcMenu();
 	init_InputBox();
-	ChatRoomCreate = new GUIComponent("ChatRoomCreate", ChatRoomCreate_default$1);
+	ChatRoomCreate = new GUIComponent$1("ChatRoomCreate", ChatRoomCreate_default$1);
 	/**
 	* Render HTML
 	*/
@@ -245313,7 +245313,7 @@ var init_ChatRoomCreate = __esmMin((() => {
 	* Pseudo functions :)
 	*/
 	ChatRoomCreate.requestRoom = function requestRoom() {};
-	ChatRoomCreate.mouseMode = GUIComponent.MouseMode.STOP;
+	ChatRoomCreate.mouseMode = GUIComponent$1.MouseMode.STOP;
 	ChatRoomCreate.captureKeyEvents = true;
 	ChatRoomCreate.needFocus = true;
 	ChatRoomCreate.editMode = false;
@@ -245474,7 +245474,7 @@ var init_ChatRoom$1 = __esmMin((() => {
 	init_NpcBox();
 	init_NpcMenu();
 	init_InputBox();
-	ChatRoom = new GUIComponent("ChatRoom", ChatRoom_default$1);
+	ChatRoom = new GUIComponent$1("ChatRoom", ChatRoom_default$1);
 	/**
 	* Render HTML
 	*/
@@ -245669,7 +245669,7 @@ var init_ChatRoom$1 = __esmMin((() => {
 		ChatRoomCreate_default.prefill(ChatRoom.title, ChatRoom.limit, ChatRoom.type);
 		ChatRoomCreate_default.show();
 	};
-	ChatRoom.mouseMode = GUIComponent.MouseMode.STOP;
+	ChatRoom.mouseMode = GUIComponent$1.MouseMode.STOP;
 	ChatRoom.captureKeyEvents = true;
 	ChatRoom.needFocus = true;
 	ChatRoom_default = UIManager.addComponent(ChatRoom);
@@ -247425,7 +247425,7 @@ var init_ShortCut = __esmMin((() => {
 	init_SkillList();
 	init_ShortCut$2();
 	init_ShortCut$1();
-	ShortCut = new GUIComponent("ShortCut", ShortCut_default$1);
+	ShortCut = new GUIComponent$1("ShortCut", ShortCut_default$1);
 	ShortCut.render = () => ShortCut_default$2;
 	_list$4 = [];
 	_rowCount = 0;
@@ -249173,7 +249173,7 @@ var init_HomunInformations = __esmMin((() => {
 	init_HomunInformations$1();
 	autoFeedIntervalMs = 6e4;
 	autoFeedPercent = 30;
-	HomunInformations = new GUIComponent("HomunInformations", HomunInformations_default$1);
+	HomunInformations = new GUIComponent$1("HomunInformations", HomunInformations_default$1);
 	HomunInformations.render = () => HomunInformations_default$2;
 	HomunInformations.captureKeyEvents = true;
 	_preferences$23 = Preferences$1.get("HomunInformations", {
@@ -249547,7 +249547,7 @@ var init_MercenaryInformations = __esmMin((() => {
 	init_Elements();
 	init_MercenaryInformations$2();
 	init_MercenaryInformations$1();
-	MercenaryInformations = new GUIComponent("MercenaryInformations", MercenaryInformations_default$1);
+	MercenaryInformations = new GUIComponent$1("MercenaryInformations", MercenaryInformations_default$1);
 	MercenaryInformations.render = () => MercenaryInformations_default$2;
 	_preferences$22 = Preferences$1.get("MercenaryInformations", {
 		x: 100,
@@ -249837,7 +249837,7 @@ var init_CaptchaUpload = __esmMin((() => {
 	init_Elements();
 	init_CaptchaUpload$2();
 	init_CaptchaUpload$1();
-	CaptchaUpload = new GUIComponent("CaptchaUpload", CaptchaUpload_default$1);
+	CaptchaUpload = new GUIComponent$1("CaptchaUpload", CaptchaUpload_default$1);
 	_preferences$21 = Preferences$1.get("CaptchaUpload", {
 		x: 230,
 		y: 295
@@ -249969,7 +249969,7 @@ var init_CaptchaSelector = __esmMin((() => {
 	init_Elements();
 	init_CaptchaSelector$2();
 	init_CaptchaSelector$1();
-	CaptchaSelector = new GUIComponent("CaptchaSelector", CaptchaSelector_default$1);
+	CaptchaSelector = new GUIComponent$1("CaptchaSelector", CaptchaSelector_default$1);
 	_preferences$20 = Preferences$1.get("CaptchaSelector", {
 		x: 230,
 		y: 295
@@ -256811,7 +256811,7 @@ var init_EntitySignboard = __esmMin((() => {
 	init_DBManager();
 	init_EntitySignboard$2();
 	init_EntitySignboard$1();
-	EntitySignboard = new GUIComponent("EntitySignboard", EntitySignboard_default$1);
+	EntitySignboard = new GUIComponent$1("EntitySignboard", EntitySignboard_default$1);
 	EntitySignboard.render = () => EntitySignboard_default$2;
 	/**
 	* @var {boolean} do not focus this UI
@@ -256907,7 +256907,7 @@ var init_EntitySignboard = __esmMin((() => {
 	* function to define
 	*/
 	EntitySignboard.onEnter = function onEnter() {};
-	EntitySignboard.mouseMode = GUIComponent.MouseMode.STOP;
+	EntitySignboard.mouseMode = GUIComponent$1.MouseMode.STOP;
 	EntitySignboard_default = UIManager.addComponent(EntitySignboard);
 }));
 //#endregion
@@ -258872,7 +258872,7 @@ var init_JoystickSelectionUI = __esmMin((() => {
 	init_ShortCut();
 	init_JoystickSelectionUI$2();
 	init_JoystickSelectionUI$1();
-	JoystickSelectionUI = new GUIComponent("JoystickSelectionUI", JoystickSelectionUI_default$1);
+	JoystickSelectionUI = new GUIComponent$1("JoystickSelectionUI", JoystickSelectionUI_default$1);
 	JoystickSelectionUI.render = () => JoystickSelectionUI_default$2;
 	currentTab = 0;
 	slotInTab = 0;
@@ -259422,7 +259422,7 @@ var init_JoystickUI = __esmMin((() => {
 	init_JoystickUI$2();
 	init_JoystickUI$1();
 	init_JoystickUIRenderer();
-	JoystickUI = new GUIComponent("JoystickUI", JoystickUI_default$1);
+	JoystickUI = new GUIComponent$1("JoystickUI", JoystickUI_default$1);
 	JoystickUI.render = () => JoystickUI_default$2;
 	JoystickUI.onAppend = function() {
 		JoystickUIRenderer_default.attach(this.ui);
@@ -307038,7 +307038,7 @@ var init_PetInformations = __esmMin((() => {
 	init_PetInformations$1();
 	init_KeyEventHandler();
 	init_PacketVerManager();
-	PetInformations = new GUIComponent("PetInformations", PetInformations_default$1);
+	PetInformations = new GUIComponent$1("PetInformations", PetInformations_default$1);
 	PetInformations.render = () => PetInformations_default$2;
 	PetInformations.captureKeyEvents = true;
 	_preferences$19 = Preferences$1.get("PetInformations", {
@@ -307447,7 +307447,7 @@ var init_Trade$1 = __esmMin((() => {
 	init_InventoryItemTransfer();
 	init_Trade$3();
 	init_Trade$2();
-	Trade = new GUIComponent("Trade", Trade_default$1);
+	Trade = new GUIComponent$1("Trade", Trade_default$1);
 	/**
 	* HTML returned by render()
 	*/
@@ -307642,7 +307642,7 @@ var init_Trade$1 = __esmMin((() => {
 	/**
 	* Set mouse mode
 	*/
-	Trade.mouseMode = GUIComponent.MouseMode.STOP;
+	Trade.mouseMode = GUIComponent$1.MouseMode.STOP;
 	Trade_default = UIManager.addComponent(Trade);
 }));
 //#endregion
@@ -311480,7 +311480,7 @@ var init_EntityRoom$1 = __esmMin((() => {
 	init_GUIComponent();
 	init_EntityRoom$3();
 	init_EntityRoom$2();
-	EntityRoom = new GUIComponent("EntityRoom", EntityRoom_default$1);
+	EntityRoom = new GUIComponent$1("EntityRoom", EntityRoom_default$1);
 	/**
 	* Render HTML
 	*/
@@ -311562,7 +311562,7 @@ var init_EntityRoom$1 = __esmMin((() => {
 	* function to be hooked
 	*/
 	EntityRoom.onEnter = function onEnter() {};
-	EntityRoom.mouseMode = GUIComponent.MouseMode.STOP;
+	EntityRoom.mouseMode = GUIComponent$1.MouseMode.STOP;
 	EntityRoom_default = UIManager.addComponent(EntityRoom);
 }));
 //#endregion
@@ -314322,7 +314322,7 @@ function _ensureDeps() {
 	if (!_depsPromise) _depsPromise = _loadHeavyDeps();
 	return _depsPromise;
 }
-var _Cursor, _DB, _Client, _Renderer, _EntityManager, _ScrollBar, _depsPromise, _snapCache, MouseMode, DENIED_SELECTOR, CSS_NUMBER, GUIComponent;
+var _Cursor, _DB, _Client, _Renderer, _EntityManager, _ScrollBar, _depsPromise, _snapCache, MouseMode, DENIED_SELECTOR, CSS_NUMBER, GUIComponent$1;
 var init_GUIComponent = __esmMin((() => {
 	init_Common$1();
 	init_MouseEventHandler();
@@ -314356,7 +314356,7 @@ var init_GUIComponent = __esmMin((() => {
 		widows: true,
 		zoom: true
 	};
-	GUIComponent = class GUIComponent {
+	GUIComponent$1 = class GUIComponent$1 {
 		/**
 		* @param {string} name       - Unique component name
 		* @param {string} [cssText]  - CSS content (injected into Shadow DOM)
@@ -314556,7 +314556,7 @@ var init_GUIComponent = __esmMin((() => {
 		* @returns {GUIComponent}
 		*/
 		clone(name, full) {
-			const cloned = new GUIComponent(name, this._cssText);
+			const cloned = new GUIComponent$1(name, this._cssText);
 			if (this.render) cloned.render = this.render;
 			cloned.mouseMode = this.mouseMode;
 			cloned.needFocus = this.needFocus;
@@ -314866,7 +314866,7 @@ var init_GUIComponent = __esmMin((() => {
 		}
 		_setupMouseMode() {
 			const element = this.__mouseStopBlock || this._host;
-			if (this.mouseMode === GUIComponent.MouseMode.STOP) {
+			if (this.mouseMode === GUIComponent$1.MouseMode.STOP) {
 				let _intersect;
 				let _enter = 0;
 				element.addEventListener("mouseenter", () => {
@@ -314907,7 +314907,7 @@ var init_GUIComponent = __esmMin((() => {
 					}
 				});
 			}
-			if (this.mouseMode !== GUIComponent.MouseMode.CROSS) element.addEventListener("touchstart", (e) => e.stopImmediatePropagation());
+			if (this.mouseMode !== GUIComponent$1.MouseMode.CROSS) element.addEventListener("touchstart", (e) => e.stopImmediatePropagation());
 			this._setupShadowCursorEvents();
 		}
 		_setupScrollbars() {
@@ -314962,7 +314962,7 @@ var init_GUIComponent = __esmMin((() => {
 		*/
 		static processDataAttrs(node) {
 			if (!_Client || !_DB) {
-				_ensureDeps().then(() => GUIComponent.processDataAttrs(node));
+				_ensureDeps().then(() => GUIComponent$1.processDataAttrs(node));
 				return;
 			}
 			const background = node.dataset.background;
@@ -315067,7 +315067,7 @@ var init_GUIComponent = __esmMin((() => {
 			const root = this._shadow || this._host;
 			if (!root) return;
 			const nodes = root.querySelectorAll("[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]");
-			for (const node of nodes) GUIComponent.processDataAttrs(node);
+			for (const node of nodes) GUIComponent$1.processDataAttrs(node);
 		}
 		/**
 		* Compatibility shim for UIComponent.parseHTML.
@@ -315076,7 +315076,7 @@ var init_GUIComponent = __esmMin((() => {
 		*/
 		get parseHTML() {
 			return function() {
-				GUIComponent.processDataAttrs(this);
+				GUIComponent$1.processDataAttrs(this);
 			};
 		}
 		reloadCSS(newCssText) {
@@ -315280,7 +315280,7 @@ function _createButton(name, onClick) {
 		clicked = true;
 		onClick();
 	});
-	GUIComponent.processDataAttrs(btn);
+	GUIComponent$1.processDataAttrs(btn);
 	return btn;
 }
 /**
@@ -315349,7 +315349,7 @@ var init_UIManager = __esmMin((() => {
 		* @param {GUIComponent} component object
 		*/
 		static addComponent(component) {
-			if (!(component instanceof GUIComponent)) throw new Error("UIManager::addComponent() - Invalid type of component");
+			if (!(component instanceof GUIComponent$1)) throw new Error("UIManager::addComponent() - Invalid type of component");
 			component.manager = this;
 			this.components[component.name] = component;
 			return component;
@@ -315494,7 +315494,7 @@ var init_UIManager = __esmMin((() => {
 		* @param {string} newCssText
 		*/
 		static reloadCSS(componentName, newCssText) {
-			GUIComponent.reloadCSS(componentName, newCssText);
+			GUIComponent$1.reloadCSS(componentName, newCssText);
 		}
 	};
 }));
@@ -316501,12 +316501,12 @@ var init_StatusIcons = __esmMin((() => {
 	init_SessionStorage();
 	init_StatusIcons$2();
 	init_StatusIcons$1();
-	StatusIcons = new GUIComponent("StatusIcons", StatusIcons_default$1);
+	StatusIcons = new GUIComponent$1("StatusIcons", StatusIcons_default$1);
 	StatusIcons.render = () => StatusIcons_default$2;
 	/**
 	* Mouse can cross this UI
 	*/
-	StatusIcons.mouseMode = GUIComponent.MouseMode.CROSS;
+	StatusIcons.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	/**
 	* @var {boolean} do not focus this UI
 	*/
@@ -317426,7 +317426,7 @@ var init_MobileUI = __esmMin((() => {
 	rotate = mat2.create();
 	targetPos = [0, 0];
 	movementTimer = null;
-	MobileUI = new GUIComponent("MobileUI", MobileUI_default$1);
+	MobileUI = new GUIComponent$1("MobileUI", MobileUI_default$1);
 	MobileUI.render = () => MobileUI_default$2;
 	MobileUI.needFocus = false;
 	_preferences$17 = Preferences$1.get("MobileUI", {
@@ -319997,7 +319997,7 @@ var init_VendingModelMessage = __esmMin((() => {
 	init_GUIComponent();
 	init_VendingModelMessage$2();
 	init_VendingModelMessage$1();
-	VendingModelMessage = new GUIComponent("VendingModelMessage", VendingModelMessage_default$1);
+	VendingModelMessage = new GUIComponent$1("VendingModelMessage", VendingModelMessage_default$1);
 	VendingModelMessage.render = () => VendingModelMessage_default$2;
 	/**
 	* Initialize UI
@@ -320306,7 +320306,7 @@ var init_Vending = __esmMin((() => {
 	init_Renderer();
 	init_Inventory();
 	init_BasicInfo();
-	Vending = new GUIComponent("Vending", Vending_default$1);
+	Vending = new GUIComponent$1("Vending", Vending_default$1);
 	Vending.render = () => Vending_default$2;
 	Vending.isOpen = false;
 	Vending.Type = {
@@ -320610,7 +320610,7 @@ var init_Vending = __esmMin((() => {
 		}
 		this.onRemove();
 	};
-	Vending.mouseMode = GUIComponent.MouseMode.STOP;
+	Vending.mouseMode = GUIComponent$1.MouseMode.STOP;
 	Vending_default = UIManager.addComponent(Vending);
 }));
 //#endregion
@@ -320761,7 +320761,7 @@ var init_VendingShop = __esmMin((() => {
 	init_VendingShop$2();
 	init_VendingShop$1();
 	init_VendingReport();
-	VendingShop = new GUIComponent("VendingShop", VendingShop_default$1);
+	VendingShop = new GUIComponent$1("VendingShop", VendingShop_default$1);
 	VendingShop.render = () => VendingShop_default$2;
 	/**
 	* @var {enum} Store type
@@ -321026,7 +321026,7 @@ var init_VendingShop = __esmMin((() => {
 		this.onRemove();
 		if (_type$2 === VendingShop.Type.VENDING_LIST && PacketVerManager_default.value >= 20141016) VendingReport_default.append();
 	};
-	VendingShop.mouseMode = GUIComponent.MouseMode.STOP;
+	VendingShop.mouseMode = GUIComponent$1.MouseMode.STOP;
 	VendingShop_default = UIManager.addComponent(VendingShop);
 }));
 //#endregion
@@ -321169,7 +321169,7 @@ var init_VendingReport = __esmMin((() => {
 	init_Elements();
 	init_VendingReport$2();
 	init_VendingReport$1();
-	VendingReport = new GUIComponent("VendingReport", VendingReport_default$1);
+	VendingReport = new GUIComponent$1("VendingReport", VendingReport_default$1);
 	VendingReportTable = {
 		list: [],
 		_nextIndex: 0
@@ -321454,7 +321454,7 @@ var init_ChangeCart = __esmMin((() => {
 	init_ChangeCart$2();
 	init_ChangeCart$1();
 	CART_LIMIT = 13;
-	ChangeCart = new GUIComponent("ChangeCart", ChangeCart_default$1);
+	ChangeCart = new GUIComponent$1("ChangeCart", ChangeCart_default$1);
 	/**
 	* Render HTML
 	*/
@@ -321525,7 +321525,7 @@ var init_ChangeCart = __esmMin((() => {
 		}
 		return true;
 	};
-	ChangeCart.mouseMode = GUIComponent.MouseMode.STOP;
+	ChangeCart.mouseMode = GUIComponent$1.MouseMode.STOP;
 	ChangeCart_default = UIManager.addComponent(ChangeCart);
 }));
 //#endregion
@@ -321613,7 +321613,7 @@ var init_CartDecoration = __esmMin((() => {
 	init_DBManager();
 	init_CartDecoration$2();
 	init_CartDecoration$1();
-	CartDecoration = new GUIComponent("CartDecoration", CartDecoration_default$1);
+	CartDecoration = new GUIComponent$1("CartDecoration", CartDecoration_default$1);
 	/**
 	* Render HTML
 	*/
@@ -321683,7 +321683,7 @@ var init_CartDecoration = __esmMin((() => {
 			Renderer.stop(render$2);
 		}
 	};
-	CartDecoration.mouseMode = GUIComponent.MouseMode.STOP;
+	CartDecoration.mouseMode = GUIComponent$1.MouseMode.STOP;
 	CartDecoration_default = UIManager.addComponent(CartDecoration);
 }));
 //#endregion
@@ -321780,7 +321780,7 @@ var init_Emoticons = __esmMin((() => {
 	init_Emoticons$2();
 	init_Emoticons$1();
 	init_ShortCuts();
-	Emoticons = new GUIComponent("Emoticons", Emoticons_default$1);
+	Emoticons = new GUIComponent$1("Emoticons", Emoticons_default$1);
 	/**
 	* Render HTML
 	*/
@@ -321886,7 +321886,7 @@ var init_Emoticons = __esmMin((() => {
 			} else this._host.style.display = "none";
 		}
 	};
-	Emoticons.mouseMode = GUIComponent.MouseMode.STOP;
+	Emoticons.mouseMode = GUIComponent$1.MouseMode.STOP;
 	Emoticons_default = UIManager.addComponent(Emoticons);
 }));
 //#endregion
@@ -321973,7 +321973,7 @@ var init_ShortCuts = __esmMin((() => {
 	init_PacketStructure();
 	init_ProcessCommand();
 	init_KeyEventHandler();
-	ShortCuts = new GUIComponent("ShortCuts", ShortCuts_default$1);
+	ShortCuts = new GUIComponent$1("ShortCuts", ShortCuts_default$1);
 	ShortCuts.render = () => ShortCuts_default$2;
 	_MACRO_INIT = Preferences$1.get("_MACRO_CMD", {
 		Num_1: "/hide",
@@ -322210,8 +322210,8 @@ function _root$6() {
 */
 function _processContent(container) {
 	const selector = "[data-background],[data-hover],[data-down],[data-active],[data-text],[data-preload]";
-	if (container.matches && container.matches(selector)) GUIComponent.processDataAttrs(container);
-	container.querySelectorAll(selector).forEach((node) => GUIComponent.processDataAttrs(node));
+	if (container.matches && container.matches(selector)) GUIComponent$1.processDataAttrs(container);
+	container.querySelectorAll(selector).forEach((node) => GUIComponent$1.processDataAttrs(node));
 }
 function onClickPagination(target) {
 	const root = _root$6();
@@ -322575,7 +322575,7 @@ var init_CashShop$1 = __esmMin((() => {
 	init_Elements();
 	init_CashShop$3();
 	init_CashShop$2();
-	CashShop = new GUIComponent("CashShop", CashShop_default$1);
+	CashShop = new GUIComponent$1("CashShop", CashShop_default$1);
 	/**
 	* Store cash shop items
 	*/
@@ -323436,7 +323436,7 @@ var init_ItemReform = __esmMin((() => {
 	init_ItemReform$2();
 	init_ItemReform$1();
 	init_PacketStructure();
-	ItemReform = new GUIComponent("ItemReform", ItemReform_default$1);
+	ItemReform = new GUIComponent$1("ItemReform", ItemReform_default$1);
 	/**
 	* Render HTML
 	*/
@@ -324031,7 +324031,7 @@ var init_LaphineSys = __esmMin((() => {
 	init_LaphineSys$2();
 	init_LaphineSys$1();
 	init_PacketStructure();
-	LaphineSys = new GUIComponent("LaphineSys", LaphineSys_default$1);
+	LaphineSys = new GUIComponent$1("LaphineSys", LaphineSys_default$1);
 	LaphineUIState = {
 		itemId: null,
 		needCount: null,
@@ -324600,7 +324600,7 @@ var init_LaphineUpg = __esmMin((() => {
 	init_LaphineUpg$2();
 	init_LaphineUpg$1();
 	init_PacketStructure();
-	LaphineUpg = new GUIComponent("LaphineUpg", LaphineUpg_default$1);
+	LaphineUpg = new GUIComponent$1("LaphineUpg", LaphineUpg_default$1);
 	LaphineUpgUIState = {
 		itemId: null,
 		needRefineMin: null,
@@ -324775,7 +324775,7 @@ var init_RodexIcon = __esmMin((() => {
 	init_RodexIcon$2();
 	init_RodexIcon$1();
 	init_Rodex$1();
-	RodexIcon = new GUIComponent("RodexIcon", RodexIcon_default$1);
+	RodexIcon = new GUIComponent$1("RodexIcon", RodexIcon_default$1);
 	/**
 	* Render HTML
 	*/
@@ -324864,7 +324864,7 @@ var init_Roulette$1 = __esmMin((() => {
 	init_PacketVerManager();
 	init_Roulette$3();
 	init_Roulette$2();
-	Roulette = new GUIComponent("Roulette", Roulette_default$1);
+	Roulette = new GUIComponent$1("Roulette", Roulette_default$1);
 	/**
 	* Render HTML
 	*/
@@ -325119,7 +325119,7 @@ var init_PCGoldTimer$1 = __esmMin((() => {
 		playedTime: 0,
 		backgroundImage: "mileage_bg1.bmp"
 	};
-	PCGoldTimer = new GUIComponent("PCGoldTimer", PCGoldTimer_default$1);
+	PCGoldTimer = new GUIComponent$1("PCGoldTimer", PCGoldTimer_default$1);
 	PCGoldTimer.render = () => PCGoldTimer_default$2;
 	/**
 	* Initialize component and bind click event
@@ -325215,12 +325215,12 @@ var init_MapName = __esmMin((() => {
 	init_MapName$1();
 	init_Client();
 	init_Events();
-	MapName = new GUIComponent("MapName", MapName_default$1);
+	MapName = new GUIComponent$1("MapName", MapName_default$1);
 	MapName.render = () => MapName_default$2;
 	/**
 	* Mouse can cross this UI
 	*/
-	MapName.mouseMode = GUIComponent.MouseMode.CROSS;
+	MapName.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	_mapinfo = [];
 	_currMap = "";
 	_prevMap = "";
@@ -325318,7 +325318,7 @@ var init_CaptchaAnswer = __esmMin((() => {
 	init_Elements();
 	init_CaptchaAnswer$2();
 	init_CaptchaAnswer$1();
-	CaptchaAnswer = new GUIComponent("CaptchaAnswer", CaptchaAnswer_default$1);
+	CaptchaAnswer = new GUIComponent$1("CaptchaAnswer", CaptchaAnswer_default$1);
 	_preferences$9 = Preferences$1.get("CaptchaAnswer", {
 		x: 230,
 		y: 295
@@ -325451,7 +325451,7 @@ var init_CaptchaPreview = __esmMin((() => {
 	init_Elements();
 	init_CaptchaPreview$2();
 	init_CaptchaPreview$1();
-	CaptchaPreview = new GUIComponent("CaptchaPreview", CaptchaPreview_default$1);
+	CaptchaPreview = new GUIComponent$1("CaptchaPreview", CaptchaPreview_default$1);
 	_preferences$8 = Preferences$1.get("CaptchaPreview", {
 		x: 230,
 		y: 295
@@ -325524,7 +325524,7 @@ var init_Clan$1 = __esmMin((() => {
 	init_UIManager();
 	init_Clan$3();
 	init_Clan$2();
-	Clan = new GUIComponent("Clan", Clan_default$1);
+	Clan = new GUIComponent$1("Clan", Clan_default$1);
 	_preferences$7 = Preferences$1.get("Clan", {
 		x: 150,
 		y: 150
@@ -325626,7 +325626,7 @@ var init_Clan$1 = __esmMin((() => {
 		SessionStorage_default.hasClan = false;
 		this.ui.hide();
 	};
-	Clan.mouseMode = GUIComponent.MouseMode.STOP;
+	Clan.mouseMode = GUIComponent$1.MouseMode.STOP;
 	Clan_default = UIManager.addComponent(Clan);
 }));
 //#endregion
@@ -325785,9 +325785,9 @@ var init_PvPTimer = __esmMin((() => {
 	init_Entity$1();
 	init_PvPTimer$2();
 	init_PvPTimer$1();
-	PvPTimer = new GUIComponent("PvPTimer", PvPTimer_default$1);
+	PvPTimer = new GUIComponent$1("PvPTimer", PvPTimer_default$1);
 	PvPTimer.render = () => PvPTimer_default$2;
-	PvPTimer.mouseMode = GUIComponent.MouseMode.CROSS;
+	PvPTimer.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	PvPTimer.needFocus = false;
 	TIMER_W = 300;
 	TIMER_H = 110;
@@ -325935,9 +325935,9 @@ var init_PvPCount = __esmMin((() => {
 	init_SoundManager();
 	init_PvPCount$2();
 	init_PvPCount$1();
-	PvPCount = new GUIComponent("PvPCount", PvPCount_default$1);
+	PvPCount = new GUIComponent$1("PvPCount", PvPCount_default$1);
 	PvPCount.render = () => PvPCount_default$2;
-	PvPCount.mouseMode = GUIComponent.MouseMode.CROSS;
+	PvPCount.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	PvPCount.needFocus = false;
 	RANK_W = 240;
 	RANK_H = 96;
@@ -326153,7 +326153,7 @@ function getSelectorFromLocation(location) {
 * @param {string|null} config.costumeTableBg - Costume table background image path
 */
 function createPlayerViewEquip({ name, cssText, hasTabs, costumeRows, costumeTableBg }) {
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => generateHTML(hasTabs, costumeRows, costumeTableBg);
 	const _preferences = Preferences$1.get(name, {
 		x: 480,
@@ -326585,7 +326585,7 @@ var init_CashShopIcon = __esmMin((() => {
 	init_Elements();
 	init_CashShopIcon$2();
 	init_CashShopIcon$1();
-	CashShopIcon = new GUIComponent("CashShopIcon", CashShopIcon_default$1);
+	CashShopIcon = new GUIComponent$1("CashShopIcon", CashShopIcon_default$1);
 	CashShopIcon.render = () => CashShopIcon_default$2;
 	/**
 	* One-time setup — bind events here (runs once during prepare)
@@ -326598,7 +326598,7 @@ var init_CashShopIcon = __esmMin((() => {
 		}
 	};
 	CashShopIcon.needFocus = false;
-	CashShopIcon.mouseMode = GUIComponent.MouseMode.CROSS;
+	CashShopIcon.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	CashShopIcon_default = UIManager.addComponent(CashShopIcon);
 }));
 //#endregion
@@ -327644,7 +327644,7 @@ var init_WinPopup = __esmMin((() => {
 	init_Elements();
 	init_WinPopup$2();
 	init_WinPopup$1();
-	WinPopup = new GUIComponent("WinPopup", WinPopup_default$1);
+	WinPopup = new GUIComponent$1("WinPopup", WinPopup_default$1);
 	WinPopup.render = () => WinPopup_default$2;
 	/**
 	* Initialize popup
@@ -327657,7 +327657,7 @@ var init_WinPopup = __esmMin((() => {
 		});
 	};
 	WinPopup.needFocus = true;
-	WinPopup.mouseMode = GUIComponent.MouseMode.FREEZE;
+	WinPopup.mouseMode = GUIComponent$1.MouseMode.FREEZE;
 	WinPopup_default = UIManager.addComponent(WinPopup);
 }));
 //#endregion
@@ -327788,7 +327788,7 @@ function onDealSelection(pkt) {
 			btn.dataset.hover = "btn_" + name + "_a.bmp";
 			btn.dataset.down = "btn_" + name + "_b.bmp";
 			btn.addEventListener("click", onClick, { once: true });
-			GUIComponent.processDataAttrs(btn);
+			GUIComponent$1.processDataAttrs(btn);
 			return btn;
 		};
 		btns.appendChild(createBtn("buy", function() {
@@ -330569,12 +330569,12 @@ var init_ItemObtain = __esmMin((() => {
 	init_GUIComponent();
 	init_ItemObtain$2();
 	init_ItemObtain$1();
-	ItemObtain = new GUIComponent("ItemObtain", ItemObtain_default$1);
+	ItemObtain = new GUIComponent$1("ItemObtain", ItemObtain_default$1);
 	ItemObtain.render = () => ItemObtain_default$2;
 	/**
 	* Mouse can cross this UI
 	*/
-	ItemObtain.mouseMode = GUIComponent.MouseMode.CROSS;
+	ItemObtain.mouseMode = GUIComponent$1.MouseMode.CROSS;
 	/**
 	* @var {boolean} do not focus this UI
 	*/
@@ -330696,7 +330696,7 @@ var init_ItemSelection = __esmMin((() => {
 	init_Elements();
 	init_ItemSelection$2();
 	init_ItemSelection$1();
-	ItemSelection = new GUIComponent("ItemSelection", ItemSelection_default$1);
+	ItemSelection = new GUIComponent$1("ItemSelection", ItemSelection_default$1);
 	ItemSelection.render = () => ItemSelection_default$2;
 	/**
 	* Initialize UI
@@ -330907,7 +330907,7 @@ var init_MakeItemSelection = __esmMin((() => {
 	init_Elements();
 	init_MakeItemSelection$2();
 	init_MakeItemSelection$1();
-	MakeItemSelection = new GUIComponent("MakeItemSelection", MakeItemSelection_default$1);
+	MakeItemSelection = new GUIComponent$1("MakeItemSelection", MakeItemSelection_default$1);
 	MakeItemSelection.render = () => MakeItemSelection_default$2;
 	validMultipleMaterials = [1e3];
 	validSingleMaterials = [
@@ -331131,7 +331131,7 @@ var init_MakeModelMessage = __esmMin((() => {
 	init_MakeModelMessage$2();
 	init_MakeModelMessage$1();
 	init_ConvertItems();
-	MakeModelMessage = new GUIComponent("MakeModelMessage", MakeModelMessage_default$1);
+	MakeModelMessage = new GUIComponent$1("MakeModelMessage", MakeModelMessage_default$1);
 	MakeModelMessage.render = () => MakeModelMessage_default$2;
 	/**
 	* Initialize UI
@@ -331358,7 +331358,7 @@ var init_ConvertItems = __esmMin((() => {
 		y: 500,
 		height: 8
 	}, 1);
-	ConvertItems = new GUIComponent("ConvertItems", ConvertItems_default$1);
+	ConvertItems = new GUIComponent$1("ConvertItems", ConvertItems_default$1);
 	ConvertItems.render = () => ConvertItems_default$2;
 	/**
 	* Store Convert Items items
@@ -331734,7 +331734,7 @@ var init_ItemListWindowSelection = __esmMin((() => {
 		height: 8,
 		select_all: false
 	}, 1);
-	ItemListWindowSelection = new GUIComponent("ItemListWindowSelection", ItemListWindowSelection_default$1);
+	ItemListWindowSelection = new GUIComponent$1("ItemListWindowSelection", ItemListWindowSelection_default$1);
 	ItemListWindowSelection.render = () => ItemListWindowSelection_default$2;
 	/**
 	* Store Convert Items items
@@ -332657,7 +332657,7 @@ var init_ReadMail = __esmMin((() => {
 	init_Mail$1();
 	init_ReadMail$2();
 	init_ReadMail$1();
-	ReadMail = new GUIComponent("ReadMail", ReadMail_default$1);
+	ReadMail = new GUIComponent$1("ReadMail", ReadMail_default$1);
 	/**
 	* Store ReadMail items
 	*/
@@ -333278,7 +333278,7 @@ var init_MakeArrowSelection = __esmMin((() => {
 	init_Elements();
 	init_MakeArrowSelection$2();
 	init_MakeArrowSelection$1();
-	MakeArrowSelection = new GUIComponent("MakeArrowSelection", MakeArrowSelection_default$1);
+	MakeArrowSelection = new GUIComponent$1("MakeArrowSelection", MakeArrowSelection_default$1);
 	MakeArrowSelection.render = () => MakeArrowSelection_default$2;
 	/**
 	* Initialize UI
@@ -333431,7 +333431,7 @@ var init_RefineWeaponSelection = __esmMin((() => {
 	init_Elements();
 	init_RefineWeaponSelection$2();
 	init_RefineWeaponSelection$1();
-	RefineWeaponSelection = new GUIComponent("RefineWeaponSelection", RefineWeaponSelection_default$1);
+	RefineWeaponSelection = new GUIComponent$1("RefineWeaponSelection", RefineWeaponSelection_default$1);
 	RefineWeaponSelection.render = () => RefineWeaponSelection_default$2;
 	/**
 	* Initialize UI
@@ -333571,7 +333571,7 @@ var init_Sense = __esmMin((() => {
 	init_GUIComponent();
 	init_Sense$2();
 	init_Sense$1();
-	Sense = new GUIComponent("Sense", Sense_default$1);
+	Sense = new GUIComponent$1("Sense", Sense_default$1);
 	Sense.render = () => Sense_default$2;
 	Elements = [];
 	Sizes = [];
@@ -334654,7 +334654,7 @@ var init_SlotMachine = __esmMin((() => {
 	init_SpriteRenderer();
 	init_SlotMachine$2();
 	init_SlotMachine$1();
-	SlotMachine = new GUIComponent("SlotMachine", SlotMachine_default$1);
+	SlotMachine = new GUIComponent$1("SlotMachine", SlotMachine_default$1);
 	SlotMachine.render = () => SlotMachine_default$2;
 	_type$1 = 0;
 	_result = false;
@@ -334754,7 +334754,7 @@ var init_SlotMachine = __esmMin((() => {
 	* Functions defined in Engine/MapEngine/Pet.js
 	*/
 	SlotMachine.onTry = function onTry() {};
-	SlotMachine.mouseMode = GUIComponent.MouseMode.STOP;
+	SlotMachine.mouseMode = GUIComponent$1.MouseMode.STOP;
 	SlotMachine_default = UIManager.addComponent(SlotMachine);
 }));
 //#endregion
@@ -334849,7 +334849,7 @@ var init_PetEvolution = __esmMin((() => {
 	init_ItemInfo();
 	init_PetEvolution$2();
 	init_PetEvolution$1();
-	PetEvolution = new GUIComponent("PetEvolution", PetEvolution_default$1);
+	PetEvolution = new GUIComponent$1("PetEvolution", PetEvolution_default$1);
 	PetEvolution.render = () => PetEvolution_default$2;
 	currentMaterials = [];
 	targetEvoPetEggId = 0;
@@ -336044,7 +336044,7 @@ var init_NpcStore = __esmMin((() => {
 	init_InventoryItemTransfer();
 	init_NpcStore$2();
 	init_NpcStore$1();
-	NpcStore = new GUIComponent("NpcStore", NpcStore_default$1);
+	NpcStore = new GUIComponent$1("NpcStore", NpcStore_default$1);
 	NpcStore.render = () => NpcStore_default$2;
 	/**
 	* @let {enum} Store type
@@ -336062,7 +336062,7 @@ var init_NpcStore = __esmMin((() => {
 	/**
 	* Freeze the mouse
 	*/
-	NpcStore.mouseMode = GUIComponent.MouseMode.FREEZE;
+	NpcStore.mouseMode = GUIComponent$1.MouseMode.FREEZE;
 	initialPreferences = {
 		[NpcStore.Type.BARTER_MARKET_EXTENDED]: {
 			inputWindow: {
@@ -337519,7 +337519,7 @@ var init_ReadRodex = __esmMin((() => {
 	init_ReadRodex$2();
 	init_ReadRodex$1();
 	init_Rodex$1();
-	ReadRodex = new GUIComponent("ReadRodex", ReadRodex_default$1);
+	ReadRodex = new GUIComponent$1("ReadRodex", ReadRodex_default$1);
 	ReadRodex.MailID = 0;
 	ReadRodex.openType = 0;
 	_preferences$1 = Preferences$1.get("ReadRodex", { show: false }, 1);
@@ -339750,7 +339750,7 @@ var init_PincodeWindow = __esmMin((() => {
 	init_PincodeWindow$2();
 	init_PincodeWindow$1();
 	init_Elements();
-	PincodeWindow = new GUIComponent("PincodeWindow", PincodeWindow_default$1);
+	PincodeWindow = new GUIComponent$1("PincodeWindow", PincodeWindow_default$1);
 	/**
 	* Render HTML
 	*/
@@ -340039,7 +340039,7 @@ var init_PincodeWindow = __esmMin((() => {
 	PincodeWindow.onUserPincodeResetReq = function onUserPincodeResetReq() {
 		console.error("ERROR: PincodeWindow.onUserPincodeResetReq() not defined.");
 	};
-	PincodeWindow.mouseMode = GUIComponent.MouseMode.STOP;
+	PincodeWindow.mouseMode = GUIComponent$1.MouseMode.STOP;
 	PincodeWindow.needFocus = true;
 	PincodeWindow_default = UIManager.addComponent(PincodeWindow);
 }));
@@ -340059,7 +340059,7 @@ var init_CharSelect$2 = __esmMin((() => {
 //#region src/UI/Components/CharSelect/CharSelectCommon.js
 function createCharSelect(config) {
 	const { name, htmlText, cssText, gridLayout = false, hostHeight = 342, defaultMaxSlots = 27, deleteReservation = false, packetverGatedDelete = false, pageBalls = false } = config;
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	/**
 	* @var {Preferences} save where the cursor position is
@@ -341183,7 +341183,7 @@ var init_CharCreate$2 = __esmMin((() => {
 //#region src/UI/Components/CharCreate/CharCreateCommon.js
 function createCharCreate(config) {
 	const { name, htmlText, cssText, hostHeight = 342, hostWidth = 576, hasStats = false, hasRace = false, gridHairstyle = false, chargenCanvasSelector = ".content canvas", graphCanvasSelector = ".graph canvas", statButtonsSelector = ".graph ui-button", hairArrows = [], humanCanvasSelector = "#canvas_human", doramCanvasSelector = "#canvas_doram", modelCanvasSelector = "#canvas_model", nameInputSelector = "input", nameInputEvent = "mousedown", cancelSelectors = [".cancel"], makeSelector = ".make" } = config;
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	/**
 	* @var {number} account sex
@@ -342746,7 +342746,7 @@ var init_WinList = __esmMin((() => {
 	init_Elements();
 	init_WinList$2();
 	init_WinList$1();
-	WinList = new GUIComponent("WinList", WinList_default$1);
+	WinList = new GUIComponent$1("WinList", WinList_default$1);
 	WinList.render = () => WinList_default$2;
 	/**
 	* Initialize UI
@@ -342846,7 +342846,7 @@ var init_WinList = __esmMin((() => {
 		this.list = null;
 		this.index = 0;
 	};
-	WinList.mouseMode = GUIComponent.MouseMode.STOP;
+	WinList.mouseMode = GUIComponent$1.MouseMode.STOP;
 	WinList_default = UIManager.addComponent(WinList);
 }));
 //#endregion
@@ -347049,7 +347049,7 @@ var init_ReplayPlayer = __esmMin((() => {
 //#endregion
 //#region src/UI/Components/WinLogin/WinLoginCommon.js
 function createWinLogin({ name, htmlText, cssText }) {
-	const Component = new GUIComponent(name, cssText);
+	const Component = new GUIComponent$1(name, cssText);
 	Component.render = () => htmlText;
 	Component.needFocus = false;
 	const _preferences = Preferences$1.get("WinLogin", {
@@ -348555,7 +348555,7 @@ var init_Intro = __esmMin((() => {
 	init_Preferences();
 	init_FileSystem();
 	init_PreLoader();
-	Intro = new GUIComponent("Intro", Intro_default$1);
+	Intro = new GUIComponent$1("Intro", Intro_default$1);
 	Intro.render = () => Intro_default$2;
 	/**
 	* @var {FileList}
@@ -349051,11 +349051,69 @@ init_EntityManager();
 var ENGINE = {
 	PACKET: PACKET$1,
 	ChatBox: ChatBox_default,
-	UIComponent: GUIComponent,
+	UIComponent: GUIComponent$1,
 	Preferences: Preferences$1,
 	Commands: ProcessCommand_default,
 	EntityManager: EntityManager$1
 };
+//#endregion
+//#region src/Plugins/native-manager/legacy-ui-component.js
+init_GUIComponent();
+var BASES = /* #__PURE__ */ Object.assign({ "../../UI/GUIComponent.js": GUIComponent$1 });
+var PLACEMENT = [
+	"top",
+	"right",
+	"bottom",
+	"left"
+];
+/**
+* Move a page-positioned root's position onto the host, measured against the
+* box the old class laid it out in (the page).
+*
+* @param {HTMLElement} host
+* @param {HTMLElement} el - rendered root, inside the host's shadow root
+*/
+function hostPosition(host, el) {
+	document.body.appendChild(host);
+	const position = getComputedStyle(el).position;
+	if (position !== "absolute" && position !== "fixed") return;
+	host.style.inset = "0";
+	const rect = el.getBoundingClientRect();
+	host.style.inset = "";
+	host.style.left = rect.left + "px";
+	host.style.top = rect.top + "px";
+	el.style.setProperty("position", "relative", "important");
+	for (const side of PLACEMENT) el.style.setProperty(side, "auto", "important");
+}
+/**
+* @param {typeof import('UI/GUIComponent.js').default} GUIComponent
+*/
+function adapt(GUIComponent) {
+	return class LegacyUIComponent extends GUIComponent {
+		/**
+		* @param {string} name
+		* @param {string} [html]
+		* @param {string} [css]
+		*/
+		constructor(name, html, css) {
+			super(name, css);
+			this._html = html || "";
+		}
+		render() {
+			return this._html;
+		}
+		_createUIProxy() {
+			super._createUIProxy();
+			const el = this._container.firstElementChild;
+			if (!el) return;
+			this.ui[0] = el;
+			hostPosition(this._host, el);
+		}
+	};
+}
+var UIComponent$1 = BASES["../../UI/UIComponent.js"];
+var GUIComponent = BASES["../../UI/GUIComponent.js"];
+var legacy_ui_component_default = UIComponent$1 || GUIComponent && adapt(GUIComponent);
 //#endregion
 //#region src/Plugins/native-manager/libs/plugin-api.js
 /**
@@ -349065,34 +349123,104 @@ var ENGINE = {
 * re-resolved each native module from an ambient global bag on every access.
 * The native host controls boot order and holds the real modules statically,
 * so here the surface is **direct module references** — no proxies, no ambient
-* globals.
+* globals. Every module below is already part of the engine's own import
+* graph, so importing it here adds nothing to the boot.
 *
-* Two groups:
-*   1. **Resolved** — the 6 engine modules (from the ENGINE map) + 5 extra real
-*      modules the libs need (Network, Session, Background, UIManager,
-*      PacketLength). These are the live module objects.
-*   2. **Declared-undefined** — the remaining names from the v3 surface that
-*      aren't wired natively yet. They are exported as `undefined` so a lib
-*      doing `import { StatusInfo } from './plugin-api.js'` links without a
-*      throw (the name exists, its value is `undefined`). The no-crash
-*      contract: absent capability → `undefined`, never an exception.
+* `UIComponent` is GUIComponent (the shadow-DOM base class). `PluginManager`
+* has no native module and stays `undefined` — the no-crash contract: absent
+* capability → `undefined`, never an exception.
 *
 * The libs consume this by relative import (`./plugin-api.js`) so the core
 * stays free of ambient-global specifiers.
 */
+var plugin_api_exports = /* @__PURE__ */ __exportAll({
+	AIDriver: () => AIDriver,
+	Altitude: () => Altitude,
+	BGM: () => BGM,
+	Background: () => Background,
+	Camera: () => Camera,
+	ChatBox: () => ChatBox,
+	Client: () => Client,
+	Commands: () => Commands,
+	Configs: () => Configs,
+	DB: () => DB,
+	EffectManager: () => EffectManager,
+	EffectTable: () => EffectTable_default,
+	EntityManager: () => EntityManager,
+	ItemInfo: () => ItemInfo_default,
+	MapRenderer: () => MapRenderer,
+	MiniMap: () => Controller$5,
+	Network: () => Network,
+	PACKET: () => PACKET,
+	PacketLength: () => PacketLength_default,
+	PathFinding: () => PathFinding_default,
+	PluginManager: () => void 0,
+	Preferences: () => Preferences,
+	Session: () => SessionStorage_default,
+	ShortCut: () => ShortCut_default,
+	SkillAction: () => SkillAction,
+	SkillConst: () => SkillConst_default,
+	SkillDescription: () => SkillDescription_default,
+	SkillEffect: () => SkillEffect,
+	SkillInfo: () => SkillInfo,
+	SkillTargetSelection: () => SkillTargetSelection_default,
+	SoundManager: () => SoundManager,
+	StatusIcons: () => StatusIcons_default,
+	StatusInfo: () => StatusInfo,
+	Texture: () => Texture,
+	UIComponent: () => UIComponent,
+	UIManager: () => UIManager,
+	WebGL: () => WebGL_default
+});
 init_NetworkManager();
 init_SessionStorage();
 init_Background();
 init_UIManager();
 init_PacketLength();
+init_Altitude();
+init_Camera();
+init_DBManager();
+init_Client();
+init_MapRenderer();
+init_MiniMap();
+init_EffectManager();
+init_WebGL();
+init_Texture();
+init_SkillInfo();
+init_SkillConst();
+init_SkillEffect();
+init_SkillAction();
+init_SkillDescription();
+init_SkillTargetSelection();
+init_ItemInfo();
+init_ShortCut();
+init_StatusInfo();
+init_StatusIcons();
+init_EffectTable();
+init_AIDriver();
+init_BGM();
+init_SoundManager();
+init_PathFinding();
+init_Configs();
 var PACKET = ENGINE.PACKET;
-ENGINE.ChatBox;
+var ChatBox = ENGINE.ChatBox;
 var UIComponent = ENGINE.UIComponent;
 var Preferences = ENGINE.Preferences;
-ENGINE.Commands;
-ENGINE.EntityManager;
+var Commands = ENGINE.Commands;
+var EntityManager = ENGINE.EntityManager;
 //#endregion
 //#region src/Plugins/native-manager/libs/event-bus.js
+var event_bus_exports = /* @__PURE__ */ __exportAll({
+	EVENTS: () => EVENTS,
+	createBus: () => createBus,
+	emit: () => emit,
+	getBus: () => getBus,
+	off: () => off,
+	on: () => on$1,
+	onFirstListener: () => onFirstListener,
+	once: () => once,
+	stats: () => stats$1
+});
 /**
 * event-bus — tiny publish/subscribe bus for the native plugin host.
 *
@@ -349195,7 +349323,10 @@ var off = _bus.off;
 var once = _bus.once;
 var emit = _bus.emit;
 var onFirstListener = _bus.onFirstListener;
-_bus.stats;
+var stats$1 = _bus.stats;
+function getBus() {
+	return _bus;
+}
 /**
 * Catalogue of every event name emitted on the bus by the native libs.
 * Single source of truth — reference `EVENTS.MAP_READY` over hard-coding
@@ -349247,6 +349378,11 @@ var EVENTS = Object.freeze({
 * transparent : it always forwards to the original sendPacket, so adding
 * observers can never block or modify outgoing traffic.
 */
+var packet_observer_exports = /* @__PURE__ */ __exportAll({
+	observePacket: () => observePacket,
+	observePacketStatus: () => observePacketStatus,
+	observeSendPacket: () => observeSendPacket
+});
 /** Registered listeners : packet id → array of callbacks. */
 var listeners$1 = /* @__PURE__ */ new Map();
 /** id → PacketClass. Built once, refreshed on lookup miss. */
@@ -349401,6 +349537,21 @@ function observePacket(packetClass, callback) {
 		return true;
 	};
 }
+/** Diagnostic — safe to call before bundle is ready. */
+function observePacketStatus() {
+	const readFn = Network && Network.read;
+	return {
+		installed: installed$1,
+		dispatchCount,
+		listenerCount: listeners$1.size,
+		classMapSize: classMap ? Object.keys(classMap).length : 0,
+		readCallbackBound: !!ourCallback && typeof readFn === "function" && readFn.callback === ourCallback,
+		externalQueued: !!externalReadCb,
+		sendInstalled,
+		sendDispatchCount,
+		sendListenerCount: sendListeners.size
+	};
+}
 /** Map<packetClass, callbacks[]> — registered listeners for outgoing pkts. */
 var sendListeners = /* @__PURE__ */ new Map();
 var sendInstalled = false;
@@ -349486,6 +349637,11 @@ function observeSendPacket(packetClass, callback) {
 *   - someone subscribes to `'logout'` on the event bus (auto-detected via
 *     `onFirstListener('logout', install)`).
 */
+var socket_observer_exports = /* @__PURE__ */ __exportAll({
+	getCapturedSockets: () => getCapturedSockets,
+	observeSocket: () => observeSocket,
+	observeSocketStatus: () => observeSocketStatus
+});
 var listeners = /* @__PURE__ */ new Set();
 var capturedSockets = /* @__PURE__ */ new Set();
 var installed = false;
@@ -349560,6 +349716,10 @@ function observeSocketStatus() {
 		socketCount: capturedSockets.size,
 		openSocketCount: openCount
 	};
+}
+/** Escape hatch — the raw Set of captured sockets. */
+function getCapturedSockets() {
+	return capturedSockets;
 }
 onFirstListener("logout", install);
 //#endregion
@@ -350437,6 +350597,10 @@ function injectIconCss(target = typeof document !== "undefined" ? document : nul
 }
 //#endregion
 //#region src/Plugins/native-manager/libs/dev-log.js
+var dev_log_exports = /* @__PURE__ */ __exportAll({
+	devLog: () => devLog,
+	devLogStatus: () => devLogStatus
+});
 var ENDPOINT = "http://localhost:9876";
 var FLUSH_INTERVAL_MS = 200;
 var HEALTHCHECK_TIMEOUT_MS = 500;
@@ -350540,6 +350704,19 @@ function devLog(level, channel, msg, data, opts) {
 	});
 	_scheduleFlush();
 }
+function devLogStatus() {
+	return {
+		enabled: !_disabled,
+		permanent: _disabledPermanent,
+		healthChecked: _healthChecked,
+		healthCheckedAt: _healthCheckedAt,
+		queued: _queue.length,
+		sent: _stats.sent,
+		dropped: _stats.dropped,
+		lastError: _stats.lastError,
+		lastFlushMs: _stats.lastFlushMs
+	};
+}
 //#endregion
 //#region src/Plugins/native-manager/di.js
 /**
@@ -350557,6 +350734,20 @@ function devLog(level, channel, msg, data, opts) {
 * `undefined`, never a throw.
 */
 /**
+* Every lib's whole namespace, keyed by its plain lib name. A plugin built
+* against the lib names (rather than the flattened keys below) reads them here.
+*/
+var LIBS = Object.freeze({
+	"plugin-api": plugin_api_exports,
+	"event-bus": event_bus_exports,
+	lifecycle: lifecycle_exports,
+	ui: ui_exports,
+	icons: icons_exports,
+	"packet-observer": packet_observer_exports,
+	"socket-observer": socket_observer_exports,
+	"dev-log": dev_log_exports
+});
+/**
 * Build the DI map for a plugin's `init(pars, diMap)`.
 *
 * @param {Object<string, *>} [pluginExports] cross-plugin exports (session 3+).
@@ -350565,6 +350756,7 @@ function devLog(level, channel, msg, data, opts) {
 function buildDiMap(pluginExports) {
 	return {
 		...ENGINE,
+		LegacyUIComponent: legacy_ui_component_default,
 		ui: ui_exports,
 		lifecycle: lifecycle_exports,
 		icons: icons_exports,
@@ -350578,6 +350770,7 @@ function buildDiMap(pluginExports) {
 		observeSocket,
 		devLog,
 		icon,
+		libs: LIBS,
 		...pluginExports || {}
 	};
 }
