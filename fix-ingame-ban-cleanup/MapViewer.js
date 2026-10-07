@@ -260218,6 +260218,17 @@ function stripMapExtension(mapname) {
 	return (mapname || "").replace(/\.[^.]*$/, "");
 }
 /**
+* Bind a map load step to its load, so that it does nothing once the load is cancelled
+*
+* @param {number} loadId
+* @param {function} step
+*/
+function loadStep(loadId, step) {
+	return (...args) => {
+		if (loadId === MapRenderer._loadId) step.apply(MapRenderer, args);
+	};
+}
+/**
 * Received progress from Thread
 *
 * @param {number} percent (progress)
@@ -260324,6 +260335,7 @@ function registerPostProcessModules(gl) {
 * Once the map finished to load
 */
 function onMapComplete(success, error) {
+	const loadId = MapRenderer._loadId;
 	const worldResource = this.currentMap.replace(/\.gat$/i, ".rsw");
 	const mapInfo = DB.getMap(worldResource);
 	if (!success) {
@@ -260348,6 +260360,7 @@ function onMapComplete(success, error) {
 	registerPostProcessModules(gl);
 	JoystickUI_default.onRestore();
 	Background.remove(() => {
+		if (loadId !== MapRenderer._loadId) return;
 		MapRenderer.loading = false;
 		MapRenderer.onLoad();
 		Sky_default.setUpCloudData();
@@ -260432,6 +260445,10 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static loading = false;
 		/**
+		* @var {number} id of the latest map load, bumped to cancel the one in progress
+		*/
+		static _loadId = 0;
+		/**
 		* @var {Float32Array} diffuse Modified diffuse color
 		*/
 		static diffuse = null;
@@ -260458,6 +260475,7 @@ var init_MapRenderer = __esmMin((() => {
 		static setMap(mapname) {
 			if (this.loading) return;
 			mapname = mapname.replace(/^(\d{3})(\d@)/, "$2").replace(/^\d{3}#/, "");
+			const loadId = ++this._loadId;
 			SoundManager.stop();
 			Renderer.stop();
 			UIManager.removeComponents();
@@ -260468,15 +260486,16 @@ var init_MapRenderer = __esmMin((() => {
 				this.currentMap = mapname;
 				const filename = mapname.replace(/\.gat$/i, ".rsw");
 				Background.setLoading(function() {
-					Thread.hook("MAP_PROGRESS", onProgressUpdate.bind(MapRenderer));
-					Thread.hook("MAP_WORLD", onWorldComplete.bind(MapRenderer));
-					Thread.hook("MAP_GROUND", onGroundComplete.bind(MapRenderer));
-					Thread.hook("MAP_ALTITUDE", onAltitudeComplete.bind(MapRenderer));
-					Thread.hook("MAP_MODELS", onModelsComplete.bind(MapRenderer));
-					Thread.hook("MAP_ANIMATED_MODEL", onAnimatedModelComplete.bind(MapRenderer));
+					if (loadId !== MapRenderer._loadId) return;
+					Thread.hook("MAP_PROGRESS", loadStep(loadId, onProgressUpdate));
+					Thread.hook("MAP_WORLD", loadStep(loadId, onWorldComplete));
+					Thread.hook("MAP_GROUND", loadStep(loadId, onGroundComplete));
+					Thread.hook("MAP_ALTITUDE", loadStep(loadId, onAltitudeComplete));
+					Thread.hook("MAP_MODELS", loadStep(loadId, onModelsComplete));
+					Thread.hook("MAP_ANIMATED_MODEL", loadStep(loadId, onAnimatedModelComplete));
 					MapRenderer.free();
 					Renderer.remove();
-					Thread.send("LOAD_MAP", filename, onMapComplete.bind(MapRenderer));
+					Thread.send("LOAD_MAP", filename, loadStep(loadId, onMapComplete));
 				});
 				return;
 			}
@@ -260487,11 +260506,19 @@ var init_MapRenderer = __esmMin((() => {
 			JoystickUI_default.onRestore();
 			Mouse.intersect = false;
 			Background.remove(() => {
+				if (loadId !== MapRenderer._loadId) return;
 				MapRenderer.onLoad();
 				Sky_default.setUpCloudData();
 				Renderer.render(MapRenderer.onRender);
 				Mouse.intersect = true;
 			});
+		}
+		/**
+		* Cancel the map load in progress, if any: its remaining steps do nothing
+		*/
+		static cancelLoad() {
+			this._loadId++;
+			this.loading = false;
 		}
 		/**
 		* Clean up data
@@ -346990,6 +347017,7 @@ function onServerClosed(pkt) {
 	}
 	UIManager.showMessageBox(DB.getMessage(msg_id), "ok", () => {
 		Renderer.stop();
+		MapRenderer.cancelLoad();
 		MapRenderer.free();
 		BGM.play("01.mp3");
 		UIManager.removeComponents();
@@ -347962,6 +347990,7 @@ function onReload() {
 		WinList_default.setList(list);
 	}
 	Renderer.stop();
+	MapRenderer.cancelLoad();
 	MapRenderer.free();
 	BGM.play("01.mp3");
 }
