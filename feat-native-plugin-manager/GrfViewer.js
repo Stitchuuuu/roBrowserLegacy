@@ -242285,6 +242285,7 @@ function createStorage(config) {
 	};
 	const _list = [];
 	let _openFilters = {};
+	let _searchTerm = "";
 	const _preferences = Preferences.get("Storage", {
 		x: 200,
 		y: 500,
@@ -242414,6 +242415,7 @@ function createStorage(config) {
 			const itemTab = getItemTab(item);
 			if (_openFilters[itemTab]) _openFilters[itemTab].addItem(item);
 		}
+		if (hasSearch && _openFilters[ItemType_default.SEARCH] && matchesSearch(item)) _openFilters[ItemType_default.SEARCH].addItem(item);
 		if (i > -1) {
 			_list[i].count += item.count;
 			const countEl = this.getRoot().querySelector(`.item[data-index="${item.index}"] .count`);
@@ -242500,10 +242502,8 @@ function createStorage(config) {
 	if (hasSearch) Component.onSearch = function onSearch() {
 		const searchInput = this.getRoot().querySelector("#storage-search-input");
 		if (!searchInput) return;
-		const searchTerm = searchInput.value.toLowerCase();
-		const filteredItems = _list.filter((item) => {
-			return DB.getItemName(item).toLowerCase().indexOf(searchTerm) > -1;
-		});
+		_searchTerm = searchInput.value.toLowerCase();
+		const filteredItems = _list.filter(matchesSearch);
 		if (!_openFilters[ItemType_default.SEARCH]) {
 			const newFilter = new StorageFilter(ItemType_default.SEARCH);
 			_openFilters[ItemType_default.SEARCH] = newFilter;
@@ -242590,6 +242590,9 @@ function createStorage(config) {
 			}
 		}
 		for (let i = 0, count = list.length; i < count; ++i) Component.addItemSub(list[i]);
+	}
+	function matchesSearch(item) {
+		return DB.getItemName(item).toLowerCase().includes(_searchTerm);
 	}
 	function getItemIndexById(index) {
 		for (let i = 0, count = _list.length; i < count; ++i) if (_list[i].index === index) return i;
@@ -242855,7 +242858,7 @@ var init_StorageFilter = __esmMin((() => {
 			this._host.style.top = `${Math.min(Math.max(0, this._preferences.y), Renderer.height - this._host.getBoundingClientRect().height)}px`;
 		}
 		setItems(title, items, tabId) {
-			this._list = items.slice(0);
+			this._list = items.map((item) => ({ ...item }));
 			this._currentTabId = tabId;
 			const root = this.getRoot();
 			const titleEl = root.querySelector(".titlebar .text");
