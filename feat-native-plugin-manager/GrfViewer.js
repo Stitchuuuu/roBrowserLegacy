@@ -240852,7 +240852,7 @@ var init_WriteRodex = __esmMin((() => {
 		root.querySelector(".validate-name").style.display = "none";
 		const baloon = root.querySelector(".baloon");
 		baloon.innerHTML = text;
-		baloon.style.display = "";
+		baloon.style.display = "block";
 		const nameInput = root.querySelector(".name");
 		nameInput.type = "none";
 		WriteRodex.receiver = pkt.name !== void 0 ? pkt.name : nameInput.value;
