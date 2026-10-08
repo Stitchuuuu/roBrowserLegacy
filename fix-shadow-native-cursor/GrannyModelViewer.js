@@ -314582,9 +314582,11 @@ function _syncNoCursorStyles() {
 }
 /**
 * Hides the native cursor in a shadow root where CSS style queries are
-* missing, following body.custom-cursor. Common.css handles it elsewhere.
+* missing, following body.custom-cursor; null where Common.css handles it.
+* remove() lets go of it, so a closed window is not held.
 *
 * @param {ShadowRoot} shadow
+* @return {?HTMLStyleElement}
 */
 function _addNoCursorFallback(shadow) {
 	if (_noCursorStyles === void 0) {
@@ -314597,13 +314599,22 @@ function _addNoCursorFallback(shadow) {
 			});
 		}
 	}
-	if (!_noCursorStyles) return;
+	if (!_noCursorStyles) return null;
 	const style = document.createElement("style");
 	style.setAttribute("data-no-cursor", "");
 	style.media = _noCursorMedia;
 	style.textContent = "* { cursor: none !important; }";
 	shadow.appendChild(style);
 	_noCursorStyles.push(style);
+	return style;
+}
+function _trackNoCursorStyle(style) {
+	style.media = _noCursorMedia;
+	if (_noCursorStyles.indexOf(style) === -1) _noCursorStyles.push(style);
+}
+function _untrackNoCursorStyle(style) {
+	const index = _noCursorStyles.indexOf(style);
+	if (index !== -1) _noCursorStyles.splice(index, 1);
 }
 var _Cursor, _DB, _Client, _Renderer, _EntityManager, _ScrollBar, _depsPromise, _noCursorStyles, _noCursorMedia, _snapCache, MouseMode, DENIED_SELECTOR, CSS_NUMBER, GUIComponent;
 var init_GUIComponent = __esmMin((() => {
@@ -314703,7 +314714,7 @@ var init_GUIComponent = __esmMin((() => {
 			const commonStyle = document.createElement("style");
 			commonStyle.textContent = Common_default$1;
 			this._shadow.appendChild(commonStyle);
-			_addNoCursorFallback(this._shadow);
+			this._noCursorStyle = _addNoCursorFallback(this._shadow);
 			const compStyle = document.createElement("style");
 			compStyle.setAttribute("data-component", this.name);
 			compStyle.textContent = this._cssText || "";
@@ -314738,6 +314749,7 @@ var init_GUIComponent = __esmMin((() => {
 				return;
 			}
 			parent.appendChild(this._host);
+			if (this._noCursorStyle) _trackNoCursorStyle(this._noCursorStyle);
 			if (this.onKeyDown) this._bindKeyDown();
 			if (this.mouseMode === MouseMode.FREEZE) {
 				Mouse.intersect = false;
@@ -314777,6 +314789,7 @@ var init_GUIComponent = __esmMin((() => {
 					node.dispatchEvent(new Event("x_remove"));
 				});
 				this._host.remove();
+				if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
 				if (this.mouseMode === MouseMode.FREEZE) {
 					Mouse.intersect = true;
 					SessionStorage_default.FreezeUI = false;
