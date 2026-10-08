@@ -226258,12 +226258,10 @@ var init_Rodex$1 = __esmMin((() => {
 	*/
 	Rodex.render = () => Rodex_default$2;
 	/**
-	* Apply preferences once append to body
+	* Bind the window controls once
 	*/
-	Rodex.onAppend = function OnAppend() {
+	Rodex.init = function init() {
 		const root = _root$17();
-		this._host.style.top = `${Math.min(Math.max(0, _preferences$38.y), Renderer.height - this._host.offsetHeight)}px`;
-		this._host.style.left = `${Math.min(Math.max(0, _preferences$38.x), Renderer.width - this._host.offsetWidth)}px`;
 		this.draggable(root.querySelector(".titlebar"));
 		root.querySelector(".close").addEventListener("click", onClickClose$2);
 		root.querySelector(".refresh").addEventListener("click", onClickRefresh);
@@ -226275,8 +226273,16 @@ var init_Rodex$1 = __esmMin((() => {
 		root.querySelectorAll(".nav-item").forEach((el) => el.addEventListener("click", onClickTab));
 		root.querySelector(".search-title").addEventListener("click", onClickSearchTitle);
 		root.querySelector(".search-sender").addEventListener("click", onClickSearchSender);
-		root.querySelector(".search").value = "";
 		root.querySelector(".search-btn").addEventListener("click", onClickSearchButton);
+	};
+	/**
+	* Apply preferences once append to body
+	*/
+	Rodex.onAppend = function OnAppend() {
+		const root = _root$17();
+		this._host.style.top = `${Math.min(Math.max(0, _preferences$38.y), Renderer.height - this._host.offsetHeight)}px`;
+		this._host.style.left = `${Math.min(Math.max(0, _preferences$38.x), Renderer.width - this._host.offsetWidth)}px`;
+		root.querySelector(".search").value = "";
 		Rodex.openType = 0;
 		root.querySelectorAll(".nav-item.active").forEach((el) => el.classList.remove("active"));
 		root.querySelector("#tab_0").classList.add("active");
@@ -314414,30 +314420,38 @@ function _supportsStyleQueries() {
 	probe.remove();
 	return supported;
 }
-/**
-* Shared sheet hiding the native cursor in shadow roots where CSS style
-* queries are missing, null where Common.css handles it.
-*/
-function _getNoCursorFallback() {
-	if (_noCursorFallback !== void 0) return _noCursorFallback;
-	if (_supportsStyleQueries()) {
-		_noCursorFallback = null;
-		return null;
-	}
-	const sheet = new CSSStyleSheet();
-	sheet.replaceSync("* { cursor: none !important; }");
-	const sync = () => {
-		sheet.disabled = !document.body.classList.contains("custom-cursor");
-	};
-	sync();
-	new MutationObserver(sync).observe(document.body, {
-		attributes: true,
-		attributeFilter: ["class"]
-	});
-	_noCursorFallback = sheet;
-	return sheet;
+function _syncNoCursorStyles() {
+	const media = document.body.classList.contains("custom-cursor") ? "all" : "not all";
+	if (media === _noCursorMedia) return;
+	_noCursorMedia = media;
+	for (let i = 0; i < _noCursorStyles.length; i++) _noCursorStyles[i].media = media;
 }
-var _Cursor, _DB, _Client, _Renderer, _EntityManager, _ScrollBar, _depsPromise, _noCursorFallback, _snapCache, MouseMode, DENIED_SELECTOR, CSS_NUMBER, GUIComponent$1;
+/**
+* Hides the native cursor in a shadow root where CSS style queries are
+* missing, following body.custom-cursor. Common.css handles it elsewhere.
+*
+* @param {ShadowRoot} shadow
+*/
+function _addNoCursorFallback(shadow) {
+	if (_noCursorStyles === void 0) {
+		_noCursorStyles = _supportsStyleQueries() ? null : [];
+		if (_noCursorStyles) {
+			_syncNoCursorStyles();
+			new MutationObserver(_syncNoCursorStyles).observe(document.body, {
+				attributes: true,
+				attributeFilter: ["class"]
+			});
+		}
+	}
+	if (!_noCursorStyles) return;
+	const style = document.createElement("style");
+	style.setAttribute("data-no-cursor", "");
+	style.media = _noCursorMedia;
+	style.textContent = "* { cursor: none !important; }";
+	shadow.appendChild(style);
+	_noCursorStyles.push(style);
+}
+var _Cursor, _DB, _Client, _Renderer, _EntityManager, _ScrollBar, _depsPromise, _noCursorStyles, _noCursorMedia, _snapCache, MouseMode, DENIED_SELECTOR, CSS_NUMBER, GUIComponent$1;
 var init_GUIComponent = __esmMin((() => {
 	init_Common$1();
 	init_MouseEventHandler();
@@ -314453,6 +314467,7 @@ var init_GUIComponent = __esmMin((() => {
 	_EntityManager = null;
 	_ScrollBar = null;
 	_depsPromise = null;
+	_noCursorMedia = "not all";
 	_snapCache = [];
 	MouseMode = Object.freeze({
 		CROSS: 0,
@@ -314534,8 +314549,7 @@ var init_GUIComponent = __esmMin((() => {
 			const commonStyle = document.createElement("style");
 			commonStyle.textContent = Common_default$1;
 			this._shadow.appendChild(commonStyle);
-			const noCursorFallback = _getNoCursorFallback();
-			if (noCursorFallback) this._shadow.adoptedStyleSheets = [noCursorFallback];
+			_addNoCursorFallback(this._shadow);
 			const compStyle = document.createElement("style");
 			compStyle.setAttribute("data-component", this.name);
 			compStyle.textContent = this._cssText || "";
