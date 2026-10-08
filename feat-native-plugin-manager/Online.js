@@ -219614,7 +219614,7 @@ var init_ChatBox$2 = __esmMin((() => {
 //#region src/UI/Components/ChatBox/ChatBox.css?raw
 var ChatBox_default$1;
 var init_ChatBox$1 = __esmMin((() => {
-	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
+	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	white-space: pre-line;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ChatBoxSettings/ChatBoxSettings.html?raw
@@ -243919,10 +243919,10 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 				const removeOpt = root.querySelector(".removeOption");
 				const cartBtn = root.querySelector(".cartitems");
 				if (_lastState & HasAttachmentState || _hasCart) {
-					if (removeOpt) removeOpt.style.display = "";
+					if (removeOpt) removeOpt.style.display = "block";
 				} else if (removeOpt) removeOpt.style.display = "none";
 				if (_lastState & HasCartState || _hasCart) {
-					if (cartBtn) cartBtn.style.display = "";
+					if (cartBtn) cartBtn.style.display = "block";
 				} else if (cartBtn) cartBtn.style.display = "none";
 			}
 		}
@@ -339118,11 +339118,8 @@ function onRestartAnswer(pkt) {
 	if (!pkt.type) ChatBox_default.addText(DB.getMessage(502), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
 	else {
 		GuildEngine.guild_id = 0;
-		cleanGameUI();
 		SessionStorage_default.Achievement = null;
 		Mouse.intersect = false;
-		MapRenderer.free();
-		Renderer.stop();
 		onRestart();
 	}
 }
@@ -339381,7 +339378,11 @@ function onConfigUpdate(type, val) {
 * Go back from map-server to char-server
 */
 function onRestart() {
-	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
+	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload(() => {
+		cleanGameUI();
+		MapRenderer.free();
+		Renderer.stop();
+	})), void 0, import.meta.url);
 }
 /**
 * Reply to reassembly auth packet
@@ -342856,10 +342857,13 @@ var init_CharEngine = __esmMin((() => {
 		}
 		/**
 		* Reload Char-Select
+		*
+		* @param {function} [onBlack] - run once the fade has covered the screen
 		*/
-		static reload() {
+		static reload(onBlack) {
 			Network.close();
 			Background.setLoginBackground(() => {
+				if (onBlack) onBlack();
 				UIManager.removeComponents();
 				CharEngine.init(_server$1);
 			});
