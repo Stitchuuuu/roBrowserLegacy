@@ -66,7 +66,7 @@ function loadFiles(callback) {
 		};
 
 		if (Configs.get('skipIntro')) {
-			Client.init([]);
+			Client.init(Configs.get('files') || []);
 			return;
 		}
 
