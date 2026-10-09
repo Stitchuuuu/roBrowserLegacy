@@ -27,6 +27,7 @@ import * as eventBus from 'Plugins/native-manager/libs/event-bus.js';
 import * as packetObserver from 'Plugins/native-manager/libs/packet-observer.js';
 import * as socketObserver from 'Plugins/native-manager/libs/socket-observer.js';
 import * as devLogLib from 'Plugins/native-manager/libs/dev-log.js';
+import { fetchIntercept } from 'Plugins/native-manager/libs/fetch-intercept.js';
 
 /**
  * Every lib's whole namespace, keyed by its plain lib name. A plugin built
@@ -41,6 +42,7 @@ const LIBS = Object.freeze({
 	'packet-observer': packetObserver,
 	'socket-observer': socketObserver,
 	'dev-log': devLogLib,
+	'fetch-intercept': fetchIntercept,
 });
 
 /**

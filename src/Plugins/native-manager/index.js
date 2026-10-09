@@ -27,6 +27,8 @@ import Configs from 'Core/Configs.js';
 import { register, results } from 'Plugins/native-manager/registry.js';
 import { topoSort, resolveDepExports } from 'Plugins/native-manager/deps.js';
 import * as lifecycle from 'Plugins/native-manager/libs/lifecycle.js';
+import { attachWorker } from 'Plugins/native-manager/libs/fetch-intercept.js';
+import Thread from 'Core/Thread.js';
 
 let _initialized = false;
 let _initPromise = null;
@@ -260,6 +262,28 @@ async function run() {
 	}
 }
 
+/**
+ * With ROConfig.fetchIntercept, hand the thread our asset worker before
+ * GameEngine's Thread.init() creates the core one. A worker name containing
+ * `nofs` makes it skip the FileSystem cache.
+ */
+function startAssetWorker() {
+	if (!Configs.get('fetchIntercept')) {
+		return;
+	}
+	let name = 'asset-worker';
+	try {
+		if (localStorage.getItem('RO_DISABLE_FILESYSTEM') === '1') {
+			name += '-nofs';
+		}
+	} catch {
+		// storage blocked: keep the cache
+	}
+	const worker = new Worker(new URL('./asset-worker.js', import.meta.url), { type: 'module', name });
+	Thread.delegate(worker); // no origin: for a Worker it is the transfer list
+	attachWorker(worker);
+}
+
 const NativePluginManager = {
 	/**
 	 * Idempotent async init. Safe to call at every boot site — only the first
@@ -271,6 +295,7 @@ const NativePluginManager = {
 			return _initPromise;
 		}
 		_initialized = true;
+		startAssetWorker(); // synchronous: must run before GameEngine.init()
 		_initPromise = run();
 		return _initPromise;
 	}
