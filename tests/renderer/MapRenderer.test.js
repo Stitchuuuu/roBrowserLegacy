@@ -114,6 +114,69 @@ describe('MapRenderer joystick restoration', () => {
 	});
 });
 
+describe('MapRenderer kept UI', () => {
+	let originalOnLoad;
+	let originalFree;
+	let keep;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		originalOnLoad = MapRenderer.onLoad;
+		originalFree = MapRenderer.free;
+		MapRenderer.loading = false;
+		MapRenderer.currentMap = 'prontera.gat';
+		MapRenderer.onLoad = vi.fn();
+		MapRenderer.free = vi.fn();
+		keep = [{ _host: document.createElement('div') }, { _host: null }];
+	});
+
+	afterEach(() => {
+		MapRenderer.onLoad = originalOnLoad;
+		MapRenderer.free = originalFree;
+		MapRenderer.cancelLoad();
+	});
+
+	it('removes everything but the kept components on a same-map teleport', () => {
+		MapRenderer.setMap('prontera.gat', keep);
+		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('hides the kept components once the loading screen is up, and shows them on cancel', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		expect(keep[0]._host.style.visibility).toBe('');
+
+		showLoading();
+		expect(keep[0]._host.style.visibility).toBe('hidden');
+
+		MapRenderer.cancelLoad();
+		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('shows the kept components again when the map fails to load', async () => {
+		const DB = (await import('DB/DBManager.js')).default;
+		DB.getMap = vi.fn(() => null);
+		mocks.uiManager.showErrorBox = vi.fn(() => ({ ui: { css: vi.fn() } }));
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading();
+		const loaded = mocks.thread.send.mock.calls[0][2];
+		loaded(false, 'broken map');
+
+		expect(mocks.uiManager.showErrorBox).toHaveBeenCalledWith('broken map');
+		expect(keep[0]._host.style.visibility).toBe('');
+	});
+});
+
 describe('MapRenderer.cancelLoad', () => {
 	let originalOnLoad;
 	let originalFree;
