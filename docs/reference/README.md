@@ -9,6 +9,7 @@ Each subdirectory covers one subsystem:
 |---|---|
 | [guild/](guild/) | the guild window, its six tabs, and the create / disband dialogs |
 | [chat/](chat/) | the chat window: what a received line keeps, drops and breaks on |
+| [renderer/](renderer/) | entity rendering: the body palette of a mounted player |
 | [map-transition.md](map-transition.md) | teleport and map change: which windows stay attached, the loading-screen hide, the 255 ms fades |
 
 ## Where the details come from
