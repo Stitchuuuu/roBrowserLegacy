@@ -197,6 +197,7 @@ type PacketObserver = typeof import('../src/Plugins/native-manager/libs/packet-o
 type SocketObserver = typeof import('../src/Plugins/native-manager/libs/socket-observer.js');
 type DevLogLib = typeof import('../src/Plugins/native-manager/libs/dev-log.js');
 type PluginApi = typeof import('../src/Plugins/native-manager/libs/plugin-api.js');
+type FetchInterceptLib = typeof import('../src/Plugins/native-manager/libs/fetch-intercept.js')['fetchIntercept'];
 
 /** Every native lib namespace, keyed by its plain lib name (`deps.libs`). */
 export interface Libs {
@@ -208,6 +209,14 @@ export interface Libs {
 	'packet-observer': PacketObserver;
 	'socket-observer': SocketObserver;
 	'dev-log': DevLogLib;
+	/** Fetch middleware, page + asset worker. `register` throws unless `ROConfigOptions.fetchIntercept` is on. */
+	'fetch-intercept': FetchInterceptLib;
+}
+
+/** `ROConfig` options for the native plugin manager. */
+export interface ROConfigOptions {
+	/** Server-owner gate: start the asset worker and enable `deps.libs['fetch-intercept']`. Default off. */
+	fetchIntercept?: boolean;
 }
 
 // ── The DI map (2nd arg of init(pars, deps)) ──────────────────────────────────
