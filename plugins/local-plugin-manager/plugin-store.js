@@ -140,6 +140,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	 * `name`/`version`. The blob URL is revoked once `import()` resolves. The
 	 * host `register` is awaited (it awaits the plugin's init) and given the
 	 * module namespace so a stored producer's namespace can be a dep fallback.
+	 * The plugin's init receives its own manifest `pars`, as under TM.
 	 */
 	async function exec(source) {
 		const blob = new Blob([source], { type: 'application/javascript' })
@@ -149,7 +150,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			if (!mod || !mod.default || typeof mod.default.name !== 'string') {
 				throw new Error('[plugin-store] module has no valid default export ({ name, init, ... })')
 			}
-			await PluginManager.register(mod.default, null, mod)
+			await PluginManager.register(mod.default, mod.default.pars || null, mod)
 			return mod.default
 		} finally {
 			URL.revokeObjectURL(blobUrl)
