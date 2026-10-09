@@ -184,7 +184,11 @@ export default {
 		}
 		async function pmInstall(url) {
 			if (!url) { report('PM: usage — /pm install <url>', true); return; }
-			try { const r = await LPM.installFromUrl(url); report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'})`, false); }
+			try {
+				const r = await LPM.installFromUrl(url);
+				if (r.ok === false) { report(`PM: installed '${r.name}' but init failed — ${r.error}`, true); }
+				else { report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'})`, false); }
+			}
 			catch (e) { if (!e.reported) { report('PM: install failed — ' + e.message, true); } }
 		}
 		async function pmEnable(name) {
@@ -284,7 +288,8 @@ export default {
 				const file = files[i];
 				try {
 					const r = await LPM.installFromFile(file);
-					report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'}) from drop`, false);
+					if (r.ok === false) { report(`PM: installed '${r.name}' but init failed — ${r.error}`, true); }
+					else { report(`PM: installed '${r.name}' (${r.pluginName} v${r.version || '?'}) from drop`, false); }
 				} catch (err) {
 					if (!err.reported) { report(`PM: drop install failed for ${file.name} — ${err.message}`, true); }
 				}

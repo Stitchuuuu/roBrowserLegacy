@@ -37,9 +37,9 @@ let _initPromise = null;
 // unregister plugins AFTER boot — the path LocalPluginManager's IndexedDB store
 // drives (install / drag-drop / bootLoad). `namespaces` maps a plugin name → its
 // module namespace (the dep-fallback export when a producer has no init()-return);
-// `registered` is the live set of registered plugin names. Both null-proto —
-// plugin names are author-controlled, so a name like `constructor` / `__proto__`
-// must not resolve to an inherited member.
+// `registered` maps a plugin name → `{ status: 'ok'|'failed', error? }`. Both
+// null-proto — plugin names are author-controlled, so a name like
+// `constructor` / `__proto__` must not resolve to an inherited member.
 const namespaces = Object.create(null);
 const registered = Object.create(null);
 
@@ -128,12 +128,36 @@ function _noop() {
 }
 
 /**
+ * Turn a registration's outcome into a status record, logging either way.
+ * @param {string} name
+ * @param {*} ret the init()-return
+ * @param {Error} [err] the thrown error, if init threw
+ * @returns {{status:'ok'|'failed', error?:string}}
+ */
+function _registrationStatus(name, ret, err) {
+	if (err) {
+		const error = err.message || String(err);
+		console.error('[NativePM] Plugin init failed: ' + name + ' — ' + error, err);
+		return { status: 'failed', error };
+	}
+	if (ret === false) {
+		const error = 'init() returned false';
+		console.error('[NativePM] Plugin init failed: ' + name + ' — ' + error);
+		return { status: 'failed', error };
+	}
+	console.log('[NativePM] registered: ' + name);
+	return { status: 'ok' };
+}
+
+/**
  * Do the runtime registration: resolve the plugin's declared deps against the
- * live registry, register it (awaiting init), record it.
+ * live registry, register it (awaiting init), record it. An init throw or a
+ * `false` return is recorded as a failed status and resolves `false` — it
+ * never rejects (a shape error from the guard above still throws).
  * @param {{ name:string, deps?:string[], init:Function }} def
  * @param {*} pars
  * @param {object} [mod] the imported module namespace (dep-fallback export)
- * @returns {Promise<*>} the plugin's init()-return
+ * @returns {Promise<*>} the plugin's init()-return, or `false` on failure
  */
 async function _doRegisterRuntime(def, pars, mod) {
 	if (!def || typeof def.init !== 'function') {
@@ -146,10 +170,14 @@ async function _doRegisterRuntime(def, pars, mod) {
 	const deps = Array.isArray(def.deps) ? def.deps : [];
 	const pluginExports = resolveDepExports(deps, results, namespaces);
 	pluginExports.PluginHost = HOST; // a runtime plugin can install others too
-	const ret = await register(def, pars, pluginExports, key);
-	registered[key] = true;
-	console.log('[NativePM] registered: ' + key);
-	return ret;
+	try {
+		const ret = await register(def, pars, pluginExports, key);
+		registered[key] = _registrationStatus(key, ret);
+		return ret;
+	} catch (err) {
+		registered[key] = _registrationStatus(key, undefined, err);
+		return false;
+	}
 }
 
 // Serialize runtime registrations. Owner-scoping (`_currentPlugin` in lifecycle)
@@ -192,12 +220,17 @@ function unregisterRuntime(name) {
 }
 
 /**
- * Live registered plugins, as `[{ name }]` — the array form a caller can probe
- * with `.some(p => p.name === …)` before registering/unregistering.
- * @returns {Array<{name:string}>}
+ * Live registered plugins, as `[{ name, status, error? }]` — the array form a
+ * caller can probe with `.some(p => p.name === …)` before registering/unregistering.
+ * @returns {Array<{name:string, status:'ok'|'failed', error?:string}>}
  */
 function listRuntime() {
-	return Object.keys(registered).map(name => ({ name }));
+	const list = [];
+	for (const name in registered) {
+		const entry = registered[name];
+		list.push(entry.error ? { name, status: entry.status, error: entry.error } : { name, status: entry.status });
+	}
+	return list;
 }
 
 /**
@@ -251,13 +284,11 @@ async function run() {
 		const pluginExports = resolveDepExports(deps, results, namespaces);
 		pluginExports.PluginHost = HOST; // any plugin may register others (LPM does)
 		try {
-			// def shape was validated in phase A, so register always runs init;
-			// its return (even a legitimate `false`) is a successful load.
-			await register(e.def, e.pars, pluginExports, e.name);
-			registered[e.name] = true;
-			console.log('[NativePM] registered: ' + e.name);
+			// def shape was validated in phase A, so register always runs init.
+			const ret = await register(e.def, e.pars, pluginExports, e.name);
+			registered[e.name] = _registrationStatus(e.name, ret);
 		} catch (err) {
-			console.error('[NativePM] Plugin init failed: ' + e.name, err);
+			registered[e.name] = _registrationStatus(e.name, undefined, err);
 		}
 	}
 }
