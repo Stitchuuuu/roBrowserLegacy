@@ -207492,7 +207492,7 @@ var init_Ground = __esmMin((() => {
 //#region src/Renderer/SpriteRenderer.vs?raw
 var SpriteRenderer_default$1;
 var init_SpriteRenderer$2 = __esmMin((() => {
-	SpriteRenderer_default$1 = "#version 300 es\r\nprecision highp float;\r\n\r\nin vec2 aPosition;\r\nin vec2 aTextureCoord;\r\n\r\nout vec2 vTextureCoord;\r\n\r\nuniform mat4 uModelViewMat;\r\nuniform mat4 uViewModelMat;\r\nuniform mat4 uProjectionMat;\r\n\r\nuniform float uCameraZoom;\r\nuniform float uCameraLatitude;\r\n\r\nuniform vec2 uSpriteRendererSize;\r\nuniform vec2 uSpriteRendererOffset;\r\nuniform mat4 uSpriteRendererAngle;\r\nuniform vec3 uSpriteRendererPosition;\r\nuniform float uSpriteRendererDepth;\r\nuniform float uSpriteRendererZindex;\r\nuniform bool  uDisableDepthCorrection;\r\n\r\nmat4 Project( mat4 mat, vec3 pos) {\r\n\r\n    // xyz = x(-z)y + middle of cell (0.5)\r\n    float x =  pos.x + 0.5;\r\n    float y = -pos.z;\r\n    float z =  pos.y + 0.5;\r\n\r\n    // Matrix translation\r\n    mat[3].x += mat[0].x * x + mat[1].x * y + mat[2].x * z;\r\n    mat[3].y += mat[0].y * x + mat[1].y * y + mat[2].y * z;\r\n    mat[3].z += (mat[0].z * x + mat[1].z * y + mat[2].z * z);\r\n    mat[3].w += mat[0].w * x + mat[1].w * y + mat[2].w * z;\r\n\r\n    // Spherical billboard\r\n    mat[0].xyz = vec3( 1.0, 0.0, 0.0 );\r\n    mat[1].xyz = vec3( 0.0, 1.0, 0.0 );\r\n    mat[2].xyz = vec3( 0.0, 0.0, 1.0 );\r\n\r\n    return mat;\r\n}\r\n\r\nvec3 getCameraPosition() {\r\n    return (uViewModelMat * vec4(0.0, 0.0, 0.0, 1.0)).xyz;\r\n}\r\n\r\nvec3 getCameraForward() {\r\n    return normalize((uViewModelMat * vec4(0.0, 0.0, -1.0, 0.0)).xyz);\r\n}\r\n\r\nvoid main(void) {\r\n    // Calculate position base on angle and sprite offset/size\r\n    vec4 position = uSpriteRendererAngle * vec4( aPosition.x * uSpriteRendererSize.x, aPosition.y * uSpriteRendererSize.y, 0.0, 1.0 );\r\n    position.x   += uSpriteRendererOffset.x;\r\n    position.y   -= uSpriteRendererOffset.y + 0.5;\r\n\r\n    mat4 modelView = Project(uModelViewMat, uSpriteRendererPosition);\r\n    vec4 viewPosition = modelView * position;\r\n    vec4 viewCenter   = modelView * vec4( 0.0, 0.0, 0.0, 1.0 );\r\n\r\n    gl_Position = uProjectionMat * viewPosition;\r\n\r\n    vec3 cameraPos     = getCameraPosition();\r\n    vec3 cameraForward = getCameraForward();\r\n\r\n    if (!uDisableDepthCorrection) {\r\n        // Vertical billboard depth correction (per-vertex), plane anchored at sprite center.\r\n        // Plane normal uses camera forward (flattened Y) for stability.\r\n        // The whole quad takes the vertical plane depth so the part of the sprite below\r\n        // the water surface sorts behind the (later drawn) water pass.\r\n        vec3 planePoint = (uViewModelMat * viewCenter).xyz;\r\n        vec3 planeNormal = normalize(vec3(cameraForward.x, 0.0, cameraForward.z));\r\n        if (length(planeNormal) < 0.000001) {\r\n            planeNormal = cameraForward;\r\n        }\r\n\r\n        vec3 worldVertex = (uViewModelMat * viewPosition).xyz;\r\n        vec3 rayDir      = normalize(worldVertex - cameraPos);\r\n        float denom      = max(dot(planeNormal, rayDir), 0.000001);\r\n        float dist       = dot(planePoint - cameraPos, planeNormal) / denom;\r\n\r\n        vec4 planeClip       = uProjectionMat * (uModelViewMat * vec4(cameraPos + rayDir * dist, 1.0));\r\n        float correctedZBase = planeClip.z * (gl_Position.w / max(planeClip.w, 0.000001));\r\n\r\n        gl_Position.z = correctedZBase;\r\n    }\r\n    gl_Position.z -= (uSpriteRendererZindex * 0.01 + uSpriteRendererDepth) / max(uCameraZoom, 1.0);\r\n\r\n    vTextureCoord = aTextureCoord;\r\n}";
+	SpriteRenderer_default$1 = "#version 300 es\r\nprecision highp float;\r\n\r\nin vec2 aPosition;\r\nin vec2 aTextureCoord;\r\n\r\nout vec2 vTextureCoord;\r\n\r\nuniform mat4 uModelViewMat;\r\nuniform mat4 uViewModelMat;\r\nuniform mat4 uProjectionMat;\r\n\r\nuniform float uCameraZoom;\r\nuniform float uCameraLatitude;\r\n\r\nuniform vec2 uSpriteRendererSize;\r\nuniform vec2 uSpriteRendererOffset;\r\nuniform mat4 uSpriteRendererAngle;\r\nuniform vec3 uSpriteRendererPosition;\r\nuniform float uSpriteRendererDepth;\r\nuniform float uSpriteRendererZindex;\r\nuniform bool  uDisableDepthCorrection;\r\nuniform bool  uIgnoreZindexCap;\r\n\r\nmat4 Project( mat4 mat, vec3 pos) {\r\n\r\n    // xyz = x(-z)y + middle of cell (0.5)\r\n    float x =  pos.x + 0.5;\r\n    float y = -pos.z;\r\n    float z =  pos.y + 0.5;\r\n\r\n    // Matrix translation\r\n    mat[3].x += mat[0].x * x + mat[1].x * y + mat[2].x * z;\r\n    mat[3].y += mat[0].y * x + mat[1].y * y + mat[2].y * z;\r\n    mat[3].z += (mat[0].z * x + mat[1].z * y + mat[2].z * z);\r\n    mat[3].w += mat[0].w * x + mat[1].w * y + mat[2].w * z;\r\n\r\n    // Spherical billboard\r\n    mat[0].xyz = vec3( 1.0, 0.0, 0.0 );\r\n    mat[1].xyz = vec3( 0.0, 1.0, 0.0 );\r\n    mat[2].xyz = vec3( 0.0, 0.0, 1.0 );\r\n\r\n    return mat;\r\n}\r\n\r\nvec3 getCameraPosition() {\r\n    return (uViewModelMat * vec4(0.0, 0.0, 0.0, 1.0)).xyz;\r\n}\r\n\r\nvec3 getCameraForward() {\r\n    return normalize((uViewModelMat * vec4(0.0, 0.0, -1.0, 0.0)).xyz);\r\n}\r\n\r\nvoid main(void) {\r\n    // Calculate position base on angle and sprite offset/size\r\n    vec4 position = uSpriteRendererAngle * vec4( aPosition.x * uSpriteRendererSize.x, aPosition.y * uSpriteRendererSize.y, 0.0, 1.0 );\r\n    position.x   += uSpriteRendererOffset.x;\r\n    position.y   -= uSpriteRendererOffset.y + 0.5;\r\n\r\n    mat4 modelView = Project(uModelViewMat, uSpriteRendererPosition);\r\n    vec4 viewPosition = modelView * position;\r\n    vec4 viewCenter   = modelView * vec4( 0.0, 0.0, 0.0, 1.0 );\r\n\r\n    gl_Position = uProjectionMat * viewPosition;\r\n\r\n    vec3 cameraPos     = getCameraPosition();\r\n    vec3 cameraForward = getCameraForward();\r\n\r\n    if (!uDisableDepthCorrection) {\r\n        // Vertical billboard depth correction (per-vertex), plane anchored at sprite center.\r\n        // Plane normal uses camera forward (flattened Y) for stability.\r\n        // The whole quad takes the vertical plane depth so the part of the sprite below\r\n        // the water surface sorts behind the (later drawn) water pass.\r\n        vec3 planePoint = (uViewModelMat * viewCenter).xyz;\r\n        vec3 planeNormal = normalize(vec3(cameraForward.x, 0.0, cameraForward.z));\r\n        if (length(planeNormal) < 0.000001) {\r\n            planeNormal = cameraForward;\r\n        }\r\n\r\n        vec3 worldVertex = (uViewModelMat * viewPosition).xyz;\r\n        vec3 rayDir      = normalize(worldVertex - cameraPos);\r\n        float denom      = max(dot(planeNormal, rayDir), 0.000001);\r\n        float dist       = dot(planePoint - cameraPos, planeNormal) / denom;\r\n\r\n        vec4 planeClip       = uProjectionMat * (uModelViewMat * vec4(cameraPos + rayDir * dist, 1.0));\r\n        float correctedZBase = planeClip.z * (gl_Position.w / max(planeClip.w, 0.000001));\r\n\r\n        gl_Position.z = uIgnoreZindexCap ? correctedZBase : min(gl_Position.z, correctedZBase);\r\n    }\r\n    gl_Position.z -= (uSpriteRendererZindex * 0.01 + uSpriteRendererDepth) / max(uCameraZoom, 1.0);\r\n\r\n    vTextureCoord = aTextureCoord;\r\n}";
 }));
 //#endregion
 //#region src/Renderer/SpriteRenderer.fs?raw
@@ -207527,6 +207527,7 @@ function RenderCanvas3D(isBlendModeOne) {
 		_disableDepthCorrection = disableDepthCorrection;
 		gl.uniform1i(uniform.uDisableDepthCorrection, disableDepthCorrection);
 	}
+	gl.uniform1i(uniform.uIgnoreZindexCap, this.ignoreDepthMinCap);
 	gl.uniform1f(uniform.uSpriteRendererZindex, this.zIndex++);
 	if (this.angle !== _angle) {
 		_angle = this.angle;
@@ -207760,6 +207761,10 @@ var init_SpriteRenderer = __esmMin((() => {
 		*/
 		static disableDepthCorrection = false;
 		/**
+		* @type {boolean} cached depth test state
+		*/
+		static ignoreDepthMinCap = false;
+		/**
 		* @type {number} width unity
 		*/
 		static xSize = 5;
@@ -207932,7 +207937,7 @@ function init$10(gl, water) {
 	_vertCount = water.vertCount;
 	_waveHeight = water.waveHeight;
 	_waveSpeed = water.waveSpeed;
-	_waterLevel = water.level;
+	water.level;
 	_animSpeed = water.animSpeed;
 	_wavePitch = water.wavePitch;
 	_waterOpacity = water.type !== 4 && water.type !== 6 ? .8 : 1;
@@ -208008,27 +208013,7 @@ function free$6(gl) {
 	}
 	_vertCount = 0;
 }
-/**
-* Is the ground at this cell under the water surface ?
-* (world Y points down: ground is submerged when -altitude is above the wave crest)
-*
-* @param {number} x
-* @param {number} y
-* @return {boolean}
-*/
-function isSubmerged(x, y) {
-	if (!_vertCount) return false;
-	return -Altitude.getCellHeight(x, y) > _waterLevel - _waveHeight;
-}
-/**
-* Does the current map have any water surface ?
-*
-* @return {boolean}
-*/
-function hasWater() {
-	return _vertCount > 0;
-}
-var _program$24, _buffer$17, _vertCount, _textures$1, _waveSpeed, _waveHeight, _wavePitch, _waterLevel, _animSpeed, _waterOpacity, Water_default;
+var _program$24, _buffer$17, _vertCount, _textures$1, _waveSpeed, _waveHeight, _wavePitch, _animSpeed, _waterOpacity, Water_default;
 var init_Water = __esmMin((() => {
 	init_WebGL();
 	init_SpriteRenderer();
@@ -208042,15 +208027,12 @@ var init_Water = __esmMin((() => {
 	_waveSpeed = 0;
 	_waveHeight = 0;
 	_wavePitch = 0;
-	_waterLevel = 0;
 	_animSpeed = 0;
 	_waterOpacity = .9;
 	Water_default = {
 		init: init$10,
 		free: free$6,
-		render: render$11,
-		isSubmerged,
-		hasWater
+		render: render$11
 	};
 }));
 //#endregion
@@ -219798,7 +219780,7 @@ var init_ChatBox$2 = __esmMin((() => {
 //#region src/UI/Components/ChatBox/ChatBox.css?raw
 var ChatBox_default$1;
 var init_ChatBox$1 = __esmMin((() => {
-	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	white-space: pre-line;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
+	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	/* A newline in a message is a line break. See docs/reference/chat/text-parsing.md */\r\n	white-space: pre-line;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ChatBoxSettings/ChatBoxSettings.html?raw
@@ -221017,8 +220999,11 @@ var init_ChatBox = __esmMin((() => {
 	};
 	/**
 	* Add text to chatbox
+	*
+	* @see docs/reference/chat/text-parsing.md
 	*/
 	ChatBox.addText = function addText(text, colorType, filterType, color, override) {
+		text = text.replace(/\^[0-9A-Fa-f]{6}/g, "");
 		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function(match) {
 			const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${DB.parseItemLink(match).name}&gt;</span>`;
 			override = true;
@@ -221482,7 +221467,7 @@ var init_ItemCompare$2 = __esmMin((() => {
 //#region src/UI/Components/ItemCompare/ItemCompare.css?raw
 var ItemCompare_default$1;
 var init_ItemCompare$1 = __esmMin((() => {
-	ItemCompare_default$1 = ":host {\r\n	top: 0px;\r\n	left: 0px;\r\n}\r\n\r\n.ItemCompare {\r\n	position: relative;\r\n	width: 280px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n.ItemCompare .container {\r\n	height: 120px;\r\n	position: relative;\r\n	box-shadow:\r\n		white 0px 0px 0px 3px inset,\r\n		rgb(192, 192, 192) 0px 0px 0px 4px inset;\r\n	background-repeat: no-repeat;\r\n	background-color: #c5ddf6;\r\n	border-radius: 5px;\r\n}\r\n.ItemCompare .event_view {\r\n	position: absolute;\r\n}\r\n.ItemCompare .event_view .view {\r\n	position: absolute;\r\n	width: 42px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n	top: 6px;\r\n	left: 6px;\r\n}\r\n.ItemCompare .collection {\r\n	position: absolute;\r\n	top: 11px;\r\n	left: 10px;\r\n	width: 75px;\r\n	height: 100px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n.ItemCompare .title {\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 86px;\r\n	width: 185px;\r\n	height: 14px;\r\n	padding-left: 4px;\r\n	padding-top: 6px;\r\n	text-shadow: 1px 1px 0px white;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	font-size: 11px;\r\n	font-weight: bold;\r\n}\r\n.ItemCompare .close {\r\n	position: absolute;\r\n	top: 3px;\r\n	right: 3px;\r\n	width: 11px;\r\n	height: 11px;\r\n	display: block;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n.ItemCompare .description {\r\n	position: absolute;\r\n	background-color: white;\r\n	top: 35px;\r\n	left: 100px;\r\n	line-height: 18px;\r\n	width: 170px;\r\n	height: 75px;\r\n	overflow-y: auto;\r\n}\r\n.ItemCompare .description .description-inner {\r\n	width: 150px;\r\n}\r\n.ItemCompare .extend {\r\n	position: absolute;\r\n	right: 4px;\r\n	bottom: 3px;\r\n	width: 13px;\r\n	height: 13px;\r\n	border: none;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n\r\n.ItemCompare .cardlist {\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	padding: 2px;\r\n	margin-top: 3px;\r\n}\r\n.ItemCompare .cardlist .border {\r\n	border: 1px solid #c1c6c2;\r\n	background-color: #c5ddf6;\r\n	padding-top: 2px;\r\n	padding-left: 5px;\r\n	border-radius: 5px;\r\n}\r\n.ItemCompare .cardlist .item {\r\n	position: relative;\r\n	display: inline-block;\r\n}\r\n.ItemCompare .cardlist .item .icon {\r\n	width: 24px;\r\n	height: 24px;\r\n}\r\n.ItemCompare .cardlist .item .name {\r\n	position: absolute;\r\n	top: -20px;\r\n	left: -20px;\r\n	display: none;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	padding: 5px;\r\n	background: rgba(0, 0, 0, 0.7);\r\n	color: white;\r\n	text-shadow: 1px 1px black;\r\n}\r\n.ItemCompare .cardlist .item:hover .name {\r\n	display: block;\r\n}\r\n\r\n.ItemCompare .book_open {\r\n	margin-top: 6px;\r\n	margin-left: 7px;\r\n}\r\n.ItemCompare .book_read {\r\n	position: absolute;\r\n	margin-top: 7px;\r\n}\r\n\r\n.ItemCompare .overlay_open {\r\n	pointer-events: none;\r\n	position: absolute;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	background: rgba(0, 0, 0, 0.5);\r\n	color: white;\r\n	text-shadow: black 1px 1px;\r\n	top: -7px;\r\n	left: 7px;\r\n	text-align: center;\r\n	padding: 3px 4px 1px 4px;\r\n	display: none;\r\n}\r\n.ItemCompare .overlay_read {\r\n	pointer-events: none;\r\n	position: absolute;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	background: rgba(0, 0, 0, 0.5);\r\n	color: white;\r\n	text-shadow: black 1px 1px;\r\n	top: -7px;\r\n	left: 27px;\r\n	text-align: center;\r\n	padding: 3px 4px 1px 4px;\r\n	display: none;\r\n}\r\n\r\n.ItemCompare .optionlist {\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	padding: 2px;\r\n	margin-top: 3px;\r\n}\r\n.ItemCompare .optionlist .border {\r\n	border: 1px solid #c1c6c2;\r\n	background-color: #c5ddf6;\r\n	padding-top: 2px;\r\n	padding-left: 5px;\r\n	border-radius: 5px;\r\n}\r\n.ItemCompare .optionlist .item {\r\n	position: relative;\r\n	display: inline-block;\r\n}\r\n.ItemCompare .optionlist .item .icon {\r\n	width: 24px;\r\n	height: 24px;\r\n}\r\n.ItemCompare .optionlist .item .name {\r\n	position: absolute;\r\n	top: -20px;\r\n	left: -20px;\r\n	display: none;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	padding: 5px;\r\n	background: rgba(0, 0, 0, 0.7);\r\n	color: white;\r\n	text-shadow: 1px 1px black;\r\n}\r\n.ItemCompare .optionlist .item:hover .name {\r\n	display: block;\r\n}\r\n\r\n.ItemCompare .title.damaged {\r\n	text-shadow: red 1px 1px 0px;\r\n}\r\n";
+	ItemCompare_default$1 = ":host {\r\n	top: 0px;\r\n	left: 0px;\r\n}\r\n\r\n.ItemCompare {\r\n	position: relative;\r\n	width: 280px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n.ItemCompare .container {\r\n	height: 120px;\r\n	position: relative;\r\n	box-shadow:\r\n		white 0px 0px 0px 3px inset,\r\n		rgb(192, 192, 192) 0px 0px 0px 4px inset;\r\n	background-repeat: no-repeat;\r\n	background-color: #c5ddf6;\r\n	border-radius: 5px;\r\n}\r\n.ItemCompare .event_view {\r\n	position: absolute;\r\n}\r\n.ItemCompare .event_view .view {\r\n	position: absolute;\r\n	width: 42px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n	top: 6px;\r\n	left: 6px;\r\n}\r\n.ItemCompare .collection {\r\n	position: absolute;\r\n	top: 11px;\r\n	left: 10px;\r\n	width: 75px;\r\n	height: 100px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n.ItemCompare .title {\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 86px;\r\n	width: 185px;\r\n	height: 14px;\r\n	padding-left: 4px;\r\n	padding-top: 6px;\r\n	text-shadow: 1px 1px 0px white;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	font-size: 11px;\r\n	font-weight: bold;\r\n}\r\n.ItemCompare .close {\r\n	position: absolute;\r\n	top: 3px;\r\n	right: 3px;\r\n	width: 11px;\r\n	height: 11px;\r\n	display: block;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n.ItemCompare .description {\r\n	position: absolute;\r\n	background-color: white;\r\n	top: 35px;\r\n	left: 100px;\r\n	line-height: 18px;\r\n	width: 170px;\r\n	height: 75px;\r\n	overflow-y: auto;\r\n}\r\n.ItemCompare .description .description-inner {\r\n	width: 150px;\r\n	white-space: pre-wrap;\r\n}\r\n.ItemCompare .extend {\r\n	position: absolute;\r\n	right: 4px;\r\n	bottom: 3px;\r\n	width: 13px;\r\n	height: 13px;\r\n	border: none;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n\r\n.ItemCompare .cardlist {\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	padding: 2px;\r\n	margin-top: 3px;\r\n}\r\n.ItemCompare .cardlist .border {\r\n	border: 1px solid #c1c6c2;\r\n	background-color: #c5ddf6;\r\n	padding-top: 2px;\r\n	padding-left: 5px;\r\n	border-radius: 5px;\r\n}\r\n.ItemCompare .cardlist .item {\r\n	position: relative;\r\n	display: inline-block;\r\n}\r\n.ItemCompare .cardlist .item .icon {\r\n	width: 24px;\r\n	height: 24px;\r\n}\r\n.ItemCompare .cardlist .item .name {\r\n	position: absolute;\r\n	top: -20px;\r\n	left: -20px;\r\n	display: none;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	padding: 5px;\r\n	background: rgba(0, 0, 0, 0.7);\r\n	color: white;\r\n	text-shadow: 1px 1px black;\r\n}\r\n.ItemCompare .cardlist .item:hover .name {\r\n	display: block;\r\n}\r\n\r\n.ItemCompare .book_open {\r\n	margin-top: 6px;\r\n	margin-left: 7px;\r\n}\r\n.ItemCompare .book_read {\r\n	position: absolute;\r\n	margin-top: 7px;\r\n}\r\n\r\n.ItemCompare .overlay_open {\r\n	pointer-events: none;\r\n	position: absolute;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	background: rgba(0, 0, 0, 0.5);\r\n	color: white;\r\n	text-shadow: black 1px 1px;\r\n	top: -7px;\r\n	left: 7px;\r\n	text-align: center;\r\n	padding: 3px 4px 1px 4px;\r\n	display: none;\r\n}\r\n.ItemCompare .overlay_read {\r\n	pointer-events: none;\r\n	position: absolute;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	background: rgba(0, 0, 0, 0.5);\r\n	color: white;\r\n	text-shadow: black 1px 1px;\r\n	top: -7px;\r\n	left: 27px;\r\n	text-align: center;\r\n	padding: 3px 4px 1px 4px;\r\n	display: none;\r\n}\r\n\r\n.ItemCompare .optionlist {\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	padding: 2px;\r\n	margin-top: 3px;\r\n}\r\n.ItemCompare .optionlist .border {\r\n	border: 1px solid #c1c6c2;\r\n	background-color: #c5ddf6;\r\n	padding-top: 2px;\r\n	padding-left: 5px;\r\n	border-radius: 5px;\r\n}\r\n.ItemCompare .optionlist .item {\r\n	position: relative;\r\n	display: inline-block;\r\n}\r\n.ItemCompare .optionlist .item .icon {\r\n	width: 24px;\r\n	height: 24px;\r\n}\r\n.ItemCompare .optionlist .item .name {\r\n	position: absolute;\r\n	top: -20px;\r\n	left: -20px;\r\n	display: none;\r\n	white-space: nowrap;\r\n	z-index: 900;\r\n	height: 13px;\r\n	padding: 5px;\r\n	background: rgba(0, 0, 0, 0.7);\r\n	color: white;\r\n	text-shadow: 1px 1px black;\r\n}\r\n.ItemCompare .optionlist .item:hover .name {\r\n	display: block;\r\n}\r\n\r\n.ItemCompare .title.damaged {\r\n	text-shadow: red 1px 1px 0px;\r\n}\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ItemCompare/ItemCompare.js
@@ -221797,7 +221782,11 @@ var init_ItemCompare = __esmMin((() => {
 			}
 			case ItemType_default.PETEGG: if (cardListParent) cardListParent.style.display = "none";
 		}
-		if (descInner) resize$4(descInner.offsetHeight + 45);
+		if (descInner) {
+			const rawDesc = item.IsIdentified ? it.identifiedDescriptionName : it.unidentifiedDescriptionName;
+			descInner.innerHTML = DB.formatMsgToHtml(_escapeHTML$5(rawDesc));
+			resize$4(descInner.offsetHeight + 45);
+		}
 	};
 	rendering$3 = (function renderingClosure() {
 		const position = new Uint16Array([0, 0]);
@@ -243377,7 +243366,10 @@ var init_CartItems = __esmMin((() => {
 			CartItems._host.style.display = "none";
 		});
 		this._host.addEventListener("drop", onDrop$9);
-		this._host.addEventListener("dragover", (e) => e.stopImmediatePropagation());
+		this._host.addEventListener("dragover", (e) => {
+			e.stopImmediatePropagation();
+			e.preventDefault();
+		});
 		const content = root.querySelector(".container .content");
 		if (content) {
 			content.addEventListener("wheel", onScroll$5);
@@ -243764,8 +243756,7 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 		this._host.addEventListener("dragover", onDragOver);
 		this._host.addEventListener("dragleave", onDragLeave);
 		this._host.addEventListener("drop", onDrop);
-		const content = root.querySelector(".content");
-		if (content) {
+		root.querySelectorAll(".content").forEach((content) => {
 			content.addEventListener("contextmenu", (e) => {
 				e.preventDefault();
 				const item = e.target.closest(".item");
@@ -243782,7 +243773,7 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 			content.addEventListener("mouseout", (e) => {
 				if (e.target.closest("button")) onEquipmentOut();
 			});
-		}
+		});
 		this.draggable(".titlebar");
 		if (switchEquip) switchappend = root.querySelector(".footer");
 		if (costumeConfig) {
@@ -260660,7 +260651,6 @@ var init_MapRenderer = __esmMin((() => {
 			ScreenEffectManager.render(gl, modelView, projection, fog, tick, true);
 			EffectManager.render(gl, modelView, projection, fog, tick, true);
 			EntityManager.render(gl, modelView, projection, fog, false);
-			EntityManager.renderWaterDepth(gl, modelView, projection, fog);
 			Water_default.render(gl, modelView, projection, fog, light, tick);
 			Models_default.renderFaded(gl, modelView, projection, normalMat, fog, light);
 			AnimatedModels_default.renderFaded(gl, modelView, projection, normalMat, fog, light);
@@ -311084,28 +311074,6 @@ function render$5(modelView, projection) {
 	renderGUI(this, modelView, projection);
 }
 /**
-* Depth-only redraw of the body for entities standing in water, so the water
-* pass (drawn after entities, depth tested) covers only the submerged part.
-* Runs after every entity has been drawn, with colour writes disabled by the
-* caller, so the written depth cannot hide other sprites. Replays the exact
-* layers the colour pass drew this frame (`waterDepthFrame`), so no animation,
-* sound or trail state is touched. Only set for the non-player body pass;
-* entity types that already write depth never get a frame.
-*/
-function renderWaterDepth$1() {
-	const frame = this.waterDepthFrame;
-	if (!frame || this.hideEntity || !this.effectColor[3]) return;
-	if (!Water_default.isSubmerged(this.position[0], this.position[1])) return;
-	const self = this;
-	SpriteRenderer.position.set(this.position);
-	SpriteRenderer.position[2] = SpriteRenderer.position[2] + .2;
-	SpriteRenderer.zIndex = 150;
-	SpriteRenderer.runWithDepth(true, true, false, function() {
-		for (let i = 0, count = frame.layers.length; i < count; ++i) self.renderLayer(frame.layers[i], frame.spr, frame.pal, frame.size, frame.position, "body", false);
-	});
-	SpriteRenderer.zIndex = 1;
-}
-/**
 * Render second body (BL_DOUBLE_BODY + EF_MAKEBLUR)
 * @param {Entity} entity
 * @param {Array} layers
@@ -311374,9 +311342,6 @@ function Init$3() {
 	this.render = render$5;
 	this.renderLayer = renderLayer;
 	this.renderEntity = renderEntity;
-	this.renderWaterDepth = renderWaterDepth$1;
-	this.waterDepthFrame = void 0;
-	this._waterDepthFrameBuffer = null;
 }
 var WALK_DIST_TO_MOTION, renderGUI, SPRITE_LIFT, calculateBoundingRect, renderEntity, renderElement;
 var init_EntityRender = __esmMin((() => {
@@ -311638,10 +311603,19 @@ var init_EntityRender = __esmMin((() => {
 						renderElement(self, self.files.body, "body", _position, true);
 					});
 					break;
+				case Entity.TYPE_NPC:
+				case Entity.TYPE_NPC2:
+					SpriteRenderer.position[2] = SpriteRenderer.position[2] + .2;
+					SpriteRenderer.ignoreDepthMinCap = true;
+					SpriteRenderer.zIndex = 150;
+					SpriteRenderer.runWithDepth(true, true, false, function() {
+						renderElement(self, self.files.body, "body", _position, true);
+					});
+					SpriteRenderer.ignoreDepthMinCap = false;
+					break;
 				default:
 					SpriteRenderer.position[2] = SpriteRenderer.position[2] + .2;
 					SpriteRenderer.zIndex = 150;
-					self.waterDepthFrame = null;
 					SpriteRenderer.runWithDepth(true, false, false, function() {
 						renderElement(self, self.files.body, "body", _position, true);
 					});
@@ -311716,15 +311690,6 @@ var init_EntityRender = __esmMin((() => {
 				blurType: isBUNSIN ? 5 : isHALLUCINATIONWALK ? 3 : entity._blurType || 1
 			});
 			for (let i = 0, count = layers.length; i < count; ++i) entity.renderLayer(layers[i], spr, pal, files.size, _position, type, isBlendModeOne);
-			if (is_main && type === "body" && entity.waterDepthFrame === null) {
-				const frame = entity._waterDepthFrameBuffer || (entity._waterDepthFrameBuffer = { position: /* @__PURE__ */ new Int32Array(2) });
-				frame.layers = layers;
-				frame.spr = spr;
-				frame.pal = pal;
-				frame.size = files.size;
-				frame.position.set(_position);
-				entity.waterDepthFrame = frame;
-			}
 			if (is_main && animation.pos.length) {
 				position[0] = animation.pos[0].x;
 				position[1] = animation.pos[0].y;
@@ -313616,25 +313581,6 @@ function render$4(gl, modelView, projection, fog, renderEffects) {
 	SpriteRenderer.unbind(gl);
 }
 /**
-* Depth-only pass for entities standing in water, run after all entities
-* are drawn and right before the water so it can hide their submerged part
-* without occluding other sprites.
-*
-* @param {object} gl context
-* @param {mat4} modelView
-* @param {mat4} projection
-* @param {object} fog
-*/
-function renderWaterDepth(gl, modelView, projection, fog) {
-	if (!_list.length || !Water_default.hasWater()) return;
-	const culling = getCulling();
-	SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
-	gl.colorMask(false, false, false, false);
-	for (let i = 0, count = _list.length; i < count; ++i) if (!isCulled(culling, _list[i])) _list[i].renderWaterDepth();
-	gl.colorMask(true, true, true, true);
-	SpriteRenderer.unbind(gl);
-}
-/**
 * Intersect Entities
 */
 function intersect() {
@@ -313806,7 +313752,6 @@ var init_EntityManager = __esmMin((() => {
 		removeLife,
 		clearLifeCache,
 		render: render$4,
-		renderWaterDepth,
 		intersect,
 		setSupportPicking,
 		pendingTransformations,
