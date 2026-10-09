@@ -46,10 +46,15 @@ export interface LpmRow {
 	url?: string | null;
 	registry?: string | null;
 	updateAvailable?: boolean;
+	/** From the live registration (matched on `pluginName`). `null` when not
+	 *  registered (e.g. disabled, or a registry-only row). */
+	status?: 'ok' | 'failed' | null;
+	error?: string | null;
 }
 
-/** Result of a mutation. Failures generally resolve `{ ok:false, error }` rather
- *  than throwing (install/update throw on network/exec errors). */
+/** Result of a mutation. Install/update/enable still throw on a network or
+ *  module-shape error ; an init failure instead resolves `{ ok:false, error }`
+ *  (the plugin is stored/persisted either way). */
 export interface LpmResult {
 	ok: boolean;
 	name: string;
@@ -94,11 +99,13 @@ export interface LocalPluginManagerPars {
 	registries?: string | { [label: string]: string };
 }
 
-/** Runtime host injected into every plugin's DI map (used by LPM). */
+/** Runtime host injected into every plugin's DI map (used by LPM).
+ *  `register()` resolves `false` on an init failure (throw or a `false`
+ *  return) rather than rejecting — only a shape error (missing `init`) throws. */
 export interface PluginHostAPI {
 	register(def: any, pars?: any, mod?: any): Promise<unknown>;
 	unregister(name: string): void;
-	list(): Array<{ name: string }>;
+	list(): Array<{ name: string; status: 'ok' | 'failed'; error?: string }>;
 }
 
 /** One item record — see `robrowser/tools/v3/libs/item-db/src/index.js` for the

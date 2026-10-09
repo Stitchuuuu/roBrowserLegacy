@@ -136,11 +136,14 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 	/**
 	 * Execute a plugin ESM source string : Blob → import(blobUrl) → register.
-	 * Returns `mod.default` (the manifest object) so callers can read its
-	 * `name`/`version`. The blob URL is revoked once `import()` resolves. The
-	 * host `register` is awaited (it awaits the plugin's init) and given the
-	 * module namespace so a stored producer's namespace can be a dep fallback.
-	 * The plugin's init receives its own manifest `pars`, as under TM.
+	 * Returns `{ manifest, error }` — `manifest` is `mod.default` so callers can
+	 * read its `name`/`version` ; `error` is the init failure message when the
+	 * host recorded the registration as failed, else `null`. The blob URL is
+	 * revoked once `import()` resolves. The host `register` is awaited (it
+	 * awaits the plugin's init, never rejecting on an init failure) and given
+	 * the module namespace so a stored producer's namespace can be a dep
+	 * fallback. The plugin's init receives its own manifest `pars`, as under TM.
+	 * A bad module (missing/invalid default export) still throws here.
 	 */
 	async function exec(source) {
 		const blob = new Blob([source], { type: 'application/javascript' })
@@ -151,7 +154,9 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 				throw new Error('[plugin-store] module has no valid default export ({ name, init, ... })')
 			}
 			await PluginManager.register(mod.default, mod.default.pars || null, mod)
-			return mod.default
+			const entry = PluginManager.list().find(p => p.name === mod.default.name)
+			const error = entry && entry.status === 'failed' ? entry.error : null
+			return { manifest: mod.default, error }
 		} finally {
 			URL.revokeObjectURL(blobUrl)
 		}
@@ -234,7 +239,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 		log(`[plugin-store] install '${name}' from ${sourceUrl}`)
 		const source = await fetchText(sourceUrl)
-		const manifest = await exec(source)
+		const { manifest, error } = await exec(source)
 
 		const record = {
 			name,                          // slug — IDB key
@@ -247,8 +252,14 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			installedAt: Date.now(),
 		}
 		await dbPut(W, record)
-		log(`[plugin-store ✓] installed '${name}' (${manifest.name} v${manifest.version || '?'}) — persisted to IndexedDB`)
-		return { ok: true, name, pluginName: manifest.name, version: manifest.version }
+		if (error) {
+			err(`[plugin-store] install '${name}' stored but init failed (${manifest.name} v${manifest.version || '?'}) — ${error}`)
+		} else {
+			log(`[plugin-store ✓] installed '${name}' (${manifest.name} v${manifest.version || '?'}) — persisted to IndexedDB`)
+		}
+		return error
+			? { ok: false, name, pluginName: manifest.name, version: manifest.version, error }
+			: { ok: true, name, pluginName: manifest.name, version: manifest.version }
 	}
 
 	/**
@@ -267,7 +278,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 		if (!name) throw new Error('[plugin-store] installFromSource: missing slug')
 
 		log(`[plugin-store] installFromSource '${name}' (${source.length} bytes)`)
-		const manifest = await exec(source)   // throws on non-ESM / no default export
+		const { manifest, error } = await exec(source)   // throws on non-ESM / no default export
 
 		const record = {
 			name,                          // slug — IDB key
@@ -280,25 +291,39 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			installedAt: Date.now(),
 		}
 		await dbPut(W, record)
-		log(`[plugin-store ✓] installed '${name}' (${manifest.name} v${manifest.version || '?'}) from dropped source — persisted to IndexedDB`)
-		return { ok: true, name, pluginName: manifest.name, version: manifest.version }
+		if (error) {
+			err(`[plugin-store] installFromSource '${name}' stored but init failed (${manifest.name} v${manifest.version || '?'}) — ${error}`)
+		} else {
+			log(`[plugin-store ✓] installed '${name}' (${manifest.name} v${manifest.version || '?'}) from dropped source — persisted to IndexedDB`)
+		}
+		return error
+			? { ok: false, name, pluginName: manifest.name, version: manifest.version, error }
+			: { ok: true, name, pluginName: manifest.name, version: manifest.version }
 	}
 
 	/**
 	 * Installed plugins only — IndexedDB read, NO network. Same entry shape as
-	 * list() (with `available:false`).
+	 * list() (with `available:false`). `status`/`error` come from the live
+	 * registration (matched on `pluginName`) ; `null` when not registered
+	 * (e.g. disabled).
 	 */
 	async function listInstalled() {
 		const installed = await dbGetAll(W).catch(() => [])
-		return installed.map(rec => ({
-			name: rec.name,
-			pluginName: rec.pluginName || null,
-			version: rec.version || null,
-			installed: true,
-			enabled: !!rec.enabled,
-			debug: !!rec.debug,
-			available: false,
-		}))
+		const runtime = PluginManager.list()
+		return installed.map(rec => {
+			const entry = rec.pluginName ? runtime.find(p => p.name === rec.pluginName) : null
+			return {
+				name: rec.name,
+				pluginName: rec.pluginName || null,
+				version: rec.version || null,
+				installed: true,
+				enabled: !!rec.enabled,
+				debug: !!rec.debug,
+				available: false,
+				status: entry ? entry.status : null,
+				error: entry ? entry.error || null : null,
+			}
+		})
 	}
 
 	/**
@@ -367,9 +392,14 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 		let loaded = 0, failed = 0
 		for (const rec of enabled) {
 			try {
-				const manifest = await exec(rec.source)
-				loaded++
-				log(`[plugin-store]   ✓ ${rec.name} (${manifest.name} v${manifest.version || '?'})`)
+				const { manifest, error } = await exec(rec.source)
+				if (error) {
+					failed++
+					err(`[plugin-store]   ✗ ${rec.name}: ${error}`)
+				} else {
+					loaded++
+					log(`[plugin-store]   ✓ ${rec.name} (${manifest.name} v${manifest.version || '?'})`)
+				}
 			} catch (e) {
 				failed++
 				err(`[plugin-store]   ✗ ${rec.name}: ${e.message}`)
@@ -422,13 +452,19 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 		if (rec.pluginName && PluginManager.list().some(p => p.name === rec.pluginName)) {
 			await PluginManager.unregister(rec.pluginName)
 		}
-		const manifest = await exec(rec.source)   // throws on bad source — record left enabled:false
+		const { manifest, error } = await exec(rec.source)   // throws on bad source — record left enabled:false
 		rec.enabled = true
 		rec.pluginName = manifest.name             // resync in case source changed since install
 		rec.version = manifest.version || rec.version
 		await dbPut(W, rec)
-		log(`[plugin-store ✓] enabled '${name}' (${manifest.name} v${manifest.version || '?'})`)
-		return { ok: true, name, pluginName: manifest.name, version: manifest.version }
+		if (error) {
+			err(`[plugin-store] enabled '${name}' but init failed (${manifest.name} v${manifest.version || '?'}) — ${error}`)
+		} else {
+			log(`[plugin-store ✓] enabled '${name}' (${manifest.name} v${manifest.version || '?'})`)
+		}
+		return error
+			? { ok: false, name, pluginName: manifest.name, version: manifest.version, error }
+			: { ok: true, name, pluginName: manifest.name, version: manifest.version }
 	}
 
 	/**
@@ -450,13 +486,19 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 		if (rec.enabled) {
 			if (rec.pluginName) await PluginManager.unregister(rec.pluginName)  // tear down OLD
-			const manifest = await exec(source)                                 // register NEW
+			const { manifest, error } = await exec(source)                      // register NEW
 			rec.source = source
 			rec.version = manifest.version || null
 			rec.pluginName = manifest.name      // NEW manifest name (may differ from old)
 			await dbPut(W, rec)
-			log(`[plugin-store ✓] updated '${name}' (${manifest.name}) ${oldVersion || '?'} → ${manifest.version || '?'} — live`)
-			return { ok: true, name, pluginName: manifest.name, version: manifest.version, oldVersion }
+			if (error) {
+				err(`[plugin-store] updated '${name}' (${manifest.name}) but init failed — ${error}`)
+			} else {
+				log(`[plugin-store ✓] updated '${name}' (${manifest.name}) ${oldVersion || '?'} → ${manifest.version || '?'} — live`)
+			}
+			return error
+				? { ok: false, name, pluginName: manifest.name, version: manifest.version, oldVersion, error }
+				: { ok: true, name, pluginName: manifest.name, version: manifest.version, oldVersion }
 		}
 
 		// disabled : refresh stored source only ; pluginName/version resync on next enable()

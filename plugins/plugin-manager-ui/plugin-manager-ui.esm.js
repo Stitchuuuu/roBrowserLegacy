@@ -25,7 +25,7 @@
  * Wire it via ROConfig.plugins as `/plugins/plugin-manager-ui/plugin-manager-ui.esm.js`.
  */
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 const CSS = `
 .pm-panel { width: 380px; background: rgba(20,30,50,0.94); border: 1px solid #4af; border-radius: 4px; color: #fff; font-family: Arial, sans-serif; font-size: 11px; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 10px rgba(0,0,0,0.7); display: flex; flex-direction: column; }
@@ -54,6 +54,7 @@ const CSS = `
 .pm-empty { color: #aaa; font-style: italic; padding: 6px; text-align: center; }
 .pm-row { background: rgba(0,0,0,0.4); border-left: 3px solid #4af; border-radius: 2px; padding: 5px 7px; display: flex; flex-direction: column; gap: 4px; }
 .pm-row.is-disabled { border-left-color: #678; opacity: 0.75; }
+.pm-row.is-failed { border-left-color: #e66; }
 .pm-row-main { display: flex; align-items: baseline; gap: 6px; }
 .pm-name { font-weight: bold; }
 .pm-slug { color: #9ab; font-size: 9px; }
@@ -62,6 +63,7 @@ const CSS = `
 .pm-badge { font-size: 9px; padding: 1px 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); color: #99a; background: rgba(255,255,255,0.05); }
 .pm-badge.on { color: #fff; border-color: #6c6; background: rgba(60,160,60,0.45); }
 .pm-badge.dbg { color: #fc6; border-color: #b83; background: rgba(180,120,40,0.4); }
+.pm-badge.fail { color: #fbb; border-color: #e66; background: rgba(180,40,40,0.4); }
 .pm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .pm-btn { background: rgba(40,60,100,0.9); border: 1px solid #4af; color: #fff; font: 10px inherit; padding: 3px 8px; border-radius: 2px; cursor: pointer; text-shadow: 1px 1px 0 #000; }
 .pm-btn:hover { background: rgba(80,140,220,0.95); border-color: #7cf; }
@@ -73,6 +75,7 @@ const CSS = `
 .pm-badge.upd { color: #cfa; border-color: #6a4; background: rgba(120,180,60,0.4); }
 .pm-badge.reg { color: #9cf; border-color: #47a; background: rgba(60,100,160,0.35); }
 .pm-row.is-registry { border-left-color: #6c6; }
+.pm-error { color: #fbb; font-size: 10px; word-break: break-word; }
 `;
 
 const HTML = `
@@ -135,14 +138,15 @@ function rowHtml(p) {
 	];
 
 	return `
-<div class="pm-row${p.enabled ? '' : ' is-disabled'}" data-name="${escapeHtml(p.name)}">
+<div class="pm-row${p.enabled ? '' : ' is-disabled'}${p.status === 'failed' ? ' is-failed' : ''}" data-name="${escapeHtml(p.name)}">
 	<div class="pm-row-main">
 		<span class="pm-name">${escapeHtml(friendly)}</span>${slug}
 		<span class="pm-ver">v${escapeHtml(p.version || '?')}</span>
 	</div>
 	<div class="pm-badges">
-		${badge(p.installed, 'local')}${badge(p.enabled, 'enabled')}${p.debug ? '<span class="pm-badge dbg">debug</span>' : ''}${p.updateAvailable ? '<span class="pm-badge upd">update</span>' : ''}
+		${badge(p.installed, 'local')}${badge(p.enabled, 'enabled')}${p.debug ? '<span class="pm-badge dbg">debug</span>' : ''}${p.updateAvailable ? '<span class="pm-badge upd">update</span>' : ''}${p.status === 'failed' ? '<span class="pm-badge fail">failed</span>' : ''}
 	</div>
+	${p.status === 'failed' ? `<div class="pm-error">${escapeHtml(p.error)}</div>` : ''}
 	<div class="pm-actions">${actions.join('')}</div>
 </div>`.trim();
 }
@@ -222,7 +226,8 @@ const init = (pars, deps) => {
 		const url = input && input.value ? input.value.trim() : '';
 		if (!url) { return; }
 		try {
-			await LPM.installFromUrl(url);
+			const r = await LPM.installFromUrl(url);
+			if (r && r.ok === false) { setStatus(`Install: init failed — ${r.error}`); }
 			if (input) { input.value = ''; }
 		} catch (e) {
 			setStatus('Install failed: ' + ((e && e.message) || e));
@@ -233,7 +238,8 @@ const init = (pars, deps) => {
 	async function installFromRegistry(url) {
 		if (!LPM || !url) { return; }
 		try {
-			await LPM.installFromUrl(url);
+			const r = await LPM.installFromUrl(url);
+			if (r && r.ok === false) { setStatus(`Install: init failed — ${r.error}`); }
 		} catch (e) {
 			setStatus('Install failed: ' + ((e && e.message) || e));
 		}
@@ -251,7 +257,10 @@ const init = (pars, deps) => {
 		input.addEventListener('change', async () => {
 			const file = input.files && input.files[0];
 			if (file) {
-				try { await LPM.installFromFile(file); }
+				try {
+					const r = await LPM.installFromFile(file);
+					if (r && r.ok === false) { setStatus(`Install: init failed — ${r.error}`); }
+				}
 				catch (e) { setStatus('Install failed: ' + ((e && e.message) || e)); }
 			}
 			input.remove();
