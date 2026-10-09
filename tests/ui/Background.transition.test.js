@@ -24,6 +24,8 @@ vi.mock('Utils/HtmlHelper.js', () => ({
 }));
 
 import Background from 'UI/Background.js';
+import Configs from 'Core/Configs.js';
+import { animateElement } from 'Utils/HtmlHelper.js';
 
 function finishAnimation() {
 	mocks.animations.shift().callback();
@@ -56,7 +58,7 @@ describe('Background.remove', () => {
 		expect(overlay.parentNode).toBeNull();
 	});
 
-	it('keeps a background set while its fade is running', () => {
+	it('cuts to black then fades in when a background is displayed', () => {
 		Background.setImage('bgi_temp.bmp');
 		finishAnimation();
 		finishAnimation();
@@ -65,10 +67,59 @@ describe('Background.remove', () => {
 
 		const callback = vi.fn();
 		Background.remove(callback);
-		Background.setImage('bgi_temp.bmp');
+
+		expect(callback).toHaveBeenCalledOnce();
+		expect(background.parentNode).toBeNull();
+		expect(mocks.animations).toHaveLength(1);
+		expect(mocks.animations[0].props).toEqual({ opacity: 0.01 });
+		expect(mocks.animations[0].element.style.opacity).toBe('1');
+	});
+});
+
+describe('Background.setLoading', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		document.body.innerHTML = '';
+	});
+
+	it('fades to black then cuts to the loading image', () => {
+		const callback = vi.fn();
+
+		Background.setLoading(callback);
+
+		expect(mocks.animations).toHaveLength(1);
+		expect(mocks.animations[0].props).toEqual({ opacity: 1.0 });
+		const overlay = mocks.animations[0].element;
+
 		finishAnimation();
 
 		expect(callback).toHaveBeenCalledOnce();
-		expect(background.parentNode).toBe(document.body);
+		expect(mocks.animations).toHaveLength(0);
+		expect(overlay.parentNode).toBeNull();
+		expect(document.body.querySelector('canvas')).not.toBeNull();
+	});
+});
+
+describe('transition duration', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		document.body.innerHTML = '';
+		animateElement.mockClear();
+	});
+
+	it('defaults to 255 ms each way', () => {
+		Background.remove();
+		finishAnimation();
+
+		expect(animateElement.mock.calls.map(call => call[2])).toEqual([255, 255]);
+	});
+
+	it('follows the transitionDuration config', () => {
+		Configs.get.mockImplementation(key => (key === 'transitionDuration' ? 400 : undefined));
+
+		Background.remove();
+
+		expect(animateElement.mock.calls[0][2]).toBe(400);
+		Configs.get.mockReset();
 	});
 });

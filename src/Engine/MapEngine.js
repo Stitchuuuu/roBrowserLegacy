@@ -622,11 +622,73 @@ function onConnectionRefused(pkt) {
 }
 
 /**
+ * Components of the map UI, kept attached across a map transition
+ *
+ * @return {Array<GUIComponent>}
+ * @see docs/reference/map-transition.md
+ */
+function getMapUI() {
+	const ui = [MiniMap.getUI()];
+
+	ui.push(
+		ChatBox,
+		ChatBoxSettings,
+		BasicInfo.getUI(),
+		Escape,
+		Inventory.getUI(),
+		CartItems,
+		Vending,
+		ChangeCart,
+		CartDecoration,
+		Equipment.getUI(),
+		ShortCuts,
+		StatusIcons,
+		ShortCut,
+		ChatRoomCreate,
+		Emoticons,
+		SkillList.getUI(),
+		FPS,
+		PartyFriends.getUI(),
+		Guild,
+		WorldMap,
+		SkillListMH.homunculus,
+		SkillListMH.mercenary,
+		MobileUI,
+		JoystickUI,
+		Navigation,
+		Roulette
+	);
+
+	if (Configs.get('enableAchievements') && PACKETVER.value >= 20150513) {
+		ui.push(Achievement);
+	}
+
+	if (Session.PCGoldTimer) {
+		ui.push(PCGoldTimer);
+	}
+
+	ui.push(WinStats.getUI(), Quest.getUI());
+
+	if (Configs.get('enableCashShop')) {
+		ui.push(CashShopIcon);
+	}
+
+	if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
+		ui.push(CheckAttendance);
+	}
+
+	return ui;
+}
+
+/**
  * Changing map, loading new map
  *
  * @param {object} pkt - PACKET.ZC.NPCACK_MAPMOVE
+ * @see docs/reference/map-transition.md
  */
 function onMapChange(pkt) {
+	const ui = getMapUI();
+
 	MapRenderer.onLoad = () => {
 		Session.Entity.set({
 			PosDir: [pkt.xPos, pkt.yPos, 0],
@@ -695,57 +757,14 @@ function onMapChange(pkt) {
 		Camera.setTarget(Session.Entity);
 		Camera.init();
 
-		// Add Game UI
-		MiniMap.getUI().append();
+		// Add Game UI, restarting in place the components the transition kept attached
+		for (let i = 0; i < ui.length; ++i) {
+			ui[i].rebuild();
+		}
 		MiniMap.getUI().setMap(MapRenderer.currentMap);
 		if (Configs.get('enableMapName')) {
 			MapName.setMap(MapRenderer.currentMap);
 			MapName.append();
-		}
-		ChatBox.append();
-		ChatBoxSettings.append();
-		BasicInfo.getUI().append();
-		Escape.append();
-		Inventory.getUI().append();
-		CartItems.append();
-		Vending.append();
-		ChangeCart.append();
-		CartDecoration.append();
-		Equipment.getUI().append();
-		ShortCuts.append();
-		StatusIcons.append();
-		ShortCut.append();
-		ChatRoomCreate.append();
-		Emoticons.append();
-		SkillList.getUI().append();
-		FPS.append();
-		PartyFriends.getUI().append();
-		Guild.append();
-		WorldMap.append();
-		SkillListMH.homunculus.append();
-		SkillListMH.mercenary.append();
-		MobileUI.append();
-		JoystickUI.append();
-		Navigation.append();
-		Roulette.append();
-		if (Configs.get('enableAchievements') && PACKETVER.value >= 20150513) {
-			Achievement.append();
-		}
-
-		if (Session.PCGoldTimer) {
-			PCGoldTimer.append();
-		}
-
-		WinStats.getUI().append();
-
-		Quest.getUI().append();
-
-		if (Configs.get('enableCashShop')) {
-			CashShopIcon.append();
-		}
-
-		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
-			CheckAttendance.append();
 		}
 
 		// Reload plugins
@@ -772,7 +791,7 @@ function onMapChange(pkt) {
 		}
 	};
 
-	MapRenderer.setMap(pkt.mapName);
+	MapRenderer.setMap(pkt.mapName, ui);
 }
 
 /**

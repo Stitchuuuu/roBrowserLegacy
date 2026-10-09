@@ -18,6 +18,11 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import { animateElement } from 'Utils/HtmlHelper.js';
 
 /**
+ * @var {number} default duration of each half of a transition, in ms
+ */
+const TRANSITION_DURATION = 255;
+
+/**
  * @var {HTMLElement} Background overlay (used for transition)
  */
 const _overlay = document.createElement('div');
@@ -132,8 +137,9 @@ class Background {
 	 *
 	 * @param {string|Array<string>} filename
 	 * @param {function} callback once the image is loaded (optional)
+	 * @param {boolean} [fadeIn=true] fade from black onto the image, else cut to it
 	 */
-	static setImage(filename, callback) {
+	static setImage(filename, callback, fadeIn = true) {
 		const exist = !!_container.parentNode;
 		Background._progress = -1;
 		Background._removal = null;
@@ -201,13 +207,17 @@ class Background {
 
 		// Add transition only if the background isn't here
 		if (!exist) {
-			transition(() => {
-				document.body.appendChild(_container);
-				document.body.appendChild(_canvas);
-				if (callback) {
-					callback();
-				}
-			});
+			transition(
+				() => {
+					document.body.appendChild(_container);
+					document.body.appendChild(_canvas);
+					if (callback) {
+						callback();
+					}
+				},
+				true,
+				fadeIn
+			);
 		}
 	}
 
@@ -247,27 +257,34 @@ class Background {
 	}
 
 	/**
-	 * Add loading background
+	 * Add loading background: fade to black, then cut to the loading image
 	 *
 	 * @param {function} callback once the loading is display (optional)
+	 * @see docs/reference/map-transition.md
 	 */
 	static setLoading(callback) {
 		const index = Math.floor(Math.random() * Background._loading.length);
 
-		Background.setImage(Background._loading[index] || 'loading01.jpg', () => {
-			_canvas.style.zIndex = '999';
-			Background.setPercent(0.0);
+		Background.setImage(
+			Background._loading[index] || 'loading01.jpg',
+			() => {
+				_canvas.style.zIndex = '999';
+				Background.setPercent(0.0);
 
-			if (callback) {
-				callback();
-			}
-		});
+				if (callback) {
+					callback();
+				}
+			},
+			false
+		);
 	}
 
 	/**
-	 * Remove background
+	 * Remove background: cut to black from a background image, fade to black
+	 * from the map, then fade from black
 	 *
 	 * @param {function} callback once the overlay hide the window (optional)
+	 * @see docs/reference/map-transition.md
 	 */
 	static remove(callback) {
 		const removal = {};
@@ -288,7 +305,7 @@ class Background {
 			if (callback) {
 				callback();
 			}
-		});
+		}, !_container.parentNode);
 	}
 
 	/**
@@ -326,26 +343,42 @@ class Background {
  * Play with the overlay
  *
  * @param {function} callback once the overlay hide the window
+ * @param {boolean} [fadeOut=true] fade to black, else cut to black
+ * @param {boolean} [fadeIn=true] fade from black, else cut from black
+ * @see docs/reference/map-transition.md
  */
-function transition(callback) {
-	const transitionDuration = Configs.get('transitionDuration') ? Configs.get('transitionDuration') : 500;
+function transition(callback, fadeOut = true, fadeIn = true) {
+	const transitionDuration = Configs.get('transitionDuration') || TRANSITION_DURATION;
 
 	if (Background._overlayAnim) {
 		Background._overlayAnim.stop();
+		Background._overlayAnim = null;
+	}
+
+	document.body.appendChild(_overlay);
+
+	function onBlack() {
+		_overlay.style.opacity = '1';
+		callback();
+
+		if (!fadeIn) {
+			_overlay.remove();
+			return;
+		}
+
+		Background._overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
+			Background._overlayAnim = null;
+			_overlay.remove();
+		});
+	}
+
+	if (!fadeOut) {
+		onBlack();
+		return;
 	}
 
 	_overlay.style.opacity = '0.01';
-	document.body.appendChild(_overlay);
-
-	Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, () => {
-		callback();
-
-		Background._overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
-			if (_overlay.parentNode) {
-				_overlay.parentNode.removeChild(_overlay);
-			}
-		});
-	});
+	Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, onBlack);
 }
 
 /**

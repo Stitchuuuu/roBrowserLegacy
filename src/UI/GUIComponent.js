@@ -289,6 +289,7 @@ class GUIComponent {
 	 * Equivalent to UIComponent.prototype.append().
 	 *
 	 * @param {HTMLElement|string} [target] - Target element. Defaults to document.body.
+	 * @see docs/reference/map-transition.md
 	 */
 	append(target) {
 		this.__active = true;
@@ -307,7 +308,10 @@ class GUIComponent {
 			return;
 		}
 
-		parent.appendChild(this._host);
+		// Re-appending an attached host would detach and re-attach it
+		if (this._host.parentNode !== parent) {
+			parent.appendChild(this._host);
+		}
 		if (this._noCursorStyle) {
 			_trackNoCursorStyle(this._noCursorStyle);
 		}
@@ -364,39 +368,67 @@ class GUIComponent {
 		this.__active = false;
 
 		if (this.__loaded && this._host && this._host.parentNode) {
-			// Hook
-			if (this.onRemove) {
-				this.onRemove();
-			}
+			this._release(true);
+		}
+	}
 
-			// Unbind keydown
-			this._unbindKeyDown();
+	/**
+	 * Run the remove and append lifecycle without detaching the host,
+	 * so the component restarts in place.
+	 *
+	 * @see docs/reference/map-transition.md
+	 */
+	rebuild() {
+		const parent = this._host && this._host.parentNode;
 
-			// Fire x_remove event (used by mouse intersection cleanup)
-			this._host.dispatchEvent(new Event('x_remove'));
-			if (this._shadow) {
-				this._shadow.querySelectorAll('*').forEach(node => {
-					node.dispatchEvent(new Event('x_remove'));
-				});
-			}
+		if (this.__active && this.__loaded && parent) {
+			this.__active = false;
+			this._release(false);
+		}
 
-			// Detach from DOM
+		this.append(parent || undefined);
+	}
+
+	/**
+	 * Remove lifecycle of an attached component
+	 *
+	 * @param {boolean} detach - also take the host out of the DOM
+	 */
+	_release(detach) {
+		// Hook
+		if (this.onRemove) {
+			this.onRemove();
+		}
+
+		// Unbind keydown
+		this._unbindKeyDown();
+
+		// Fire x_remove event (used by mouse intersection cleanup)
+		this._host.dispatchEvent(new Event('x_remove'));
+		if (this._shadow) {
+			this._shadow.querySelectorAll('*').forEach(node => {
+				node.dispatchEvent(new Event('x_remove'));
+			});
+		}
+
+		// Detach from DOM
+		if (detach) {
 			this._host.remove();
-			if (this._noCursorStyle) {
-				_untrackNoCursorStyle(this._noCursorStyle);
-			}
+		}
+		if (this._noCursorStyle) {
+			_untrackNoCursorStyle(this._noCursorStyle);
+		}
 
-			// Freeze mode cleanup
-			if (this.mouseMode === MouseMode.FREEZE) {
-				Mouse.intersect = true;
-				Session.FreezeUI = false;
-			}
+		// Freeze mode cleanup
+		if (this.mouseMode === MouseMode.FREEZE) {
+			Mouse.intersect = true;
+			Session.FreezeUI = false;
+		}
 
-			// Scrollbar observer cleanup
-			if (this.__scrollbarObserver) {
-				this.__scrollbarObserver.disconnect();
-				this.__scrollbarObserver = null;
-			}
+		// Scrollbar observer cleanup
+		if (this.__scrollbarObserver) {
+			this.__scrollbarObserver.disconnect();
+			this.__scrollbarObserver = null;
 		}
 	}
 

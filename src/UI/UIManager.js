@@ -154,13 +154,19 @@ class UIManager {
 
 	/**
 	 * Remove all components in screen
+	 *
+	 * @param {Array<GUIComponent>} [keep] components left attached
+	 * @see docs/reference/map-transition.md
 	 */
-	static removeComponents() {
+	static removeComponents(keep = []) {
 		const keys = Object.keys(this.components);
 		const count = keys.length;
 
 		for (let i = 0; i < count; ++i) {
-			this.components[keys[i]].remove();
+			const component = this.components[keys[i]];
+			if (!keep.includes(component)) {
+				component.remove();
+			}
 		}
 	}
 

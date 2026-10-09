@@ -239,3 +239,56 @@ describe('the native cursor inside a window', () => {
 		expect(fallback(component)).toBeNull();
 	});
 });
+
+describe('appending a window that is already attached', () => {
+	it('leaves its host in place and still runs onAppend', () => {
+		const component = mount('<div></div>');
+		component.onAppend = vi.fn();
+		const after = document.createElement('div');
+		document.body.appendChild(after);
+
+		const records = [];
+		const observer = new MutationObserver(list => records.push(...list));
+		observer.observe(document.body, { childList: true });
+		component.append();
+		records.push(...observer.takeRecords());
+		observer.disconnect();
+
+		expect(records).toHaveLength(0);
+		expect(component._host.nextSibling).toBe(after);
+		expect(component.onAppend).toHaveBeenCalledOnce();
+	});
+});
+
+describe('rebuilding a window in place', () => {
+	it('runs onRemove then onAppend without detaching the host', () => {
+		const component = mount('<div></div>');
+		const calls = [];
+		component.onRemove = vi.fn(() => calls.push('remove'));
+		component.onAppend = vi.fn(() => calls.push('append'));
+		const host = component._host;
+
+		const records = [];
+		const observer = new MutationObserver(list => records.push(...list));
+		observer.observe(document.body, { childList: true });
+		component.rebuild();
+		records.push(...observer.takeRecords());
+		observer.disconnect();
+
+		expect(calls).toEqual(['remove', 'append']);
+		expect(records).toHaveLength(0);
+		expect(component._host).toBe(host);
+		expect(component.__active).toBe(true);
+	});
+
+	it('appends a window that is not attached', () => {
+		const component = mount('<div></div>');
+		component.remove();
+		component.onRemove = vi.fn();
+
+		component.rebuild();
+
+		expect(component.onRemove).not.toHaveBeenCalled();
+		expect(component._host.parentNode).toBe(document.body);
+	});
+});

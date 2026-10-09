@@ -112,6 +112,11 @@ class MapRenderer {
 	static _loadRequest = 0;
 
 	/**
+	 * @var {Array<GUIComponent>} components kept attached, hidden while the loading screen is up
+	 */
+	static _keptUI = [];
+
+	/**
 	 * @var {Float32Array} diffuse Modified diffuse color
 	 */
 	static diffuse = null;
@@ -132,8 +137,10 @@ class MapRenderer {
 	 * Load a map
 	 *
 	 * @param {string} mapname to load
+	 * @param {Array<GUIComponent>} [keep] components left attached across the transition
+	 * @see docs/reference/map-transition.md
 	 */
-	static setMap(mapname) {
+	static setMap(mapname, keep = []) {
 		// TODO: stop the map loading, and start to load the new map.
 		if (this.loading) {
 			return;
@@ -150,7 +157,7 @@ class MapRenderer {
 		// Clean objects
 		SoundManager.stop();
 		Renderer.stop();
-		UIManager.removeComponents();
+		UIManager.removeComponents(keep);
 		Cursor.setType(Cursor.ACTION.DEFAULT);
 
 		// The server may address the same map with different extensions (.gat/.rsw)
@@ -171,6 +178,10 @@ class MapRenderer {
 				if (loadId !== MapRenderer._loadId) {
 					return;
 				}
+
+				// The loading screen shows without the windows
+				MapRenderer._keptUI = keep;
+				setKeptUIVisibility('hidden');
 
 				// Hooking Thread
 				Thread.hook('MAP_PROGRESS', loadEvent(onProgressUpdate));
@@ -217,6 +228,7 @@ class MapRenderer {
 		this._loadId++;
 		this._loadRequest = 0;
 		this.loading = false;
+		setKeptUIVisibility('');
 	}
 
 	/**
@@ -538,6 +550,25 @@ function registerPostProcessModules(gl) {
 }
 
 /**
+ * Hide or show the components kept across a map change
+ *
+ * @param {string} visibility CSS value, '' to restore
+ */
+function setKeptUIVisibility(visibility) {
+	const keep = MapRenderer._keptUI;
+
+	for (let i = 0; i < keep.length; ++i) {
+		if (keep[i]._host) {
+			keep[i]._host.style.visibility = visibility;
+		}
+	}
+
+	if (!visibility) {
+		MapRenderer._keptUI = [];
+	}
+}
+
+/**
  * Once the map finished to load
  */
 function onMapComplete(success, error) {
@@ -547,6 +578,7 @@ function onMapComplete(success, error) {
 
 	// Problem during loading ?
 	if (!success) {
+		setKeptUIVisibility('');
 		UIManager.showErrorBox(error).ui.css('zIndex', 1000);
 		return;
 	}
@@ -582,6 +614,7 @@ function onMapComplete(success, error) {
 		}
 
 		MapRenderer.loading = false;
+		setKeptUIVisibility('');
 
 		MapRenderer.onLoad();
 		Sky.setUpCloudData();
