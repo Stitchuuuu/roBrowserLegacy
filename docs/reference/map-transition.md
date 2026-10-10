@@ -26,9 +26,16 @@ The three builds agree on all of this.
 
 - **The kept set is the map UI list**, `getMapUI()` in `MapEngine`. The same
   array is passed to `MapRenderer.setMap`, where `UIManager.removeComponents`
-  skips it, and `onLoad` then calls `rebuild()` on each entry. Everything else
-  is removed as before. Because one list drives both sides, they cannot drift
-  apart.
+  skips it, and `onLoad` then calls `rebuild()` on each entry. Because one list
+  drives both sides, they cannot drift apart.
+- **Everything else goes at black**, not when the move starts. The fade to
+  black runs over a frozen canvas with the windows as they were, as the
+  client fades a frozen copy of its last frame: no DOM change happens during
+  the fade. The removal runs first thing at black, before the loading screen
+  hides the windows or `onLoad` restarts them, and not at all when the load
+  was cancelled in the meantime: the engine that cancelled it clears the
+  windows itself. The overlay covers every window during the fade, so a click
+  there does nothing.
 - **Kept components restart in place.** `rebuild()` runs the `remove()`
   lifecycle (`onRemove`, key and mouse cleanup) and then `append()`, but it
   never takes the host out of the DOM. `append()` does not move a host that is
@@ -54,8 +61,8 @@ The three builds agree on all of this.
   to every node, and the scrollbar observer stays. The world map builds its
   view when it is opened, not on every append while hidden.
 - **Loading screen:** every window on screen gets `visibility: hidden` at
-  black, at the cut to the loading image: the kept set and the plugin windows
-  appended since. They get it back at black after the load, and also on
+  black, at the cut to the loading image, right after the removal. They get it
+  back at black after the load, and also on
   `MapRenderer.cancelLoad` and a failed load. A same-map teleport hides
   nothing.
 - **Fades** (`Background`): `transitionDuration` defaults to 255 ms per half.
@@ -86,6 +93,9 @@ The three builds agree on all of this.
 - **Black lasts longer when the page is busy.** The client starts its fade
   from black right after the reset. Here it waits for the display frames to
   come back on time, up to a second, so the fade itself never stutters.
+- **The keyboard stays live during the fade to black.** A window still on
+  screen can take a key: Enter on an NPC dialog sends its next step to an NPC
+  whose script already ended with the warp, which the server ignores.
 - **The mobile auto-targeting switches off on every transition**, as before
   this port. It is not a client feature, so there is nothing to match.
 - **First entry from the character screen:** that background is already up, so
