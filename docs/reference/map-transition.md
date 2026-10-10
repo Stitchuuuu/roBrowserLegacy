@@ -40,15 +40,32 @@ The three builds agree on all of this.
   (the quest window, the switch-equip panel) are appended from there too. Both
   hooks run back to back at black, so no frame shows a window that has been
   emptied, which is the client's destroy-and-rebuild between two frames.
-- **Loading screen:** the kept hosts get `visibility: hidden` at black, at
-  the cut to the loading image. They get it back at black after the load, and
-  also on `MapRenderer.cancelLoad`. A same-map teleport hides nothing.
+- **A restart keeps what the transition does not change.** `rebuild()` passes
+  `true` to `onRemove` and `onAppend` when it restarts a window in place (a
+  first append, or a plain `remove()` / `append()`, passes nothing):
+  - the inventory, the cart and the equipment keep their items, which the
+    server sends again after the load and which replace them by index;
+  - the chat keeps its active tab, the shortcut bar its running cooldowns,
+    the minimap its party, guild and NPC marks until the map changes;
+  - the attendance window prints its "no event" notice once, not on every
+    teleport.
+
+  The base class itself skips what only a detach needs: no `x_remove` sent
+  to every node, and the scrollbar observer stays. The world map builds its
+  view when it is opened, not on every append while hidden.
+- **Loading screen:** every window on screen gets `visibility: hidden` at
+  black, at the cut to the loading image: the kept set and the plugin windows
+  appended since. They get it back at black after the load, and also on
+  `MapRenderer.cancelLoad` and a failed load. A same-map teleport hides
+  nothing.
 - **Fades** (`Background`): `transitionDuration` defaults to 255 ms per half.
   `setLoading` fades out and cuts to the image. `remove` cuts to black when a
   background image is up (after a map load) and fades when it is not
   (same-map teleport). It always fades from black.
-- **`CZ_NOTIFY_ACTORINIT`** is sent from `onLoad`, at black, on both paths,
-  after the kept set has been rebuilt.
+- **`CZ_NOTIFY_ACTORINIT`**: a same-map teleport sends it before the fade, as
+  the client does; the inventory and equipment the server sends back in the
+  meantime survive the restart at black. A map change sends it from `onLoad`,
+  at black, after the kept set has restarted.
 
 ## Deviations
 
@@ -62,12 +79,8 @@ The three builds agree on all of this.
 - **Rebuilt in place, not reconstructed.** The client builds new window
   objects. Here the same component runs its `onRemove` / `onAppend` pair.
   Anything a component keeps outside those hooks survives the transition.
-- **`CZ_NOTIFY_ACTORINIT` after the fade-out on a same-map teleport.** The
-  client sends it before. Here the server's answer (the inventory, equipment
-  and status re-send) would arrive during the fade, and the rebuild at black
-  would then empty the inventory and equipment windows it had just filled.
-  Until those `onRemove` clears are reworked, the packet stays after the
-  rebuild, and the entities appear during the fade-in.
+- **The mobile auto-targeting switches off on every transition**, as before
+  this port. It is not a client feature, so there is nothing to match.
 - **First entry from the character screen:** that background is already up, so
   the loading image replaces it without a fade, as before.
 

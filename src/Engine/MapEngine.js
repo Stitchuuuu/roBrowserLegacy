@@ -688,6 +688,7 @@ function getMapUI() {
  */
 function onMapChange(pkt) {
 	const ui = getMapUI();
+	let notified = false;
 
 	MapRenderer.onLoad = () => {
 		Session.Entity.set({
@@ -771,7 +772,9 @@ function onMapChange(pkt) {
 		PluginManager.init();
 
 		// Map loaded
-		Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+		if (!notified) {
+			Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+		}
 
 		// Rates Info
 		if (Session.ratesInfo) {
@@ -791,7 +794,11 @@ function onMapChange(pkt) {
 		}
 	};
 
-	MapRenderer.setMap(pkt.mapName, ui);
+	// A teleport within the map announces itself before the fade, as the client does
+	if (MapRenderer.setMap(pkt.mapName, ui)) {
+		notified = true;
+		Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+	}
 }
 
 /**

@@ -306,10 +306,63 @@ describe('rebuilding a window in place', () => {
 		const component = mount('<div></div>');
 		component.remove();
 		component.onRemove = vi.fn();
+		component.onAppend = vi.fn();
 
 		component.rebuild();
 
 		expect(component.onRemove).not.toHaveBeenCalled();
+		expect(component.onAppend.mock.calls.map(([rebuild]) => !!rebuild)).toEqual([false]);
 		expect(component._host.parentNode).toBe(document.body);
+	});
+
+	it('tells both hooks it is a rebuild, unlike a plain remove and append', () => {
+		const component = mount('<div></div>');
+		component.onRemove = vi.fn();
+		component.onAppend = vi.fn();
+
+		component.rebuild();
+		component.remove();
+		component.append();
+
+		expect(component.onRemove.mock.calls.map(([rebuild]) => !!rebuild)).toEqual([true, false]);
+		expect(component.onAppend.mock.calls.map(([rebuild]) => !!rebuild)).toEqual([true, false]);
+	});
+
+	it('does not send the detach event to the nodes it keeps', () => {
+		const component = mount('<div class="tab"></div>');
+		const removed = vi.fn();
+		component._shadow.querySelector('.tab').addEventListener('x_remove', removed);
+
+		component.rebuild();
+
+		expect(removed).not.toHaveBeenCalled();
+	});
+
+	it('keeps watching its scrollbars with the observer it had', async () => {
+		const component = mount('<div></div>');
+		await new Promise(resolve => setTimeout(resolve, 0));
+		const observer = component.__scrollbarObserver;
+
+		component.rebuild();
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		expect(observer).toBeTruthy();
+		expect(component.__scrollbarObserver).toBe(observer);
+	});
+});
+
+describe('appending a window that is already attached, again', () => {
+	it('does not start a second scrollbar observer', async () => {
+		const observe = vi.spyOn(MutationObserver.prototype, 'observe');
+		const component = mount('<div></div>');
+		await new Promise(resolve => setTimeout(resolve, 0));
+		const before = observe.mock.calls.filter(([target]) => target === component._shadow).length;
+
+		component.append();
+		component.append();
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		expect(observe.mock.calls.filter(([target]) => target === component._shadow)).toHaveLength(before);
+		observe.mockRestore();
 	});
 });

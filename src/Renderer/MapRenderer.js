@@ -112,9 +112,9 @@ class MapRenderer {
 	static _loadRequest = 0;
 
 	/**
-	 * @var {Array<GUIComponent>} components kept attached, hidden while the loading screen is up
+	 * @var {Array<HTMLElement>} window hosts hidden while the loading screen is up
 	 */
-	static _keptUI = [];
+	static _hiddenUI = [];
 
 	/**
 	 * @var {Float32Array} diffuse Modified diffuse color
@@ -138,12 +138,13 @@ class MapRenderer {
 	 *
 	 * @param {string} mapname to load
 	 * @param {Array<GUIComponent>} [keep] components left attached across the transition
+	 * @return {boolean} a teleport within the current map, no load
 	 * @see docs/reference/map-transition.md
 	 */
 	static setMap(mapname, keep = []) {
 		// TODO: stop the map loading, and start to load the new map.
 		if (this.loading) {
-			return;
+			return false;
 		}
 
 		// Support for instance map
@@ -180,8 +181,7 @@ class MapRenderer {
 				}
 
 				// The loading screen shows without the windows
-				MapRenderer._keptUI = keep;
-				setKeptUIVisibility('hidden');
+				hideMapUI();
 
 				// Hooking Thread
 				Thread.hook('MAP_PROGRESS', loadEvent(onProgressUpdate));
@@ -197,7 +197,7 @@ class MapRenderer {
 				MapRenderer._loadRequest = Thread.send('LOAD_MAP', filename, loadStep(loadId, onMapComplete));
 			});
 
-			return;
+			return false;
 		}
 
 		const gl = Renderer.getContext();
@@ -219,6 +219,8 @@ class MapRenderer {
 			Renderer.render(MapRenderer.onRender);
 			Mouse.intersect = true;
 		});
+
+		return true;
 	}
 
 	/**
@@ -228,7 +230,7 @@ class MapRenderer {
 		this._loadId++;
 		this._loadRequest = 0;
 		this.loading = false;
-		setKeptUIVisibility('');
+		showMapUI();
 	}
 
 	/**
@@ -551,22 +553,34 @@ function registerPostProcessModules(gl) {
 }
 
 /**
- * Hide or show the components kept across a map change
- *
- * @param {string} visibility CSS value, '' to restore
+ * Hide the windows still on screen, the loading screen shows without them
  */
-function setKeptUIVisibility(visibility) {
-	const keep = MapRenderer._keptUI;
+function hideMapUI() {
+	const components = UIManager.components;
+	const hidden = [];
 
-	for (let i = 0; i < keep.length; ++i) {
-		if (keep[i]._host) {
-			keep[i]._host.style.visibility = visibility;
+	for (const name in components) {
+		const host = components[name]._host;
+		if (host && host.isConnected) {
+			host.style.visibility = 'hidden';
+			hidden.push(host);
 		}
 	}
 
-	if (!visibility) {
-		MapRenderer._keptUI = [];
+	MapRenderer._hiddenUI = hidden;
+}
+
+/**
+ * Show again the windows hidden by the loading screen
+ */
+function showMapUI() {
+	const hidden = MapRenderer._hiddenUI;
+
+	for (let i = 0; i < hidden.length; ++i) {
+		hidden[i].style.visibility = '';
 	}
+
+	MapRenderer._hiddenUI = [];
 }
 
 /**
@@ -579,7 +593,7 @@ function onMapComplete(success, error) {
 
 	// Problem during loading ?
 	if (!success) {
-		setKeptUIVisibility('');
+		showMapUI();
 		UIManager.showErrorBox(error).ui.css('zIndex', 1000);
 		return;
 	}
@@ -615,7 +629,7 @@ function onMapComplete(success, error) {
 		}
 
 		MapRenderer.loading = false;
-		setKeptUIVisibility('');
+		showMapUI();
 
 		MapRenderer.onLoad();
 		Sky.setUpCloudData();

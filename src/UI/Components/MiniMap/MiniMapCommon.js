@@ -95,6 +95,11 @@ export function createMiniMap({
 	let _towninfo = [];
 
 	/**
+	 * @var {string} map the marks were set on
+	 */
+	let _mapname = '';
+
+	/**
 	 * Async image create helper
 	 */
 	function createAsyncImage() {
@@ -215,6 +220,13 @@ export function createMiniMap({
 	 * @param {string} mapname
 	 */
 	MiniMap.setMap = function setMap(mapname) {
+		if (mapname !== _mapname) {
+			_mapname = mapname;
+			_party.length = 0;
+			_guild.length = 0;
+			_markers.length = 0;
+		}
+
 		_map.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
 
 		_towninfo = DB.getTownInfo(mapname.replace(/\..*/, ''));
@@ -246,11 +258,15 @@ export function createMiniMap({
 
 	/**
 	 * Once removed from HTML
+	 *
+	 * @param {boolean} rebuild - restarting in place, the marks stay until the map changes
 	 */
-	MiniMap.onRemove = function onRemove() {
-		_party.length = 0;
-		_guild.length = 0;
-		_markers.length = 0;
+	MiniMap.onRemove = function onRemove(rebuild) {
+		if (!rebuild) {
+			_party.length = 0;
+			_guild.length = 0;
+			_markers.length = 0;
+		}
 	};
 
 	/**

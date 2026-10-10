@@ -179,8 +179,10 @@ ShortCut.onAppend = function onAppend() {
 
 /**
  * When removed, clean up
+ *
+ * @param {boolean} rebuild - restarting in place, running cooldowns go on
  */
-ShortCut.onRemove = function onRemove() {
+ShortCut.onRemove = function onRemove(rebuild) {
 	// Hide tooltip
 	const root = ShortCut.getRoot();
 	const tooltip = root.querySelector('.shortcut-tooltip');
@@ -189,10 +191,12 @@ ShortCut.onRemove = function onRemove() {
 	}
 
 	// Cancels all active animation loops defensively to prevent leaks in unattached elements
-	for (const [index, animationId] of _activeAnimations.entries()) {
-		cancelAnimationFrame(animationId);
+	if (!rebuild) {
+		for (const [index, animationId] of _activeAnimations.entries()) {
+			cancelAnimationFrame(animationId);
+		}
+		_activeAnimations.clear();
 	}
-	_activeAnimations.clear();
 
 	// Save preferences
 	_preferences.y = parseInt(this._host.style.top, 10);

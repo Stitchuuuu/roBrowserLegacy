@@ -73,8 +73,10 @@ CheckAttendance.init = function init() {
 
 /**
  * Once append to the DOM, start to position the UI
+ *
+ * @param {boolean} rebuild - restarting in place, the player has already been told
  */
-CheckAttendance.onAppend = function onAppend() {
+CheckAttendance.onAppend = function onAppend(rebuild) {
 	Object.assign(this._host.style, {
 		top: `${Math.min(Math.max(0, _preferences.y), Renderer.height - this._host.getBoundingClientRect().height)}px`,
 		left: `${Math.min(Math.max(0, _preferences.x), Renderer.width - this._host.getBoundingClientRect().width)}px`
@@ -87,7 +89,7 @@ CheckAttendance.onAppend = function onAppend() {
 	if (_checkAttendanceData >= 0 && _CheckAttendanceInfo.Config) {
 		CheckAttendance.updateUI();
 		this.focus();
-	} else {
+	} else if (!rebuild) {
 		ChatBox.addText('Currently there is no attendance check event.', ChatBox.TYPE.ERROR | ChatBox.TYPE.SELF);
 	}
 };

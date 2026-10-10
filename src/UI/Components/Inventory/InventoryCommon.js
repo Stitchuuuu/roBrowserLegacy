@@ -410,18 +410,21 @@ export function createInventory(config) {
 
 	/**
 	 * Remove Inventory from window (and so clean up items)
+	 *
+	 * @param {boolean} rebuild - restarting in place, the server sends the items again
 	 */
-	Component.onRemove = function OnRemove() {
-		const root = Component.getRoot();
-		const content = root.querySelector('.container .content');
-		if (content) {
-			content.innerHTML = '';
+	Component.onRemove = function OnRemove(rebuild) {
+		if (!rebuild) {
+			const content = Component.getRoot().querySelector('.container .content');
+			if (content) {
+				content.innerHTML = '';
+			}
+			this.list.length = 0;
+			if (equipSwitch) {
+				this.equipswitchlist.length = 0;
+			}
+			Component.newItems.length = 0;
 		}
-		this.list.length = 0;
-		if (equipSwitch) {
-			this.equipswitchlist.length = 0;
-		}
-		Component.newItems.length = 0;
 		document.querySelectorAll('.ItemInfo').forEach(el => el.remove());
 
 		// Save preferences
