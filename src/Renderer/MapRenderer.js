@@ -258,6 +258,7 @@ class MapRenderer {
 		PostProcess.clean(gl);
 
 		Mouse.intersect = false;
+		Cursor.setType(Cursor.ACTION.DEFAULT);
 
 		this.light = null;
 		this.water = null;
