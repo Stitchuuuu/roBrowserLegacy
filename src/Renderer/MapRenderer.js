@@ -158,7 +158,6 @@ class MapRenderer {
 		// Clean objects
 		SoundManager.stop();
 		Renderer.stop();
-		UIManager.removeComponents(keep);
 		Cursor.setType(Cursor.ACTION.DEFAULT);
 
 		// The server may address the same map with different extensions (.gat/.rsw)
@@ -179,6 +178,9 @@ class MapRenderer {
 				if (loadId !== MapRenderer._loadId) {
 					return;
 				}
+
+				// The windows faded with the last frame go at black
+				UIManager.removeComponents(keep);
 
 				// The loading screen shows without the windows
 				hideMapUI();
@@ -213,6 +215,7 @@ class MapRenderer {
 				return;
 			}
 
+			UIManager.removeComponents(keep);
 			MapRenderer.onLoad();
 			Sky.setUpCloudData();
 

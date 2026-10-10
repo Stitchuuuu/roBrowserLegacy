@@ -138,10 +138,47 @@ describe('MapRenderer kept UI', () => {
 		MapRenderer.cancelLoad();
 	});
 
-	it('removes everything but the kept components on a same-map teleport', () => {
+	it('removes everything but the kept components at black on a same-map teleport', () => {
+		let atBlack;
+		mocks.background.remove.mockImplementationOnce(callback => {
+			atBlack = callback;
+		});
+
 		MapRenderer.setMap('prontera.gat', keep);
+		expect(mocks.uiManager.removeComponents).not.toHaveBeenCalled();
+
+		atBlack();
 		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(mocks.uiManager.removeComponents.mock.invocationCallOrder[0]).toBeLessThan(
+			MapRenderer.onLoad.mock.invocationCallOrder[0]
+		);
 		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('removes everything but the kept components at black on a change of map', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		expect(mocks.uiManager.removeComponents).not.toHaveBeenCalled();
+
+		showLoading();
+		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(keep[0]._host.style.visibility).toBe('hidden');
+	});
+
+	it('leaves the windows to the engine that cancelled the load', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		MapRenderer.cancelLoad();
+		showLoading();
+		expect(mocks.uiManager.removeComponents).not.toHaveBeenCalled();
 	});
 
 	it('tells a teleport within the map from a change of map', () => {
