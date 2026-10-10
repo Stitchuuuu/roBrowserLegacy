@@ -206261,9 +206261,11 @@ function transition$1(callback, fadeOut = true, fadeIn = true) {
 			_overlay.remove();
 			return;
 		}
-		Background._overlayAnim = animateElement(_overlay, { opacity: .01 }, transitionDuration, () => {
-			Background._overlayAnim = null;
-			_overlay.remove();
+		Background._overlayAnim = whenSettled(() => {
+			Background._overlayAnim = animateElement(_overlay, { opacity: .01 }, transitionDuration, () => {
+				Background._overlayAnim = null;
+				_overlay.remove();
+			});
 		});
 	}
 	if (!fadeOut) {
@@ -206271,9 +206273,56 @@ function transition$1(callback, fadeOut = true, fadeIn = true) {
 		return;
 	}
 	_overlay.style.opacity = "0.01";
-	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, onBlack);
+	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, () => {
+		Background._overlayAnim = nextFrame(onBlack);
+	});
 }
-var TRANSITION_DURATION, _overlay, _container, _canvas, _ctx$6, Background;
+/**
+* Run on the next display frame, once the current one is shown
+*
+* @param {function} callback
+* @return {{stop: function}}
+*/
+function nextFrame(callback) {
+	let cancelled = false;
+	requestAnimationFrame(() => {
+		if (!cancelled) callback();
+	});
+	return { stop() {
+		cancelled = true;
+	} };
+}
+/**
+* Wait at black for the display frames to come back on time, so the work done
+* there does not stutter the fade
+*
+* @param {function} callback
+* @return {{stop: function}}
+*/
+function whenSettled(callback) {
+	let cancelled = false;
+	let start = -1;
+	let last = 0;
+	let calmSince = 0;
+	function frame(now) {
+		if (cancelled) return;
+		if (start < 0) {
+			start = now;
+			calmSince = now;
+		} else if (now - last >= SETTLE_FRAME) calmSince = now;
+		last = now;
+		if (now - calmSince >= SETTLE_TIME || now - start >= SETTLE_LIMIT) {
+			callback();
+			return;
+		}
+		requestAnimationFrame(frame);
+	}
+	requestAnimationFrame(frame);
+	return { stop() {
+		cancelled = true;
+	} };
+}
+var TRANSITION_DURATION, SETTLE_FRAME, SETTLE_TIME, SETTLE_LIMIT, _overlay, _container, _canvas, _ctx$6, Background;
 var init_Background = __esmMin((() => {
 	init_DBManager();
 	init_Client();
@@ -206281,6 +206330,9 @@ var init_Background = __esmMin((() => {
 	init_PacketVerManager();
 	init_HtmlHelper();
 	TRANSITION_DURATION = 255;
+	SETTLE_FRAME = 25;
+	SETTLE_TIME = 150;
+	SETTLE_LIMIT = 1e3;
 	_overlay = document.createElement("div");
 	Object.assign(_overlay.style, {
 		position: "absolute",
@@ -220616,8 +220668,10 @@ var init_ChatBox = __esmMin((() => {
 	};
 	/**
 	* Stop custom scroll
+	*
+	* @param {boolean} rebuild - restarting in place, the tabs stay as they are
 	*/
-	ChatBox$1.onRemove = function OnRemove() {
+	ChatBox$1.onRemove = function OnRemove(rebuild) {
 		_preferences$42.y = (parseInt(this._host.style.top, 10) || 0) + (this._host.offsetHeight || 0);
 		_preferences$42.x = parseInt(this._host.style.left, 10) || 0;
 		_preferences$42.height = _heightIndex;
@@ -220629,8 +220683,10 @@ var init_ChatBox = __esmMin((() => {
 		_preferences$42.tabOption = ChatBoxSettings_default.tabOption;
 		_preferences$42.activeTab = this.activeTab;
 		_preferences$42.save();
-		this.lastTabID = -1;
-		this.activeTab = 0;
+		if (!rebuild) {
+			this.lastTabID = -1;
+			this.activeTab = 0;
+		}
 	};
 	/**
 	* @param {number} key id to check
@@ -220784,6 +220840,7 @@ var init_ChatBox = __esmMin((() => {
 					event.stopImmediatePropagation();
 					return false;
 				}
+				if (document.querySelector("#ItemSelection, #MakeItemSelection")) return true;
 				const input = root.querySelector(".input");
 				if (input && input.style.display === "none") {
 					input.style.display = "block";
@@ -222714,6 +222771,10 @@ function createMiniMap({ name, htmlText, cssText, worldMap = null, townInfoToggl
 	*/
 	let _towninfo = [];
 	/**
+	* @var {string} map the marks were set on
+	*/
+	let _mapname = "";
+	/**
 	* Async image create helper
 	*/
 	function createAsyncImage() {
@@ -222822,6 +222883,12 @@ function createMiniMap({ name, htmlText, cssText, worldMap = null, townInfoToggl
 	* @param {string} mapname
 	*/
 	MiniMap.setMap = function setMap(mapname) {
+		if (mapname !== _mapname) {
+			_mapname = mapname;
+			_party.length = 0;
+			_guild.length = 0;
+			_markers.length = 0;
+		}
 		_map.src = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
 		_towninfo = DB.getTownInfo(mapname.replace(/\..*/, ""));
 		let path = DB.INTERFACE_PATH.replace("data/texture/", "") + "map/" + mapname.replace(/\..*/, ".bmp");
@@ -222847,11 +222914,15 @@ function createMiniMap({ name, htmlText, cssText, worldMap = null, townInfoToggl
 	};
 	/**
 	* Once removed from HTML
+	*
+	* @param {boolean} rebuild - restarting in place, the marks stay until the map changes
 	*/
-	MiniMap.onRemove = function onRemove() {
-		_party.length = 0;
-		_guild.length = 0;
-		_markers.length = 0;
+	MiniMap.onRemove = function onRemove(rebuild) {
+		if (!rebuild) {
+			_party.length = 0;
+			_guild.length = 0;
+			_markers.length = 0;
+		}
 	};
 	/**
 	* Add a party mark to minimap
@@ -224621,7 +224692,7 @@ var init_WorldMap = __esmMin((() => {
 		if (this.settings.add.length > 0) console.log("%c[WoldMap] Add Maps: ", "color:#007000", this.settings.add);
 		if (this.settings.remove.length > 0) console.log("%c[WoldMap] Remove Maps: ", "color:#007000", this.settings.remove);
 		setMapList();
-		selectMap();
+		if (this._host.style.display !== "none") selectMap();
 		this._host.style.top = "0px";
 		this._host.style.left = "0px";
 	};
@@ -232699,8 +232770,10 @@ var init_CheckAttendance = __esmMin((() => {
 	};
 	/**
 	* Once append to the DOM, start to position the UI
+	*
+	* @param {boolean} rebuild - restarting in place, the player has already been told
 	*/
-	CheckAttendance.onAppend = function onAppend() {
+	CheckAttendance.onAppend = function onAppend(rebuild) {
 		Object.assign(this._host.style, {
 			top: `${Math.min(Math.max(0, _preferences$31.y), Renderer.height - this._host.getBoundingClientRect().height)}px`,
 			left: `${Math.min(Math.max(0, _preferences$31.x), Renderer.width - this._host.getBoundingClientRect().width)}px`
@@ -232709,7 +232782,7 @@ var init_CheckAttendance = __esmMin((() => {
 		if (_checkAttendanceData >= 0 && _CheckAttendanceInfo.Config) {
 			CheckAttendance.updateUI();
 			this.focus();
-		} else ChatBox_default.addText("Currently there is no attendance check event.", ChatBox_default.TYPE.ERROR | ChatBox_default.TYPE.SELF);
+		} else if (!rebuild) ChatBox_default.addText("Currently there is no attendance check event.", ChatBox_default.TYPE.ERROR | ChatBox_default.TYPE.SELF);
 	};
 	/**
 	* Window Shortcuts
@@ -241069,13 +241142,17 @@ function createInventory(config) {
 	};
 	/**
 	* Remove Inventory from window (and so clean up items)
+	*
+	* @param {boolean} rebuild - restarting in place, the server sends the items again
 	*/
-	Component.onRemove = function OnRemove() {
-		const content = Component.getRoot().querySelector(".container .content");
-		if (content) content.innerHTML = "";
-		this.list.length = 0;
-		if (equipSwitch) this.equipswitchlist.length = 0;
-		Component.newItems.length = 0;
+	Component.onRemove = function OnRemove(rebuild) {
+		if (!rebuild) {
+			const content = Component.getRoot().querySelector(".container .content");
+			if (content) content.innerHTML = "";
+			this.list.length = 0;
+			if (equipSwitch) this.equipswitchlist.length = 0;
+			Component.newItems.length = 0;
+		}
 		document.querySelectorAll(".ItemInfo").forEach((el) => el.remove());
 		_preferences.show = this._host.style.display !== "none";
 		_preferences.reduce = !!_realSize;
@@ -243265,11 +243342,15 @@ var init_CartItems = __esmMin((() => {
 	};
 	/**
 	* Remove Inventory from window (and so clean up items)
+	*
+	* @param {boolean} rebuild - restarting in place, the server sends the items again
 	*/
-	CartItems.onRemove = function OnRemove() {
+	CartItems.onRemove = function OnRemove(rebuild) {
 		const content = this.getRoot().querySelector(".container .content");
-		if (content) content.innerHTML = "";
-		this.list.length = 0;
+		if (!rebuild) {
+			if (content) content.innerHTML = "";
+			this.list.length = 0;
+		}
 		document.querySelectorAll(".ItemInfo").forEach((el) => el.remove());
 		_preferences$27.show = this._host.style.display !== "none";
 		_preferences$27.reduce = !!_realSize$1;
@@ -243762,14 +243843,19 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 			}
 		}
 	};
-	Component.onRemove = function onRemove() {
+	/**
+	* @param {boolean} rebuild - restarting in place, the server sends the items again
+	*/
+	Component.onRemove = function onRemove(rebuild) {
 		if (UIVersionManager.getEquipmentVersion() > 0 && _btnLevelUp && _btnLevelUp.parentNode) _btnLevelUp.remove();
 		Renderer.stop(renderCharacter);
-		_list = {};
 		const root = Component.getRoot();
-		root.querySelectorAll(".col1, .col3, .ammo").forEach((el) => {
-			el.innerHTML = "";
-		});
+		if (!rebuild) {
+			_list = {};
+			root.querySelectorAll(".col1, .col3, .ammo").forEach((el) => {
+				el.innerHTML = "";
+			});
+		}
 		_preferences.show = this._host.style.display !== "none";
 		const panel = root.querySelector(".panel");
 		_preferences.reduce = panel ? panel.style.display === "none" : false;
@@ -247581,12 +247667,16 @@ var init_ShortCut = __esmMin((() => {
 	};
 	/**
 	* When removed, clean up
+	*
+	* @param {boolean} rebuild - restarting in place, running cooldowns go on
 	*/
-	ShortCut.onRemove = function onRemove() {
+	ShortCut.onRemove = function onRemove(rebuild) {
 		const tooltip = ShortCut.getRoot().querySelector(".shortcut-tooltip");
 		if (tooltip) tooltip.classList.remove("show");
-		for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
-		_activeAnimations.clear();
+		if (!rebuild) {
+			for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
+			_activeAnimations.clear();
+		}
 		_preferences$24.y = parseInt(this._host.style.top, 10);
 		_preferences$24.x = parseInt(this._host.style.left, 10);
 		_preferences$24.size = Math.floor(parseInt(this._host.style.height, 10) / 34);
@@ -260230,14 +260320,27 @@ function registerPostProcessModules(gl) {
 	PostProcess.register(Upsampling, gl);
 }
 /**
-* Hide or show the components kept across a map change
-*
-* @param {string} visibility CSS value, '' to restore
+* Hide the windows still on screen, the loading screen shows without them
 */
-function setKeptUIVisibility(visibility) {
-	const keep = MapRenderer._keptUI;
-	for (let i = 0; i < keep.length; ++i) if (keep[i]._host) keep[i]._host.style.visibility = visibility;
-	if (!visibility) MapRenderer._keptUI = [];
+function hideMapUI() {
+	const components = UIManager.components;
+	const hidden = [];
+	for (const name in components) {
+		const host = components[name]._host;
+		if (host && host.isConnected) {
+			host.style.visibility = "hidden";
+			hidden.push(host);
+		}
+	}
+	MapRenderer._hiddenUI = hidden;
+}
+/**
+* Show again the windows hidden by the loading screen
+*/
+function showMapUI() {
+	const hidden = MapRenderer._hiddenUI;
+	for (let i = 0; i < hidden.length; ++i) hidden[i].style.visibility = "";
+	MapRenderer._hiddenUI = [];
 }
 /**
 * Once the map finished to load
@@ -260247,7 +260350,7 @@ function onMapComplete(success, error) {
 	const worldResource = this.currentMap.replace(/\.gat$/i, ".rsw");
 	const mapInfo = DB.getMap(worldResource);
 	if (!success) {
-		setKeptUIVisibility("");
+		showMapUI();
 		UIManager.showErrorBox(error).ui.css("zIndex", 1e3);
 		return;
 	}
@@ -260271,7 +260374,7 @@ function onMapComplete(success, error) {
 	Background.remove(() => {
 		if (loadId !== MapRenderer._loadId) return;
 		MapRenderer.loading = false;
-		setKeptUIVisibility("");
+		showMapUI();
 		MapRenderer.onLoad();
 		Sky_default.setUpCloudData();
 		ScreenEffectManager.startMapflagEffect(worldResource);
@@ -260363,9 +260466,9 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static _loadRequest = 0;
 		/**
-		* @var {Array<GUIComponent>} components kept attached, hidden while the loading screen is up
+		* @var {Array<HTMLElement>} window hosts hidden while the loading screen is up
 		*/
-		static _keptUI = [];
+		static _hiddenUI = [];
 		/**
 		* @var {Float32Array} diffuse Modified diffuse color
 		*/
@@ -260390,10 +260493,11 @@ var init_MapRenderer = __esmMin((() => {
 		*
 		* @param {string} mapname to load
 		* @param {Array<GUIComponent>} [keep] components left attached across the transition
+		* @return {boolean} a teleport within the current map, no load
 		* @see docs/reference/map-transition.md
 		*/
 		static setMap(mapname, keep = []) {
-			if (this.loading) return;
+			if (this.loading) return false;
 			mapname = mapname.replace(/^(\d{3})(\d@)/, "$2").replace(/^\d{3}#/, "");
 			const loadId = ++this._loadId;
 			SoundManager.stop();
@@ -260407,8 +260511,7 @@ var init_MapRenderer = __esmMin((() => {
 				const filename = mapname.replace(/\.gat$/i, ".rsw");
 				Background.setLoading(function() {
 					if (loadId !== MapRenderer._loadId) return;
-					MapRenderer._keptUI = keep;
-					setKeptUIVisibility("hidden");
+					hideMapUI();
 					Thread.hook("MAP_PROGRESS", loadEvent(onProgressUpdate));
 					Thread.hook("MAP_WORLD", loadEvent(onWorldComplete));
 					Thread.hook("MAP_GROUND", loadEvent(onGroundComplete));
@@ -260419,7 +260522,7 @@ var init_MapRenderer = __esmMin((() => {
 					Renderer.remove();
 					MapRenderer._loadRequest = Thread.send("LOAD_MAP", filename, loadStep(loadId, onMapComplete));
 				});
-				return;
+				return false;
 			}
 			const gl = Renderer.getContext();
 			EntityManager$1.free();
@@ -260434,6 +260537,7 @@ var init_MapRenderer = __esmMin((() => {
 				Renderer.render(MapRenderer.onRender);
 				Mouse.intersect = true;
 			});
+			return true;
 		}
 		/**
 		* Cancel the map load in progress, if any: its remaining steps do nothing
@@ -260442,7 +260546,7 @@ var init_MapRenderer = __esmMin((() => {
 			this._loadId++;
 			this._loadRequest = 0;
 			this.loading = false;
-			setKeptUIVisibility("");
+			showMapUI();
 		}
 		/**
 		* Clean up data
@@ -314631,9 +314735,10 @@ var init_GUIComponent = __esmMin((() => {
 		* Equivalent to UIComponent.prototype.append().
 		*
 		* @param {HTMLElement|string} [target] - Target element. Defaults to document.body.
+		* @param {boolean} [rebuild] - restarting in place, passed on to onAppend
 		* @see docs/reference/map-transition.md
 		*/
-		append(target) {
+		append(target, rebuild = false) {
 			this.__active = true;
 			if (!this.__loaded) {
 				this.prepare();
@@ -314654,7 +314759,7 @@ var init_GUIComponent = __esmMin((() => {
 				_EntityManager?.setOverEntity(null);
 				_Cursor?.setType(_Cursor?.ACTION?.DEFAULT ?? 0);
 			}
-			if (this.onAppend) this.onAppend();
+			if (this.onAppend) this.onAppend(rebuild);
 			this._setupScrollbars();
 			this._fixPositionOverflow();
 			this.focus();
@@ -314689,11 +314794,12 @@ var init_GUIComponent = __esmMin((() => {
 		*/
 		rebuild() {
 			const parent = this._host && this._host.parentNode;
-			if (this.__active && this.__loaded && parent) {
+			const restart = !!(this.__active && this.__loaded && parent);
+			if (restart) {
 				this.__active = false;
 				this._release(false);
 			}
-			this.append(parent || void 0);
+			this.append(parent || void 0, restart);
 		}
 		/**
 		* Remove lifecycle of an attached component
@@ -314701,19 +314807,21 @@ var init_GUIComponent = __esmMin((() => {
 		* @param {boolean} detach - also take the host out of the DOM
 		*/
 		_release(detach) {
-			if (this.onRemove) this.onRemove();
+			if (this.onRemove) this.onRemove(!detach);
 			this._unbindKeyDown();
-			this._host.dispatchEvent(new Event("x_remove"));
-			if (this._shadow) this._shadow.querySelectorAll("*").forEach((node) => {
-				node.dispatchEvent(new Event("x_remove"));
-			});
-			if (detach) this._host.remove();
+			if (detach) {
+				this._host.dispatchEvent(new Event("x_remove"));
+				if (this._shadow) this._shadow.querySelectorAll("*").forEach((node) => {
+					node.dispatchEvent(new Event("x_remove"));
+				});
+				this._host.remove();
+			}
 			if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
 			if (this.mouseMode === MouseMode.FREEZE) {
 				Mouse.intersect = true;
 				SessionStorage_default.FreezeUI = false;
 			}
-			if (this.__scrollbarObserver) {
+			if (detach && this.__scrollbarObserver) {
 				this.__scrollbarObserver.disconnect();
 				this.__scrollbarObserver = null;
 			}
@@ -315131,7 +315239,7 @@ var init_GUIComponent = __esmMin((() => {
 			const root = this._container || this._host;
 			const observeTarget = this._shadow || this._host;
 			setTimeout(() => {
-				if (!this._host || !this._host.parentNode) return;
+				if (!this._host || !this._host.parentNode || this.__scrollbarObserver) return;
 				const checkScrollbars = (el) => {
 					const candidates = [el, ...el.querySelectorAll("*")];
 					for (const node of candidates) {
@@ -330912,6 +331020,7 @@ var init_ItemSelection = __esmMin((() => {
 	init_DBManager();
 	init_SkillInfo();
 	init_Client();
+	init_KeyEventHandler();
 	init_Renderer();
 	init_UIManager();
 	init_GUIComponent();
@@ -331002,6 +331111,15 @@ var init_ItemSelection = __esmMin((() => {
 	ItemSelection.selectIndex = function selectIndex() {
 		this.onIndexSelected(this.index);
 		this.remove();
+	};
+	/**
+	* Enter validates the selection, like the OK button
+	*/
+	ItemSelection.onKeyDown = function onKeyDown(event) {
+		if (event.which !== KEYS.ENTER) return true;
+		this.selectIndex();
+		event.stopImmediatePropagation();
+		return false;
 	};
 	/**
 	* Free variables once removed from HTML
@@ -331267,6 +331385,12 @@ var init_MakeItemSelection = __esmMin((() => {
 	};
 	MakeItemSelection.onKeyDown = function onKeyDown(event) {
 		if (event.which === KEYS.ESCAPE || event.key === "Escape") this.remove();
+		if (event.which === KEYS.ENTER) {
+			_okHandler?.();
+			event.stopImmediatePropagation();
+			return false;
+		}
+		return true;
 	};
 	/**
 	* Set new window name
@@ -339001,6 +339125,7 @@ function getMapUI() {
 */
 function onMapChange(pkt) {
 	const ui = getMapUI();
+	let notified = false;
 	MapRenderer.onLoad = () => {
 		SessionStorage_default.Entity.set({
 			PosDir: [
@@ -339065,7 +339190,7 @@ function onMapChange(pkt) {
 			MapName_default.append();
 		}
 		Plugins.init();
-		Network.sendPacket(new PACKET$1.CZ.NOTIFY_ACTORINIT());
+		if (!notified) Network.sendPacket(new PACKET$1.CZ.NOTIFY_ACTORINIT());
 		if (SessionStorage_default.ratesInfo) {
 			Announce_default.append();
 			Announce_default.set(SessionStorage_default.ratesInfo, "#FFFF00", true);
@@ -339076,7 +339201,10 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 	};
-	MapRenderer.setMap(pkt.mapName, ui);
+	if (MapRenderer.setMap(pkt.mapName, ui)) {
+		notified = true;
+		Network.sendPacket(new PACKET$1.CZ.NOTIFY_ACTORINIT());
+	}
 }
 /**
 * Change zone server
@@ -350637,12 +350765,23 @@ function _ensureBusSubscriptions() {
 	});
 }
 /**
+* Whether the engine kept its map windows attached across the transition in
+* progress : the chat is one of them on every engine that does.
+* @returns {boolean}
+*/
+function _nativeWindowsKept() {
+	const chat = UIManager.components && UIManager.components.ChatBox;
+	const el = chat && (chat._host || root(chat));
+	return !!(el && el.isConnected);
+}
+/**
 * Register a plugin-owned component that should mirror the lifecycle of native
 * windows (BasicInfo / Inventory) :
 *   - The panel is constructed lazily by invoking `panelFactory` on the first
 *     `map-ready`. This guarantees the base component class is ready — plugins
 *     don't need to gate their Init() on `map-enter` themselves.
-*   - (Re-)append on every `map-ready` (post-fade signal).
+*   - (Re-)append right after `map-leave` when the engine keeps its own map
+*     windows attached, else on the next `map-ready`, with them.
 *   - Optionally persist visibility under a Preferences key.
 *   - Force-detach on `char-enter` and `logout` (always — even when
 *     `alwaysVisible` is set). The handle stays alive ; a fresh `map-ready`
@@ -350661,10 +350800,12 @@ function _ensureBusSubscriptions() {
 * @param {boolean}       [opts.defaultVisible]  Initial visibility if no stored
 *                                               prefs. Default `true`.
 * @param {boolean}       [opts.alwaysVisible]   When `true`, the panel is
-*                                               re-appended immediately after
+*                                               re-appended right after
 *                                               `UIManager.removeComponents()`
-*                                               so it stays visible through the
-*                                               loading screen + fade. Default `false`.
+*                                               even on an engine that removes
+*                                               its own map windows, so it stays
+*                                               visible through the loading
+*                                               screen + fade. Default `false`.
 * @param {() => void}    [opts.onShow]          Fired AFTER show() takes effect.
 * @param {() => void}    [opts.onHide]          Fired AFTER hide() takes effect.
 * @param {(panel: any) => void} [opts.onMount]  Fired ONCE, right after the
@@ -350765,9 +350906,9 @@ function registerPlayerWindow(panelFactory, opts = {}) {
 	}
 	function _onMapLeave() {
 		appended = false;
-		if (opts.alwaysVisible) Promise.resolve().then(() => {
+		Promise.resolve().then(() => {
 			if (disposed || appended) return;
-			_doAppend();
+			if (opts.alwaysVisible || _nativeWindowsKept()) _doAppend();
 		});
 	}
 	function _forceDetach() {
