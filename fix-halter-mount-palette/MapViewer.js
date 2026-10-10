@@ -310211,6 +310211,10 @@ function UpdateBodyPalette(pal) {
 		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes[host] ? job : this._job, pal, this._sex);
 		return;
 	}
+	if (sentinelHost !== host) {
+		sentinelHost = host;
+		MemoryManager.remove(null, MOUNT_PALETTE_SENTINEL);
+	}
 	const answer = (present) => {
 		hasMountPalettes[host] = present;
 		UpdateBodyPalette.call(this, this._bodypalette);
@@ -310431,10 +310435,11 @@ function Init$5() {
 	createTransformationProperty("active_monster_transform");
 	createTransformationProperty("job_transform");
 }
-var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes;
+var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes, sentinelHost;
 var init_EntityView = __esmMin((() => {
 	init_Client();
 	init_Configs();
+	init_MemoryManager();
 	init_DBManager();
 	init_ShadowTable();
 	init_MountTable();
