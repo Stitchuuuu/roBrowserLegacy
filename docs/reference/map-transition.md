@@ -61,7 +61,10 @@ The three builds agree on all of this.
 - **Fades** (`Background`): `transitionDuration` defaults to 255 ms per half.
   `setLoading` fades out and cuts to the image. `remove` cuts to black when a
   background image is up (after a map load) and fades when it is not
-  (same-map teleport). It always fades from black.
+  (same-map teleport). It always fades from black, once the display frames
+  come back on time: three in a row under 25 ms, waiting at most a second.
+  The work done at black (the windows restarting, the first frames of a new
+  map) then lands before the fade, not in it.
 - **`CZ_NOTIFY_ACTORINIT`**: a same-map teleport sends it before the fade, as
   the client does; the inventory and equipment the server sends back in the
   meantime survive the restart at black. A map change sends it from `onLoad`,
@@ -79,6 +82,9 @@ The three builds agree on all of this.
 - **Rebuilt in place, not reconstructed.** The client builds new window
   objects. Here the same component runs its `onRemove` / `onAppend` pair.
   Anything a component keeps outside those hooks survives the transition.
+- **Black lasts longer when the page is busy.** The client starts its fade
+  from black right after the reset. Here it waits for the display frames to
+  come back on time, up to a second, so the fade itself never stutters.
 - **The mobile auto-targeting switches off on every transition**, as before
   this port. It is not a client feature, so there is nothing to match.
 - **First entry from the character screen:** that background is already up, so

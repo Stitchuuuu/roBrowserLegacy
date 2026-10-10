@@ -23,6 +23,21 @@ import { animateElement } from 'Utils/HtmlHelper.js';
 const TRANSITION_DURATION = 255;
 
 /**
+ * @var {number} a display frame shorter than this is on time, in ms
+ */
+const SETTLE_FRAME = 25;
+
+/**
+ * @var {number} frames on time in a row before fading from black
+ */
+const SETTLE_FRAMES = 3;
+
+/**
+ * @var {number} longest wait at black, in ms
+ */
+const SETTLE_LIMIT = 1000;
+
+/**
  * @var {HTMLElement} Background overlay (used for transition)
  */
 const _overlay = document.createElement('div');
@@ -366,9 +381,11 @@ function transition(callback, fadeOut = true, fadeIn = true) {
 			return;
 		}
 
-		Background._overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
-			Background._overlayAnim = null;
-			_overlay.remove();
+		Background._overlayAnim = whenSettled(() => {
+			Background._overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
+				Background._overlayAnim = null;
+				_overlay.remove();
+			});
 		});
 	}
 
@@ -379,6 +396,46 @@ function transition(callback, fadeOut = true, fadeIn = true) {
 
 	_overlay.style.opacity = '0.01';
 	Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, onBlack);
+}
+
+/**
+ * Wait at black for the display frames to come back on time, so the work done
+ * there does not stutter the fade
+ *
+ * @param {function} callback
+ * @return {{stop: function}}
+ */
+function whenSettled(callback) {
+	let cancelled = false;
+	let start = -1;
+	let last = 0;
+	let onTime = 0;
+
+	function frame(now) {
+		if (cancelled) {
+			return;
+		}
+		if (start < 0) {
+			start = now;
+		} else {
+			onTime = now - last < SETTLE_FRAME ? onTime + 1 : 0;
+		}
+		last = now;
+
+		if (onTime >= SETTLE_FRAMES || now - start >= SETTLE_LIMIT) {
+			callback();
+			return;
+		}
+		requestAnimationFrame(frame);
+	}
+
+	requestAnimationFrame(frame);
+
+	return {
+		stop() {
+			cancelled = true;
+		}
+	};
 }
 
 /**
