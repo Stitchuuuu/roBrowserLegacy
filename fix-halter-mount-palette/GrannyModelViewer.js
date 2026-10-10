@@ -310180,12 +310180,15 @@ function UpdateBodyPalette(pal) {
 		this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
 		return;
 	}
-	const own = DB.getBodyPalPath(job, pal, this._sex);
-	const rider = DB.getBodyPalPath(this._job, pal, this._sex);
-	const apply = (path) => {
-		if (this._bodypalette === pal && getEffectiveJob.call(this) === job) this.files.body.pal = path;
+	if (hasMountPalettes !== void 0) {
+		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes ? job : this._job, pal, this._sex);
+		return;
+	}
+	const answer = (present) => {
+		hasMountPalettes = present;
+		UpdateBodyPalette.call(this, this._bodypalette);
 	};
-	Client.loadFile(MOUNT_PALETTE_SENTINEL, () => apply(own), () => apply(rider));
+	Client.loadFile(MOUNT_PALETTE_SENTINEL, () => answer(true), () => answer(false));
 }
 /**
 * Update head
@@ -310401,7 +310404,7 @@ function Init$5() {
 	createTransformationProperty("active_monster_transform");
 	createTransformationProperty("job_transform");
 }
-var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL;
+var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes;
 var init_EntityView = __esmMin((() => {
 	init_Client();
 	init_DBManager();
