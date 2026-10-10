@@ -59,6 +59,7 @@ The three builds agree on all of this.
   `MapRenderer.cancelLoad` and a failed load. A same-map teleport hides
   nothing.
 - **Fades** (`Background`): `transitionDuration` defaults to 255 ms per half.
+  A fade to black shows its black frame before the work done at black runs.
   `setLoading` fades out and cuts to the image. `remove` cuts to black when a
   background image is up (after a map load) and fades when it is not
   (same-map teleport). It always fades from black, once the display frames

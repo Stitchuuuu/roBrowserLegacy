@@ -395,7 +395,32 @@ function transition(callback, fadeOut = true, fadeIn = true) {
 	}
 
 	_overlay.style.opacity = '0.01';
-	Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, onBlack);
+	Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, () => {
+		// Show black before the work done there, a late fade ends between two frames
+		Background._overlayAnim = nextFrame(onBlack);
+	});
+}
+
+/**
+ * Run on the next display frame, once the current one is shown
+ *
+ * @param {function} callback
+ * @return {{stop: function}}
+ */
+function nextFrame(callback) {
+	let cancelled = false;
+
+	requestAnimationFrame(() => {
+		if (!cancelled) {
+			callback();
+		}
+	});
+
+	return {
+		stop() {
+			cancelled = true;
+		}
+	};
 }
 
 /**
