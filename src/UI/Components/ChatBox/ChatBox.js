@@ -1044,6 +1044,21 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 			}
 			return true;
 
+		// Switch between the user name and the message input
+		case KEYS.TAB:
+			if (activeElement === messageBox) {
+				nickBox.select();
+				nickBox.focus();
+				break;
+			}
+
+			if (activeElement === nickBox) {
+				messageBox.focus();
+				setCaretToEnd(messageBox);
+				break;
+			}
+			return true;
+
 		// Message from history
 		case KEYS.UP:
 			if (!document.querySelector('#NpcMenu')) {
