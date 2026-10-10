@@ -332264,7 +332264,7 @@ function onPrivateMessage(pkt) {
 		return;
 	}
 	const sender = ChatBox_default.escapeHTML(pkt.sender);
-	ChatBox_default.addText("[ " + prefix + " <span class=\"nickname-link\" data-nickname=\"" + sender + "\" style=\"cursor:pointer; text-decoration:underline;\">" + sender + "</span> ] : " + ChatBox_default.messageToHTML(msg), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
+	ChatBox_default.addText(`[ ${ChatBox_default.escapeHTML(prefix)} <span class="nickname-link" data-nickname="${sender}" style="cursor:pointer; text-decoration:underline;">${sender}</span> ] : ${ChatBox_default.messageToHTML(msg)}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
 	ChatBox_default.saveNickName(pkt.sender);
 }
 /**
@@ -332280,7 +332280,7 @@ function onPrivateMessageSent(pkt) {
 			if (getShouldOpenWhisperBox(user)) WhisperBox.addText(user, SessionStorage_default.Entity.display.name + " : " + msg, "#ffff00");
 			else {
 				const name = ChatBox_default.escapeHTML(user);
-				ChatBox_default.addText("[ To <span class=\"nickname-link\" data-nickname=\"" + name + "\" style=\"cursor:pointer; text-decoration:underline;\">" + name + "</span> ] : " + ChatBox_default.messageToHTML(msg), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
+				ChatBox_default.addText(`[ To <span class="nickname-link" data-nickname="${name}" style="cursor:pointer; text-decoration:underline;">${name}</span> ] : ${ChatBox_default.messageToHTML(msg)}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
 			}
 		}
 	} else {
