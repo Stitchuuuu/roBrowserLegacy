@@ -261,6 +261,18 @@ MakeItemSelection.onKeyDown = function onKeyDown(event) {
 		return false;
 	}
 
+	// Up / Down move the selection; the materials step has no rows
+	if (event.which === KEYS.UP || event.which === KEYS.DOWN) {
+		const current = this.getRoot().querySelector(`.list div[data-index="${this.index}"]`);
+		const row = event.which === KEYS.UP ? current?.previousElementSibling : current?.nextElementSibling;
+		if (row) {
+			this.setIndex(Math.floor(row.getAttribute('data-index')));
+			row.scrollIntoView({ block: 'nearest' });
+		}
+		event.stopImmediatePropagation();
+		return false;
+	}
+
 	return true;
 };
 
