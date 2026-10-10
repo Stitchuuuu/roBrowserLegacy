@@ -116,6 +116,9 @@ GraphicsOption.init = function init() {
 	bindChange('.occluderFadeOpacity', onUpdateOccluderFadeOpacity);
 	bindChange('.occluderFadeRadius', onUpdateOccluderFadeRadius);
 
+	// Map transition
+	bindChange('.mapTransition', onUpdateMapTransition);
+
 	this.draggable('.titlebar');
 };
 
@@ -161,6 +164,10 @@ GraphicsOption.onAppend = function onAppend() {
 	root.querySelector('.occluderFade').value = GraphicsSettings.occluderFade;
 	root.querySelector('.occluderFadeOpacity').value = GraphicsSettings.occluderFadeOpacity;
 	root.querySelector('.occluderFadeRadius').value = GraphicsSettings.occluderFadeRadius;
+
+	// Map transition
+	root.querySelector('.mapTransition').value =
+		GraphicsSettings.mapTransition || Configs.get('mapTransition') || 'client';
 };
 
 /**
@@ -406,6 +413,14 @@ function onUpdateOccluderFadeOpacity() {
  */
 function onUpdateOccluderFadeRadius() {
 	GraphicsSettings.occluderFadeRadius = parseFloat(this.value);
+	GraphicsSettings.save();
+}
+
+/**
+ * Select how a map change goes to the loading image and back
+ */
+function onUpdateMapTransition() {
+	GraphicsSettings.mapTransition = this.value;
 	GraphicsSettings.save();
 }
 

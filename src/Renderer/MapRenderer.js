@@ -173,7 +173,8 @@ class MapRenderer {
 			// Parse the filename (ugly RO)
 			const filename = mapname.replace(/\.gat$/i, '.rsw');
 
-			Background.setLoading(function () {
+			// Smooth mode: the load waits for the loading image to come out of black
+			Background.setLoading(function (whenShown = start => start()) {
 				// Cancelled while the loading screen was coming up
 				if (loadId !== MapRenderer._loadId) {
 					return;
@@ -185,18 +186,24 @@ class MapRenderer {
 				// The loading screen shows without the windows
 				hideMapUI();
 
-				// Hooking Thread
-				Thread.hook('MAP_PROGRESS', loadEvent(onProgressUpdate));
-				Thread.hook('MAP_WORLD', loadEvent(onWorldComplete));
-				Thread.hook('MAP_GROUND', loadEvent(onGroundComplete));
-				Thread.hook('MAP_ALTITUDE', loadEvent(onAltitudeComplete));
-				Thread.hook('MAP_MODELS', loadEvent(onModelsComplete));
-				Thread.hook('MAP_ANIMATED_MODEL', loadEvent(onAnimatedModelComplete));
+				whenShown(() => {
+					if (loadId !== MapRenderer._loadId) {
+						return;
+					}
 
-				// Start Loading
-				MapRenderer.free();
-				Renderer.remove();
-				MapRenderer._loadRequest = Thread.send('LOAD_MAP', filename, loadStep(loadId, onMapComplete));
+					// Hooking Thread
+					Thread.hook('MAP_PROGRESS', loadEvent(onProgressUpdate));
+					Thread.hook('MAP_WORLD', loadEvent(onWorldComplete));
+					Thread.hook('MAP_GROUND', loadEvent(onGroundComplete));
+					Thread.hook('MAP_ALTITUDE', loadEvent(onAltitudeComplete));
+					Thread.hook('MAP_MODELS', loadEvent(onModelsComplete));
+					Thread.hook('MAP_ANIMATED_MODEL', loadEvent(onAnimatedModelComplete));
+
+					// Start Loading
+					MapRenderer.free();
+					Renderer.remove();
+					MapRenderer._loadRequest = Thread.send('LOAD_MAP', filename, loadStep(loadId, onMapComplete));
+				});
 			});
 
 			return false;

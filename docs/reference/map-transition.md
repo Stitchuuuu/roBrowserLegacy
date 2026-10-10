@@ -73,6 +73,21 @@ The three builds agree on all of this.
   stay on time: 150 ms of frames under 25 ms each, waiting at most a second.
   The work done at black (the windows restarting, the first frames of a new
   map) then lands before the fade, not in it.
+- **Smooth, an option** (`mapTransition: 'smooth'`; the default `'client'` is
+  everything above). A map change fades where the client cuts: the map fades
+  to black, the loading image comes out of black, and after the load the image
+  fades to black before the new map comes out of black. The work done at black
+  is the same, at the same moments. Each of the four fades lasts 125 ms
+  (`SMOOTH_DURATION` in `Background`), about the client's two of 255 ms. The image comes out of black once three frames in a row
+  are on time, and the load starts only once it is shown: a load running under
+  the fade made it stutter. After the load, the image stays still until three
+  frames in a row are on time again: the renderer set up at the end of a load
+  holds the frames for about 100 ms with no page script running, and a fade
+  started there stuttered. A same-map teleport keeps the client's two fades. The
+  server sets the default in `ROConfig.mapTransition`, the player's choice in
+  the graphics options (`GraphicsSettings.mapTransition`) overrides it.
+  `Background` reads the mode itself, because the plugin libs wrap
+  `Background.remove(callback)` and forward the callback only.
 - **`CZ_NOTIFY_ACTORINIT`**: a same-map teleport sends it before the fade, as
   the client does; the inventory and equipment the server sends back in the
   meantime survive the restart at black. A map change sends it from `onLoad`,
@@ -93,6 +108,10 @@ The three builds agree on all of this.
 - **Black lasts longer when the page is busy.** The client starts its fade
   from black right after the reset. Here it waits for the display frames to
   come back on time, up to a second, so the fade itself never stutters.
+- **Smooth is not the client's.** The client cuts to and from the loading
+  image. Smooth is there for players who find the cuts harsh. Its four fades
+  take about the client's two (4 × 125 against 2 × 255 ms); the waits for
+  frames on time cover work that holds the frames in the client mode too.
 - **The keyboard stays live during the fade to black.** A window still on
   screen can take a key: Enter on an NPC dialog sends its next step to an NPC
   whose script already ended with the warp, which the server ignores.

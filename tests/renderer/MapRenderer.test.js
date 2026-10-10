@@ -169,6 +169,41 @@ describe('MapRenderer kept UI', () => {
 		expect(keep[0]._host.style.visibility).toBe('hidden');
 	});
 
+	it('starts the load once the loading image is shown, when the background asks to wait', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+		let shown;
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading(start => {
+			shown = start;
+		});
+		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(keep[0]._host.style.visibility).toBe('hidden');
+		expect(mocks.thread.send).not.toHaveBeenCalled();
+
+		shown();
+		expect(mocks.thread.send).toHaveBeenCalledWith('LOAD_MAP', 'geffen.rsw', expect.any(Function));
+	});
+
+	it('does not start a load cancelled while the loading image came out of black', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+		let shown;
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading(start => {
+			shown = start;
+		});
+		MapRenderer.cancelLoad();
+		shown();
+		expect(mocks.thread.send).not.toHaveBeenCalled();
+	});
+
 	it('leaves the windows to the engine that cancelled the load', () => {
 		let showLoading;
 		mocks.background.setLoading.mockImplementationOnce(callback => {
