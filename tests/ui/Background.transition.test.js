@@ -165,14 +165,18 @@ describe('the fade from black', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('waits for the display frames to come back on time', () => {
+	it('waits for the display frames to stay on time for a while', () => {
 		Background.remove();
 		finishAnimation();
 
-		frames(0, 120, 128, 136);
+		// A few frames on time between two long ones are not enough
+		frames(0, 120, 128, 136, 144, 200);
+		for (let time = 208; time < 350; time += 8) {
+			frames(time);
+		}
 		expect(mocks.animations).toHaveLength(0);
 
-		frames(144);
+		frames(352);
 		expect(mocks.animations).toHaveLength(1);
 		expect(mocks.animations[0].props).toEqual({ opacity: 0.01 });
 	});
@@ -195,7 +199,7 @@ describe('the fade from black', () => {
 
 		Background.setLoading(vi.fn());
 		const pending = mocks.animations.length;
-		frames(8, 16, 24, 32);
+		settle();
 
 		expect(mocks.animations).toHaveLength(pending);
 	});
