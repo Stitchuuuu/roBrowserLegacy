@@ -80,4 +80,19 @@ describe('a plugin window across a map transition', () => {
 		emit(EVENTS.MAP_READY);
 		expect(window.ui[0].isConnected).toBe(true);
 	});
+
+	it('comes back once, with the map, when the engine removes it at black', async () => {
+		const window = panel();
+		registerPlayerWindow(() => window);
+		emit(EVENTS.MAP_READY);
+
+		emit(EVENTS.MAP_LEAVE);
+		await Promise.resolve();
+		window.remove();
+		expect(window.ui[0].isConnected).toBe(false);
+
+		emit(EVENTS.MAP_READY);
+		expect(window.ui[0].isConnected).toBe(true);
+		expect(window.append).toHaveBeenCalledTimes(2);
+	});
 });

@@ -223,6 +223,16 @@ function _nativeWindowsKept() {
 }
 
 /**
+ * Whether a component is out of the DOM
+ * @param {any} component
+ * @returns {boolean}
+ */
+function _detached(component) {
+	const el = component._host || root(component)
+	return !(el && el.isConnected)
+}
+
+/**
  * Register a plugin-owned component that should mirror the lifecycle of native
  * windows (BasicInfo / Inventory) :
  *   - The panel is constructed lazily by invoking `panelFactory` on the first
@@ -361,8 +371,9 @@ export function registerPlayerWindow(panelFactory, opts = {}) {
 		// Back on the microtask, once removeComponents() ran, when the engine
 		// keeps its own map windows attached (it hides them with ours during
 		// the loading screen); otherwise on the next map-ready, with them.
+		// An engine that removes at black has not detached it yet: map-ready.
 		Promise.resolve().then(() => {
-			if (disposed || appended) {return}
+			if (disposed || appended || (panel && !_detached(panel))) {return}
 			if (opts.alwaysVisible || _nativeWindowsKept()) {_doAppend()}
 		})
 	}
