@@ -219968,6 +219968,19 @@ function extractChatMessage$1(inputEl) {
 	return result;
 }
 /**
+* Escape text for use in HTML content and quoted attributes.
+* @param {string} text
+* @returns {string}
+*/
+function escapeHTML$2(text) {
+	return text.replace(/[&<>"]/g, (c) => ({
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		"\"": "&quot;"
+	})[c]);
+}
+/**
 * Process all messages in the buffer at once
 */
 function flushMessageBuffer() {
@@ -220978,12 +220991,16 @@ var init_ChatBox = __esmMin((() => {
 	*/
 	ChatBox.addText = function addText(text, colorType, filterType, color, override) {
 		text = text.replace(/\^[0-9A-Fa-f]{6}/g, "");
-		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function(match) {
-			const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${DB.parseItemLink(match).name}&gt;</span>`;
-			override = true;
-			return span;
-		});
 		if (!override && /<span\s+class="nickname-link"/.test(text)) override = true;
+		const parts = text.split(/(<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>)/i);
+		if (parts.length > 1) {
+			for (let i = 0; i < parts.length; i++) if (i % 2) {
+				const item = DB.parseItemLink(parts[i]);
+				parts[i] = `<span data-item="${escapeHTML$2(parts[i])}" class="item-link" style="color:#FFFF63;">&lt;${escapeHTML$2(item.name)}&gt;</span>`;
+			} else if (!override) parts[i] = escapeHTML$2(parts[i]);
+			text = parts.join("");
+			override = true;
+		}
 		if (isNaN(filterType)) filterType = ChatBox.FILTER.PUBLIC_LOG;
 		_messageBuffer.push({
 			text,
