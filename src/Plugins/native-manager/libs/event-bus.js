@@ -16,11 +16,21 @@
  *
  * Iteration snapshots the Set via spread, which makes it safe for a handler
  * to unsubscribe itself (or others) mid-dispatch.
+ *
+ * **Sticky events** (`opts.sticky`): once emitted, a later `on`/`once` for
+ * that event is called back on the next microtask with the last emit's args.
+ * The native host emits WIRE_COMPLETE at boot, before plugins installed from
+ * IndexedDB get to subscribe — without the replay their wait never ends.
  */
 
 export function createBus(opts) {
 	const m = new Map() // event → Set<cb>
 	const firstListenerHooks = new Map() // event → callback fired on first sub
+	const sticky = {} // event → true
+	const fired = {} // sticky event → args of its last emit
+	if (opts && opts.sticky) {
+		for (const event of opts.sticky) { sticky[event] = true }
+	}
 
 	// Optional `logger = { log, warn, error }` — when provided, error paths
 	// route through a richer logger. Falls back to plain console.error so the
@@ -39,6 +49,14 @@ export function createBus(opts) {
 			try { firstListenerHooks.get(event)() }
 			catch (e) { error(`[NativePM bus first-listener:${event}]`, e) }
 		}
+		if (event in fired) {
+			queueMicrotask(() => {
+				const current = m.get(event)
+				if (!current || !current.has(cb)) {return}
+				try { cb(...fired[event]) }
+				catch (e) { error(`[NativePM bus:${event}]`, e) }
+			})
+		}
 		return () => off(event, cb)
 	}
 
@@ -55,6 +73,7 @@ export function createBus(opts) {
 	}
 
 	function emit(event, ...args) {
+		if (sticky[event]) { fired[event] = args }
 		const set = m.get(event)
 		if (!set) {return}
 		for (const cb of [...set]) {
@@ -88,17 +107,6 @@ export function createBus(opts) {
 	return { on, off, once, emit, stats, onFirstListener }
 }
 
-// ── Module-pure singleton ──
-const _bus = createBus()
-
-export const on = _bus.on
-export const off = _bus.off
-export const once = _bus.once
-export const emit = _bus.emit
-export const onFirstListener = _bus.onFirstListener
-export const stats = _bus.stats
-export function getBus() { return _bus }
-
 /**
  * Catalogue of every event name emitted on the bus by the native libs.
  * Single source of truth — reference `EVENTS.MAP_READY` over hard-coding
@@ -117,3 +125,14 @@ export const EVENTS = Object.freeze({
 	// Native function traps (emitted by lifecycle's runtime wrappers)
 	BACKGROUND_REMOVE: 'background-remove',
 })
+
+// ── Module-pure singleton ──
+const _bus = createBus({ sticky: [EVENTS.WIRE_COMPLETE] })
+
+export const on = _bus.on
+export const off = _bus.off
+export const once = _bus.once
+export const emit = _bus.emit
+export const onFirstListener = _bus.onFirstListener
+export const stats = _bus.stats
+export function getBus() { return _bus }
