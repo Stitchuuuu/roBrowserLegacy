@@ -120,6 +120,7 @@ describe('Background.setLoading', () => {
 		const overlay = mocks.animations[0].element;
 
 		finishAnimation();
+		frames(0);
 
 		expect(callback).toHaveBeenCalledOnce();
 		expect(mocks.animations).toHaveLength(0);
@@ -168,6 +169,7 @@ describe('the fade from black', () => {
 	it('waits for the display frames to stay on time for a while', () => {
 		Background.remove();
 		finishAnimation();
+		frames(0);
 
 		// A few frames on time between two long ones are not enough
 		frames(0, 120, 128, 136, 144, 200);
@@ -184,6 +186,7 @@ describe('the fade from black', () => {
 	it('starts anyway after a second of long frames', () => {
 		Background.remove();
 		finishAnimation();
+		frames(0);
 
 		frames(0, 300, 600, 900);
 		expect(mocks.animations).toHaveLength(0);
@@ -195,12 +198,47 @@ describe('the fade from black', () => {
 	it('is dropped by the next transition', () => {
 		Background.remove();
 		finishAnimation();
-		frames(0);
+		frames(0, 0);
 
 		Background.setLoading(vi.fn());
 		const pending = mocks.animations.length;
 		settle();
 
 		expect(mocks.animations).toHaveLength(pending);
+	});
+});
+
+/**
+ * A fade-out slowed by long frames reached its end between two frames, and the
+ * work done at black ran before black was ever shown: the screen stayed frozen
+ * half dark for as long as that work took.
+ */
+describe('the fade to black', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		mocks.frames.length = 0;
+		document.body.innerHTML = '';
+	});
+
+	it('shows black before the work done at black', () => {
+		const callback = vi.fn();
+		Background.remove(callback);
+
+		finishAnimation();
+		expect(callback).not.toHaveBeenCalled();
+
+		frames(0);
+		expect(callback).toHaveBeenCalledOnce();
+	});
+
+	it('drops that work when the next transition starts first', () => {
+		const callback = vi.fn();
+		Background.remove(callback);
+		finishAnimation();
+
+		Background.setLoading(vi.fn());
+		frames(0);
+
+		expect(callback).not.toHaveBeenCalled();
 	});
 });
