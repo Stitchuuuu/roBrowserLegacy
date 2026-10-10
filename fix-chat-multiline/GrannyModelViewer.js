@@ -219968,19 +219968,6 @@ function extractChatMessage$1(inputEl) {
 	return result;
 }
 /**
-* Escape text for use in HTML content and quoted attributes.
-* @param {string} text
-* @returns {string}
-*/
-function escapeHTML$2(text) {
-	return text.replace(/[&<>"]/g, (c) => ({
-		"&": "&amp;",
-		"<": "&lt;",
-		">": "&gt;",
-		"\"": "&quot;"
-	})[c]);
-}
-/**
 * Process all messages in the buffer at once
 */
 function flushMessageBuffer() {
@@ -220200,7 +220187,7 @@ function makeResizableDiv() {
 		window.addEventListener("mouseup", stopResize);
 	});
 }
-var MAX_MSG, MAX_LENGTH, MAGIC_NUMBER, _historyMessage, _historyNickName, _heightIndex, _messageBuffer, _rafScheduled, _preferences$41, ChatBox, ChatBox_default;
+var MAX_MSG, MAX_LENGTH, MAGIC_NUMBER, _historyMessage, _historyNickName, _heightIndex, _messageBuffer, _rafScheduled, _preferences$41, ChatBox, ITEM_LINK, ChatBox_default;
 var init_ChatBox = __esmMin((() => {
 	init_DBManager();
 	init_Renderer();
@@ -220984,6 +220971,34 @@ var init_ChatBox = __esmMin((() => {
 		}
 		this.onRequestTalk(user, trimmedText, ChatBox.sendTo);
 	};
+	ITEM_LINK = /(<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>)/i;
+	/**
+	* Escape text for use in HTML content and quoted attributes.
+	* @param {string} text
+	* @returns {string}
+	*/
+	ChatBox.escapeHTML = function escapeHTML(text) {
+		return text.replace(/[&<>"]/g, (c) => ({
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			"\"": "&quot;"
+		})[c]);
+	};
+	/**
+	* Render a received message as HTML: colour codes dropped, item links clickable, the rest as text.
+	*
+	* @param {string} text
+	* @returns {string}
+	* @see docs/reference/chat/text-parsing.md
+	*/
+	ChatBox.messageToHTML = function messageToHTML(text) {
+		return text.replace(/\^[0-9A-Fa-f]{6}/g, "").split(ITEM_LINK).map((part, i) => {
+			if (!(i % 2)) return ChatBox.escapeHTML(part);
+			const item = DB.parseItemLink(part);
+			return `<span data-item="${ChatBox.escapeHTML(part)}" class="item-link" style="color:#FFFF63; cursor:pointer;">&lt;${ChatBox.escapeHTML(item.name)}&gt;</span>`;
+		}).join("");
+	};
 	/**
 	* Add text to chatbox
 	*
@@ -220991,14 +221006,8 @@ var init_ChatBox = __esmMin((() => {
 	*/
 	ChatBox.addText = function addText(text, colorType, filterType, color, override) {
 		text = text.replace(/\^[0-9A-Fa-f]{6}/g, "");
-		if (!override && /<span\s+class="nickname-link"/.test(text)) override = true;
-		const parts = text.split(/(<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>)/i);
-		if (parts.length > 1) {
-			for (let i = 0; i < parts.length; i++) if (i % 2) {
-				const item = DB.parseItemLink(parts[i]);
-				parts[i] = `<span data-item="${escapeHTML$2(parts[i])}" class="item-link" style="color:#FFFF63;">&lt;${escapeHTML$2(item.name)}&gt;</span>`;
-			} else if (!override) parts[i] = escapeHTML$2(parts[i]);
-			text = parts.join("");
+		if (!override && ITEM_LINK.test(text)) {
+			text = ChatBox.messageToHTML(text);
 			override = true;
 		}
 		if (isNaN(filterType)) filterType = ChatBox.FILTER.PUBLIC_LOG;
@@ -225533,20 +225542,11 @@ var init_WhisperBox = __esmMin((() => {
 	* @param {string} color
 	*/
 	WhisperBox.addText = function addText(nickname, text, color) {
-		const instance = this.instances[nickname] || this.show(nickname, true);
-		let override = false;
-		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, (match) => {
-			const item = DB.parseItemLink(match);
-			if (!item) return match;
-			override = true;
-			return `<span data-item="${match}" class="item-link" style="color:#FFFF63; cursor:pointer;">&lt;${item.name}&gt;</span>`;
-		});
-		const contentEl = instance._contentEl;
+		const contentEl = (this.instances[nickname] || this.show(nickname, true))._contentEl;
 		const isAtBottom = contentEl.scrollHeight - contentEl.scrollTop <= contentEl.offsetHeight + 10;
 		const div = document.createElement("div");
 		div.style.color = color || "#ffffff";
-		if (override) div.innerHTML = text;
-		else div.textContent = text;
+		div.innerHTML = ChatBox_default.messageToHTML(text);
 		contentEl.appendChild(div);
 		while (contentEl.childElementCount > 100) contentEl.firstElementChild.remove();
 		if (isAtBottom) contentEl.scrollTop = contentEl.scrollHeight;
@@ -332263,7 +332263,8 @@ function onPrivateMessage(pkt) {
 		ChatBox_default.saveNickName(pkt.sender);
 		return;
 	}
-	ChatBox_default.addText("[ " + prefix + " <span class=\"nickname-link\" data-nickname=\"" + pkt.sender + "\" style=\"cursor:pointer; text-decoration:underline;\">" + pkt.sender + "</span> ] : " + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+	const sender = ChatBox_default.escapeHTML(pkt.sender);
+	ChatBox_default.addText("[ " + prefix + " <span class=\"nickname-link\" data-nickname=\"" + sender + "\" style=\"cursor:pointer; text-decoration:underline;\">" + sender + "</span> ] : " + ChatBox_default.messageToHTML(msg), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
 	ChatBox_default.saveNickName(pkt.sender);
 }
 /**
@@ -332277,7 +332278,10 @@ function onPrivateMessageSent(pkt) {
 	if (pkt.result === 0) {
 		if (user && msg) {
 			if (getShouldOpenWhisperBox(user)) WhisperBox.addText(user, SessionStorage_default.Entity.display.name + " : " + msg, "#ffff00");
-			else ChatBox_default.addText("[ To <span class=\"nickname-link\" data-nickname=\"" + user + "\" style=\"cursor:pointer; text-decoration:underline;\">" + user + "</span> ] : " + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+			else {
+				const name = ChatBox_default.escapeHTML(user);
+				ChatBox_default.addText("[ To <span class=\"nickname-link\" data-nickname=\"" + name + "\" style=\"cursor:pointer; text-decoration:underline;\">" + name + "</span> ] : " + ChatBox_default.messageToHTML(msg), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
+			}
 		}
 	} else {
 		const errorMsg = "(" + user + ") : " + DB.getMessage(147 + pkt.result);
