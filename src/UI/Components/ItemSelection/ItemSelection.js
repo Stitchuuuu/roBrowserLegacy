@@ -175,14 +175,29 @@ ItemSelection.selectIndex = function selectIndex() {
 };
 
 /**
- * Enter validates the selection, like the OK button
+ * Enter validates the selection, like the OK button, Up / Down move it
  */
 ItemSelection.onKeyDown = function onKeyDown(event) {
-	if (event.which !== KEYS.ENTER) {
-		return true;
+	switch (event.which) {
+		case KEYS.ENTER:
+			this.selectIndex();
+			break;
+
+		case KEYS.UP:
+		case KEYS.DOWN: {
+			const current = this.getRoot().querySelector(`.list div[data-index="${this.index}"]`);
+			const row = event.which === KEYS.UP ? current?.previousElementSibling : current?.nextElementSibling;
+			if (row) {
+				this.setIndex(Math.floor(row.getAttribute('data-index')));
+				row.scrollIntoView({ block: 'nearest' });
+			}
+			break;
+		}
+
+		default:
+			return true;
 	}
 
-	this.selectIndex();
 	event.stopImmediatePropagation();
 	return false;
 };
