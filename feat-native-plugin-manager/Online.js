@@ -85090,13 +85090,13 @@ var init_PalNameTable = __esmMin((() => {
 	PalNameTable[JobConst_default.PIG_BLACKSMITH] = JobNameTable[JobConst_default.PIG_BLACKSMITH];
 	PalNameTable[JobConst_default.LION_KNIGHT] = JobNameTable[JobConst_default.LION_KNIGHT];
 	PalNameTable[JobConst_default.DOG_ASSASSIN] = JobNameTable[JobConst_default.DOG_ASSASSIN];
-	PalNameTable[JobConst_default.SHEEP_MONK] = JobNameTable[JobConst_default.MONK];
-	PalNameTable[JobConst_default.OSTRICH_BARD] = JobNameTable[JobConst_default.BARD];
-	PalNameTable[JobConst_default.OSTRICH_DANCER] = JobNameTable[JobConst_default.DANCER];
-	PalNameTable[JobConst_default.FOX_SAGE] = JobNameTable[JobConst_default.SAGE];
-	PalNameTable[JobConst_default.PIG_ALCHE] = JobNameTable[JobConst_default.ALCHEMIST];
-	PalNameTable[JobConst_default.LION_CRUSADER] = "Å©·ç";
-	PalNameTable[JobConst_default.DOG_ROGUE] = JobNameTable[JobConst_default.ROGUE];
+	PalNameTable[JobConst_default.SHEEP_MONK] = JobNameTable[JobConst_default.SHEEP_MONK];
+	PalNameTable[JobConst_default.OSTRICH_BARD] = JobNameTable[JobConst_default.OSTRICH_BARD];
+	PalNameTable[JobConst_default.OSTRICH_DANCER] = JobNameTable[JobConst_default.OSTRICH_DANCER];
+	PalNameTable[JobConst_default.FOX_SAGE] = JobNameTable[JobConst_default.FOX_SAGE];
+	PalNameTable[JobConst_default.PIG_ALCHE] = JobNameTable[JobConst_default.PIG_ALCHE];
+	PalNameTable[JobConst_default.LION_CRUSADER] = JobNameTable[JobConst_default.LION_CRUSADER];
+	PalNameTable[JobConst_default.DOG_ROGUE] = JobNameTable[JobConst_default.DOG_ROGUE];
 	PalNameTable[JobConst_default.SHEEP_ARCB] = JobNameTable[JobConst_default.SHEEP_ARCB];
 	PalNameTable[JobConst_default.OSTRICH_RANGER] = JobNameTable[JobConst_default.OSTRICH_RANGER];
 	PalNameTable[JobConst_default.FOX_WARLOCK] = JobNameTable[JobConst_default.FOX_WARLOCK];
@@ -85111,27 +85111,27 @@ var init_PalNameTable = __esmMin((() => {
 	PalNameTable[JobConst_default.LION_ROYAL_GUARD] = JobNameTable[JobConst_default.LION_ROYAL_GUARD];
 	PalNameTable[JobConst_default.DOG_CHASER] = JobNameTable[JobConst_default.DOG_CHASER];
 	PalNameTable[JobConst_default.PORING_SNOVICE] = JobNameTable[JobConst_default.PORING_SNOVICE];
-	PalNameTable[JobConst_default.FROG_NINJA] = JobNameTable[JobConst_default.FROG_NINJA];
+	PalNameTable[JobConst_default.FROG_NINJA] = "µÎ²¨ºñ´ÑÀÚ";
 	PalNameTable[JobConst_default.PECO_GUNNER] = JobNameTable[JobConst_default.PECO_GUNNER];
 	PalNameTable[JobConst_default.PORING_TAEKWON] = JobNameTable[JobConst_default.PORING_TAEKWON];
-	PalNameTable[JobConst_default.PORING_STAR] = JobNameTable[JobConst_default.STAR];
+	PalNameTable[JobConst_default.PORING_STAR] = JobNameTable[JobConst_default.PORING_STAR];
 	PalNameTable[JobConst_default.FROG_LINKER] = JobNameTable[JobConst_default.FROG_LINKER];
 	PalNameTable[JobConst_default.FROG_KAGEROU] = JobNameTable[JobConst_default.FROG_KAGEROU];
 	PalNameTable[JobConst_default.FROG_OBORO] = JobNameTable[JobConst_default.FROG_OBORO];
 	PalNameTable[JobConst_default.PECO_REBELLION] = JobNameTable[JobConst_default.PECO_REBELLION];
-	PalNameTable[JobConst_default.SHEEP_HPRIEST] = "ÇÏÀÌÇÁ¸®½ºÆ®";
-	PalNameTable[JobConst_default.OSTRICH_SNIPER] = JobNameTable[JobConst_default.HUNTER_H];
-	PalNameTable[JobConst_default.FOX_HWIZ] = JobNameTable[JobConst_default.WIZARD_H];
-	PalNameTable[JobConst_default.PIG_WHITESMITH] = JobNameTable[JobConst_default.BLACKSMITH_H];
+	PalNameTable[JobConst_default.SHEEP_HPRIEST] = JobNameTable[JobConst_default.SHEEP_HPRIEST];
+	PalNameTable[JobConst_default.OSTRICH_SNIPER] = JobNameTable[JobConst_default.OSTRICH_SNIPER];
+	PalNameTable[JobConst_default.FOX_HWIZ] = JobNameTable[JobConst_default.FOX_HWIZ];
+	PalNameTable[JobConst_default.PIG_WHITESMITH] = JobNameTable[JobConst_default.PIG_WHITESMITH];
 	PalNameTable[JobConst_default.LION_KNIGHT_H] = JobNameTable[JobConst_default.LION_KNIGHT_H];
-	PalNameTable[JobConst_default.DOG_ASSA_X] = "¾î¼¼½ÅÅ©·Î½º";
-	PalNameTable[JobConst_default.SHEEP_CHAMP] = JobNameTable[JobConst_default.MONK_H];
-	PalNameTable[JobConst_default.OSTRICH_CROWN] = "Å©¶ó¿î";
-	PalNameTable[JobConst_default.OSTRICH_ZIPSI] = "Áý½Ã";
-	PalNameTable[JobConst_default.FOX_PROF] = JobNameTable[JobConst_default.SAGE_H];
-	PalNameTable[JobConst_default.PIG_CREATOR] = JobNameTable[JobConst_default.ALCHEMIST_H];
-	PalNameTable[JobConst_default.LION_CRUSADER_H] = JobNameTable[JobConst_default.CRUSADER_H];
-	PalNameTable[JobConst_default.DOG_STALKER] = JobNameTable[JobConst_default.ROGUE_H];
+	PalNameTable[JobConst_default.DOG_ASSA_X] = JobNameTable[JobConst_default.DOG_ASSA_X];
+	PalNameTable[JobConst_default.SHEEP_CHAMP] = JobNameTable[JobConst_default.SHEEP_CHAMP];
+	PalNameTable[JobConst_default.OSTRICH_CROWN] = JobNameTable[JobConst_default.OSTRICH_CROWN];
+	PalNameTable[JobConst_default.OSTRICH_ZIPSI] = JobNameTable[JobConst_default.OSTRICH_ZIPSI];
+	PalNameTable[JobConst_default.FOX_PROF] = JobNameTable[JobConst_default.FOX_PROF];
+	PalNameTable[JobConst_default.PIG_CREATOR] = JobNameTable[JobConst_default.PIG_CREATOR];
+	PalNameTable[JobConst_default.LION_CRUSADER_H] = JobNameTable[JobConst_default.LION_CRUSADER_H];
+	PalNameTable[JobConst_default.DOG_STALKER] = JobNameTable[JobConst_default.DOG_STALKER];
 	PalNameTable[JobConst_default.DRAGON_KNIGHT] = JobNameTable[JobConst_default.DRAGON_KNIGHT];
 	PalNameTable[JobConst_default.MEISTER] = JobNameTable[JobConst_default.MEISTER];
 	PalNameTable[JobConst_default.SHADOW_CROSS] = JobNameTable[JobConst_default.SHADOW_CROSS];
@@ -85230,7 +85230,7 @@ var init_PalNameTable = __esmMin((() => {
 	duplicateEntry$5(JobConst_default.OSTRICH_DANCER, JobConst_default.OSTRICH_DANCER_B);
 	duplicateEntry$5(JobConst_default.FOX_SAGE, JobConst_default.FOX_SAGE_B);
 	duplicateEntry$5(JobConst_default.PIG_ALCHE, JobConst_default.PIG_ALCHE_B);
-	duplicateEntry$5(JobConst_default.LION_CRUSADER, JobConst_default.LION_CRUSADER_B);
+	PalNameTable[JobConst_default.LION_CRUSADER_B] = "Å©·ç";
 	duplicateEntry$5(JobConst_default.DOG_ROGUE, JobConst_default.DOG_ROGUE_B);
 	duplicateEntry$5(JobConst_default.SHEEP_ARCB, JobConst_default.SHEEP_ARCB_B);
 	duplicateEntry$5(JobConst_default.OSTRICH_RANGER, JobConst_default.OSTRICH_RANGER_B);
@@ -85246,7 +85246,7 @@ var init_PalNameTable = __esmMin((() => {
 	duplicateEntry$5(JobConst_default.LION_ROYAL_GUARD, JobConst_default.LION_ROYAL_GUARD_B);
 	duplicateEntry$5(JobConst_default.DOG_CHASER, JobConst_default.DOG_CHASER_B);
 	duplicateEntry$5(JobConst_default.PORING_SNOVICE, JobConst_default.PORING_SNOVICE_B, JobConst_default.PORING_SNOVICE2, JobConst_default.PORING_SNOVICE2_B);
-	duplicateEntry$5(JobConst_default.FROG_NINJA, JobConst_default.FROG_NINJA_B);
+	PalNameTable[JobConst_default.FROG_NINJA_B] = PalNameTable[JobConst_default.FROG_NINJA];
 	duplicateEntry$5(JobConst_default.PECO_GUNNER, JobConst_default.PECO_GUNNER_B);
 	duplicateEntry$5(JobConst_default.PORING_TAEKWON, JobConst_default.PORING_TAEKWON_B);
 	duplicateEntry$5(JobConst_default.PORING_STAR, JobConst_default.PORING_STAR_B);
@@ -219612,7 +219612,7 @@ var init_ContextMenu = __esmMin((() => {
 //#region src/UI/Components/ChatBox/ChatBox.html?raw
 var ChatBox_default$2;
 var init_ChatBox$2 = __esmMin((() => {
-	ChatBox_default$2 = "<div id=\"chatbox\">\r\n	<table class=\"header\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\r\n		<tbody>\r\n			<tr>\r\n				<td class=\"opttab\"><div class=\"options\"></div></td>\r\n			</tr>\r\n		</tbody>\r\n	</table>\r\n	<div class=\"chat-function\">\r\n		<button class=\"cfunc chatmode\" data-background=\"basic_interface/chatmode_on.bmp\"></button>\r\n		<button class=\"cfunc battleopt\" data-background=\"basic_interface/battle_option2_a.bmp\"></button>\r\n		<button class=\"cfunc stickfucn\" data-background=\"basic_interface/stickoff.bmp\"></button>\r\n		<button class=\"cfunc battleopt2\" data-background=\"basic_interface/battle_option_a.bmp\"></button>\r\n		<button class=\"cfunc wndminib\" data-background=\"basic_interface/wnd_mini_b.bmp\"></button>\r\n		<button class=\"cfunc lockdragwnd\" data-background=\"basic_interface/lock_dragwnd.bmp\"></button>\r\n	</div>\r\n	<div class=\"body\">\r\n		<div class=\"event_add_cursor draggable\"></div>\r\n		<div class=\"contentwrapper\"></div>\r\n	</div>\r\n\r\n	<div class=\"battlemode\"><button class=\"bmtoggle\">...</button></div>\r\n	<div class=\"input\" data-background=\"basic_interface/dialog_bg.bmp\">\r\n		<input type=\"text\" class=\"username\" />\r\n		<ui-button\r\n			class=\"list\"\r\n			bg=\"basic_interface/dialog_btn0.bmp\"\r\n			hover=\"basic_interface/dialog_btn1.bmp\"\r\n			down=\"basic_interface/dialog_btn2.bmp\"\r\n		></ui-button>\r\n		<div class=\"wrapper\"><div contenteditable=\"true\" class=\"message input-chatbox\"></div></div>\r\n		<button\r\n			class=\"filter\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"size\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
+	ChatBox_default$2 = "<div id=\"chatbox\">\r\n	<table class=\"header\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\r\n		<tbody>\r\n			<tr>\r\n				<td class=\"opttab\"><div class=\"options\"></div></td>\r\n			</tr>\r\n		</tbody>\r\n	</table>\r\n	<div class=\"chat-function\">\r\n		<button class=\"cfunc chatmode\" data-background=\"basic_interface/chatmode_on.bmp\"></button>\r\n		<button class=\"cfunc battleopt\" data-background=\"basic_interface/battle_option2_a.bmp\"></button>\r\n		<button class=\"cfunc stickfucn\" data-background=\"basic_interface/stickoff.bmp\"></button>\r\n		<button class=\"cfunc battleopt2\" data-background=\"basic_interface/battle_option_a.bmp\"></button>\r\n		<button class=\"cfunc wndminib\" data-background=\"basic_interface/wnd_mini_b.bmp\"></button>\r\n		<button class=\"cfunc lockdragwnd\" data-background=\"basic_interface/lock_dragwnd.bmp\"></button>\r\n	</div>\r\n	<div class=\"body\">\r\n		<div class=\"event_add_cursor draggable\"></div>\r\n		<div class=\"contentwrapper\"></div>\r\n	</div>\r\n\r\n	<div class=\"battlemode\"><button class=\"bmtoggle\">...</button></div>\r\n	<div class=\"input\" data-background=\"basic_interface/dialog_bg.bmp\">\r\n		<input type=\"text\" class=\"username\" autocomplete=\"off\" data-1p-ignore data-lpignore=\"true\" data-bwignore data-form-type=\"other\" />\r\n		<ui-button\r\n			class=\"list\"\r\n			bg=\"basic_interface/dialog_btn0.bmp\"\r\n			hover=\"basic_interface/dialog_btn1.bmp\"\r\n			down=\"basic_interface/dialog_btn2.bmp\"\r\n		></ui-button>\r\n		<div class=\"wrapper\"><div contenteditable=\"true\" class=\"message input-chatbox\"></div></div>\r\n		<button\r\n			class=\"filter\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"size\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ChatBox/ChatBox.css?raw
@@ -260467,6 +260467,7 @@ var init_MapRenderer = __esmMin((() => {
 			BGM.stop();
 			PostProcess.clean(gl);
 			Mouse.intersect = false;
+			Cursor.setType(Cursor.ACTION.DEFAULT);
 			this.light = null;
 			this.water = null;
 			this.sounds = null;
@@ -261206,6 +261207,7 @@ var init_Renderer = __esmMin((() => {
 				}
 				this._lastFrameTime = 0;
 				this._renderBound = this._render.bind(this);
+				Cursor.setSceneDriven(true);
 				this.updateId = _requestAnimationFrame(this._renderBound);
 			}
 		}
@@ -261221,6 +261223,7 @@ var init_Renderer = __esmMin((() => {
 				} catch (e) {
 					console.error(e);
 				}
+				Cursor.setSceneDriven(false);
 				return;
 			}
 			const pos = this.renderCallbacks.indexOf(fn);
@@ -310028,6 +310031,7 @@ function UpdateBodyStyle(look) {
 * Update body palette
 *
 * @param {number} body palette number
+* @see docs/reference/renderer/body-palette.md
 */
 function UpdateBodyPalette(pal) {
 	this._bodypalette = pal;
@@ -310037,7 +310041,24 @@ function UpdateBodyPalette(pal) {
 	}
 	if (this._job === -1) return;
 	const job = this._bodyStyleJob && !hasTransformation.call(this) ? this._bodyStyleJob : getEffectiveJob.call(this);
-	this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
+	if (!AllMountJobs[job]) {
+		this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
+		return;
+	}
+	const host = Configs.get("remoteClient", "");
+	if (host in hasMountPalettes) {
+		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes[host] ? job : this._job, pal, this._sex);
+		return;
+	}
+	if (sentinelHost !== host) {
+		sentinelHost = host;
+		MemoryManager.remove(null, MOUNT_PALETTE_SENTINEL);
+	}
+	const answer = (present) => {
+		hasMountPalettes[host] = present;
+		UpdateBodyPalette.call(this, this._bodypalette);
+	};
+	Client.loadFile(MOUNT_PALETTE_SENTINEL, () => answer(true), () => answer(false));
 }
 /**
 * Update head
@@ -310253,9 +310274,11 @@ function Init$5() {
 	createTransformationProperty("active_monster_transform");
 	createTransformationProperty("job_transform");
 }
-var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts;
+var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes, sentinelHost;
 var init_EntityView = __esmMin((() => {
 	init_Client();
+	init_Configs();
+	init_MemoryManager();
 	init_DBManager();
 	init_ShadowTable();
 	init_MountTable();
@@ -310272,6 +310295,10 @@ var init_EntityView = __esmMin((() => {
 		"accessory2",
 		"accessory3"
 	];
+	AllMountJobs = {};
+	for (const baseJob in AllMountTable) AllMountJobs[AllMountTable[baseJob]] = true;
+	MOUNT_PALETTE_SENTINEL = DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0);
+	hasMountPalettes = {};
 }));
 //#endregion
 //#region src/Renderer/Entity/EntityWalk.js
@@ -313286,6 +313313,7 @@ function free() {
 	});
 	_list$1.length = 0;
 	_gidMap.clear();
+	_over = null;
 	_pickList.length = 0;
 	_renderSortDirty = true;
 	_pickSortDirty = true;
@@ -313732,6 +313760,13 @@ function bindMouseEvents() {
 	}, true);
 }
 /**
+* Keep the cursor animated while the scene render loop is stopped (login, server list)
+*/
+function renderLoop() {
+	Cursor.render(Date.now());
+	_loopId = requestAnimationFrame(renderLoop);
+}
+/**
 * Start pre-compiling animation to avoid building sprites
 * during the rendering loop
 */
@@ -313816,7 +313851,7 @@ function createSpriteSheet() {
 	}
 	for (let i = 0; i < totalSprites; i++) drawSprite(i);
 }
-var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
+var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sceneDriven, _loopId, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
 var init_CursorManager = __esmMin((() => {
 	init_Client();
 	init_MemoryManager();
@@ -313836,6 +313871,8 @@ var init_CursorManager = __esmMin((() => {
 	_lastX = 0;
 	_lastY = 0;
 	_compiledStyle = [];
+	_sceneDriven = false;
+	_loopId = 0;
 	Cursor = class Cursor {
 		/**
 		* Cursor animation Constant
@@ -313894,6 +313931,7 @@ var init_CursorManager = __esmMin((() => {
 				bindMouseEvents();
 				preCompiledAnimations();
 				createSpriteSheet();
+				Cursor.setSceneDriven(_sceneDriven);
 				fn();
 			});
 		}
@@ -313924,6 +313962,18 @@ var init_CursorManager = __esmMin((() => {
 		*/
 		static getActualType() {
 			return _type$4;
+		}
+		/**
+		* Let the scene render loop draw the cursor after its frame, or draw it on its own while the scene is stopped
+		*
+		* @param {boolean} value
+		*/
+		static setSceneDriven(value) {
+			_sceneDriven = value;
+			if (value) {
+				cancelAnimationFrame(_loopId);
+				_loopId = 0;
+			} else if (!_loopId && _compiledStyle.length) _loopId = requestAnimationFrame(renderLoop);
 		}
 		/**
 		* Render the cursor (update)
@@ -314601,6 +314651,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.mouseMode === MouseMode.FREEZE) {
 				Mouse.intersect = false;
 				SessionStorage_default.FreezeUI = true;
+				_EntityManager?.setOverEntity(null);
 				_Cursor?.setType(_Cursor?.ACTION?.DEFAULT ?? 0);
 			}
 			if (this.onAppend) this.onAppend();
@@ -315569,6 +315620,7 @@ var init_UIManager = __esmMin((() => {
 		* @param {string} error message
 		*/
 		static showErrorBox(text) {
+			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
 			let overlay;
 			WinError.init = function Init() {
@@ -348054,6 +348106,7 @@ function onServerClosed(pkt) {
 			break;
 		case 110: msg_id = 1589;
 	}
+	SkillTargetSelection_default.remove();
 	failLogin(DB.getMessage(msg_id), "ban", pkt.ErrorCode);
 	Network.close();
 }
@@ -348077,6 +348130,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_UIManager();
 	init_WinList();
 	init_WinPopup();
+	init_SkillTargetSelection();
 	init_Queue();
 	init_Background();
 	init_spark_md5_min();
@@ -349225,6 +349279,79 @@ var ENGINE = {
 	EntityManager: EntityManager$1
 };
 //#endregion
+//#region src/Plugins/native-manager/libs/icons.js
+var icons_exports = /* @__PURE__ */ __exportAll({
+	ICONS: () => ICONS,
+	icon: () => icon,
+	injectIconCss: () => injectIconCss
+});
+/**
+* icons — zero-dependency icon library.
+*
+* Vendored Lucide SVGs (https://lucide.dev, ISC license). The v3 lib pulled
+* these from the `lucide-static` build dependency and normalized them at
+* runtime; here the 12 icons are inlined pre-normalized as compact strings so
+* the native build needs no extra dependency.
+*
+* Two consumption styles, both fed from the same `ICONS` map:
+*   1. CSS classes (no import needed by plugins):
+*        <span class="ro-icon ro-icon-trash-2"></span>
+*      Sized via `font-size` (icon = 1em), tinted via `color` (currentColor).
+*      Injected by injectIconCss(target) — pass a component's shadow root so
+*      the class reaches inside the shadow DOM.
+*   2. Inline <svg> string (for HTML-string builders):
+*        el.innerHTML = icon('trash-2', { size: 14 })
+*/
+/** name → compact Lucide SVG markup (with `stroke="currentColor"`). */
+var ICONS = {
+	"download": "<svg class=\"lucide lucide-download\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V3\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/></svg>",
+	"upload": "<svg class=\"lucide lucide-upload\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v12\"/><path d=\"m17 8-5-5-5 5\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/></svg>",
+	"refresh-cw": "<svg class=\"lucide lucide-refresh-cw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\"/><path d=\"M21 3v5h-5\"/><path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\"/><path d=\"M8 16H3v5\"/></svg>",
+	"rotate-cw": "<svg class=\"lucide lucide-rotate-cw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8\"/><path d=\"M21 3v5h-5\"/></svg>",
+	"trash-2": "<svg class=\"lucide lucide-trash-2\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10 11v6\"/><path d=\"M14 11v6\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M3 6h18\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg>",
+	"x": "<svg class=\"lucide lucide-x\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg>",
+	"search": "<svg class=\"lucide lucide-search\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m21 21-4.34-4.34\"/><circle cx=\"11\" cy=\"11\" r=\"8\"/></svg>",
+	"crosshair": "<svg class=\"lucide lucide-crosshair\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"22\" x2=\"18\" y1=\"12\" y2=\"12\"/><line x1=\"6\" x2=\"2\" y1=\"12\" y2=\"12\"/><line x1=\"12\" x2=\"12\" y1=\"6\" y2=\"2\"/><line x1=\"12\" x2=\"12\" y1=\"22\" y2=\"18\"/></svg>",
+	"bell-off": "<svg class=\"lucide lucide-bell-off\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742\"/><path d=\"m2 2 20 20\"/><path d=\"M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05\"/></svg>",
+	"rotate-ccw": "<svg class=\"lucide lucide-rotate-ccw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg>",
+	"bell": "<svg class=\"lucide lucide-bell\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/></svg>",
+	"volume-2": "<svg class=\"lucide lucide-volume-2\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"/><path d=\"M16 9a5 5 0 0 1 0 6\"/><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"/></svg>"
+};
+/**
+* Return an inline `<svg>` string for `name`, tagged with `.ro-icon` (+ optional
+* extra class) and sized to `size` px. Empty string for an unknown name.
+* `stroke="currentColor"` (from Lucide) → the glyph inherits the CSS `color`.
+*/
+function icon(name, { size = 16, cls = "" } = {}) {
+	const svg = ICONS[name];
+	if (!svg) return "";
+	const klass = cls ? `ro-icon ${cls}` : "ro-icon";
+	return svg.replace(/\sclass="[^"]*"/, "").replace(/width="\d+"/, `width="${size}"`).replace(/height="\d+"/, `height="${size}"`).replace(/^<svg /, `<svg class="${klass}" aria-hidden="true" `);
+}
+/**
+* Inject the icon stylesheet ONCE into `target` (idempotent, keyed on
+* `#ro-icon-css`). Exposes `.ro-icon` (base) + one `.ro-icon-<name>` per icon.
+* Uses CSS `mask` + `background-color: currentColor` so the glyph takes the
+* current text color; sized via `font-size` (1em). The SVG is embedded as a
+* data-URI (zero network, CSP-safe).
+*
+* **Native improvement.** `target` may be a `Document` OR a `ShadowRoot`. A
+* global `.ro-icon` rule in `document.head` does NOT pierce a component's
+* shadow root, so pass `component.getRoot()` / `component._shadow` to make the
+* icon classes work inside a GUIComponent's shadow DOM.
+*
+* @param {Document | ShadowRoot} [target]
+*/
+function injectIconCss(target = typeof document !== "undefined" ? document : null) {
+	if (!target || target.getElementById("ro-icon-css")) return;
+	const rules = [".ro-icon{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;background-color:currentColor;-webkit-mask:var(--ro-i) no-repeat center/contain;mask:var(--ro-i) no-repeat center/contain}"];
+	for (const [name, svg] of Object.entries(ICONS)) rules.push(`.ro-icon-${name}{--ro-i:url("data:image/svg+xml,${encodeURIComponent(svg)}")}`);
+	const style = (target.ownerDocument || (target.createElement ? target : document)).createElement("style");
+	style.id = "ro-icon-css";
+	style.textContent = rules.join("");
+	(target.head || target.documentElement || target).appendChild(style);
+}
+//#endregion
 //#region src/Plugins/native-manager/legacy-ui-component.js
 init_GUIComponent();
 var BASES = /* #__PURE__ */ Object.assign({ "../../UI/GUIComponent.js": GUIComponent$1 });
@@ -349272,6 +349399,7 @@ function adapt(GUIComponent) {
 		}
 		_createUIProxy() {
 			super._createUIProxy();
+			injectIconCss(this._shadow);
 			const el = this._container.firstElementChild;
 			if (!el) return;
 			this.ui[0] = el;
@@ -349407,10 +349535,18 @@ var event_bus_exports = /* @__PURE__ */ __exportAll({
 *
 * Iteration snapshots the Set via spread, which makes it safe for a handler
 * to unsubscribe itself (or others) mid-dispatch.
+*
+* **Sticky events** (`opts.sticky`): once emitted, a later `on`/`once` for
+* that event is called back on the next microtask with the last emit's args.
+* The native host emits WIRE_COMPLETE at boot, before plugins installed from
+* IndexedDB get to subscribe — without the replay their wait never ends.
 */
 function createBus(opts) {
 	const m = /* @__PURE__ */ new Map();
 	const firstListenerHooks = /* @__PURE__ */ new Map();
+	const sticky = {};
+	const fired = {};
+	if (opts && opts.sticky) for (const event of opts.sticky) sticky[event] = true;
 	const error = opts && opts.logger && opts.logger.error || ((msg, extra) => {
 		if (extra !== void 0) console.error(msg, extra);
 		else console.error(msg);
@@ -349428,6 +349564,15 @@ function createBus(opts) {
 		} catch (e) {
 			error(`[NativePM bus first-listener:${event}]`, e);
 		}
+		if (event in fired) queueMicrotask(() => {
+			const current = m.get(event);
+			if (!current || !current.has(cb)) return;
+			try {
+				cb(...fired[event]);
+			} catch (e) {
+				error(`[NativePM bus:${event}]`, e);
+			}
+		});
 		return () => off(event, cb);
 	}
 	function off(event, cb) {
@@ -349444,6 +349589,7 @@ function createBus(opts) {
 		return unsub;
 	}
 	function emit(event, ...args) {
+		if (sticky[event]) fired[event] = args;
 		const set = m.get(event);
 		if (!set) return;
 		for (const cb of [...set]) try {
@@ -349485,16 +349631,6 @@ function createBus(opts) {
 		onFirstListener
 	};
 }
-var _bus = createBus();
-var on$1 = _bus.on;
-var off = _bus.off;
-var once = _bus.once;
-var emit = _bus.emit;
-var onFirstListener = _bus.onFirstListener;
-var stats$2 = _bus.stats;
-function getBus() {
-	return _bus;
-}
 /**
 * Catalogue of every event name emitted on the bus by the native libs.
 * Single source of truth — reference `EVENTS.MAP_READY` over hard-coding
@@ -349511,6 +349647,16 @@ var EVENTS = Object.freeze({
 	WIRE_COMPLETE: "wire-complete",
 	BACKGROUND_REMOVE: "background-remove"
 });
+var _bus = createBus({ sticky: [EVENTS.WIRE_COMPLETE] });
+var on$1 = _bus.on;
+var off = _bus.off;
+var once = _bus.once;
+var emit = _bus.emit;
+var onFirstListener = _bus.onFirstListener;
+var stats$2 = _bus.stats;
+function getBus() {
+	return _bus;
+}
 //#endregion
 //#region src/Plugins/native-manager/libs/packet-observer.js
 /**
@@ -350689,79 +350835,6 @@ function registerPlayerWindow(panelFactory, opts = {}) {
 	});
 	if (hasReached("map-ready")) _onMapReady();
 	return handle;
-}
-//#endregion
-//#region src/Plugins/native-manager/libs/icons.js
-var icons_exports = /* @__PURE__ */ __exportAll({
-	ICONS: () => ICONS,
-	icon: () => icon,
-	injectIconCss: () => injectIconCss
-});
-/**
-* icons — zero-dependency icon library.
-*
-* Vendored Lucide SVGs (https://lucide.dev, ISC license). The v3 lib pulled
-* these from the `lucide-static` build dependency and normalized them at
-* runtime; here the 12 icons are inlined pre-normalized as compact strings so
-* the native build needs no extra dependency.
-*
-* Two consumption styles, both fed from the same `ICONS` map:
-*   1. CSS classes (no import needed by plugins):
-*        <span class="ro-icon ro-icon-trash-2"></span>
-*      Sized via `font-size` (icon = 1em), tinted via `color` (currentColor).
-*      Injected by injectIconCss(target) — pass a component's shadow root so
-*      the class reaches inside the shadow DOM.
-*   2. Inline <svg> string (for HTML-string builders):
-*        el.innerHTML = icon('trash-2', { size: 14 })
-*/
-/** name → compact Lucide SVG markup (with `stroke="currentColor"`). */
-var ICONS = {
-	"download": "<svg class=\"lucide lucide-download\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V3\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/></svg>",
-	"upload": "<svg class=\"lucide lucide-upload\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v12\"/><path d=\"m17 8-5-5-5 5\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/></svg>",
-	"refresh-cw": "<svg class=\"lucide lucide-refresh-cw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\"/><path d=\"M21 3v5h-5\"/><path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\"/><path d=\"M8 16H3v5\"/></svg>",
-	"rotate-cw": "<svg class=\"lucide lucide-rotate-cw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8\"/><path d=\"M21 3v5h-5\"/></svg>",
-	"trash-2": "<svg class=\"lucide lucide-trash-2\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10 11v6\"/><path d=\"M14 11v6\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M3 6h18\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/></svg>",
-	"x": "<svg class=\"lucide lucide-x\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg>",
-	"search": "<svg class=\"lucide lucide-search\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m21 21-4.34-4.34\"/><circle cx=\"11\" cy=\"11\" r=\"8\"/></svg>",
-	"crosshair": "<svg class=\"lucide lucide-crosshair\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"22\" x2=\"18\" y1=\"12\" y2=\"12\"/><line x1=\"6\" x2=\"2\" y1=\"12\" y2=\"12\"/><line x1=\"12\" x2=\"12\" y1=\"6\" y2=\"2\"/><line x1=\"12\" x2=\"12\" y1=\"22\" y2=\"18\"/></svg>",
-	"bell-off": "<svg class=\"lucide lucide-bell-off\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742\"/><path d=\"m2 2 20 20\"/><path d=\"M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05\"/></svg>",
-	"rotate-ccw": "<svg class=\"lucide lucide-rotate-ccw\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/></svg>",
-	"bell": "<svg class=\"lucide lucide-bell\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/></svg>",
-	"volume-2": "<svg class=\"lucide lucide-volume-2\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"/><path d=\"M16 9a5 5 0 0 1 0 6\"/><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"/></svg>"
-};
-/**
-* Return an inline `<svg>` string for `name`, tagged with `.ro-icon` (+ optional
-* extra class) and sized to `size` px. Empty string for an unknown name.
-* `stroke="currentColor"` (from Lucide) → the glyph inherits the CSS `color`.
-*/
-function icon(name, { size = 16, cls = "" } = {}) {
-	const svg = ICONS[name];
-	if (!svg) return "";
-	const klass = cls ? `ro-icon ${cls}` : "ro-icon";
-	return svg.replace(/\sclass="[^"]*"/, "").replace(/width="\d+"/, `width="${size}"`).replace(/height="\d+"/, `height="${size}"`).replace(/^<svg /, `<svg class="${klass}" aria-hidden="true" `);
-}
-/**
-* Inject the icon stylesheet ONCE into `target` (idempotent, keyed on
-* `#ro-icon-css`). Exposes `.ro-icon` (base) + one `.ro-icon-<name>` per icon.
-* Uses CSS `mask` + `background-color: currentColor` so the glyph takes the
-* current text color; sized via `font-size` (1em). The SVG is embedded as a
-* data-URI (zero network, CSP-safe).
-*
-* **Native improvement.** `target` may be a `Document` OR a `ShadowRoot`. A
-* global `.ro-icon` rule in `document.head` does NOT pierce a component's
-* shadow root, so pass `component.getRoot()` / `component._shadow` to make the
-* icon classes work inside a GUIComponent's shadow DOM.
-*
-* @param {Document | ShadowRoot} [target]
-*/
-function injectIconCss(target = typeof document !== "undefined" ? document : null) {
-	if (!target || target.getElementById("ro-icon-css")) return;
-	const rules = [".ro-icon{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;background-color:currentColor;-webkit-mask:var(--ro-i) no-repeat center/contain;mask:var(--ro-i) no-repeat center/contain}"];
-	for (const [name, svg] of Object.entries(ICONS)) rules.push(`.ro-icon-${name}{--ro-i:url("data:image/svg+xml,${encodeURIComponent(svg)}")}`);
-	const style = (target.ownerDocument || (target.createElement ? target : document)).createElement("style");
-	style.id = "ro-icon-css";
-	style.textContent = rules.join("");
-	(target.head || target.documentElement || target).appendChild(style);
 }
 //#endregion
 //#region src/Plugins/native-manager/libs/dev-log.js

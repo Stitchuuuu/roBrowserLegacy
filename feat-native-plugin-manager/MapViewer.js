@@ -85090,13 +85090,13 @@ var init_PalNameTable = __esmMin((() => {
 	PalNameTable[JobConst_default.PIG_BLACKSMITH] = JobNameTable[JobConst_default.PIG_BLACKSMITH];
 	PalNameTable[JobConst_default.LION_KNIGHT] = JobNameTable[JobConst_default.LION_KNIGHT];
 	PalNameTable[JobConst_default.DOG_ASSASSIN] = JobNameTable[JobConst_default.DOG_ASSASSIN];
-	PalNameTable[JobConst_default.SHEEP_MONK] = JobNameTable[JobConst_default.MONK];
-	PalNameTable[JobConst_default.OSTRICH_BARD] = JobNameTable[JobConst_default.BARD];
-	PalNameTable[JobConst_default.OSTRICH_DANCER] = JobNameTable[JobConst_default.DANCER];
-	PalNameTable[JobConst_default.FOX_SAGE] = JobNameTable[JobConst_default.SAGE];
-	PalNameTable[JobConst_default.PIG_ALCHE] = JobNameTable[JobConst_default.ALCHEMIST];
-	PalNameTable[JobConst_default.LION_CRUSADER] = "Å©·ç";
-	PalNameTable[JobConst_default.DOG_ROGUE] = JobNameTable[JobConst_default.ROGUE];
+	PalNameTable[JobConst_default.SHEEP_MONK] = JobNameTable[JobConst_default.SHEEP_MONK];
+	PalNameTable[JobConst_default.OSTRICH_BARD] = JobNameTable[JobConst_default.OSTRICH_BARD];
+	PalNameTable[JobConst_default.OSTRICH_DANCER] = JobNameTable[JobConst_default.OSTRICH_DANCER];
+	PalNameTable[JobConst_default.FOX_SAGE] = JobNameTable[JobConst_default.FOX_SAGE];
+	PalNameTable[JobConst_default.PIG_ALCHE] = JobNameTable[JobConst_default.PIG_ALCHE];
+	PalNameTable[JobConst_default.LION_CRUSADER] = JobNameTable[JobConst_default.LION_CRUSADER];
+	PalNameTable[JobConst_default.DOG_ROGUE] = JobNameTable[JobConst_default.DOG_ROGUE];
 	PalNameTable[JobConst_default.SHEEP_ARCB] = JobNameTable[JobConst_default.SHEEP_ARCB];
 	PalNameTable[JobConst_default.OSTRICH_RANGER] = JobNameTable[JobConst_default.OSTRICH_RANGER];
 	PalNameTable[JobConst_default.FOX_WARLOCK] = JobNameTable[JobConst_default.FOX_WARLOCK];
@@ -85111,27 +85111,27 @@ var init_PalNameTable = __esmMin((() => {
 	PalNameTable[JobConst_default.LION_ROYAL_GUARD] = JobNameTable[JobConst_default.LION_ROYAL_GUARD];
 	PalNameTable[JobConst_default.DOG_CHASER] = JobNameTable[JobConst_default.DOG_CHASER];
 	PalNameTable[JobConst_default.PORING_SNOVICE] = JobNameTable[JobConst_default.PORING_SNOVICE];
-	PalNameTable[JobConst_default.FROG_NINJA] = JobNameTable[JobConst_default.FROG_NINJA];
+	PalNameTable[JobConst_default.FROG_NINJA] = "µÎ²¨ºñ´ÑÀÚ";
 	PalNameTable[JobConst_default.PECO_GUNNER] = JobNameTable[JobConst_default.PECO_GUNNER];
 	PalNameTable[JobConst_default.PORING_TAEKWON] = JobNameTable[JobConst_default.PORING_TAEKWON];
-	PalNameTable[JobConst_default.PORING_STAR] = JobNameTable[JobConst_default.STAR];
+	PalNameTable[JobConst_default.PORING_STAR] = JobNameTable[JobConst_default.PORING_STAR];
 	PalNameTable[JobConst_default.FROG_LINKER] = JobNameTable[JobConst_default.FROG_LINKER];
 	PalNameTable[JobConst_default.FROG_KAGEROU] = JobNameTable[JobConst_default.FROG_KAGEROU];
 	PalNameTable[JobConst_default.FROG_OBORO] = JobNameTable[JobConst_default.FROG_OBORO];
 	PalNameTable[JobConst_default.PECO_REBELLION] = JobNameTable[JobConst_default.PECO_REBELLION];
-	PalNameTable[JobConst_default.SHEEP_HPRIEST] = "ÇÏÀÌÇÁ¸®½ºÆ®";
-	PalNameTable[JobConst_default.OSTRICH_SNIPER] = JobNameTable[JobConst_default.HUNTER_H];
-	PalNameTable[JobConst_default.FOX_HWIZ] = JobNameTable[JobConst_default.WIZARD_H];
-	PalNameTable[JobConst_default.PIG_WHITESMITH] = JobNameTable[JobConst_default.BLACKSMITH_H];
+	PalNameTable[JobConst_default.SHEEP_HPRIEST] = JobNameTable[JobConst_default.SHEEP_HPRIEST];
+	PalNameTable[JobConst_default.OSTRICH_SNIPER] = JobNameTable[JobConst_default.OSTRICH_SNIPER];
+	PalNameTable[JobConst_default.FOX_HWIZ] = JobNameTable[JobConst_default.FOX_HWIZ];
+	PalNameTable[JobConst_default.PIG_WHITESMITH] = JobNameTable[JobConst_default.PIG_WHITESMITH];
 	PalNameTable[JobConst_default.LION_KNIGHT_H] = JobNameTable[JobConst_default.LION_KNIGHT_H];
-	PalNameTable[JobConst_default.DOG_ASSA_X] = "¾î¼¼½ÅÅ©·Î½º";
-	PalNameTable[JobConst_default.SHEEP_CHAMP] = JobNameTable[JobConst_default.MONK_H];
-	PalNameTable[JobConst_default.OSTRICH_CROWN] = "Å©¶ó¿î";
-	PalNameTable[JobConst_default.OSTRICH_ZIPSI] = "Áý½Ã";
-	PalNameTable[JobConst_default.FOX_PROF] = JobNameTable[JobConst_default.SAGE_H];
-	PalNameTable[JobConst_default.PIG_CREATOR] = JobNameTable[JobConst_default.ALCHEMIST_H];
-	PalNameTable[JobConst_default.LION_CRUSADER_H] = JobNameTable[JobConst_default.CRUSADER_H];
-	PalNameTable[JobConst_default.DOG_STALKER] = JobNameTable[JobConst_default.ROGUE_H];
+	PalNameTable[JobConst_default.DOG_ASSA_X] = JobNameTable[JobConst_default.DOG_ASSA_X];
+	PalNameTable[JobConst_default.SHEEP_CHAMP] = JobNameTable[JobConst_default.SHEEP_CHAMP];
+	PalNameTable[JobConst_default.OSTRICH_CROWN] = JobNameTable[JobConst_default.OSTRICH_CROWN];
+	PalNameTable[JobConst_default.OSTRICH_ZIPSI] = JobNameTable[JobConst_default.OSTRICH_ZIPSI];
+	PalNameTable[JobConst_default.FOX_PROF] = JobNameTable[JobConst_default.FOX_PROF];
+	PalNameTable[JobConst_default.PIG_CREATOR] = JobNameTable[JobConst_default.PIG_CREATOR];
+	PalNameTable[JobConst_default.LION_CRUSADER_H] = JobNameTable[JobConst_default.LION_CRUSADER_H];
+	PalNameTable[JobConst_default.DOG_STALKER] = JobNameTable[JobConst_default.DOG_STALKER];
 	PalNameTable[JobConst_default.DRAGON_KNIGHT] = JobNameTable[JobConst_default.DRAGON_KNIGHT];
 	PalNameTable[JobConst_default.MEISTER] = JobNameTable[JobConst_default.MEISTER];
 	PalNameTable[JobConst_default.SHADOW_CROSS] = JobNameTable[JobConst_default.SHADOW_CROSS];
@@ -85230,7 +85230,7 @@ var init_PalNameTable = __esmMin((() => {
 	duplicateEntry$5(JobConst_default.OSTRICH_DANCER, JobConst_default.OSTRICH_DANCER_B);
 	duplicateEntry$5(JobConst_default.FOX_SAGE, JobConst_default.FOX_SAGE_B);
 	duplicateEntry$5(JobConst_default.PIG_ALCHE, JobConst_default.PIG_ALCHE_B);
-	duplicateEntry$5(JobConst_default.LION_CRUSADER, JobConst_default.LION_CRUSADER_B);
+	PalNameTable[JobConst_default.LION_CRUSADER_B] = "Å©·ç";
 	duplicateEntry$5(JobConst_default.DOG_ROGUE, JobConst_default.DOG_ROGUE_B);
 	duplicateEntry$5(JobConst_default.SHEEP_ARCB, JobConst_default.SHEEP_ARCB_B);
 	duplicateEntry$5(JobConst_default.OSTRICH_RANGER, JobConst_default.OSTRICH_RANGER_B);
@@ -85246,7 +85246,7 @@ var init_PalNameTable = __esmMin((() => {
 	duplicateEntry$5(JobConst_default.LION_ROYAL_GUARD, JobConst_default.LION_ROYAL_GUARD_B);
 	duplicateEntry$5(JobConst_default.DOG_CHASER, JobConst_default.DOG_CHASER_B);
 	duplicateEntry$5(JobConst_default.PORING_SNOVICE, JobConst_default.PORING_SNOVICE_B, JobConst_default.PORING_SNOVICE2, JobConst_default.PORING_SNOVICE2_B);
-	duplicateEntry$5(JobConst_default.FROG_NINJA, JobConst_default.FROG_NINJA_B);
+	PalNameTable[JobConst_default.FROG_NINJA_B] = PalNameTable[JobConst_default.FROG_NINJA];
 	duplicateEntry$5(JobConst_default.PECO_GUNNER, JobConst_default.PECO_GUNNER_B);
 	duplicateEntry$5(JobConst_default.PORING_TAEKWON, JobConst_default.PORING_TAEKWON_B);
 	duplicateEntry$5(JobConst_default.PORING_STAR, JobConst_default.PORING_STAR_B);
@@ -219796,7 +219796,7 @@ var init_ContextMenu = __esmMin((() => {
 //#region src/UI/Components/ChatBox/ChatBox.html?raw
 var ChatBox_default$2;
 var init_ChatBox$2 = __esmMin((() => {
-	ChatBox_default$2 = "<div id=\"chatbox\">\r\n	<table class=\"header\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\r\n		<tbody>\r\n			<tr>\r\n				<td class=\"opttab\"><div class=\"options\"></div></td>\r\n			</tr>\r\n		</tbody>\r\n	</table>\r\n	<div class=\"chat-function\">\r\n		<button class=\"cfunc chatmode\" data-background=\"basic_interface/chatmode_on.bmp\"></button>\r\n		<button class=\"cfunc battleopt\" data-background=\"basic_interface/battle_option2_a.bmp\"></button>\r\n		<button class=\"cfunc stickfucn\" data-background=\"basic_interface/stickoff.bmp\"></button>\r\n		<button class=\"cfunc battleopt2\" data-background=\"basic_interface/battle_option_a.bmp\"></button>\r\n		<button class=\"cfunc wndminib\" data-background=\"basic_interface/wnd_mini_b.bmp\"></button>\r\n		<button class=\"cfunc lockdragwnd\" data-background=\"basic_interface/lock_dragwnd.bmp\"></button>\r\n	</div>\r\n	<div class=\"body\">\r\n		<div class=\"event_add_cursor draggable\"></div>\r\n		<div class=\"contentwrapper\"></div>\r\n	</div>\r\n\r\n	<div class=\"battlemode\"><button class=\"bmtoggle\">...</button></div>\r\n	<div class=\"input\" data-background=\"basic_interface/dialog_bg.bmp\">\r\n		<input type=\"text\" class=\"username\" />\r\n		<ui-button\r\n			class=\"list\"\r\n			bg=\"basic_interface/dialog_btn0.bmp\"\r\n			hover=\"basic_interface/dialog_btn1.bmp\"\r\n			down=\"basic_interface/dialog_btn2.bmp\"\r\n		></ui-button>\r\n		<div class=\"wrapper\"><div contenteditable=\"true\" class=\"message input-chatbox\"></div></div>\r\n		<button\r\n			class=\"filter\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"size\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
+	ChatBox_default$2 = "<div id=\"chatbox\">\r\n	<table class=\"header\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">\r\n		<tbody>\r\n			<tr>\r\n				<td class=\"opttab\"><div class=\"options\"></div></td>\r\n			</tr>\r\n		</tbody>\r\n	</table>\r\n	<div class=\"chat-function\">\r\n		<button class=\"cfunc chatmode\" data-background=\"basic_interface/chatmode_on.bmp\"></button>\r\n		<button class=\"cfunc battleopt\" data-background=\"basic_interface/battle_option2_a.bmp\"></button>\r\n		<button class=\"cfunc stickfucn\" data-background=\"basic_interface/stickoff.bmp\"></button>\r\n		<button class=\"cfunc battleopt2\" data-background=\"basic_interface/battle_option_a.bmp\"></button>\r\n		<button class=\"cfunc wndminib\" data-background=\"basic_interface/wnd_mini_b.bmp\"></button>\r\n		<button class=\"cfunc lockdragwnd\" data-background=\"basic_interface/lock_dragwnd.bmp\"></button>\r\n	</div>\r\n	<div class=\"body\">\r\n		<div class=\"event_add_cursor draggable\"></div>\r\n		<div class=\"contentwrapper\"></div>\r\n	</div>\r\n\r\n	<div class=\"battlemode\"><button class=\"bmtoggle\">...</button></div>\r\n	<div class=\"input\" data-background=\"basic_interface/dialog_bg.bmp\">\r\n		<input type=\"text\" class=\"username\" autocomplete=\"off\" data-1p-ignore data-lpignore=\"true\" data-bwignore data-form-type=\"other\" />\r\n		<ui-button\r\n			class=\"list\"\r\n			bg=\"basic_interface/dialog_btn0.bmp\"\r\n			hover=\"basic_interface/dialog_btn1.bmp\"\r\n			down=\"basic_interface/dialog_btn2.bmp\"\r\n		></ui-button>\r\n		<div class=\"wrapper\"><div contenteditable=\"true\" class=\"message input-chatbox\"></div></div>\r\n		<button\r\n			class=\"filter\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"size\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-down=\"basic_interface/sys_base_off.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ChatBox/ChatBox.css?raw
@@ -260651,6 +260651,7 @@ var init_MapRenderer = __esmMin((() => {
 			BGM.stop();
 			PostProcess.clean(gl);
 			Mouse.intersect = false;
+			Cursor.setType(Cursor.ACTION.DEFAULT);
 			this.light = null;
 			this.water = null;
 			this.sounds = null;
@@ -261390,6 +261391,7 @@ var init_Renderer = __esmMin((() => {
 				}
 				this._lastFrameTime = 0;
 				this._renderBound = this._render.bind(this);
+				Cursor.setSceneDriven(true);
 				this.updateId = _requestAnimationFrame(this._renderBound);
 			}
 		}
@@ -261405,6 +261407,7 @@ var init_Renderer = __esmMin((() => {
 				} catch (e) {
 					console.error(e);
 				}
+				Cursor.setSceneDriven(false);
 				return;
 			}
 			const pos = this.renderCallbacks.indexOf(fn);
@@ -310212,6 +310215,7 @@ function UpdateBodyStyle(look) {
 * Update body palette
 *
 * @param {number} body palette number
+* @see docs/reference/renderer/body-palette.md
 */
 function UpdateBodyPalette(pal) {
 	this._bodypalette = pal;
@@ -310221,7 +310225,24 @@ function UpdateBodyPalette(pal) {
 	}
 	if (this._job === -1) return;
 	const job = this._bodyStyleJob && !hasTransformation.call(this) ? this._bodyStyleJob : getEffectiveJob.call(this);
-	this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
+	if (!AllMountJobs[job]) {
+		this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
+		return;
+	}
+	const host = Configs.get("remoteClient", "");
+	if (host in hasMountPalettes) {
+		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes[host] ? job : this._job, pal, this._sex);
+		return;
+	}
+	if (sentinelHost !== host) {
+		sentinelHost = host;
+		MemoryManager.remove(null, MOUNT_PALETTE_SENTINEL);
+	}
+	const answer = (present) => {
+		hasMountPalettes[host] = present;
+		UpdateBodyPalette.call(this, this._bodypalette);
+	};
+	Client.loadFile(MOUNT_PALETTE_SENTINEL, () => answer(true), () => answer(false));
 }
 /**
 * Update head
@@ -310437,9 +310458,11 @@ function Init$5() {
 	createTransformationProperty("active_monster_transform");
 	createTransformationProperty("job_transform");
 }
-var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts;
+var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes, sentinelHost;
 var init_EntityView = __esmMin((() => {
 	init_Client();
+	init_Configs();
+	init_MemoryManager();
 	init_DBManager();
 	init_ShadowTable();
 	init_MountTable();
@@ -310456,6 +310479,10 @@ var init_EntityView = __esmMin((() => {
 		"accessory2",
 		"accessory3"
 	];
+	AllMountJobs = {};
+	for (const baseJob in AllMountTable) AllMountJobs[AllMountTable[baseJob]] = true;
+	MOUNT_PALETTE_SENTINEL = DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0);
+	hasMountPalettes = {};
 }));
 //#endregion
 //#region src/Renderer/Entity/EntityWalk.js
@@ -313470,6 +313497,7 @@ function free() {
 	});
 	_list.length = 0;
 	_gidMap.clear();
+	_over = null;
 	_pickList.length = 0;
 	_renderSortDirty = true;
 	_pickSortDirty = true;
@@ -313916,6 +313944,13 @@ function bindMouseEvents() {
 	}, true);
 }
 /**
+* Keep the cursor animated while the scene render loop is stopped (login, server list)
+*/
+function renderLoop() {
+	Cursor.render(Date.now());
+	_loopId = requestAnimationFrame(renderLoop);
+}
+/**
 * Start pre-compiling animation to avoid building sprites
 * during the rendering loop
 */
@@ -314000,7 +314035,7 @@ function createSpriteSheet() {
 	}
 	for (let i = 0; i < totalSprites; i++) drawSprite(i);
 }
-var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
+var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sceneDriven, _loopId, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
 var init_CursorManager = __esmMin((() => {
 	init_Client();
 	init_MemoryManager();
@@ -314020,6 +314055,8 @@ var init_CursorManager = __esmMin((() => {
 	_lastX = 0;
 	_lastY = 0;
 	_compiledStyle = [];
+	_sceneDriven = false;
+	_loopId = 0;
 	Cursor = class Cursor {
 		/**
 		* Cursor animation Constant
@@ -314078,6 +314115,7 @@ var init_CursorManager = __esmMin((() => {
 				bindMouseEvents();
 				preCompiledAnimations();
 				createSpriteSheet();
+				Cursor.setSceneDriven(_sceneDriven);
 				fn();
 			});
 		}
@@ -314108,6 +314146,18 @@ var init_CursorManager = __esmMin((() => {
 		*/
 		static getActualType() {
 			return _type$4;
+		}
+		/**
+		* Let the scene render loop draw the cursor after its frame, or draw it on its own while the scene is stopped
+		*
+		* @param {boolean} value
+		*/
+		static setSceneDriven(value) {
+			_sceneDriven = value;
+			if (value) {
+				cancelAnimationFrame(_loopId);
+				_loopId = 0;
+			} else if (!_loopId && _compiledStyle.length) _loopId = requestAnimationFrame(renderLoop);
 		}
 		/**
 		* Render the cursor (update)
@@ -314785,6 +314835,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.mouseMode === MouseMode.FREEZE) {
 				Mouse.intersect = false;
 				SessionStorage_default.FreezeUI = true;
+				_EntityManager?.setOverEntity(null);
 				_Cursor?.setType(_Cursor?.ACTION?.DEFAULT ?? 0);
 			}
 			if (this.onAppend) this.onAppend();
@@ -347319,6 +347370,7 @@ function onServerClosed(pkt) {
 			break;
 		case 110: msg_id = 1589;
 	}
+	SkillTargetSelection_default.remove();
 	failLogin(DB.getMessage(msg_id), "ban", pkt.ErrorCode);
 	Network.close();
 }
@@ -347342,6 +347394,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_UIManager();
 	init_WinList();
 	init_WinPopup();
+	init_SkillTargetSelection();
 	init_Queue();
 	init_Background();
 	init_spark_md5_min();
@@ -348629,6 +348682,7 @@ var init_UIManager = __esmMin((() => {
 		* @param {string} error message
 		*/
 		static showErrorBox(text) {
+			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
 			let overlay;
 			WinError.init = function Init() {
