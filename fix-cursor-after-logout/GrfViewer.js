@@ -261114,6 +261114,7 @@ var init_Renderer = __esmMin((() => {
 	init_Graphics();
 	init_Events();
 	init_Background();
+	init_CursorManager();
 	init_MouseEventHandler();
 	init_Camera();
 	init_SessionStorage();
@@ -261344,6 +261345,7 @@ var init_Renderer = __esmMin((() => {
 					GraphicsSettings.bloom = false;
 				}
 			}
+			Cursor.render(this.tick);
 			this.updateId = _requestAnimationFrame(this._renderBound);
 		}
 		/**
@@ -261365,6 +261367,7 @@ var init_Renderer = __esmMin((() => {
 				}
 				this._lastFrameTime = 0;
 				this._renderBound = this._render.bind(this);
+				Cursor.setSceneDriven(true);
 				this.updateId = _requestAnimationFrame(this._renderBound);
 			}
 		}
@@ -261380,6 +261383,7 @@ var init_Renderer = __esmMin((() => {
 				} catch (e) {
 					console.error(e);
 				}
+				Cursor.setSceneDriven(false);
 				return;
 			}
 			const pos = this.renderCallbacks.indexOf(fn);
@@ -313891,11 +313895,11 @@ function bindMouseEvents() {
 	}, true);
 }
 /**
-* Keep the cursor animated on every screen, the scene render loop stops on login and server list
+* Keep the cursor animated while the scene render loop is stopped (login, server list)
 */
 function renderLoop() {
 	Cursor.render(Date.now());
-	requestAnimationFrame(renderLoop);
+	_loopId = requestAnimationFrame(renderLoop);
 }
 /**
 * Start pre-compiling animation to avoid building sprites
@@ -313982,7 +313986,7 @@ function createSpriteSheet() {
 	}
 	for (let i = 0; i < totalSprites; i++) drawSprite(i);
 }
-var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
+var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sceneDriven, _loopId, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
 var init_CursorManager = __esmMin((() => {
 	init_Client();
 	init_MemoryManager();
@@ -314002,6 +314006,8 @@ var init_CursorManager = __esmMin((() => {
 	_lastX = 0;
 	_lastY = 0;
 	_compiledStyle = [];
+	_sceneDriven = false;
+	_loopId = 0;
 	Cursor = class Cursor {
 		/**
 		* Cursor animation Constant
@@ -314060,7 +314066,7 @@ var init_CursorManager = __esmMin((() => {
 				bindMouseEvents();
 				preCompiledAnimations();
 				createSpriteSheet();
-				renderLoop();
+				Cursor.setSceneDriven(_sceneDriven);
 				fn();
 			});
 		}
@@ -314091,6 +314097,18 @@ var init_CursorManager = __esmMin((() => {
 		*/
 		static getActualType() {
 			return _type$4;
+		}
+		/**
+		* Let the scene render loop draw the cursor after its frame, or draw it on its own while the scene is stopped
+		*
+		* @param {boolean} value
+		*/
+		static setSceneDriven(value) {
+			_sceneDriven = value;
+			if (value) {
+				cancelAnimationFrame(_loopId);
+				_loopId = 0;
+			} else if (!_loopId && _compiledStyle.length) _loopId = requestAnimationFrame(renderLoop);
 		}
 		/**
 		* Render the cursor (update)
