@@ -81,7 +81,13 @@ const defaultGraphicsSettings = {
 	 */
 	occluderFade: 'off',
 	occluderFadeOpacity: 0.25,
-	occluderFadeRadius: 5.0
+	occluderFadeRadius: 5.0,
+
+	/**
+	 * Map change: 'client' cuts to and from the loading image, 'smooth' fades
+	 * to and from it through black. '' follows ROConfig.mapTransition
+	 */
+	mapTransition: ''
 };
 
 /**

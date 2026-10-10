@@ -454,6 +454,7 @@ var ROConfig = {
 	calculateHash: false, // When true, the client will calculate it's own hash and send that value (slower, more secure, only when development is false). Must provide the list of files in hashFiles!
 	hashFiles: ['api.html', 'api.js', 'Online.js', 'ThreadEventHandler.js'], // List of files to calculate the Hash based on. Add all files your robrowser uses, including your "main page/index.html" where you set up the RoBrowser Config. Only used when calculateHash is true.
 	transitionDuration: 255, // used for fade out and fade in when teleport/change map
+	mapTransition: 'client', // Map change default: 'client' cuts to and from the loading image, as the official client; 'smooth' fades to and from it through black. Players can change it in the graphics options
 	/* Plugins */
 	plugins: {
 		/* Syntax */
