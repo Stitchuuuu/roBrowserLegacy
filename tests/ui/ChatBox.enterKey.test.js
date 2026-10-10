@@ -150,3 +150,38 @@ describe('ChatBox — Enter on a focused button', () => {
 		expect(event.stopImmediatePropagation).toHaveBeenCalled();
 	});
 });
+
+describe('ChatBox — Enter while a selection window is open', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+		mountChatBox();
+	});
+
+	// The selection windows validate on Enter themselves. ChatBox runs first,
+	// so it has to let the key through instead of focusing the chat input.
+	it.each(['ItemSelection', 'MakeItemSelection'])('yields Enter to %s', name => {
+		const host = document.createElement('div');
+		host.id = name;
+		document.body.appendChild(host);
+		document.body.focus();
+
+		const event = enterEvent(document.body);
+		expect(ChatBox.onKeyDown(event)).toBe(true);
+		expect(event.stopImmediatePropagation).not.toHaveBeenCalled();
+	});
+
+	it('still sends the message being typed', () => {
+		const host = document.createElement('div');
+		host.id = 'ItemSelection';
+		document.body.appendChild(host);
+		const messageBox = ChatBox.getRoot().querySelector('.input-chatbox');
+		messageBox.focus();
+		const submit = vi.spyOn(ChatBox, 'submit').mockImplementation(() => {});
+
+		const event = enterEvent(messageBox);
+		expect(ChatBox.onKeyDown(event)).toBe(false);
+		expect(submit).toHaveBeenCalled();
+		expect(event.stopImmediatePropagation).toHaveBeenCalled();
+		submit.mockRestore();
+	});
+});

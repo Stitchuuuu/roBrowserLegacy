@@ -253,6 +253,15 @@ MakeItemSelection.onKeyDown = function onKeyDown(event) {
 	if (event.which === KEYS.ESCAPE || event.key === 'Escape') {
 		this.remove();
 	}
+
+	// Enter does what the OK button does at the current step
+	if (event.which === KEYS.ENTER) {
+		_okHandler?.();
+		event.stopImmediatePropagation();
+		return false;
+	}
+
+	return true;
 };
 
 /**

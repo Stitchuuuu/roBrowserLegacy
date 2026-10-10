@@ -11,6 +11,7 @@
 import DB from 'DB/DBManager.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import Client from 'Core/Client.js';
+import KEYS from 'Controls/KeyEventHandler.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -171,6 +172,19 @@ ItemSelection.setIndex = function setIndex(id) {
 ItemSelection.selectIndex = function selectIndex() {
 	this.onIndexSelected(this.index);
 	this.remove();
+};
+
+/**
+ * Enter validates the selection, like the OK button
+ */
+ItemSelection.onKeyDown = function onKeyDown(event) {
+	if (event.which !== KEYS.ENTER) {
+		return true;
+	}
+
+	this.selectIndex();
+	event.stopImmediatePropagation();
+	return false;
 };
 
 /**
