@@ -325,6 +325,7 @@ class GUIComponent {
 		if (this.mouseMode === MouseMode.FREEZE) {
 			Mouse.intersect = false;
 			Session.FreezeUI = true;
+			_EntityManager?.setOverEntity(null);
 			_Cursor?.setType(_Cursor?.ACTION?.DEFAULT ?? 0);
 		}
 

@@ -28,6 +28,7 @@ import MapRenderer from 'Renderer/MapRenderer.js';
 import UIManager from 'UI/UIManager.js';
 import WinList from 'UI/Components/WinList/WinList.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
+import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Queue from 'Utils/Queue.js';
 import Background from 'UI/Background.js';
 import MD5 from 'Vendors/spark-md5.min.js';
@@ -951,6 +952,8 @@ function onServerClosed(pkt) {
 			break; // MSI_BAN_NOT_ALLOWED_JOBCLASS = Sorry the character you are trying to use is banned for testing connection.
 	}
 
+	// A skill waiting for its target would keep the cursor on it under the box
+	SkillTargetSelection.remove();
 	failLogin(DB.getMessage(msg_id), 'ban', pkt.ErrorCode);
 	Network.close();
 }
