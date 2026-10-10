@@ -289,9 +289,10 @@ class GUIComponent {
 	 * Equivalent to UIComponent.prototype.append().
 	 *
 	 * @param {HTMLElement|string} [target] - Target element. Defaults to document.body.
+	 * @param {boolean} [rebuild] - restarting in place, passed on to onAppend
 	 * @see docs/reference/map-transition.md
 	 */
-	append(target) {
+	append(target, rebuild = false) {
 		this.__active = true;
 
 		if (!this.__loaded) {
@@ -331,7 +332,7 @@ class GUIComponent {
 
 		// Hook
 		if (this.onAppend) {
-			this.onAppend();
+			this.onAppend(rebuild);
 		}
 
 		// Scrollbars
@@ -381,13 +382,14 @@ class GUIComponent {
 	 */
 	rebuild() {
 		const parent = this._host && this._host.parentNode;
+		const restart = !!(this.__active && this.__loaded && parent);
 
-		if (this.__active && this.__loaded && parent) {
+		if (restart) {
 			this.__active = false;
 			this._release(false);
 		}
 
-		this.append(parent || undefined);
+		this.append(parent || undefined, restart);
 	}
 
 	/**
@@ -398,22 +400,20 @@ class GUIComponent {
 	_release(detach) {
 		// Hook
 		if (this.onRemove) {
-			this.onRemove();
+			this.onRemove(!detach);
 		}
 
 		// Unbind keydown
 		this._unbindKeyDown();
 
-		// Fire x_remove event (used by mouse intersection cleanup)
-		this._host.dispatchEvent(new Event('x_remove'));
-		if (this._shadow) {
-			this._shadow.querySelectorAll('*').forEach(node => {
-				node.dispatchEvent(new Event('x_remove'));
-			});
-		}
-
-		// Detach from DOM
+		// Detach from DOM, firing x_remove first (used by mouse intersection cleanup)
 		if (detach) {
+			this._host.dispatchEvent(new Event('x_remove'));
+			if (this._shadow) {
+				this._shadow.querySelectorAll('*').forEach(node => {
+					node.dispatchEvent(new Event('x_remove'));
+				});
+			}
 			this._host.remove();
 		}
 		if (this._noCursorStyle) {
@@ -426,8 +426,8 @@ class GUIComponent {
 			Session.FreezeUI = false;
 		}
 
-		// Scrollbar observer cleanup
-		if (this.__scrollbarObserver) {
+		// Scrollbar observer cleanup, kept by a host that stays attached
+		if (detach && this.__scrollbarObserver) {
 			this.__scrollbarObserver.disconnect();
 			this.__scrollbarObserver = null;
 		}
@@ -1033,7 +1033,8 @@ class GUIComponent {
 		const observeTarget = this._shadow || this._host;
 
 		setTimeout(() => {
-			if (!this._host || !this._host.parentNode) return;
+			// An attached host already watching its scrollbars keeps its observer
+			if (!this._host || !this._host.parentNode || this.__scrollbarObserver) return;
 
 			const checkScrollbars = el => {
 				// Check the element itself and all descendants

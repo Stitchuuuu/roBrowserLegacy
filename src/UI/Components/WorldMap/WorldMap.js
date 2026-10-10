@@ -541,8 +541,10 @@ WorldMap.onAppend = function onAppend() {
 	// set maps
 	setMapList();
 
-	// resize map container & add sections
-	selectMap();
+	// resize map container & add sections, left to toggle() while hidden
+	if (this._host.style.display !== 'none') {
+		selectMap();
+	}
 
 	this._host.style.top = '0px';
 	this._host.style.left = '0px';

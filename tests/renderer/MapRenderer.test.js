@@ -128,6 +128,8 @@ describe('MapRenderer kept UI', () => {
 		MapRenderer.onLoad = vi.fn();
 		MapRenderer.free = vi.fn();
 		keep = [{ _host: document.createElement('div') }, { _host: null }];
+		document.body.appendChild(keep[0]._host);
+		mocks.uiManager.components = { Kept: keep[0], Unloaded: keep[1] };
 	});
 
 	afterEach(() => {
@@ -140,6 +142,12 @@ describe('MapRenderer kept UI', () => {
 		MapRenderer.setMap('prontera.gat', keep);
 		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
 		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('tells a teleport within the map from a change of map', () => {
+		expect(MapRenderer.setMap('prontera.rsw', keep)).toBe(true);
+		MapRenderer.cancelLoad();
+		expect(MapRenderer.setMap('geffen.gat', keep)).toBe(false);
 	});
 
 	it('hides the kept components once the loading screen is up, and shows them on cancel', () => {
@@ -174,6 +182,25 @@ describe('MapRenderer kept UI', () => {
 
 		expect(mocks.uiManager.showErrorBox).toHaveBeenCalledWith('broken map');
 		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('hides the other windows still on screen with them, and leaves the closed ones alone', () => {
+		const plugin = { _host: document.createElement('div') };
+		const closed = { _host: document.createElement('div') };
+		document.body.appendChild(plugin._host);
+		Object.assign(mocks.uiManager.components, { Plugin: plugin, Closed: closed });
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading();
+		expect(plugin._host.style.visibility).toBe('hidden');
+		expect(closed._host.style.visibility).toBe('');
+
+		MapRenderer.cancelLoad();
+		expect(plugin._host.style.visibility).toBe('');
 	});
 });
 

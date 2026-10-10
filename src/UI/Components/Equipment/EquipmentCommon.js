@@ -442,18 +442,23 @@ export function createEquipment({
 		}
 	};
 
-	Component.onRemove = function onRemove() {
+	/**
+	 * @param {boolean} rebuild - restarting in place, the server sends the items again
+	 */
+	Component.onRemove = function onRemove(rebuild) {
 		if (UIVersionManager.getEquipmentVersion() > 0 && _btnLevelUp && _btnLevelUp.parentNode) {
 			_btnLevelUp.remove();
 		}
 
 		Renderer.stop(renderCharacter);
 
-		_list = {};
 		const root = Component.getRoot();
-		root.querySelectorAll('.col1, .col3, .ammo').forEach(el => {
-			el.innerHTML = '';
-		});
+		if (!rebuild) {
+			_list = {};
+			root.querySelectorAll('.col1, .col3, .ammo').forEach(el => {
+				el.innerHTML = '';
+			});
+		}
 
 		_preferences.show = this._host.style.display !== 'none';
 		const panel = root.querySelector('.panel');
