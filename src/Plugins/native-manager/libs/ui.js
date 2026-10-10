@@ -170,11 +170,12 @@ export function registerWindow(component) {
 //
 // Mirrors how the native engine treats BasicInfo / Inventory / etc. across map
 // changes :
-//   - On every `map-ready` (post-fade signal from lifecycle, derived from a
-//     Background.remove trap), the panel is (re-)appended to the DOM and
-//     re-registered with UIManager. The native UIManager wipes plugin panels on
-//     `map-leave` (its removeComponents() phase), so without this re-mount the
-//     window vanishes after every TP.
+//   - The native UIManager wipes plugin panels on `map-leave` (its
+//     removeComponents() phase), so without a re-mount the window vanishes
+//     after every TP. The panel is (re-)appended to the DOM and re-registered
+//     with UIManager right after, when the engine keeps its own map windows
+//     attached, else on the next `map-ready` (signal from lifecycle, derived
+//     from a Background.remove trap), when they come back.
 //   - With `opts.persistKey` the user-driven visible/hidden state is stored
 //     under Preferences using the same `{ show: bool }` shape the native
 //     Inventory uses, so the panel reopens (or stays closed) across reloads.
@@ -211,12 +212,24 @@ function _ensureBusSubscriptions() {
 }
 
 /**
+ * Whether the engine kept its map windows attached across the transition in
+ * progress : the chat is one of them on every engine that does.
+ * @returns {boolean}
+ */
+function _nativeWindowsKept() {
+	const chat = UIManager.components && UIManager.components.ChatBox
+	const el = chat && (chat._host || root(chat))
+	return !!(el && el.isConnected)
+}
+
+/**
  * Register a plugin-owned component that should mirror the lifecycle of native
  * windows (BasicInfo / Inventory) :
  *   - The panel is constructed lazily by invoking `panelFactory` on the first
  *     `map-ready`. This guarantees the base component class is ready — plugins
  *     don't need to gate their Init() on `map-enter` themselves.
- *   - (Re-)append on every `map-ready` (post-fade signal).
+ *   - (Re-)append right after `map-leave` when the engine keeps its own map
+ *     windows attached, else on the next `map-ready`, with them.
  *   - Optionally persist visibility under a Preferences key.
  *   - Force-detach on `char-enter` and `logout` (always — even when
  *     `alwaysVisible` is set). The handle stays alive ; a fresh `map-ready`
@@ -235,10 +248,12 @@ function _ensureBusSubscriptions() {
  * @param {boolean}       [opts.defaultVisible]  Initial visibility if no stored
  *                                               prefs. Default `true`.
  * @param {boolean}       [opts.alwaysVisible]   When `true`, the panel is
- *                                               re-appended immediately after
+ *                                               re-appended right after
  *                                               `UIManager.removeComponents()`
- *                                               so it stays visible through the
- *                                               loading screen + fade. Default `false`.
+ *                                               even on an engine that removes
+ *                                               its own map windows, so it stays
+ *                                               visible through the loading
+ *                                               screen + fade. Default `false`.
  * @param {() => void}    [opts.onShow]          Fired AFTER show() takes effect.
  * @param {() => void}    [opts.onHide]          Fired AFTER hide() takes effect.
  * @param {(panel: any) => void} [opts.onMount]  Fired ONCE, right after the
@@ -343,12 +358,13 @@ export function registerPlayerWindow(panelFactory, opts = {}) {
 
 	function _onMapLeave() {
 		appended = false
-		if (opts.alwaysVisible) {
-			Promise.resolve().then(() => {
-				if (disposed || appended) {return}
-				_doAppend()
-			})
-		}
+		// Back on the microtask, once removeComponents() ran, when the engine
+		// keeps its own map windows attached (it hides them with ours during
+		// the loading screen); otherwise on the next map-ready, with them.
+		Promise.resolve().then(() => {
+			if (disposed || appended) {return}
+			if (opts.alwaysVisible || _nativeWindowsKept()) {_doAppend()}
+		})
 	}
 
 	function _forceDetach() {

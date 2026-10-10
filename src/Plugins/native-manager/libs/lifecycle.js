@@ -361,11 +361,17 @@ function _wirePackets() {
 //
 // Native sequence on every map change :
 //   1. NPCACK_MAPMOVE    → MapEngine.onMapChange       (we transition map-enter)
-//   2. MapRenderer.setMap() → UIManager.removeComponents() (DOM wiped)
-//   3. Background.setLoading() → loading screen fades in
+//   2. MapRenderer.setMap() → UIManager.removeComponents() (plugin windows
+//      detached ; engines that do not keep their map windows detach them too)
+//   3. Background.setLoading() → fade to black, then the loading screen
 //   4. worker parses .gat/.rsw + GPU upload
-//   5. Background.remove(cb) → fade-out animation
-//   6. cb() runs → MapRenderer.onLoad() → BasicInfo.append() + others
+//   5. Background.remove(cb) → black : a cut after a map load, a fade on a
+//      teleport within the map (older engines always fade)
+//   6. cb() runs → MapRenderer.onLoad() → the map windows restart (or are
+//      appended again) at black
+//
+// After a map load the cut runs cb() — and so map-ready — synchronously in
+// the load's completion, with no frame in between.
 //
 // Wrapping `Background.remove` lets us emit a generic `'background-remove'`
 // event AFTER cb() — the precise moment native windows are stable. lifecycle
