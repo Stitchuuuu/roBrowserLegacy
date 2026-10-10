@@ -206206,26 +206206,44 @@ function render$15() {
 * Play with the overlay
 *
 * @param {function} callback once the overlay hide the window
+* @param {boolean} [fadeOut=true] fade to black, else cut to black
+* @param {boolean} [fadeIn=true] fade from black, else cut from black
+* @see docs/reference/map-transition.md
 */
-function transition(callback) {
-	const transitionDuration = Configs.get("transitionDuration") ? Configs.get("transitionDuration") : 500;
-	if (Background._overlayAnim) Background._overlayAnim.stop();
-	_overlay.style.opacity = "0.01";
+function transition(callback, fadeOut = true, fadeIn = true) {
+	const transitionDuration = Configs.get("transitionDuration") || TRANSITION_DURATION;
+	if (Background._overlayAnim) {
+		Background._overlayAnim.stop();
+		Background._overlayAnim = null;
+	}
 	document.body.appendChild(_overlay);
-	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, () => {
+	function onBlack() {
+		_overlay.style.opacity = "1";
 		callback();
+		if (!fadeIn) {
+			_overlay.remove();
+			return;
+		}
 		Background._overlayAnim = animateElement(_overlay, { opacity: .01 }, transitionDuration, () => {
-			if (_overlay.parentNode) _overlay.parentNode.removeChild(_overlay);
+			Background._overlayAnim = null;
+			_overlay.remove();
 		});
-	});
+	}
+	if (!fadeOut) {
+		onBlack();
+		return;
+	}
+	_overlay.style.opacity = "0.01";
+	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, onBlack);
 }
-var _overlay, _container, _canvas, _ctx$6, Background;
+var TRANSITION_DURATION, _overlay, _container, _canvas, _ctx$6, Background;
 var init_Background = __esmMin((() => {
 	init_DBManager();
 	init_Client();
 	init_Configs();
 	init_PacketVerManager();
 	init_HtmlHelper();
+	TRANSITION_DURATION = 255;
 	_overlay = document.createElement("div");
 	Object.assign(_overlay.style, {
 		position: "absolute",
@@ -206310,8 +206328,9 @@ var init_Background = __esmMin((() => {
 		*
 		* @param {string|Array<string>} filename
 		* @param {function} callback once the image is loaded (optional)
+		* @param {boolean} [fadeIn=true] fade from black onto the image, else cut to it
 		*/
-		static setImage(filename, callback) {
+		static setImage(filename, callback, fadeIn = true) {
 			const exist = !!_container.parentNode;
 			Background._progress = -1;
 			Background._removal = null;
@@ -206364,7 +206383,7 @@ var init_Background = __esmMin((() => {
 				document.body.appendChild(_container);
 				document.body.appendChild(_canvas);
 				if (callback) callback();
-			});
+			}, true, fadeIn);
 		}
 		/**
 		* Helper method to return the right login background filename(s) based on packet version.
@@ -206396,9 +206415,10 @@ var init_Background = __esmMin((() => {
 			Background.setImage(Background.getLoginBackgroundName(), callback);
 		}
 		/**
-		* Add loading background
+		* Add loading background: fade to black, then cut to the loading image
 		*
 		* @param {function} callback once the loading is display (optional)
+		* @see docs/reference/map-transition.md
 		*/
 		static setLoading(callback) {
 			const index = Math.floor(Math.random() * Background._loading.length);
@@ -206406,12 +206426,14 @@ var init_Background = __esmMin((() => {
 				_canvas.style.zIndex = "999";
 				Background.setPercent(0);
 				if (callback) callback();
-			});
+			}, false);
 		}
 		/**
-		* Remove background
+		* Remove background: cut to black from a background image, fade to black
+		* from the map, then fade from black
 		*
 		* @param {function} callback once the overlay hide the window (optional)
+		* @see docs/reference/map-transition.md
 		*/
 		static remove(callback) {
 			const removal = {};
@@ -206427,7 +206449,7 @@ var init_Background = __esmMin((() => {
 					_container.style.backgroundImage = "none";
 				}
 				if (callback) callback();
-			});
+			}, !_container.parentNode);
 		}
 		/**
 		* Adding progress bar to background
@@ -220845,6 +220867,18 @@ var init_ChatBox = __esmMin((() => {
 						event.stopImmediatePropagation();
 						return false;
 					}
+				}
+				return true;
+			case KEYS.TAB:
+				if (activeElement === messageBox) {
+					nickBox.select();
+					nickBox.focus();
+					break;
+				}
+				if (activeElement === nickBox) {
+					messageBox.focus();
+					setCaretToEnd$1(messageBox);
+					break;
 				}
 				return true;
 			case KEYS.UP:
@@ -241798,8 +241832,8 @@ function createInventory(config) {
 	function transferItemToOtherUI(item) {
 		if (transferInventoryItemStack(item, UIManager.components)) return true;
 		const storageUI = StorageController.getUI();
-		const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-		const isCartOpen = CartItems_default._host ? CartItems_default._host.style.display !== "none" : false;
+		const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+		const isCartOpen = CartItems_default._host ? CartItems_default._host.isConnected && CartItems_default._host.style.display !== "none" : false;
 		if (!item) return false;
 		const count = item.count || 1;
 		if (isStorageOpen) StorageController.reqAddItem(item.index, count);
@@ -243256,8 +243290,8 @@ function onItemInfo$13(event) {
 function transferItemToOtherUI(item) {
 	const storageUI = StorageController.getUI();
 	const inventoryUI = InventoryController.getUI();
-	const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.style.display !== "none" : false;
+	const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.isConnected && inventoryUI._host.style.display !== "none" : false;
 	if (!item) return false;
 	const count = item.count || 1;
 	if (isStorageOpen) StorageController.reqAddItemFromCart(item.index, count);
@@ -260343,6 +260377,16 @@ function registerPostProcessModules(gl) {
 	PostProcess.register(Upsampling, gl);
 }
 /**
+* Hide or show the components kept across a map change
+*
+* @param {string} visibility CSS value, '' to restore
+*/
+function setKeptUIVisibility(visibility) {
+	const keep = MapRenderer._keptUI;
+	for (let i = 0; i < keep.length; ++i) if (keep[i]._host) keep[i]._host.style.visibility = visibility;
+	if (!visibility) MapRenderer._keptUI = [];
+}
+/**
 * Once the map finished to load
 */
 function onMapComplete(success, error) {
@@ -260350,6 +260394,7 @@ function onMapComplete(success, error) {
 	const worldResource = this.currentMap.replace(/\.gat$/i, ".rsw");
 	const mapInfo = DB.getMap(worldResource);
 	if (!success) {
+		setKeptUIVisibility("");
 		UIManager.showErrorBox(error).ui.css("zIndex", 1e3);
 		return;
 	}
@@ -260373,6 +260418,7 @@ function onMapComplete(success, error) {
 	Background.remove(() => {
 		if (loadId !== MapRenderer._loadId) return;
 		MapRenderer.loading = false;
+		setKeptUIVisibility("");
 		MapRenderer.onLoad();
 		Sky_default.setUpCloudData();
 		ScreenEffectManager.startMapflagEffect(worldResource);
@@ -260464,6 +260510,10 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static _loadRequest = 0;
 		/**
+		* @var {Array<GUIComponent>} components kept attached, hidden while the loading screen is up
+		*/
+		static _keptUI = [];
+		/**
 		* @var {Float32Array} diffuse Modified diffuse color
 		*/
 		static diffuse = null;
@@ -260486,14 +260536,16 @@ var init_MapRenderer = __esmMin((() => {
 		* Load a map
 		*
 		* @param {string} mapname to load
+		* @param {Array<GUIComponent>} [keep] components left attached across the transition
+		* @see docs/reference/map-transition.md
 		*/
-		static setMap(mapname) {
+		static setMap(mapname, keep = []) {
 			if (this.loading) return;
 			mapname = mapname.replace(/^(\d{3})(\d@)/, "$2").replace(/^\d{3}#/, "");
 			const loadId = ++this._loadId;
 			SoundManager.stop();
 			Renderer.stop();
-			UIManager.removeComponents();
+			UIManager.removeComponents(keep);
 			Cursor.setType(Cursor.ACTION.DEFAULT);
 			if (stripMapExtension(this.currentMap) !== stripMapExtension(mapname)) {
 				this.loading = true;
@@ -260502,6 +260554,8 @@ var init_MapRenderer = __esmMin((() => {
 				const filename = mapname.replace(/\.gat$/i, ".rsw");
 				Background.setLoading(function() {
 					if (loadId !== MapRenderer._loadId) return;
+					MapRenderer._keptUI = keep;
+					setKeptUIVisibility("hidden");
 					Thread.hook("MAP_PROGRESS", loadEvent(onProgressUpdate));
 					Thread.hook("MAP_WORLD", loadEvent(onWorldComplete));
 					Thread.hook("MAP_GROUND", loadEvent(onGroundComplete));
@@ -260535,6 +260589,7 @@ var init_MapRenderer = __esmMin((() => {
 			this._loadId++;
 			this._loadRequest = 0;
 			this.loading = false;
+			setKeptUIVisibility("");
 		}
 		/**
 		* Clean up data
@@ -314673,6 +314728,7 @@ var init_GUIComponent = __esmMin((() => {
 		* Equivalent to UIComponent.prototype.append().
 		*
 		* @param {HTMLElement|string} [target] - Target element. Defaults to document.body.
+		* @see docs/reference/map-transition.md
 		*/
 		append(target) {
 			this.__active = true;
@@ -314686,7 +314742,7 @@ var init_GUIComponent = __esmMin((() => {
 				console.error("[GUIComponent] Unable to find target element for appending UI.");
 				return;
 			}
-			parent.appendChild(this._host);
+			if (this._host.parentNode !== parent) parent.appendChild(this._host);
 			if (this._noCursorStyle) _trackNoCursorStyle(this._noCursorStyle);
 			if (this.onKeyDown) this._bindKeyDown();
 			if (this.mouseMode === MouseMode.FREEZE) {
@@ -314719,23 +314775,43 @@ var init_GUIComponent = __esmMin((() => {
 		*/
 		remove() {
 			this.__active = false;
-			if (this.__loaded && this._host && this._host.parentNode) {
-				if (this.onRemove) this.onRemove();
-				this._unbindKeyDown();
-				this._host.dispatchEvent(new Event("x_remove"));
-				if (this._shadow) this._shadow.querySelectorAll("*").forEach((node) => {
-					node.dispatchEvent(new Event("x_remove"));
-				});
-				this._host.remove();
-				if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
-				if (this.mouseMode === MouseMode.FREEZE) {
-					Mouse.intersect = true;
-					SessionStorage_default.FreezeUI = false;
-				}
-				if (this.__scrollbarObserver) {
-					this.__scrollbarObserver.disconnect();
-					this.__scrollbarObserver = null;
-				}
+			if (this.__loaded && this._host && this._host.parentNode) this._release(true);
+		}
+		/**
+		* Run the remove and append lifecycle without detaching the host,
+		* so the component restarts in place.
+		*
+		* @see docs/reference/map-transition.md
+		*/
+		rebuild() {
+			const parent = this._host && this._host.parentNode;
+			if (this.__active && this.__loaded && parent) {
+				this.__active = false;
+				this._release(false);
+			}
+			this.append(parent || void 0);
+		}
+		/**
+		* Remove lifecycle of an attached component
+		*
+		* @param {boolean} detach - also take the host out of the DOM
+		*/
+		_release(detach) {
+			if (this.onRemove) this.onRemove();
+			this._unbindKeyDown();
+			this._host.dispatchEvent(new Event("x_remove"));
+			if (this._shadow) this._shadow.querySelectorAll("*").forEach((node) => {
+				node.dispatchEvent(new Event("x_remove"));
+			});
+			if (detach) this._host.remove();
+			if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
+			if (this.mouseMode === MouseMode.FREEZE) {
+				Mouse.intersect = true;
+				SessionStorage_default.FreezeUI = false;
+			}
+			if (this.__scrollbarObserver) {
+				this.__scrollbarObserver.disconnect();
+				this.__scrollbarObserver = null;
 			}
 		}
 		/**
@@ -338115,11 +338191,29 @@ function onConnectionRefused$2(pkt) {
 	UIManager.showErrorBox(DB.getMessage(9));
 }
 /**
+* Components of the map UI, kept attached across a map transition
+*
+* @return {Array<GUIComponent>}
+* @see docs/reference/map-transition.md
+*/
+function getMapUI() {
+	const ui = [Controller$5.getUI()];
+	ui.push(ChatBox_default, ChatBoxSettings_default, BasicInfoController.getUI(), Escape_default, InventoryController.getUI(), CartItems_default, Vending_default, ChangeCart_default, CartDecoration_default, EquipmentController.getUI(), ShortCuts_default, StatusIcons_default, ShortCut_default, ChatRoomCreate_default, Emoticons_default, Controller$4.getUI(), FPS_default, controller.getUI(), Guild_default, WorldMap_default, SkillListMH_default.homunculus, SkillListMH_default.mercenary, MobileUI_default, JoystickUI_default, Navigation_default, Roulette_default);
+	if (Configs.get("enableAchievements") && PacketVerManager_default.value >= 20150513) ui.push(Achievement_default);
+	if (SessionStorage_default.PCGoldTimer) ui.push(PCGoldTimer_default);
+	ui.push(WinStatsController.getUI(), Controller$3.getUI());
+	if (Configs.get("enableCashShop")) ui.push(CashShopIcon_default);
+	if (Configs.get("enableCheckAttendance") && PacketVerManager_default.value >= 20180307) ui.push(CheckAttendance_default);
+	return ui;
+}
+/**
 * Changing map, loading new map
 *
 * @param {object} pkt - PACKET.ZC.NPCACK_MAPMOVE
+* @see docs/reference/map-transition.md
 */
 function onMapChange(pkt) {
+	const ui = getMapUI();
 	MapRenderer.onLoad = () => {
 		SessionStorage_default.Entity.set({
 			PosDir: [
@@ -338177,44 +338271,12 @@ function onMapChange(pkt) {
 		}
 		Camera.setTarget(SessionStorage_default.Entity);
 		Camera.init();
-		Controller$5.getUI().append();
+		for (let i = 0; i < ui.length; ++i) ui[i].rebuild();
 		Controller$5.getUI().setMap(MapRenderer.currentMap);
 		if (Configs.get("enableMapName")) {
 			MapName_default.setMap(MapRenderer.currentMap);
 			MapName_default.append();
 		}
-		ChatBox_default.append();
-		ChatBoxSettings_default.append();
-		BasicInfoController.getUI().append();
-		Escape_default.append();
-		InventoryController.getUI().append();
-		CartItems_default.append();
-		Vending_default.append();
-		ChangeCart_default.append();
-		CartDecoration_default.append();
-		EquipmentController.getUI().append();
-		ShortCuts_default.append();
-		StatusIcons_default.append();
-		ShortCut_default.append();
-		ChatRoomCreate_default.append();
-		Emoticons_default.append();
-		Controller$4.getUI().append();
-		FPS_default.append();
-		controller.getUI().append();
-		Guild_default.append();
-		WorldMap_default.append();
-		SkillListMH_default.homunculus.append();
-		SkillListMH_default.mercenary.append();
-		MobileUI_default.append();
-		JoystickUI_default.append();
-		Navigation_default.append();
-		Roulette_default.append();
-		if (Configs.get("enableAchievements") && PacketVerManager_default.value >= 20150513) Achievement_default.append();
-		if (SessionStorage_default.PCGoldTimer) PCGoldTimer_default.append();
-		WinStatsController.getUI().append();
-		Controller$3.getUI().append();
-		if (Configs.get("enableCashShop")) CashShopIcon_default.append();
-		if (Configs.get("enableCheckAttendance") && PacketVerManager_default.value >= 20180307) CheckAttendance_default.append();
 		Plugins.init();
 		Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
 		if (SessionStorage_default.ratesInfo) {
@@ -338227,7 +338289,7 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 	};
-	MapRenderer.setMap(pkt.mapName);
+	MapRenderer.setMap(pkt.mapName, ui);
 }
 /**
 * Change zone server
@@ -348187,7 +348249,7 @@ function loadFiles(callback) {
 			q._next();
 		};
 		if (Configs.get("skipIntro")) {
-			Client.init([]);
+			Client.init(Configs.get("files") || []);
 			return;
 		}
 		Intro_default.onFilesSubmit = Client.init.bind(Client);
@@ -348531,11 +348593,17 @@ var init_UIManager = __esmMin((() => {
 		}
 		/**
 		* Remove all components in screen
+		*
+		* @param {Array<GUIComponent>} [keep] components left attached
+		* @see docs/reference/map-transition.md
 		*/
-		static removeComponents() {
+		static removeComponents(keep = []) {
 			const keys = Object.keys(this.components);
 			const count = keys.length;
-			for (let i = 0; i < count; ++i) this.components[keys[i]].remove();
+			for (let i = 0; i < count; ++i) {
+				const component = this.components[keys[i]];
+				if (!keep.includes(component)) component.remove();
+			}
 		}
 		/**
 		* When resizing window, some components can be outside the screen size and

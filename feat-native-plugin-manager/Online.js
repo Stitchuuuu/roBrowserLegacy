@@ -206243,26 +206243,44 @@ function render$14() {
 * Play with the overlay
 *
 * @param {function} callback once the overlay hide the window
+* @param {boolean} [fadeOut=true] fade to black, else cut to black
+* @param {boolean} [fadeIn=true] fade from black, else cut from black
+* @see docs/reference/map-transition.md
 */
-function transition$1(callback) {
-	const transitionDuration = Configs.get("transitionDuration") ? Configs.get("transitionDuration") : 500;
-	if (Background._overlayAnim) Background._overlayAnim.stop();
-	_overlay.style.opacity = "0.01";
+function transition$1(callback, fadeOut = true, fadeIn = true) {
+	const transitionDuration = Configs.get("transitionDuration") || TRANSITION_DURATION;
+	if (Background._overlayAnim) {
+		Background._overlayAnim.stop();
+		Background._overlayAnim = null;
+	}
 	document.body.appendChild(_overlay);
-	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, () => {
+	function onBlack() {
+		_overlay.style.opacity = "1";
 		callback();
+		if (!fadeIn) {
+			_overlay.remove();
+			return;
+		}
 		Background._overlayAnim = animateElement(_overlay, { opacity: .01 }, transitionDuration, () => {
-			if (_overlay.parentNode) _overlay.parentNode.removeChild(_overlay);
+			Background._overlayAnim = null;
+			_overlay.remove();
 		});
-	});
+	}
+	if (!fadeOut) {
+		onBlack();
+		return;
+	}
+	_overlay.style.opacity = "0.01";
+	Background._overlayAnim = animateElement(_overlay, { opacity: 1 }, transitionDuration, onBlack);
 }
-var _overlay, _container, _canvas, _ctx$6, Background;
+var TRANSITION_DURATION, _overlay, _container, _canvas, _ctx$6, Background;
 var init_Background = __esmMin((() => {
 	init_DBManager();
 	init_Client();
 	init_Configs();
 	init_PacketVerManager();
 	init_HtmlHelper();
+	TRANSITION_DURATION = 255;
 	_overlay = document.createElement("div");
 	Object.assign(_overlay.style, {
 		position: "absolute",
@@ -206347,8 +206365,9 @@ var init_Background = __esmMin((() => {
 		*
 		* @param {string|Array<string>} filename
 		* @param {function} callback once the image is loaded (optional)
+		* @param {boolean} [fadeIn=true] fade from black onto the image, else cut to it
 		*/
-		static setImage(filename, callback) {
+		static setImage(filename, callback, fadeIn = true) {
 			const exist = !!_container.parentNode;
 			Background._progress = -1;
 			Background._removal = null;
@@ -206401,7 +206420,7 @@ var init_Background = __esmMin((() => {
 				document.body.appendChild(_container);
 				document.body.appendChild(_canvas);
 				if (callback) callback();
-			});
+			}, true, fadeIn);
 		}
 		/**
 		* Helper method to return the right login background filename(s) based on packet version.
@@ -206433,9 +206452,10 @@ var init_Background = __esmMin((() => {
 			Background.setImage(Background.getLoginBackgroundName(), callback);
 		}
 		/**
-		* Add loading background
+		* Add loading background: fade to black, then cut to the loading image
 		*
 		* @param {function} callback once the loading is display (optional)
+		* @see docs/reference/map-transition.md
 		*/
 		static setLoading(callback) {
 			const index = Math.floor(Math.random() * Background._loading.length);
@@ -206443,12 +206463,14 @@ var init_Background = __esmMin((() => {
 				_canvas.style.zIndex = "999";
 				Background.setPercent(0);
 				if (callback) callback();
-			});
+			}, false);
 		}
 		/**
-		* Remove background
+		* Remove background: cut to black from a background image, fade to black
+		* from the map, then fade from black
 		*
 		* @param {function} callback once the overlay hide the window (optional)
+		* @see docs/reference/map-transition.md
 		*/
 		static remove(callback) {
 			const removal = {};
@@ -206464,7 +206486,7 @@ var init_Background = __esmMin((() => {
 					_container.style.backgroundImage = "none";
 				}
 				if (callback) callback();
-			});
+			}, !_container.parentNode);
 		}
 		/**
 		* Adding progress bar to background
@@ -213306,13 +213328,13 @@ var init_GR2ModelRenderer = __esmMin((() => {
 * Add 3D sound to the list
 */
 function add$1(sound) {
-	_list$5.push(sound);
+	_list$6.push(sound);
 }
 /**
 * Remove data from memory
 */
 function free$2() {
-	_list$5.length = 0;
+	_list$6.length = 0;
 }
 /**
 * Rendering sounds
@@ -213320,7 +213342,7 @@ function free$2() {
 * @param {vec2} position
 */
 function render$7(position, tick) {
-	_list$5.forEach((sound) => {
+	_list$6.forEach((sound) => {
 		const dist = Math.floor(vec2$3.dist(sound.pos, position));
 		if (sound.tick < tick && dist <= sound.range) {
 			SoundManager.playPosition(sound.file, sound.pos);
@@ -213328,12 +213350,12 @@ function render$7(position, tick) {
 		}
 	});
 }
-var vec2$3, _list$5, Sounds_default;
+var vec2$3, _list$6, Sounds_default;
 var init_Sounds = __esmMin((() => {
 	init_gl_matrix();
 	init_SoundManager();
 	vec2$3 = gl_matrix_default.vec2;
-	_list$5 = [];
+	_list$6 = [];
 	Sounds_default = {
 		add: add$1,
 		free: free$2,
@@ -220698,6 +220720,18 @@ var init_ChatBox = __esmMin((() => {
 						event.stopImmediatePropagation();
 						return false;
 					}
+				}
+				return true;
+			case KEYS.TAB:
+				if (activeElement === messageBox) {
+					nickBox.select();
+					nickBox.focus();
+					break;
+				}
+				if (activeElement === nickBox) {
+					messageBox.focus();
+					setCaretToEnd$1(messageBox);
+					break;
 				}
 				return true;
 			case KEYS.UP:
@@ -241651,8 +241685,8 @@ function createInventory(config) {
 	function transferItemToOtherUI(item) {
 		if (transferInventoryItemStack(item, UIManager.components)) return true;
 		const storageUI = StorageController.getUI();
-		const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-		const isCartOpen = CartItems_default._host ? CartItems_default._host.style.display !== "none" : false;
+		const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+		const isCartOpen = CartItems_default._host ? CartItems_default._host.isConnected && CartItems_default._host.style.display !== "none" : false;
 		if (!item) return false;
 		const count = item.count || 1;
 		if (isStorageOpen) StorageController.reqAddItem(item.index, count);
@@ -243109,8 +243143,8 @@ function onItemInfo$13(event) {
 function transferItemToOtherUI(item) {
 	const storageUI = StorageController.getUI();
 	const inventoryUI = InventoryController.getUI();
-	const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.style.display !== "none" : false;
+	const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.isConnected && inventoryUI._host.style.display !== "none" : false;
 	if (!item) return false;
 	const count = item.count || 1;
 	if (isStorageOpen) StorageController.reqAddItemFromCart(item.index, count);
@@ -246974,7 +247008,7 @@ function getSkillOwner(id) {
 */
 function updateEmptySlotTooltips() {
 	const containers = ShortCut.getRoot().querySelectorAll(".container");
-	for (let i = 0; i < containers.length; ++i) if (!_list$4[i] || !_list$4[i].isSkill && !_list$4[i].ID) {
+	for (let i = 0; i < containers.length; ++i) if (!_list$5[i] || !_list$5[i].isSkill && !_list$5[i].ID) {
 		const hotkey = getHotKeyString(i);
 		if (hotkey) containers[i].setAttribute("data-tooltip", hotkey);
 	}
@@ -247101,9 +247135,9 @@ function onResize$3(event) {
 * @param {number} delay in ms
 */
 function setDelayOnIndex(index, delay) {
-	if (!_list$4[index]) return;
-	if (_list$4[index].Delay && _list$4[index].Delay >= Renderer.tick + delay) return;
-	_list$4[index].Delay = Renderer.tick + delay;
+	if (!_list$5[index]) return;
+	if (_list$5[index].Delay && _list$5[index].Delay >= Renderer.tick + delay) return;
+	_list$5[index].Delay = Renderer.tick + delay;
 	const ui = ShortCut.getRoot().querySelector(`.container[data-index="${index}"]`);
 	if (!ui) return;
 	const existing = ui.querySelector(".cooldown-overlay");
@@ -247121,7 +247155,7 @@ function setDelayOnIndex(index, delay) {
 		_activeAnimations.delete(index);
 	}
 	function updateCooldown() {
-		if (!_list$4 || !_list$4[index]) {
+		if (!_list$5 || !_list$5[index]) {
 			overlay.remove();
 			if (_activeAnimations.has(index)) {
 				cancelAnimationFrame(_activeAnimations.get(index));
@@ -247130,10 +247164,10 @@ function setDelayOnIndex(index, delay) {
 			return;
 		}
 		const now = Renderer.tick;
-		const remaining = _list$4[index].Delay - now;
-		if (remaining <= 0 || !_list$4[index].Delay) {
+		const remaining = _list$5[index].Delay - now;
+		if (remaining <= 0 || !_list$5[index].Delay) {
 			overlay.remove();
-			_list$4[index].Delay = 0;
+			_list$5[index].Delay = 0;
 			if (_activeAnimations.has(index)) {
 				cancelAnimationFrame(_activeAnimations.get(index));
 				_activeAnimations.delete(index);
@@ -247204,9 +247238,9 @@ function onDragStart$2(event, icon) {
 	img.src = icon.querySelector(".img").style.backgroundImage.match(/\(([^)]+)/)[1].replace(/"/g, "");
 	event.dataTransfer.setDragImage(img, 12, 12);
 	event.dataTransfer.setData("Text", JSON.stringify(window._OBJ_DRAG_ = {
-		type: _list$4[index].isSkill ? "skill" : "item",
+		type: _list$5[index].isSkill ? "skill" : "item",
 		from: "ShortCut",
-		data: _list$4[index]
+		data: _list$5[index]
 	}));
 }
 /**
@@ -247215,23 +247249,23 @@ function onDragStart$2(event, icon) {
 */
 function onElementInfo(event, icon) {
 	const index = parseInt(icon.parentNode.getAttribute("data-index"), 10);
-	const element = _list$4[index];
+	const element = _list$5[index];
 	event.stopImmediatePropagation();
 	event.preventDefault();
 	if (element.isSkill) {
-		if (SkillDescription_default.uid === _list$4[index].ID) SkillDescription_default.remove();
+		if (SkillDescription_default.uid === _list$5[index].ID) SkillDescription_default.remove();
 		else {
 			SkillDescription_default.append();
-			SkillDescription_default.setSkill(_list$4[index].ID);
+			SkillDescription_default.setSkill(_list$5[index].ID);
 		}
 	} else {
-		if (ItemInfo_default.uid === _list$4[index].ID) {
+		if (ItemInfo_default.uid === _list$5[index].ID) {
 			ItemInfo_default.remove();
 			return;
 		}
 		ItemInfo_default.append();
-		ItemInfo_default.uid = _list$4[index].ID;
-		ItemInfo_default.setItem(InventoryController.getUI().getItemById(_list$4[index].ID));
+		ItemInfo_default.uid = _list$5[index].ID;
+		ItemInfo_default.setItem(InventoryController.getUI().getItemById(_list$5[index].ID));
 	}
 }
 /**
@@ -247246,12 +247280,12 @@ function onUseShortCut(icon) {
 * @param {number} shortcut index
 */
 function clickElement(index) {
-	const shortcut = _list$4[index];
+	const shortcut = _list$5[index];
 	SkillTargetSelection_default.remove();
 	if (!shortcut) return;
 	if (shortcut.isSkill) ShortCut.useSkill(shortcut.ID, shortcut.count);
 	else {
-		const item = InventoryController.getUI().getItemById(_list$4[index].ID);
+		const item = InventoryController.getUI().getItemById(_list$5[index].ID);
 		if (item) InventoryController.getUI().useItem(item);
 	}
 }
@@ -247284,7 +247318,7 @@ function onUpdateSkill(id, level) {
 	ShortCut.setElement(true, id, level);
 }
 function onUpdateOwnerName$1() {
-	for (const index in _list$4) if (!_list$4[index].isSkill) ShortCut.setElement(false, _list$4[index].ID, _list$4[index].count);
+	for (const index in _list$5) if (!_list$5[index].isSkill) ShortCut.setElement(false, _list$5[index].ID, _list$5[index].count);
 }
 function convertHotkeysToServerFormat() {
 	const serverData = {
@@ -247436,7 +247470,7 @@ function haveHotkeysChanged(currentData) {
 	if (!_lastServerHotkeys) return true;
 	return JSON.stringify(currentData) !== JSON.stringify(_lastServerHotkeys);
 }
-var ShortCut, _list$4, _rowCount, _lastServerHotkeys, _activeAnimations, _preferences$24, ShortCut_default;
+var ShortCut, _list$5, _rowCount, _lastServerHotkeys, _activeAnimations, _preferences$24, ShortCut_default;
 var init_ShortCut = __esmMin((() => {
 	init_DBManager();
 	init_ItemType();
@@ -247464,7 +247498,7 @@ var init_ShortCut = __esmMin((() => {
 	init_ShortCut$1();
 	ShortCut = new GUIComponent$1("ShortCut", ShortCut_default$1);
 	ShortCut.render = () => ShortCut_default$2;
-	_list$4 = [];
+	_list$5 = [];
 	_rowCount = 0;
 	_lastServerHotkeys = null;
 	_activeAnimations = /* @__PURE__ */ new Map();
@@ -247569,7 +247603,7 @@ var init_ShortCut = __esmMin((() => {
 	ShortCut.clean = function clean() {
 		for (const [index, animationId] of _activeAnimations.entries()) cancelAnimationFrame(animationId);
 		_activeAnimations.clear();
-		_list$4.length = 0;
+		_list$5.length = 0;
 		ShortCut.getRoot().querySelectorAll(".container").forEach((el) => {
 			el.innerHTML = "";
 		});
@@ -247607,17 +247641,17 @@ var init_ShortCut = __esmMin((() => {
 		ShortCut.getRoot().querySelectorAll(".container").forEach((el) => {
 			el.innerHTML = "";
 		});
-		_list$4.length = list.length;
+		_list$5.length = list.length;
 		_rowCount = Math.min(4, Math.floor(list.length / 9));
 		for (let i = 0, count = list.length; i < count; ++i) if (list[i].isSkill) {
 			skill = ShortCut.getSkillById(list[i].ID);
 			if (getSkillOwner(list[i].ID) === Guild_default) needGuildSkills = true;
 			if (skill && skill.level) ShortCut.addElement(i, true, list[i].ID, list[i].count || skill.level);
 			else {
-				if (!_list$4[i]) _list$4[i] = {};
-				_list$4[i].isSkill = true;
-				_list$4[i].ID = list[i].ID;
-				_list$4[i].count = list[i].count;
+				if (!_list$5[i]) _list$5[i] = {};
+				_list$5[i].isSkill = true;
+				_list$5[i].ID = list[i].ID;
+				_list$5[i].count = list[i].count;
 			}
 		} else ShortCut.addElement(i, list[i].isSkill, list[i].ID, list[i].count);
 		if (needGuildSkills) ShortCut.onRequestGuildSkills();
@@ -247632,17 +247666,17 @@ var init_ShortCut = __esmMin((() => {
 	*/
 	ShortCut.updateAllTooltips = function updateAllTooltips() {
 		const root = ShortCut.getRoot();
-		for (let i = 0, size = _list$4.length; i < size; ++i) {
+		for (let i = 0, size = _list$5.length; i < size; ++i) {
 			const container = root.querySelector(`.container[data-index="${i}"]`);
 			if (!container) continue;
 			const hotkey = getHotKeyString(i);
-			if (!_list$4[i] || !_list$4[i].isSkill && !_list$4[i].ID) {
+			if (!_list$5[i] || !_list$5[i].isSkill && !_list$5[i].ID) {
 				if (hotkey) container.setAttribute("data-tooltip", hotkey);
-			} else if (_list$4[i] && (_list$4[i].isSkill || _list$4[i].ID)) {
+			} else if (_list$5[i] && (_list$5[i].isSkill || _list$5[i].ID)) {
 				let name = "";
-				if (_list$4[i].isSkill && SkillInfo[_list$4[i].ID]) name = SkillInfo[_list$4[i].ID].SkillName;
-				else if (_list$4[i].ID) {
-					const item = InventoryController.getUI().getItemById(_list$4[i].ID);
+				if (_list$5[i].isSkill && SkillInfo[_list$5[i].ID]) name = SkillInfo[_list$5[i].ID].SkillName;
+				else if (_list$5[i].ID) {
+					const item = InventoryController.getUI().getItemById(_list$5[i].ID);
 					if (item) name = DB.getItemName(item);
 				}
 				if (name) {
@@ -247653,8 +247687,8 @@ var init_ShortCut = __esmMin((() => {
 		}
 	};
 	ShortCut.setElement = function setElement(isSkill, ID, count) {
-		for (let i = 0, size = _list$4.length; i < size; ++i) if (_list$4[i] && _list$4[i].isSkill == isSkill && _list$4[i].ID === ID) {
-			if (isSkill && _list$4[i].count && _list$4[i].count <= count) ShortCut.addElement(i, isSkill, ID, _list$4[i].count);
+		for (let i = 0, size = _list$5.length; i < size; ++i) if (_list$5[i] && _list$5[i].isSkill == isSkill && _list$5[i].ID === ID) {
+			if (isSkill && _list$5[i].count && _list$5[i].count <= count) ShortCut.addElement(i, isSkill, ID, _list$5[i].count);
 			else ShortCut.addElement(i, isSkill, ID, count);
 		}
 	};
@@ -247671,18 +247705,18 @@ var init_ShortCut = __esmMin((() => {
 		const ui = ShortCut.getRoot().querySelector(`.container[data-index="${index}"]`);
 		if (!ui) return;
 		ui.innerHTML = "";
-		if (!_list$4[index]) _list$4[index] = {};
-		_list$4[index].isSkill = isSkill;
-		_list$4[index].ID = ID;
+		if (!_list$5[index]) _list$5[index] = {};
+		_list$5[index].isSkill = isSkill;
+		_list$5[index].ID = ID;
 		if (isSkill) {
 			if (!count) return;
 			else {
-				_list$4[index].count = count;
+				_list$5[index].count = count;
 				file = SkillInfo[ID].Name;
 				name = SkillInfo[ID].SkillName;
 			}
 		} else {
-			_list$4[index].count = count;
+			_list$5[index].count = count;
 			const item = InventoryController.getUI().getItemById(ID);
 			if (!item) return;
 			const it = DB.getItemInfo(ID);
@@ -247707,7 +247741,7 @@ var init_ShortCut = __esmMin((() => {
 	* @param {number} delay in ms
 	*/
 	ShortCut.setGlobalSkillDelay = function setGlobalSkillDelay(delay) {
-		_list$4.forEach((element, index) => {
+		_list$5.forEach((element, index) => {
 			if (element.isSkill) setDelayOnIndex(index, delay);
 		});
 	};
@@ -247718,7 +247752,7 @@ var init_ShortCut = __esmMin((() => {
 	* @param {number} delay in ms
 	*/
 	ShortCut.setSkillDelay = function setSkillDelay(ID, delay) {
-		_list$4.forEach((element, index) => {
+		_list$5.forEach((element, index) => {
 			if (element.isSkill && element.ID == ID) setDelayOnIndex(index, delay);
 		});
 	};
@@ -247733,12 +247767,12 @@ var init_ShortCut = __esmMin((() => {
 	ShortCut.removeElement = function removeElement(isSkill, ID, row, amount) {
 		if (!ID) return;
 		const root = ShortCut.getRoot();
-		for (let i = row * 9, count = Math.min(_list$4.length, row * 9 + 9); i < count; ++i) if (_list$4[i] && _list$4[i].isSkill == isSkill && _list$4[i].ID === ID && (!isSkill || _list$4[i].count == amount)) {
+		for (let i = row * 9, count = Math.min(_list$5.length, row * 9 + 9); i < count; ++i) if (_list$5[i] && _list$5[i].isSkill == isSkill && _list$5[i].ID === ID && (!isSkill || _list$5[i].count == amount)) {
 			const container = root.querySelector(`.container[data-index="${i}"]`);
 			if (container) container.innerHTML = "";
-			_list$4[i].isSkill = 0;
-			_list$4[i].ID = 0;
-			_list$4[i].count = 0;
+			_list$5[i].isSkill = 0;
+			_list$5[i].ID = 0;
+			_list$5[i].count = 0;
 			ShortCut.onChange(i, 0, 0, 0);
 		}
 	};
@@ -247821,7 +247855,7 @@ var init_ShortCut = __esmMin((() => {
 		} else if (callback) callback();
 	};
 	ShortCut.getList = function getList() {
-		return _list$4;
+		return _list$5;
 	};
 	ShortCut_default = UIManager.addComponent(ShortCut);
 }));
@@ -256054,7 +256088,7 @@ function repeatEffect(effect) {
 function clean(name, AID, effectID) {
 	const effectIdList = Array.isArray(effectID) ? effectID : [effectID];
 	let i, count;
-	const list = _list$3[name];
+	const list = _list$4[name];
 	count = list.length;
 	for (i = 0; i < count; ++i) if ((!AID || list[i]._Params.Init.ownerAID === AID) && (!effectID || effectIdList.includes(list[i]._Params.Inst.effectID))) {
 		if (list[i].free) list[i].free(_gl);
@@ -256062,18 +256096,18 @@ function clean(name, AID, effectID) {
 		i--;
 		count--;
 	}
-	if (!count) delete _list$3[name];
+	if (!count) delete _list$4[name];
 }
 function cleanRepeat(name, AID, effectID) {
 	const effectIdList = Array.isArray(effectID) ? effectID : [effectID];
-	_list$3[name].forEach((item) => {
+	_list$4[name].forEach((item) => {
 		if ((!AID || item._Params.Init.ownerAID === AID) && (!effectID || effectIdList.includes(item.effectID))) {
 			if (item._Params.Inst.persistent) item._Params.Inst.persistent = false;
 			if (item._Params.Inst.repeatEnd) item._Params.Inst.repeatEnd = false;
 		}
 	});
 }
-var _gl, _list$3, _uniqueId, targetableUnits, traps, EffectManager;
+var _gl, _list$4, _uniqueId, targetableUnits, traps, EffectManager;
 var init_EffectManager = __esmMin((() => {
 	init_EffectTable();
 	init_SkillEffect();
@@ -256099,7 +256133,7 @@ var init_EffectManager = __esmMin((() => {
 	init_WaterfallEffect();
 	init_SessionStorage();
 	init_Graphics();
-	_list$3 = {};
+	_list$4 = {};
 	_uniqueId = 1;
 	targetableUnits = [SkillUnitConst_default.UNT_ICEWALL, SkillUnitConst_default.UNT_REVERBERATION];
 	traps = [
@@ -256143,8 +256177,8 @@ var init_EffectManager = __esmMin((() => {
 		*/
 		static add(effect, Params) {
 			const name = effect.constructor.name || effect.constructor._uid || (effect.constructor._uid = _uniqueId++);
-			if (!(name in _list$3)) {
-				_list$3[name] = [];
+			if (!(name in _list$4)) {
+				_list$4[name] = [];
 				if (effect.constructor.init) effect.constructor.needInit = true;
 			}
 			if (effect.init) effect.needInit = true;
@@ -256162,20 +256196,20 @@ var init_EffectManager = __esmMin((() => {
 					881
 				].indexOf(effect._Params.Inst.effectID) !== -1) effect.renderBeforeEntities = true;
 			}
-			_list$3[name].push(effect);
+			_list$4[name].push(effect);
 		}
 		/**
 		* Destroy all effects
 		*/
 		static free(gl) {
-			Object.keys(_list$3).forEach((key) => {
-				const list = _list$3[key];
+			Object.keys(_list$4).forEach((key) => {
+				const list = _list$4[key];
 				const constructor = list[0].constructor;
 				list.forEach((item) => {
 					if (item.free) item.free(gl);
 				});
 				if (constructor.free) constructor.free(gl);
-				delete _list$3[key];
+				delete _list$4[key];
 			});
 		}
 		/**
@@ -256191,7 +256225,7 @@ var init_EffectManager = __esmMin((() => {
 		* @param {boolean} render before entities ?
 		*/
 		static render(gl, modelView, projection, fog, tick, renderBeforeEntities) {
-			const keys = Object.keys(_list$3);
+			const keys = Object.keys(_list$4);
 			const count = keys.length;
 			let i, j, size, list, constructor;
 			let center = [
@@ -256203,9 +256237,9 @@ var init_EffectManager = __esmMin((() => {
 			const area_size = GraphicsSettings.performanceMode ? GraphicsSettings.viewArea : 20;
 			const cullDistanceSq = area_size * area_size;
 			for (i = 0; i < count; ++i) {
-				list = _list$3[keys[i]];
+				list = _list$4[keys[i]];
 				if (!list.length) {
-					delete _list$3[keys[i]];
+					delete _list$4[keys[i]];
 					continue;
 				}
 				constructor = list[0].constructor;
@@ -256251,7 +256285,7 @@ var init_EffectManager = __esmMin((() => {
 					constructor.afterRender(gl);
 					if (size === 0) {
 						if (constructor.free) constructor.free(gl);
-						delete _list$3[keys[i]];
+						delete _list$4[keys[i]];
 					}
 				}
 			}
@@ -256724,7 +256758,7 @@ var init_EffectManager = __esmMin((() => {
 			if (hatEffects) delete hatEffects[effectID];
 		}
 		static debug() {
-			console.log("%c[DEBUG] EffectManager _list: ", "color:#F5B342", _list$3);
+			console.log("%c[DEBUG] EffectManager _list: ", "color:#F5B342", _list$4);
 		}
 		/**
 		* Remove an effect
@@ -256733,7 +256767,7 @@ var init_EffectManager = __esmMin((() => {
 		* @param {mixed} effect owner ID
 		*/
 		static remove(effect, AID, effectID) {
-			if (!effect || !(effect.name in _list$3)) Object.keys(_list$3).forEach((key) => clean(key, AID, effectID));
+			if (!effect || !(effect.name in _list$4)) Object.keys(_list$4).forEach((key) => clean(key, AID, effectID));
 			else clean(effect.name, AID, effectID);
 			if (!(AID == null)) {
 				const entity = EntityManager$1.get(AID);
@@ -256754,8 +256788,8 @@ var init_EffectManager = __esmMin((() => {
 		* @param {mixed} effect ID
 		*/
 		static endRepeat(effect, AID, effectID) {
-			if (!effect || !(effect.name in _list$3)) {
-				Object.keys(_list$3).forEach((key) => cleanRepeat(key, AID, effectID));
+			if (!effect || !(effect.name in _list$4)) {
+				Object.keys(_list$4).forEach((key) => cleanRepeat(key, AID, effectID));
 				return;
 			}
 			cleanRepeat(effect.name, AID, effectID);
@@ -256768,26 +256802,26 @@ var init_EffectManager = __esmMin((() => {
 * Add 3D sound to the list
 */
 function add(mapEffect) {
-	_list$2.push(mapEffect);
+	_list$3.push(mapEffect);
 }
 /**
 * Remove data from memory
 */
 function free$1() {
-	_list$2.length = 0;
+	_list$3.length = 0;
 }
 /**
 * Get effect from list
 */
 function get(GID) {
-	return _list$2.find((mapEffect) => mapEffect.name == GID) || null;
+	return _list$3.find((mapEffect) => mapEffect.name == GID) || null;
 }
 /**
 * Remove effect from list
 */
 function remove(GID) {
-	const index = _list$2.findIndex((mapEffect) => mapEffect.name == GID);
-	if (index !== -1) _list$2.splice(index, 1);
+	const index = _list$3.findIndex((mapEffect) => mapEffect.name == GID);
+	if (index !== -1) _list$3.splice(index, 1);
 }
 /**
 * Add effects to scene
@@ -256795,7 +256829,7 @@ function remove(GID) {
 * @param {vec3} position
 */
 function spam(position, tick) {
-	_list$2.forEach((mapEffect) => {
+	_list$3.forEach((mapEffect) => {
 		if (!mapEffect.isVisible && vec3$2.dist(mapEffect.pos, position) < 25) {
 			const EF_Init_Par = {
 				effectId: mapEffect.id,
@@ -256812,12 +256846,12 @@ function spam(position, tick) {
 		}
 	});
 }
-var vec3$2, _list$2, Effects_default;
+var vec3$2, _list$3, Effects_default;
 var init_Effects = __esmMin((() => {
 	init_gl_matrix();
 	init_EffectManager();
 	vec3$2 = gl_matrix_default.vec3;
-	_list$2 = [];
+	_list$3 = [];
 	Effects_default = {
 		add,
 		free: free$1,
@@ -257662,7 +257696,7 @@ var init_Sky = __esmMin((() => {
 }));
 //#endregion
 //#region src/Renderer/Effects/Damage.js
-var EndureSound, dpr$1, procCanvas$1, procCtx$1, _skin, _damageSkins, _loadedSkinsData, _enableSuffix, _msgNames, _list$1, _rgbaFrame, prevCombo, Damage;
+var EndureSound, dpr$1, procCanvas$1, procCtx$1, _skin, _damageSkins, _loadedSkinsData, _enableSuffix, _msgNames, _list$2, _rgbaFrame, prevCombo, Damage;
 var init_Damage = __esmMin((() => {
 	init_WebGL();
 	init_Client();
@@ -257716,7 +257750,7 @@ var init_Damage = __esmMin((() => {
 		4: "luckybg",
 		5: "lucky"
 	};
-	_list$1 = [];
+	_list$2 = [];
 	_rgbaFrame = { type: 1 };
 	prevCombo = [];
 	Damage = class Damage {
@@ -257910,7 +257944,7 @@ var init_Damage = __esmMin((() => {
 				bgObj.height = msgData.critbg.canvas.height * .6;
 				bgObj.offset = [0, -6];
 				bgObj.isDisposable = false;
-				_list$1.push(bgObj);
+				_list$2.push(bgObj);
 				const EF_Init_Par = {
 					effectId: 1,
 					ownerAID: entity.GID,
@@ -257938,7 +257972,7 @@ var init_Damage = __esmMin((() => {
 				bgObj.height = msgBlueData.critbg.canvas.height * .6;
 				bgObj.offset = [0, -6];
 				bgObj.isDisposable = false;
-				_list$1.push(bgObj);
+				_list$2.push(bgObj);
 			} else {
 				obj.color[0] = 1;
 				obj.color[1] = 1;
@@ -257950,7 +257984,7 @@ var init_Damage = __esmMin((() => {
 					obj.width = msgData.miss.canvas.width;
 					obj.height = msgData.miss.canvas.height;
 					obj.isDisposable = false;
-					_list$1.push(obj);
+					_list$2.push(obj);
 				}
 				return;
 			}
@@ -257988,7 +258022,7 @@ var init_Damage = __esmMin((() => {
 			if (entity.objecttype === Entity.TYPE_PC) hitSound = DB.getJobHitSound(entity._job);
 			else if (weapon || weapon === 0) hitSound = DB.getWeaponHitSound(weapon);
 			if (hitSound) obj.soundFile = hitSound;
-			_list$1.push(obj);
+			_list$2.push(obj);
 		}
 		/**
 		* Remove damages from map, clean up memory
@@ -257996,10 +258030,10 @@ var init_Damage = __esmMin((() => {
 		* @param {object} gl context
 		*/
 		static free(gl) {
-			_list$1.forEach((item) => {
+			_list$2.forEach((item) => {
 				if (item.isDisposable) gl.deleteTexture(item.texture);
 			});
-			_list$1.length = 0;
+			_list$2.length = 0;
 		}
 		/**
 		* Rendering damages on maps
@@ -258011,7 +258045,7 @@ var init_Damage = __esmMin((() => {
 		* @param {number} tick - game tick
 		*/
 		static render(gl, modelView, projection, fog, tick) {
-			if (!_list$1.length) return;
+			if (!_list$2.length) return;
 			SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
 			SpriteRenderer.shadow = 1;
 			SpriteRenderer.angle = 0;
@@ -258021,12 +258055,12 @@ var init_Damage = __esmMin((() => {
 			let damage;
 			let size;
 			const skinData = _loadedSkinsData[_skin];
-			for (i = 0, count = _list$1.length; i < count; ++i) {
-				damage = _list$1[i];
+			for (i = 0, count = _list$2.length; i < count; ++i) {
+				damage = _list$2[i];
 				if (damage.startTick > tick) continue;
 				if (damage.startTick + damage.delay < tick) {
 					if (damage.isDisposable) gl.deleteTexture(damage.texture);
-					_list$1.splice(i, 1);
+					_list$2.splice(i, 1);
 					count--;
 					i--;
 					continue;
@@ -260196,6 +260230,16 @@ function registerPostProcessModules(gl) {
 	PostProcess.register(Upsampling, gl);
 }
 /**
+* Hide or show the components kept across a map change
+*
+* @param {string} visibility CSS value, '' to restore
+*/
+function setKeptUIVisibility(visibility) {
+	const keep = MapRenderer._keptUI;
+	for (let i = 0; i < keep.length; ++i) if (keep[i]._host) keep[i]._host.style.visibility = visibility;
+	if (!visibility) MapRenderer._keptUI = [];
+}
+/**
 * Once the map finished to load
 */
 function onMapComplete(success, error) {
@@ -260203,6 +260247,7 @@ function onMapComplete(success, error) {
 	const worldResource = this.currentMap.replace(/\.gat$/i, ".rsw");
 	const mapInfo = DB.getMap(worldResource);
 	if (!success) {
+		setKeptUIVisibility("");
 		UIManager.showErrorBox(error).ui.css("zIndex", 1e3);
 		return;
 	}
@@ -260226,6 +260271,7 @@ function onMapComplete(success, error) {
 	Background.remove(() => {
 		if (loadId !== MapRenderer._loadId) return;
 		MapRenderer.loading = false;
+		setKeptUIVisibility("");
 		MapRenderer.onLoad();
 		Sky_default.setUpCloudData();
 		ScreenEffectManager.startMapflagEffect(worldResource);
@@ -260317,6 +260363,10 @@ var init_MapRenderer = __esmMin((() => {
 		*/
 		static _loadRequest = 0;
 		/**
+		* @var {Array<GUIComponent>} components kept attached, hidden while the loading screen is up
+		*/
+		static _keptUI = [];
+		/**
 		* @var {Float32Array} diffuse Modified diffuse color
 		*/
 		static diffuse = null;
@@ -260339,14 +260389,16 @@ var init_MapRenderer = __esmMin((() => {
 		* Load a map
 		*
 		* @param {string} mapname to load
+		* @param {Array<GUIComponent>} [keep] components left attached across the transition
+		* @see docs/reference/map-transition.md
 		*/
-		static setMap(mapname) {
+		static setMap(mapname, keep = []) {
 			if (this.loading) return;
 			mapname = mapname.replace(/^(\d{3})(\d@)/, "$2").replace(/^\d{3}#/, "");
 			const loadId = ++this._loadId;
 			SoundManager.stop();
 			Renderer.stop();
-			UIManager.removeComponents();
+			UIManager.removeComponents(keep);
 			Cursor.setType(Cursor.ACTION.DEFAULT);
 			if (stripMapExtension(this.currentMap) !== stripMapExtension(mapname)) {
 				this.loading = true;
@@ -260355,6 +260407,8 @@ var init_MapRenderer = __esmMin((() => {
 				const filename = mapname.replace(/\.gat$/i, ".rsw");
 				Background.setLoading(function() {
 					if (loadId !== MapRenderer._loadId) return;
+					MapRenderer._keptUI = keep;
+					setKeptUIVisibility("hidden");
 					Thread.hook("MAP_PROGRESS", loadEvent(onProgressUpdate));
 					Thread.hook("MAP_WORLD", loadEvent(onWorldComplete));
 					Thread.hook("MAP_GROUND", loadEvent(onGroundComplete));
@@ -260388,6 +260442,7 @@ var init_MapRenderer = __esmMin((() => {
 			this._loadId++;
 			this._loadRequest = 0;
 			this.loading = false;
+			setKeptUIVisibility("");
 		}
 		/**
 		* Clean up data
@@ -260492,12 +260547,12 @@ var init_MapRenderer = __esmMin((() => {
 //#endregion
 //#region src/Renderer/Camera.js
 function save$1() {
-	_pending = false;
+	_pending$1 = false;
 	if (!DB.isIndoor(Camera.currentMap)) Camera_default.zoom = Camera.zoomFinal;
 	else Camera_default.indoorZoom = Camera.zoomFinal;
 	Camera_default.save();
 }
-var mat4$10, mat3, vec2$2, vec3$1, _position$1, C_MIN_ZOOM, C_MAX_ZOOM, C_MIN_V_ANGLE_ISOMETRIC, C_MAX_V_ANGLE_ISOMETRIC, C_THIRDPERSON_TRESHOLD_ZOOM, C_MIN_V_ANGLE_3RDPERSON, C_MAX_V_ANGLE_3RDPERSON, C_MIN_V_ANGLE_1STPERSON, C_MAX_V_ANGLE_1STPERSON, C_QUAKE_MULT, _pending, Camera;
+var mat4$10, mat3, vec2$2, vec3$1, _position$1, C_MIN_ZOOM, C_MAX_ZOOM, C_MIN_V_ANGLE_ISOMETRIC, C_MAX_V_ANGLE_ISOMETRIC, C_THIRDPERSON_TRESHOLD_ZOOM, C_MIN_V_ANGLE_3RDPERSON, C_MAX_V_ANGLE_3RDPERSON, C_MIN_V_ANGLE_1STPERSON, C_MAX_V_ANGLE_1STPERSON, C_QUAKE_MULT, _pending$1, Camera;
 var init_Camera = __esmMin((() => {
 	init_KeyEventHandler();
 	init_MouseEventHandler();
@@ -260520,7 +260575,7 @@ var init_Camera = __esmMin((() => {
 	C_MIN_V_ANGLE_1STPERSON = 90;
 	C_MAX_V_ANGLE_1STPERSON = 270;
 	C_QUAKE_MULT = .1;
-	_pending = false;
+	_pending$1 = false;
 	Camera = class Camera {
 		/**
 		* Projection matrix
@@ -260629,9 +260684,9 @@ var init_Camera = __esmMin((() => {
 		* Save the camera settings
 		*/
 		static save() {
-			if (!_pending) {
+			if (!_pending$1) {
 				Events.setTimeout(save$1, 3e3);
-				_pending = true;
+				_pending$1 = true;
 			}
 		}
 		/**
@@ -313156,8 +313211,8 @@ function getEntityByGID(gid) {
 */
 function getEntityIndexBy(getter, value) {
 	if (value < 0) return -1;
-	const count = _list.length;
-	for (let i = 0; i < count; ++i) if (getter(_list[i]) === value) return i;
+	const count = _list$1.length;
+	for (let i = 0; i < count; ++i) if (getter(_list$1[i]) === value) return i;
 	return -1;
 }
 /**
@@ -313166,8 +313221,8 @@ function getEntityIndexBy(getter, value) {
 * @param {function} callback
 */
 function forEach(callback) {
-	const count = _list.length;
-	for (let i = 0; i < count; ++i) if (callback(_list[i]) === false) return;
+	const count = _list$1.length;
+	for (let i = 0; i < count; ++i) if (callback(_list$1[i]) === false) return;
 }
 /**
 * Find an Entity and return it
@@ -313200,7 +313255,7 @@ function storePendingTransform(aid, key, value) {
 function getEntityByCID(aid) {
 	if (SessionStorage_default.Entity && SessionStorage_default.Entity.AID === aid) return SessionStorage_default.Entity;
 	const index = getEntityIndexBy((e) => e.AID, aid);
-	return index < 0 ? null : _list[index];
+	return index < 0 ? null : _list$1[index];
 }
 /**
 * Add or replace entity
@@ -313211,7 +313266,7 @@ function getEntityByCID(aid) {
 function addEntity(entity) {
 	const existing = getEntityByGID(entity.GID);
 	if (!existing) {
-		_list.push(entity);
+		_list$1.push(entity);
 		_gidMap.set(entity.GID, entity);
 		_renderSortDirty = true;
 		_pickSortDirty = true;
@@ -313225,11 +313280,11 @@ function addEntity(entity) {
 * Clean up entities from list
 */
 function free() {
-	_list.forEach((entity) => {
+	_list$1.forEach((entity) => {
 		releaseGr2(entity);
 		entity.clean();
 	});
-	_list.length = 0;
+	_list$1.length = 0;
 	_gidMap.clear();
 	_pickList.length = 0;
 	_renderSortDirty = true;
@@ -313254,8 +313309,8 @@ function removeEntity(gid) {
 		releaseGr2(entity);
 		entity.clean();
 		_gidMap.delete(gid);
-		const index = _list.indexOf(entity);
-		if (index > -1) _list.splice(index, 1);
+		const index = _list$1.indexOf(entity);
+		if (index > -1) _list$1.splice(index, 1);
 		_renderSortDirty = true;
 		_pickSortDirty = true;
 	}
@@ -313365,34 +313420,34 @@ function isCulled(culling, entity) {
 function render$4(gl, modelView, projection, fog, renderEffects) {
 	let i, count;
 	const tick = Date.now();
-	if (!_list.length) return;
+	if (!_list$1.length) return;
 	_renderFrameCounter++;
 	if (_renderSortDirty || (GraphicsSettings.performanceMode ? _renderFrameCounter >= 6 : _renderFrameCounter >= 3)) {
-		_list.sort(sort);
+		_list$1.sort(sort);
 		_renderSortDirty = false;
 		_renderFrameCounter = 0;
 		_pickSortDirty = true;
 	}
 	SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
 	const culling = getCulling();
-	for (i = 0, count = _list.length; i < count; ++i) if (_list[i].objecttype != _list[i].constructor.TYPE_EFFECT && !renderEffects || _list[i].objecttype == _list[i].constructor.TYPE_EFFECT && renderEffects) {
-		if (_list[i].remove_tick && _list[i].remove_tick + _list[i].remove_delay < tick) {
+	for (i = 0, count = _list$1.length; i < count; ++i) if (_list$1[i].objecttype != _list$1[i].constructor.TYPE_EFFECT && !renderEffects || _list$1[i].objecttype == _list$1[i].constructor.TYPE_EFFECT && renderEffects) {
+		if (_list$1[i].remove_tick && _list$1[i].remove_tick + _list$1[i].remove_delay < tick) {
 			const entityFocus = getFocusEntity();
-			if (entityFocus && entityFocus.GID === _list[i].GID) {
+			if (entityFocus && entityFocus.GID === _list$1[i].GID) {
 				entityFocus.onFocusEnd();
 				setFocusEntity(null);
 			}
-			_gidMap.delete(_list[i].GID);
-			releaseGr2(_list[i]);
-			_list[i].clean();
-			_list.splice(i, 1);
+			_gidMap.delete(_list$1[i].GID);
+			releaseGr2(_list$1[i]);
+			_list$1[i].clean();
+			_list$1.splice(i, 1);
 			i--;
 			count--;
 			_pickSortDirty = true;
 			continue;
 		}
-		if (isCulled(culling, _list[i])) continue;
-		_list[i].render(modelView, projection);
+		if (isCulled(culling, _list$1[i])) continue;
+		_list$1[i].render(modelView, projection);
 	}
 	SpriteRenderer.unbind(gl);
 }
@@ -313402,9 +313457,9 @@ function render$4(gl, modelView, projection, fog, renderEffects) {
 function intersect() {
 	let i, count;
 	let entity;
-	if (!_list.length) return;
+	if (!_list$1.length) return;
 	if (_pickSortDirty || _lastSupportPriority !== _supportPriority) {
-		_pickList = _list.slice();
+		_pickList = _list$1.slice();
 		_pickList.sort(sortByPriority);
 		_pickSortDirty = false;
 		_lastSupportPriority = _supportPriority;
@@ -313444,7 +313499,7 @@ function getClosestEntity(sourceEntity, type) {
 	const srcY = sourceEntity.position[1];
 	const view_range = GraphicsSettings.performanceMode ? GraphicsSettings.viewArea : 20;
 	const viewRangeSq = view_range * view_range;
-	_list.forEach((entity) => {
+	_list$1.forEach((entity) => {
 		if (entity.GID !== sourceEntity.GID && entity.objecttype === type && entity.action !== entity.ACTION.DIE && entity.remove_tick === 0) {
 			const dx = entity.position[0] - srcX;
 			const dy = entity.position[1] - srcY;
@@ -313483,7 +313538,7 @@ function getLowestHpEntity(sourceEntity, type) {
 	const srcY = sourceEntity.position[1];
 	const view_range = GraphicsSettings.performanceMode ? GraphicsSettings.viewArea : 20;
 	const viewRangeSq = view_range * view_range;
-	_list.forEach((entity) => {
+	_list$1.forEach((entity) => {
 		if (entity.GID !== sourceEntity.GID && entity.objecttype === type && entity.life && entity.life.hp > 0 && entity.action !== entity.ACTION.DIE && entity.remove_tick === 0) {
 			const dx = entity.position[0] - srcX;
 			const dy = entity.position[1] - srcY;
@@ -313524,7 +313579,7 @@ function removeLife(gid) {
 function clearLifeCache() {
 	_lifeCache.clear();
 }
-var _list, _gidMap, _renderSortDirty, _renderFrameCounter, _pickSortDirty, _pickList, _lastSupportPriority, pendingTransformations, _over, _saveShift, _focus, _supportPriority, _lifeCache, EntityManager$1;
+var _list$1, _gidMap, _renderSortDirty, _renderFrameCounter, _pickSortDirty, _pickList, _lastSupportPriority, pendingTransformations, _over, _saveShift, _focus, _supportPriority, _lifeCache, EntityManager$1;
 var init_EntityManager = __esmMin((() => {
 	init_SessionStorage();
 	init_Entity$1();
@@ -313536,7 +313591,7 @@ var init_EntityManager = __esmMin((() => {
 	init_Altitude();
 	init_Water();
 	init_GR2ModelRenderer();
-	_list = [];
+	_list$1 = [];
 	_gidMap = /* @__PURE__ */ new Map();
 	_renderSortDirty = true;
 	_renderFrameCounter = 0;
@@ -314526,6 +314581,7 @@ var init_GUIComponent = __esmMin((() => {
 		* Equivalent to UIComponent.prototype.append().
 		*
 		* @param {HTMLElement|string} [target] - Target element. Defaults to document.body.
+		* @see docs/reference/map-transition.md
 		*/
 		append(target) {
 			this.__active = true;
@@ -314539,7 +314595,7 @@ var init_GUIComponent = __esmMin((() => {
 				console.error("[GUIComponent] Unable to find target element for appending UI.");
 				return;
 			}
-			parent.appendChild(this._host);
+			if (this._host.parentNode !== parent) parent.appendChild(this._host);
 			if (this._noCursorStyle) _trackNoCursorStyle(this._noCursorStyle);
 			if (this.onKeyDown) this._bindKeyDown();
 			if (this.mouseMode === MouseMode.FREEZE) {
@@ -314572,23 +314628,43 @@ var init_GUIComponent = __esmMin((() => {
 		*/
 		remove() {
 			this.__active = false;
-			if (this.__loaded && this._host && this._host.parentNode) {
-				if (this.onRemove) this.onRemove();
-				this._unbindKeyDown();
-				this._host.dispatchEvent(new Event("x_remove"));
-				if (this._shadow) this._shadow.querySelectorAll("*").forEach((node) => {
-					node.dispatchEvent(new Event("x_remove"));
-				});
-				this._host.remove();
-				if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
-				if (this.mouseMode === MouseMode.FREEZE) {
-					Mouse.intersect = true;
-					SessionStorage_default.FreezeUI = false;
-				}
-				if (this.__scrollbarObserver) {
-					this.__scrollbarObserver.disconnect();
-					this.__scrollbarObserver = null;
-				}
+			if (this.__loaded && this._host && this._host.parentNode) this._release(true);
+		}
+		/**
+		* Run the remove and append lifecycle without detaching the host,
+		* so the component restarts in place.
+		*
+		* @see docs/reference/map-transition.md
+		*/
+		rebuild() {
+			const parent = this._host && this._host.parentNode;
+			if (this.__active && this.__loaded && parent) {
+				this.__active = false;
+				this._release(false);
+			}
+			this.append(parent || void 0);
+		}
+		/**
+		* Remove lifecycle of an attached component
+		*
+		* @param {boolean} detach - also take the host out of the DOM
+		*/
+		_release(detach) {
+			if (this.onRemove) this.onRemove();
+			this._unbindKeyDown();
+			this._host.dispatchEvent(new Event("x_remove"));
+			if (this._shadow) this._shadow.querySelectorAll("*").forEach((node) => {
+				node.dispatchEvent(new Event("x_remove"));
+			});
+			if (detach) this._host.remove();
+			if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
+			if (this.mouseMode === MouseMode.FREEZE) {
+				Mouse.intersect = true;
+				SessionStorage_default.FreezeUI = false;
+			}
+			if (this.__scrollbarObserver) {
+				this.__scrollbarObserver.disconnect();
+				this.__scrollbarObserver = null;
 			}
 		}
 		/**
@@ -315457,11 +315533,17 @@ var init_UIManager = __esmMin((() => {
 		}
 		/**
 		* Remove all components in screen
+		*
+		* @param {Array<GUIComponent>} [keep] components left attached
+		* @see docs/reference/map-transition.md
 		*/
-		static removeComponents() {
+		static removeComponents(keep = []) {
 			const keys = Object.keys(this.components);
 			const count = keys.length;
-			for (let i = 0; i < count; ++i) this.components[keys[i]].remove();
+			for (let i = 0; i < count; ++i) {
+				const component = this.components[keys[i]];
+				if (!keep.includes(component)) component.remove();
+			}
 		}
 		/**
 		* When resizing window, some components can be outside the screen size and
@@ -338844,11 +338926,29 @@ function onConnectionRefused$2(pkt) {
 	UIManager.showErrorBox(DB.getMessage(9));
 }
 /**
+* Components of the map UI, kept attached across a map transition
+*
+* @return {Array<GUIComponent>}
+* @see docs/reference/map-transition.md
+*/
+function getMapUI() {
+	const ui = [Controller$5.getUI()];
+	ui.push(ChatBox_default, ChatBoxSettings_default, BasicInfoController.getUI(), Escape_default, InventoryController.getUI(), CartItems_default, Vending_default, ChangeCart_default, CartDecoration_default, EquipmentController.getUI(), ShortCuts_default, StatusIcons_default, ShortCut_default, ChatRoomCreate_default, Emoticons_default, Controller$4.getUI(), FPS_default, controller.getUI(), Guild_default, WorldMap_default, SkillListMH_default.homunculus, SkillListMH_default.mercenary, MobileUI_default, JoystickUI_default, Navigation_default, Roulette_default);
+	if (Configs.get("enableAchievements") && PacketVerManager_default.value >= 20150513) ui.push(Achievement_default);
+	if (SessionStorage_default.PCGoldTimer) ui.push(PCGoldTimer_default);
+	ui.push(WinStatsController.getUI(), Controller$3.getUI());
+	if (Configs.get("enableCashShop")) ui.push(CashShopIcon_default);
+	if (Configs.get("enableCheckAttendance") && PacketVerManager_default.value >= 20180307) ui.push(CheckAttendance_default);
+	return ui;
+}
+/**
 * Changing map, loading new map
 *
 * @param {object} pkt - PACKET.ZC.NPCACK_MAPMOVE
+* @see docs/reference/map-transition.md
 */
 function onMapChange(pkt) {
+	const ui = getMapUI();
 	MapRenderer.onLoad = () => {
 		SessionStorage_default.Entity.set({
 			PosDir: [
@@ -338906,44 +339006,12 @@ function onMapChange(pkt) {
 		}
 		Camera.setTarget(SessionStorage_default.Entity);
 		Camera.init();
-		Controller$5.getUI().append();
+		for (let i = 0; i < ui.length; ++i) ui[i].rebuild();
 		Controller$5.getUI().setMap(MapRenderer.currentMap);
 		if (Configs.get("enableMapName")) {
 			MapName_default.setMap(MapRenderer.currentMap);
 			MapName_default.append();
 		}
-		ChatBox_default.append();
-		ChatBoxSettings_default.append();
-		BasicInfoController.getUI().append();
-		Escape_default.append();
-		InventoryController.getUI().append();
-		CartItems_default.append();
-		Vending_default.append();
-		ChangeCart_default.append();
-		CartDecoration_default.append();
-		EquipmentController.getUI().append();
-		ShortCuts_default.append();
-		StatusIcons_default.append();
-		ShortCut_default.append();
-		ChatRoomCreate_default.append();
-		Emoticons_default.append();
-		Controller$4.getUI().append();
-		FPS_default.append();
-		controller.getUI().append();
-		Guild_default.append();
-		WorldMap_default.append();
-		SkillListMH_default.homunculus.append();
-		SkillListMH_default.mercenary.append();
-		MobileUI_default.append();
-		JoystickUI_default.append();
-		Navigation_default.append();
-		Roulette_default.append();
-		if (Configs.get("enableAchievements") && PacketVerManager_default.value >= 20150513) Achievement_default.append();
-		if (SessionStorage_default.PCGoldTimer) PCGoldTimer_default.append();
-		WinStatsController.getUI().append();
-		Controller$3.getUI().append();
-		if (Configs.get("enableCashShop")) CashShopIcon_default.append();
-		if (Configs.get("enableCheckAttendance") && PacketVerManager_default.value >= 20180307) CheckAttendance_default.append();
 		Plugins.init();
 		Network.sendPacket(new PACKET$1.CZ.NOTIFY_ACTORINIT());
 		if (SessionStorage_default.ratesInfo) {
@@ -338956,7 +339024,7 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 	};
-	MapRenderer.setMap(pkt.mapName);
+	MapRenderer.setMap(pkt.mapName, ui);
 }
 /**
 * Change zone server
@@ -348916,7 +348984,7 @@ function loadFiles(callback) {
 			q._next();
 		};
 		if (Configs.get("skipIntro")) {
-			Client.init([]);
+			Client.init(Configs.get("files") || []);
 			return;
 		}
 		Intro_default.onFilesSubmit = Client.init.bind(Client);
@@ -349319,7 +349387,7 @@ var event_bus_exports = /* @__PURE__ */ __exportAll({
 	on: () => on$1,
 	onFirstListener: () => onFirstListener,
 	once: () => once,
-	stats: () => stats$1
+	stats: () => stats$2
 });
 /**
 * event-bus — tiny publish/subscribe bus for the native plugin host.
@@ -349423,7 +349491,7 @@ var off = _bus.off;
 var once = _bus.once;
 var emit = _bus.emit;
 var onFirstListener = _bus.onFirstListener;
-var stats$1 = _bus.stats;
+var stats$2 = _bus.stats;
 function getBus() {
 	return _bus;
 }
@@ -349887,7 +349955,7 @@ var lifecycle_exports = /* @__PURE__ */ __exportAll({
 	registerCleanup: () => registerCleanup,
 	setCurrentPlugin: () => setCurrentPlugin,
 	setLogger: () => setLogger,
-	stats: () => stats,
+	stats: () => stats$1,
 	transition: () => transition
 });
 var PHASE_ORDER = [
@@ -350039,7 +350107,7 @@ function hasReached(phase) {
 function cleanupCount() {
 	return _lifecycle.cleanupCount();
 }
-function stats() {
+function stats$1() {
 	return _lifecycle.stats();
 }
 function getLifecycle() {
@@ -350818,6 +350886,219 @@ function devLogStatus() {
 	};
 }
 //#endregion
+//#region src/Plugins/native-manager/asset-worker-core.js
+/**
+* Run a request through a middleware list
+* A middleware returns a Response to answer, undefined to fall through, or awaits next() to wrap
+*
+* @param {Array<function>} list
+* @param {Request} req
+* @param {function} origFetch - called once, when the list is exhausted
+* @return {Promise<Response>}
+*/
+function runChain(list, req, origFetch) {
+	let i = 0;
+	const next = async () => {
+		if (i >= list.length) return origFetch(req);
+		const res = await list[i++](req, next);
+		return res === void 0 ? next() : res;
+	};
+	return next();
+}
+//#endregion
+//#region src/Plugins/native-manager/libs/fetch-intercept.js
+/**
+* Plugins/native-manager/libs/fetch-intercept.js
+*
+* Page-side fetch middleware API, served to plugins as `deps.libs['fetch-intercept']`
+*
+* A middleware is `async (req, next) => Response | undefined`. It runs on the page and, rebuilt from its
+* source, in the asset worker: no closure crosses over, state goes through `config` / `self.__RO_config`.
+* Active only when ROConfig.fetchIntercept made the native manager start the asset worker.
+*/
+/**
+* @var {Worker|null} asset worker, set by the native manager
+*/
+var _worker = null;
+/**
+* @var {number} last middleware id
+*/
+var _seq = 0;
+/**
+* @var {function|null} window.fetch before the page chain was installed
+*/
+var _origFetch = null;
+/**
+* Page-side middleware list
+* @var {Array<function>}
+*/
+var _list = [];
+/**
+* Messages posted before the worker exists
+* @var {Array<object>}
+*/
+var _pending = [];
+/**
+* onWorkerReady callbacks waiting for the worker
+* @var {Array<function>}
+*/
+var _readyCallbacks = [];
+/**
+* @var {object} last stats posted by the worker
+*/
+var _workerStats = {
+	hits: 0,
+	misses: 0,
+	bytes: 0
+};
+/**
+* Post a message to the worker, or queue it
+*
+* @param {object} msg
+*/
+function post(msg) {
+	if (_worker) _worker.postMessage(msg);
+	else _pending.push(msg);
+}
+/**
+* Track the worker's stats and failed registrations
+*
+* @param {MessageEvent} event
+*/
+function onWorkerMessage(event) {
+	const msg = event.data;
+	if (!msg) return;
+	if (msg.type === "__RO_intercept_stats") _workerStats = {
+		hits: msg.hits,
+		misses: msg.misses,
+		bytes: msg.bytes
+	};
+	else if (msg.type === "__RO_intercept_registered" && !msg.ok) console.error("[fetch-intercept] worker rejected middleware " + msg.id + ": " + msg.error);
+}
+/**
+* Hand the asset worker to the lib: enables it, flushes queued messages and ready callbacks
+* Called by the native manager only
+*
+* @param {Worker} assetWorker
+*/
+function attachWorker(assetWorker) {
+	_worker = assetWorker;
+	assetWorker.addEventListener("message", onWorkerMessage);
+	for (let i = 0; i < _pending.length; ++i) assetWorker.postMessage(_pending[i]);
+	_pending.length = 0;
+	const callbacks = _readyCallbacks.splice(0);
+	for (let i = 0; i < callbacks.length; ++i) callbacks[i](assetWorker);
+}
+/**
+* Whether the server enabled fetch interception
+*
+* @return {boolean}
+*/
+function enabled() {
+	return _worker !== null;
+}
+/**
+* Register a middleware on the page and in the asset worker
+*
+* @param {function} fn - `async (req, next) => Response | undefined`, serialisable with toString()
+* @param {object} [config] - merged into the worker's `self.__RO_config` before `fn` is rebuilt
+* @return {{id: number, fn: function, config: object}} handle for unregister()
+*/
+function register$1(fn, config = {}) {
+	if (!enabled()) throw new Error("fetchIntercept disabled by server config");
+	if (!_origFetch) {
+		_origFetch = window.fetch.bind(window);
+		window.fetch = (input, init) => runChain(_list, new Request(input, init), _origFetch);
+	}
+	const id = ++_seq;
+	_list.push(fn);
+	post({
+		type: "__RO_intercept_register",
+		id,
+		config,
+		code: fn.toString()
+	});
+	return {
+		id,
+		fn,
+		config
+	};
+}
+/**
+* Remove a middleware registered with register()
+*
+* @param {{id: number, fn: function}} handle
+*/
+function unregister(handle) {
+	const index = _list.indexOf(handle.fn);
+	if (index >= 0) _list.splice(index, 1);
+	post({
+		type: "__RO_intercept_unregister",
+		id: handle.id
+	});
+}
+/**
+* Merge settings into the page and worker `__RO_config`
+*
+* @param {object} cfg
+*/
+function setConfig(cfg) {
+	window.__RO_config = Object.assign(window.__RO_config || {}, cfg);
+	post({
+		type: "__RO_setConfig",
+		config: cfg
+	});
+}
+/**
+* Call back with the asset worker once it exists
+*
+* @param {function} callback - receives the Worker
+*/
+function onWorkerReady(callback) {
+	if (_worker) callback(_worker);
+	else _readyCallbacks.push(callback);
+}
+/**
+* @return {Worker|null}
+*/
+function worker() {
+	return _worker;
+}
+/**
+* @return {boolean}
+*/
+function workerAvailable() {
+	return _worker !== null;
+}
+/**
+* Hit / miss counters: `worker` is the last 3 s report, `main` is kept for the userscript API shape
+*
+* @return {{main: object, worker: object}}
+*/
+function stats() {
+	return {
+		main: {
+			hits: 0,
+			misses: 0,
+			bytes: 0
+		},
+		worker: { ..._workerStats }
+	};
+}
+/**
+* Public API given to plugins
+*/
+var fetchIntercept = Object.freeze({
+	register: register$1,
+	unregister,
+	setConfig,
+	worker,
+	onWorkerReady,
+	workerAvailable,
+	stats,
+	enabled
+});
+//#endregion
 //#region src/Plugins/native-manager/di.js
 /**
 * Native Plugin Manager — DI map assembly.
@@ -350845,7 +351126,8 @@ var LIBS = Object.freeze({
 	icons: icons_exports,
 	"packet-observer": packet_observer_exports,
 	"socket-observer": socket_observer_exports,
-	"dev-log": dev_log_exports
+	"dev-log": dev_log_exports,
+	"fetch-intercept": fetchIntercept
 });
 /**
 * Build the DI map for a plugin's `init(pars, diMap)`.
@@ -351018,6 +351300,7 @@ function resolveDepExports(depNames, results, namespaces) {
 //#endregion
 //#region src/Plugins/native-manager/index.js
 init_Configs();
+init_Thread();
 init_preload_helper();
 var _initialized = false;
 var _initPromise = null;
@@ -351101,12 +351384,41 @@ async function collectEntry(url, pars, configName) {
 }
 function _noop() {}
 /**
+* Turn a registration's outcome into a status record, logging either way.
+* @param {string} name
+* @param {*} ret the init()-return
+* @param {Error} [err] the thrown error, if init threw
+* @returns {{status:'ok'|'failed', error?:string}}
+*/
+function _registrationStatus(name, ret, err) {
+	if (err) {
+		const error = err.message || String(err);
+		console.error("[NativePM] Plugin init failed: " + name + " — " + error, err);
+		return {
+			status: "failed",
+			error
+		};
+	}
+	if (ret === false) {
+		const error = "init() returned false";
+		console.error("[NativePM] Plugin init failed: " + name + " — init() returned false");
+		return {
+			status: "failed",
+			error
+		};
+	}
+	console.log("[NativePM] registered: " + name);
+	return { status: "ok" };
+}
+/**
 * Do the runtime registration: resolve the plugin's declared deps against the
-* live registry, register it (awaiting init), record it.
+* live registry, register it (awaiting init), record it. An init throw or a
+* `false` return is recorded as a failed status and resolves `false` — it
+* never rejects (a shape error from the guard above still throws).
 * @param {{ name:string, deps?:string[], init:Function }} def
 * @param {*} pars
 * @param {object} [mod] the imported module namespace (dep-fallback export)
-* @returns {Promise<*>} the plugin's init()-return
+* @returns {Promise<*>} the plugin's init()-return, or `false` on failure
 */
 async function _doRegisterRuntime(def, pars, mod) {
 	if (!def || typeof def.init !== "function") throw new Error("[NativePM] runtime register: invalid plugin (missing init)");
@@ -351114,10 +351426,14 @@ async function _doRegisterRuntime(def, pars, mod) {
 	if (mod) namespaces[key] = mod;
 	const pluginExports = resolveDepExports(Array.isArray(def.deps) ? def.deps : [], results, namespaces);
 	pluginExports.PluginHost = HOST;
-	const ret = await register(def, pars, pluginExports, key);
-	registered[key] = true;
-	console.log("[NativePM] registered: " + key);
-	return ret;
+	try {
+		const ret = await register(def, pars, pluginExports, key);
+		registered[key] = _registrationStatus(key, ret);
+		return ret;
+	} catch (err) {
+		registered[key] = _registrationStatus(key, void 0, err);
+		return false;
+	}
 }
 var _runtimeChain = Promise.resolve();
 /**
@@ -351149,12 +351465,24 @@ function unregisterRuntime(name) {
 	delete registered[name];
 }
 /**
-* Live registered plugins, as `[{ name }]` — the array form a caller can probe
-* with `.some(p => p.name === …)` before registering/unregistering.
-* @returns {Array<{name:string}>}
+* Live registered plugins, as `[{ name, status, error? }]` — the array form a
+* caller can probe with `.some(p => p.name === …)` before registering/unregistering.
+* @returns {Array<{name:string, status:'ok'|'failed', error?:string}>}
 */
 function listRuntime() {
-	return Object.keys(registered).map((name) => ({ name }));
+	const list = [];
+	for (const name in registered) {
+		const entry = registered[name];
+		list.push(entry.error ? {
+			name,
+			status: entry.status,
+			error: entry.error
+		} : {
+			name,
+			status: entry.status
+		});
+	}
+	return list;
 }
 /**
 * Runtime registration capability injected into every plugin's DI map (as
@@ -351191,13 +351519,34 @@ async function run() {
 		const pluginExports = resolveDepExports(Array.isArray(e.def.deps) ? e.def.deps : [], results, namespaces);
 		pluginExports.PluginHost = HOST;
 		try {
-			await register(e.def, e.pars, pluginExports, e.name);
-			registered[e.name] = true;
-			console.log("[NativePM] registered: " + e.name);
+			const ret = await register(e.def, e.pars, pluginExports, e.name);
+			registered[e.name] = _registrationStatus(e.name, ret);
 		} catch (err) {
-			console.error("[NativePM] Plugin init failed: " + e.name, err);
+			registered[e.name] = _registrationStatus(e.name, void 0, err);
 		}
 	}
+}
+/**
+* With ROConfig.fetchIntercept, hand the thread our asset worker before
+* GameEngine's Thread.init() creates the core one. A worker name containing
+* `nofs` makes it skip the FileSystem cache.
+*/
+function startAssetWorker() {
+	if (!Configs.get("fetchIntercept")) return;
+	let name = "asset-worker";
+	try {
+		if (localStorage.getItem("RO_DISABLE_FILESYSTEM") === "1") name += "-nofs";
+	} catch {}
+	const worker = new Worker(new URL(
+		/* @vite-ignore */
+		new URL("asset-worker.js", import.meta.url).href,
+		"" + import.meta.url
+	), {
+		type: "module",
+		name
+	});
+	Thread.delegate(worker);
+	attachWorker(worker);
 }
 var NativePluginManager = { 
 /**
@@ -351208,6 +351557,7 @@ var NativePluginManager = {
 init() {
 	if (_initialized) return _initPromise;
 	_initialized = true;
+	startAssetWorker();
 	_initPromise = run();
 	return _initPromise;
 } };
