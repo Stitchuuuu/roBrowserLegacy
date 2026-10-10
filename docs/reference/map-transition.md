@@ -62,7 +62,7 @@ The three builds agree on all of this.
   `setLoading` fades out and cuts to the image. `remove` cuts to black when a
   background image is up (after a map load) and fades when it is not
   (same-map teleport). It always fades from black, once the display frames
-  come back on time: three in a row under 25 ms, waiting at most a second.
+  stay on time: 150 ms of frames under 25 ms each, waiting at most a second.
   The work done at black (the windows restarting, the first frames of a new
   map) then lands before the fade, not in it.
 - **`CZ_NOTIFY_ACTORINIT`**: a same-map teleport sends it before the fade, as

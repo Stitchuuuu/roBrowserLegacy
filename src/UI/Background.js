@@ -28,9 +28,9 @@ const TRANSITION_DURATION = 255;
 const SETTLE_FRAME = 25;
 
 /**
- * @var {number} frames on time in a row before fading from black
+ * @var {number} how long the frames stay on time before fading from black, in ms
  */
-const SETTLE_FRAMES = 3;
+const SETTLE_TIME = 150;
 
 /**
  * @var {number} longest wait at black, in ms
@@ -409,7 +409,7 @@ function whenSettled(callback) {
 	let cancelled = false;
 	let start = -1;
 	let last = 0;
-	let onTime = 0;
+	let calmSince = 0;
 
 	function frame(now) {
 		if (cancelled) {
@@ -417,12 +417,13 @@ function whenSettled(callback) {
 		}
 		if (start < 0) {
 			start = now;
-		} else {
-			onTime = now - last < SETTLE_FRAME ? onTime + 1 : 0;
+			calmSince = now;
+		} else if (now - last >= SETTLE_FRAME) {
+			calmSince = now;
 		}
 		last = now;
 
-		if (onTime >= SETTLE_FRAMES || now - start >= SETTLE_LIMIT) {
+		if (now - calmSince >= SETTLE_TIME || now - start >= SETTLE_LIMIT) {
 			callback();
 			return;
 		}
