@@ -1136,6 +1136,11 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 				return false;
 			}
 
+			// Selection windows validate on Enter themselves
+			if (document.querySelector('#ItemSelection, #MakeItemSelection')) {
+				return true;
+			}
+
 			const input = root.querySelector('.input');
 			if (input && input.style.display === 'none') {
 				input.style.display = 'block';
