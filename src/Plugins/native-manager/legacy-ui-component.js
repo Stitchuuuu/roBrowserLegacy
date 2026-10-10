@@ -12,10 +12,14 @@
  *     css/show/hide/offset… keep acting on the host ;
  *   - a root positioned against the page (absolute / fixed) hands its position
  *     to the host, which opens it where the old class did and gives dragging
- *     and clamping its real size.
+ *     and clamping its real size ;
+ *   - the `.ro-icon` classes are injected in the shadow root, where the
+ *     page-wide rule the old class relied on does not reach.
  * The lookup is a glob : a file missing from the fork is an absent key, not a
  * build error.
  */
+
+import { injectIconCss } from 'Plugins/native-manager/libs/icons.js';
 
 const BASES = import.meta.glob(['../../UI/UIComponent.js', '../../UI/GUIComponent.js'], {
 	eager: true,
@@ -69,6 +73,7 @@ function adapt(GUIComponent) {
 
 		_createUIProxy() {
 			super._createUIProxy();
+			injectIconCss(this._shadow);
 			const el = this._container.firstElementChild;
 			if (!el) {
 				return;
