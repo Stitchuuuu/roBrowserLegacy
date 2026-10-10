@@ -310169,12 +310169,13 @@ function UpdateBodyPalette(pal) {
 		this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
 		return;
 	}
-	if (hasMountPalettes !== void 0) {
-		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes ? job : this._job, pal, this._sex);
+	const host = Configs.get("remoteClient", "");
+	if (host in hasMountPalettes) {
+		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes[host] ? job : this._job, pal, this._sex);
 		return;
 	}
 	const answer = (present) => {
-		hasMountPalettes = present;
+		hasMountPalettes[host] = present;
 		UpdateBodyPalette.call(this, this._bodypalette);
 	};
 	Client.loadFile(MOUNT_PALETTE_SENTINEL, () => answer(true), () => answer(false));
@@ -310396,6 +310397,7 @@ function Init$5() {
 var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes;
 var init_EntityView = __esmMin((() => {
 	init_Client();
+	init_Configs();
 	init_DBManager();
 	init_ShadowTable();
 	init_MountTable();
@@ -310415,6 +310417,7 @@ var init_EntityView = __esmMin((() => {
 	AllMountJobs = {};
 	for (const baseJob in AllMountTable) AllMountJobs[AllMountTable[baseJob]] = true;
 	MOUNT_PALETTE_SENTINEL = DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0);
+	hasMountPalettes = {};
 }));
 //#endregion
 //#region src/Renderer/Entity/EntityWalk.js
