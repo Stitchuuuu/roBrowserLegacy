@@ -275,11 +275,12 @@ function _wirePackets() {
 		// successful one wins ; second one is a no-op (Symbol-guard).
 		_armBackgroundRemoveTrap('map-enter')
 		_armUIComponentAppendObserver()
-		// Fallback timer : if the Background.remove trap didn't install or its
-		// callback never fires, force map-ready 2.5s after map-enter so
-		// consumers don't deadlock waiting on the phase.
+		// Fallback timer : if the Background.remove trap didn't install, force
+		// map-ready 2.5s after map-enter so consumers don't deadlock waiting on
+		// the phase. With the trap, map-ready waits for the load, however long:
+		// windows mounted earlier would show over the loading screen.
 		if (_mapReadyFallbackTimer) {clearTimeout(_mapReadyFallbackTimer)}
-		_mapReadyFallbackTimer = setTimeout(() => _fireMapReady('fallback-timer'), 2500)
+		_mapReadyFallbackTimer = _trapInstalled ? null : setTimeout(() => _fireMapReady('fallback-timer'), 2500)
 	}
 	function wireMapEntry(names) {
 		const bound = []
@@ -454,8 +455,10 @@ function _armUIComponentAppendObserver() {
 		const result = original.apply(this, arguments)
 		// Only debounce-fire between map-leave and map-enter — outside that
 		// window, append() calls are user-driven and irrelevant to map-ready.
+		// With the Background.remove trap, map-ready waits for the load: a
+		// window appended while the map loads is not the end of it.
 		const s = _lifecycle.state
-		if (s === 'map-leave' || s === 'map-enter') {
+		if (!_trapInstalled && (s === 'map-leave' || s === 'map-enter')) {
 			if (_appendDebounceTimer) {clearTimeout(_appendDebounceTimer)}
 			_appendDebounceTimer = setTimeout(() => {
 				_appendDebounceTimer = null
