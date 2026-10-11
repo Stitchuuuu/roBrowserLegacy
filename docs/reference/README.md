@@ -8,6 +8,7 @@ Each subdirectory covers one subsystem:
 | directory | subsystem |
 |---|---|
 | [guild/](guild/) | the guild window, its six tabs, and the create / disband dialogs |
+| [map-transition.md](map-transition.md) | map change: the map name banner's timing |
 
 ## Where the details come from
 
