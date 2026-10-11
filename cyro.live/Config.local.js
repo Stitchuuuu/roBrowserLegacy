@@ -46,6 +46,9 @@ window.ROConfigLocal = {
 	}
 };
 
+// The tab says which server it plays.
+document.title = `${window.ROConfigLocal.servers[0].display} — ${document.title}`;
+
 for (const src of ['pwa/pwa-client.js', 'pwa/relay-client.js', 'gate.js']) {
 	document.head.appendChild(Object.assign(document.createElement('script'), { src, async: false }));
 }
