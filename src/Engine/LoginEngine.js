@@ -44,6 +44,19 @@ WinLoading.init = function () {
 	// this is the only one that renders a second line (the attempt number).
 	this.ui.find('.text').css('white-space', 'pre-line').text(DB.getMessage(121));
 };
+/**
+ * The attempt number from the second one on, while auto-retry runs. Set on
+ * every append so a popup shown again after the run carries no stale line.
+ */
+WinLoading.onAppend = function onAppend() {
+	let text = DB.getMessage(121);
+
+	if (AutoRetry.attempt() > 1) {
+		text += '\nAttempt #' + AutoRetry.attempt();
+	}
+
+	this.ui.find('.text').text(text);
+};
 UIManager.addComponent(WinLoading);
 
 /**
@@ -220,19 +233,6 @@ function failLogin(text, kind, code) {
 }
 
 /**
- * The loading popup's text, with the attempt number while auto-retry runs.
- */
-function setLoadingText() {
-	let text = DB.getMessage(121);
-
-	if (AutoRetry.armed()) {
-		text += '\nAttempt #' + AutoRetry.attempt();
-	}
-
-	WinLoading.ui.find('.text').text(text);
-}
-
-/**
  * Trying to connect to Login server
  *
  * @param {string} username
@@ -250,7 +250,6 @@ function onConnectionRequest(username, password) {
 	// Store the ID to use for the ping
 	WinLogin.getUI().remove();
 	WinLoading.append();
-	setLoadingText();
 	_loginID = username;
 
 	// Try to connect
@@ -352,7 +351,6 @@ function onCharServerSelected(index) {
 
 	WinList.remove();
 	WinLoading.append();
-	setLoadingText();
 
 	CharEngine.onExitRequest = reload;
 	Session.ServerName = _charServers[index].name; // Save server name
@@ -393,7 +391,6 @@ function onConnectionAccepted(pkt) {
 	// No choice, connect directly to the server
 	if (count === 1 && Configs.get('skipServerList')) {
 		WinLoading.append();
-		setLoadingText();
 		CharEngine.onExitRequest = reload;
 		Session.ServerName = _charServers[0].name; // Save server name
 		CharEngine.init(_charServers[0]);
