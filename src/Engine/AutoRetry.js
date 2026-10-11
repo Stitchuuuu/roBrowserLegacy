@@ -6,8 +6,9 @@
  *
  * Opt-in, from the checkbox under the login window. While armed it holds the
  * credentials the form submitted, counts the attempts so the loading popup can
- * show which one is running, and re-fires the connection after a failure that
- * can clear on its own, waiting longer each time.
+ * show which one is running, and re-fires the connection as soon as a failure
+ * that can clear on its own arrives — no sooner than the server's flood guard
+ * allows.
  *
  * It does not decide *when* it runs: the engines call in. They own the UI and
  * the sockets, this owns the state and the policy.
@@ -31,10 +32,11 @@ const _preferences = Preferences.get(
 );
 
 /**
- * @var {Array} milliseconds a failure stays on screen before the next attempt,
- * by attempt that failed, the last one repeating
+ * @var {number} milliseconds between two connections: the server bans the IP
+ * for 10 minutes after 6 connections each under 3 s from the previous one. The
+ * margin absorbs latency.
  */
-const DELAYS = [3000, 6000, 12000, 24000, 30000];
+const MIN_GAP = 3500;
 
 /**
  * Failures worth replaying, by packet. Everything absent here fails the same
@@ -62,6 +64,7 @@ const RETRY_BAN = {
 let _username = '';
 let _password = '';
 let _attempt = 0;
+let _armedAt = 0;
 let _timer = 0;
 
 const AutoRetry = {};
@@ -99,6 +102,7 @@ AutoRetry.arm = function arm(username = '', password = '') {
 	_username = username;
 	_password = password;
 	_attempt++;
+	_armedAt = Date.now();
 };
 
 /**
@@ -161,10 +165,10 @@ AutoRetry.canRetry = function canRetry(kind, code) {
 };
 
 /**
- * Leave the failure on screen long enough to read, then take it down and try
- * again. The box is dismissed from here rather than by its own button so the
- * loop needs no click — and clicking the button instead cancels, because that
- * path disarms.
+ * Take the failure down and try again, right away when the last connection is
+ * old enough, after the rest of MIN_GAP otherwise. The box is dismissed from
+ * here rather than by its own button so the loop needs no click — and clicking
+ * the button instead cancels, because that path disarms.
  *
  * @param {object} box - component returned by UIManager.showMessageBox
  * @param {function} [retry] - next attempt, the login replay by default
@@ -184,7 +188,7 @@ AutoRetry.schedule = function schedule(box, retry = AutoRetry.onRetry) {
 			}
 			retry(_username, _password);
 		},
-		DELAYS[Math.min(_attempt, DELAYS.length) - 1]
+		Math.max(0, MIN_GAP - (Date.now() - _armedAt))
 	);
 };
 
