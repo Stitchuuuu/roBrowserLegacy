@@ -71,6 +71,16 @@ let _pickedSlot = -1;
  */
 let _repickSlot = -1;
 
+/**
+ * @type {boolean} pick the character once the list is complete, if it is the only one
+ */
+let _pickOnly = false;
+
+/**
+ * @type {Array} characters listed since the char server accepted us
+ */
+let _listed = [];
+
 /*
  * Connect to char server
  *
@@ -189,6 +199,30 @@ function repickCharacter(charInfo, last) {
 }
 
 /**
+ * Go on to the map server with the account's only character, once the list is
+ * complete and holds exactly one.
+ *
+ * @param {Array} [charInfo] - characters just received
+ * @param {boolean} last - no more characters to come
+ */
+function pickOnlyCharacter(charInfo, last) {
+	if (!_pickOnly) {
+		return;
+	}
+
+	if (charInfo) {
+		_listed.push(...charInfo);
+	}
+
+	if (last) {
+		_pickOnly = false;
+		if (_listed.length === 1) {
+			onConnectRequest(_listed[0]);
+		}
+	}
+}
+
+/**
  * Request to go back to Login Window
  */
 function onExitRequest() {
@@ -229,6 +263,16 @@ function onConnectionAccepted(pkt) {
 
 	UIManager.getComponent('WinLoading').remove();
 
+	// List pages come through here too, after the header
+	const page =
+		pkt instanceof PACKET.HC.ACCEPT_ENTER_NEO_UNION_LIST || pkt instanceof PACKET.HC.ACCEPT_ENTER_NEO_UNION_LIST2;
+
+	if (!page) {
+		// Straight from an auto-retry login, a single character needs no click.
+		_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
+		_listed = [];
+	}
+
 	// We are on the char server — what auto-retry was waiting for, unless it
 	// came back to pick the same character again.
 	if (_repickSlot < 0) {
@@ -248,13 +292,9 @@ function onConnectionAccepted(pkt) {
 
 	// The header variant carries no list; a list page short of 3 characters
 	// ends the list, the other variants carry it whole
-	repickCharacter(
-		pkt.charInfo,
-		!!pkt.charInfo &&
-			(pkt.charInfo.length !== 3 ||
-				!(pkt instanceof PACKET.HC.ACCEPT_ENTER_NEO_UNION_LIST ||
-					pkt instanceof PACKET.HC.ACCEPT_ENTER_NEO_UNION_LIST2))
-	);
+	const last = !!pkt.charInfo && (!page || pkt.charInfo.length !== 3);
+	repickCharacter(pkt.charInfo, last);
+	pickOnlyCharacter(pkt.charInfo, last);
 
 	/**
 	 * In PACKETVERs < 20180124 that support pincode auth, we're supposed to
