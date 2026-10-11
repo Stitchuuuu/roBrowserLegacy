@@ -94,6 +94,22 @@ ui-button {
 	display: inline-block;
 }
 
+/* 3-slice text button, layers set by UIButton: left, right, mid */
+ui-button[skin] {
+	height: 20px;
+	padding: 0 6px;
+	line-height: 20px;
+	text-align: center;
+	white-space: nowrap;
+	background-repeat: no-repeat, no-repeat, repeat-x;
+	background-position:
+		left top,
+		right top,
+		left top;
+	background-origin: border-box, border-box, content-box;
+	background-clip: border-box, border-box, content-box;
+}
+
 .ui-btn {
 	-webkit-appearance: none;
 	appearance: none;
