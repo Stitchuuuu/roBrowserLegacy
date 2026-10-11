@@ -72,6 +72,16 @@ let _pickedSlot = -1;
  */
 let _repickSlot = -1;
 
+/**
+ * @type {boolean} pick the character once the list is complete, if it is the only one
+ */
+let _pickOnly = false;
+
+/**
+ * @type {Array} characters listed since the char server accepted us
+ */
+let _listed = [];
+
 class CharEngine {
 	/*
 	 * Connect to char server
@@ -184,6 +194,31 @@ function onCharacterListChunk(pkt) {
 
 	// A page short of 3 characters ends the list
 	repickCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+	pickOnlyCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+}
+
+/**
+ * Go on to the map server with the account's only character, once the list is
+ * complete and holds exactly one.
+ *
+ * @param {Array} [charInfo] - characters just received
+ * @param {boolean} last - no more characters to come
+ */
+function pickOnlyCharacter(charInfo, last) {
+	if (!_pickOnly) {
+		return;
+	}
+
+	if (charInfo) {
+		_listed.push(...charInfo);
+	}
+
+	if (last) {
+		_pickOnly = false;
+		if (_listed.length === 1) {
+			onConnectRequest(_listed[0]);
+		}
+	}
 }
 
 /**
@@ -248,6 +283,10 @@ function onConnectionAccepted(pkt) {
 
 	UIManager.getComponent('WinLoading').remove();
 
+	// Straight from an auto-retry login, a single character needs no click.
+	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
+	_listed = [];
+
 	// We are on the char server — what auto-retry was waiting for, unless it
 	// came back to pick the same character again.
 	if (_repickSlot < 0) {
@@ -266,6 +305,7 @@ function onConnectionAccepted(pkt) {
 
 	// The header variant carries no list, a later packet does
 	repickCharacter(pkt.charInfo, !!pkt.charInfo);
+	pickOnlyCharacter(pkt.charInfo, !!pkt.charInfo);
 
 	/**
 	 * In PACKETVERs < 20180124 that support pincode auth, we're supposed to

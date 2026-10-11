@@ -2,7 +2,8 @@
  * tests/engine/CharEngine.repick.test.js
  *
  * After a map server it could not reach, auto-retry reloads char select and
- * picks the same character again as soon as the list holds it.
+ * picks the same character again as soon as the list holds it. Straight from
+ * an auto-retry login, it picks an account's only character.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -159,5 +160,65 @@ describe('CharEngine re-pick after a failed map connect', () => {
 
 		expect(picked()).toEqual([]);
 		expect(AutoRetry.armed()).toBe(false);
+	});
+});
+
+describe('CharEngine pick of the only character', () => {
+	beforeEach(() => {
+		AutoRetry.setEnabled(true);
+		AutoRetry.disarm();
+		mocks.sent.length = 0;
+	});
+
+	afterEach(() => {
+		AutoRetry.setEnabled(false);
+	});
+
+	/** Reach char select from a login, as LoginEngine does with the box ticked. */
+	function login() {
+		AutoRetry.arm('user', 'pass');
+		CharEngine.init(SERVER);
+	}
+
+	it('picks it from a login with auto-retry on', () => {
+		login();
+		deliver('ACCEPT_ENTER_NEO_UNION', { charInfo: [{ CharNum: 4 }] });
+
+		expect(picked()).toEqual([4]);
+		// Counting again for the map server
+		expect(AutoRetry.attempt()).toBe(1);
+	});
+
+	it('waits for the last page of a paged list', () => {
+		login();
+		deliver('ACCEPT_ENTER_NEO_UNION_HEADER', {});
+		expect(picked()).toEqual([]);
+
+		deliver('ACCEPT_ENTER_NEO_UNION_LIST', { charInfo: [{ CharNum: 1 }] });
+		expect(picked()).toEqual([1]);
+	});
+
+	it('leaves the choice to the player with more than one character', () => {
+		login();
+		deliver('ACCEPT_ENTER_NEO_UNION_HEADER', {});
+		deliver('ACCEPT_ENTER_NEO_UNION_LIST', { charInfo: [{ CharNum: 0 }, { CharNum: 1 }, { CharNum: 2 }] });
+		deliver('ACCEPT_ENTER_NEO_UNION_LIST', { charInfo: [] });
+
+		expect(picked()).toEqual([]);
+	});
+
+	it('does not pick without auto-retry', () => {
+		AutoRetry.setEnabled(false);
+		CharEngine.init(SERVER);
+		deliver('ACCEPT_ENTER_NEO_UNION', { charInfo: [{ CharNum: 4 }] });
+
+		expect(picked()).toEqual([]);
+	});
+
+	it('does not pick when coming back from the game', () => {
+		CharEngine.reload(null);
+		deliver('ACCEPT_ENTER_NEO_UNION', { charInfo: [{ CharNum: 4 }] });
+
+		expect(picked()).toEqual([]);
 	});
 });
