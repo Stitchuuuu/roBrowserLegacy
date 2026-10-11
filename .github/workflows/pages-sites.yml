@@ -10,6 +10,10 @@ on:
     workflows: ["Deploy to GitHub Pages"]
     types: [completed]
     branches: [feat/native-plugin-manager]
+  # A change to the sites themselves redeploys them from SOURCE_BRANCH's current build.
+  push:
+    branches: [master]
+    paths: ['.github/pages-sites/**', '.github/workflows/pages-sites.yml']
   workflow_dispatch:
 
 concurrency:
@@ -24,7 +28,7 @@ env:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout default branch (pages-sites)
