@@ -89,6 +89,7 @@ CartItems.init = function Init() {
 	if (closeBtn) {
 		closeBtn.addEventListener('click', () => {
 			CartItems._host.style.display = 'none';
+			savePreferences();
 		});
 	}
 
@@ -185,15 +186,7 @@ CartItems.onRemove = function OnRemove() {
 	// Remove any ItemInfo instances from the document
 	document.querySelectorAll('.ItemInfo').forEach(el => el.remove());
 
-	// Save preferences
-	_preferences.show = this._host.style.display !== 'none';
-	_preferences.reduce = !!_realSize;
-	_preferences.y = parseInt(this._host.style.top, 10);
-	_preferences.x = parseInt(this._host.style.left, 10);
-	const hostRect = this._host.getBoundingClientRect();
-	_preferences.width = Math.floor((hostRect.width - (23 + 16 + 16 - 30)) / 32);
-	_preferences.height = Math.floor((hostRect.height - (31 + 19 - 30)) / 32);
-	_preferences.save();
+	savePreferences();
 };
 
 /**
@@ -533,6 +526,7 @@ function onResize() {
 		if (event.which === 1) {
 			clearInterval(_Interval);
 			window.removeEventListener('mouseup', onMouseUp);
+			savePreferences();
 		}
 	};
 	window.addEventListener('mouseup', onMouseUp);
@@ -558,6 +552,23 @@ function onToggleReduction() {
 			panel.style.display = 'none';
 		}
 	}
+}
+
+/**
+ * Save window position, size and state
+ * Size is read from the inline style, a hidden window has no rect
+ *
+ * @see docs/reference/cart-window.md
+ */
+function savePreferences() {
+	const host = CartItems._host;
+	_preferences.show = host.style.display !== 'none';
+	_preferences.reduce = !!_realSize;
+	_preferences.y = parseInt(host.style.top, 10);
+	_preferences.x = parseInt(host.style.left, 10);
+	_preferences.width = Math.floor((parseInt(host.style.width, 10) - (23 + 16 + 16 - 30)) / 32);
+	_preferences.height = Math.floor(((_realSize || parseInt(host.style.height, 10)) - (31 + 19 - 30)) / 32);
+	_preferences.save();
 }
 
 /**

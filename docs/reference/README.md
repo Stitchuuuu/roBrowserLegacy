@@ -3,11 +3,12 @@
 Background notes for parts of the UI where the code does something specific on
 purpose and the reason is not obvious from reading it.
 
-Each subdirectory covers one subsystem:
+Each subdirectory or note covers one subsystem:
 
 | directory | subsystem |
 |---|---|
 | [guild/](guild/) | the guild window, its six tabs, and the create / disband dialogs |
+| [cart-window.md](cart-window.md) | the cart window: when its position and size are saved, and its size limits |
 
 ## Where the details come from
 
