@@ -113,6 +113,13 @@ AutoRetry.armed = function armed() {
 };
 
 /**
+ * @returns {boolean} true while armed by a login, false when armed from char select
+ */
+AutoRetry.loggingIn = function loggingIn() {
+	return _attempt > 0 && !!_username;
+};
+
+/**
  * @returns {number} attempt currently running, 0 when not armed
  */
 AutoRetry.attempt = function attempt() {
@@ -150,7 +157,7 @@ AutoRetry.cancel = function cancel() {
  */
 AutoRetry.canRetry = function canRetry(kind, code) {
 	// Armed from char select: no credentials to log in again with
-	if (!AutoRetry.armed() || !_username) {
+	if (!AutoRetry.loggingIn()) {
 		return false;
 	}
 	switch (kind) {
