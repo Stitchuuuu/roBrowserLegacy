@@ -17,6 +17,10 @@ client's.
   clamped back to the minimum on the next login.
 - **A reduced window saves its full height.** While reduced the host is 17px
   tall. The height to restore is the one kept in `_realSize`.
+- **Restore `reduce` by calling `onToggleReduction()`, and take the full height
+  from the inline style.** `onAppend` used to fire a `mousedown` on a button
+  that listens to `click`, so a reduced cart always reopened full size, and a
+  full-size one was left in a state where the first click did nothing.
 
 ## What the client does
 

@@ -165,10 +165,9 @@ CartItems.onAppend = function OnAppend() {
 	this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - hostRect.height)}px`;
 	this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - hostRect.width)}px`;
 
-	_realSize = _preferences.reduce ? 0 : hostRect.height;
-	const miniBtn = this.getRoot().querySelector('.titlebar .mini');
-	if (miniBtn) {
-		miniBtn.dispatchEvent(new Event('mousedown'));
+	_realSize = 0;
+	if (_preferences.reduce) {
+		onToggleReduction();
 	}
 };
 
@@ -546,7 +545,7 @@ function onToggleReduction() {
 		CartItems._host.style.height = `${_realSize}px`;
 		_realSize = 0;
 	} else {
-		_realSize = CartItems._host.getBoundingClientRect().height;
+		_realSize = parseInt(CartItems._host.style.height, 10);
 		CartItems._host.style.height = '17px';
 		if (panel) {
 			panel.style.display = 'none';

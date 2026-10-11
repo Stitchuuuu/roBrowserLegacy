@@ -61,6 +61,7 @@ describe('CartItems preferences', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		Object.assign(prefs, { x: 200, y: 200, width: 7, height: 4, show: true, reduce: false, save: vi.fn() });
+		CartItems._host.style.display = '';
 		CartItems.append();
 	});
 
@@ -95,6 +96,40 @@ describe('CartItems preferences', () => {
 		CartItems.remove();
 
 		expect(prefs).toMatchObject({ width: 8, height: 5, show: false });
+	});
+
+	it('keeps the rows of a reduced window', () => {
+		CartItems.resize(8, 5);
+		press('.titlebar .mini', 'click');
+
+		press('.titlebar .close', 'click');
+
+		expect(prefs).toMatchObject({ width: 8, height: 5, reduce: true });
+	});
+
+	it('restores a reduced window', () => {
+		CartItems.remove();
+		prefs.reduce = true;
+
+		CartItems.append();
+
+		expect(CartItems._host.style.height).toBe('17px');
+	});
+
+	it('reduces a restored window on the first click', () => {
+		CartItems.remove();
+		// Layout as a browser would give it, none when hidden
+		const host = CartItems._host;
+		const rect = vi.spyOn(host, 'getBoundingClientRect').mockImplementation(() => {
+			const shown = host.style.display !== 'none';
+			return { width: shown ? parseInt(host.style.width, 10) : 0, height: shown ? parseInt(host.style.height, 10) : 0 };
+		});
+		CartItems.append();
+
+		press('.titlebar .mini', 'click');
+
+		expect(host.style.height).toBe('17px');
+		rect.mockRestore();
 	});
 
 	it('reopens at the saved size', () => {
