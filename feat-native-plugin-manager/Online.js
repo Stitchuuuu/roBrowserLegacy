@@ -315255,7 +315255,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.mouseMode === GUIComponent$1.MouseMode.STOP) {
 				let _intersect;
 				let _enter = 0;
-				element.addEventListener("mouseenter", () => {
+				const onEnter = () => {
 					if (_enter === 0) {
 						_intersect = Mouse.intersect;
 						_enter++;
@@ -315265,7 +315265,9 @@ var init_GUIComponent = __esmMin((() => {
 							_EntityManager?.setOverEntity(null);
 						}
 					}
-				});
+				};
+				element.addEventListener("mouseenter", onEnter);
+				element.addEventListener("mouseover", onEnter, true);
 				element.addEventListener("mouseleave", () => {
 					if (_enter > 0) {
 						_enter--;
