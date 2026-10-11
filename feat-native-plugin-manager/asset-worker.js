@@ -18927,11 +18927,15 @@
 			const filename = filePath.replace(/\\/g, "/");
 			const directories = filename.split("/").slice(0, -1);
 			let path = "";
-			while (directories.length) {
-				path += directories.shift() + "/";
-				_fs_sync.root.getDirectory(path, { create: true });
+			try {
+				while (directories.length) {
+					path += directories.shift() + "/";
+					_fs_sync.root.getDirectory(path, { create: true });
+				}
+				_fs_sync.root.getFile(filename, { create: true }).createWriter().write(new Blob([buffer]));
+			} catch (e) {
+				console.warn("[FileSystem] cannot cache " + filename + ": " + e.name);
 			}
-			_fs_sync.root.getFile(filename, { create: true }).createWriter().write(new Blob([buffer]));
 		}
 		/**
 		* Search a file from FileSystem using a regex

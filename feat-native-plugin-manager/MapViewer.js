@@ -315821,11 +315821,11 @@ var init_GUIComponent = __esmMin((() => {
 }));
 //#endregion
 //#region src/Engine/AutoRetry.js
-var _preferences$18, DELAY, RETRY_REFUSE, RETRY_BAN, _username, _password, _attempt, _timer$2, AutoRetry;
+var _preferences$18, MIN_GAP, RETRY_REFUSE, RETRY_BAN, _username, _password, _attempt, _armedAt, _timer$2, AutoRetry;
 var init_AutoRetry = __esmMin((() => {
 	init_Preferences$1();
 	_preferences$18 = Preferences.get("AutoRetry", { enabled: false }, 1);
-	DELAY = 3e3;
+	MIN_GAP = 3500;
 	RETRY_REFUSE = {
 		3: true,
 		4: true,
@@ -315834,13 +315834,13 @@ var init_AutoRetry = __esmMin((() => {
 	};
 	RETRY_BAN = {
 		1: true,
-		2: true,
 		4: true,
 		8: true
 	};
 	_username = "";
 	_password = "";
 	_attempt = 0;
+	_armedAt = 0;
 	_timer$2 = 0;
 	AutoRetry = {};
 	/**
@@ -315861,21 +315861,29 @@ var init_AutoRetry = __esmMin((() => {
 		if (!_preferences$18.enabled) AutoRetry.disarm();
 	};
 	/**
-	* Keep the credentials for the next attempt and count this one.
+	* Count this attempt and keep its credentials for the next one. Picking a
+	* character arms without any: there is no login to replay from there.
 	*
-	* @param {string} username
-	* @param {string} password
+	* @param {string} [username]
+	* @param {string} [password]
 	*/
-	AutoRetry.arm = function arm(username, password) {
+	AutoRetry.arm = function arm(username = "", password = "") {
 		_username = username;
 		_password = password;
 		_attempt++;
+		_armedAt = Date.now();
 	};
 	/**
-	* @returns {boolean} true between a connection request and the char server
+	* @returns {boolean} true between a connection request and the server it aims at
 	*/
 	AutoRetry.armed = function armed() {
 		return _attempt > 0;
+	};
+	/**
+	* @returns {boolean} true while armed by a login, false when armed from char select
+	*/
+	AutoRetry.loggingIn = function loggingIn() {
+		return _attempt > 0 && !!_username;
 	};
 	/**
 	* @returns {number} attempt currently running, 0 when not armed
@@ -315883,7 +315891,7 @@ var init_AutoRetry = __esmMin((() => {
 	AutoRetry.attempt = function attempt() {
 		return _attempt;
 	};
-	/** Stop retrying: the char server accepted us, or the player clicked through. */
+	/** Stop retrying: the server accepted us, or the player clicked through. */
 	AutoRetry.disarm = function disarm() {
 		if (_timer$2) {
 			clearTimeout(_timer$2);
@@ -315911,7 +315919,7 @@ var init_AutoRetry = __esmMin((() => {
 	* @returns {boolean}
 	*/
 	AutoRetry.canRetry = function canRetry(kind, code) {
-		if (!AutoRetry.armed()) return false;
+		if (!AutoRetry.loggingIn()) return false;
 		switch (kind) {
 			case "network": return true;
 			case "refuse": return !!RETRY_REFUSE[code];
@@ -315920,21 +315928,22 @@ var init_AutoRetry = __esmMin((() => {
 		return false;
 	};
 	/**
-	* Leave the failure on screen long enough to read, then take it down and try
-	* again. The box is dismissed from here rather than by its own button so the
-	* loop needs no click — and clicking the button instead cancels, because that
-	* path disarms.
+	* Take the failure down and try again, right away when the last connection is
+	* old enough, after the rest of MIN_GAP otherwise. The box is dismissed from
+	* here rather than by its own button so the loop needs no click — and clicking
+	* the button instead cancels, because that path disarms.
 	*
 	* @param {object} box - component returned by UIManager.showMessageBox
+	* @param {function} [retry] - next attempt, the login replay by default
 	*/
-	AutoRetry.schedule = function schedule(box) {
+	AutoRetry.schedule = function schedule(box, retry = AutoRetry.onRetry) {
 		if (_timer$2) clearTimeout(_timer$2);
 		_timer$2 = setTimeout(() => {
 			_timer$2 = 0;
 			if (!AutoRetry.armed()) return;
 			if (box) box.remove();
-			AutoRetry.onRetry(_username, _password);
-		}, DELAY);
+			retry(_username, _password);
+		}, Math.max(0, MIN_GAP - (Date.now() - _armedAt)));
 	};
 	/**
 	* Both set by LoginEngine, which is the only place that knows how to get back
@@ -338921,13 +338930,15 @@ function onConfigUpdate(type, val) {
 }
 /**
 * Go back from map-server to char-server
+*
+* @param {boolean} [repick] - pick the same character again
 */
-function onRestart() {
+function onRestart(repick) {
 	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload(() => {
 		cleanGameUI();
 		MapRenderer.free();
 		Renderer.stop();
-	})), void 0, import.meta.url);
+	}, repick)), void 0, import.meta.url);
 }
 /**
 * Reply to reassembly auth packet
@@ -338948,6 +338959,7 @@ var init_MapEngine = __esmMin((() => {
 	init_BGM();
 	init_Events();
 	init_SessionStorage();
+	init_AutoRetry();
 	init_NetworkManager();
 	init_PacketVerManager();
 	init_PacketStructure();
@@ -339080,9 +339092,18 @@ var init_MapEngine = __esmMin((() => {
 			Network.connect(current_ip, port, (success) => {
 				MapRenderer.currentMap = "";
 				if (!success) {
+					if (AutoRetry.armed()) {
+						const box = UIManager.showMessageBox(DB.getMessage(1), "ok", () => {
+							AutoRetry.disarm();
+							onRestart();
+						}, true);
+						AutoRetry.schedule(box, () => onRestart(true));
+						return;
+					}
 					UIManager.showErrorBox(DB.getMessage(1));
 					return;
 				}
+				AutoRetry.disarm();
 				let pkt;
 				if (PacketVerManager_default.value >= 20180307) pkt = new PACKET.CZ.ENTER2();
 				else pkt = new PACKET.CZ.ENTER();
@@ -341827,6 +341848,43 @@ function onCharacterListChunk(pkt) {
 	pkt.charInfo.forEach((charInfo) => {
 		ChSel.addCharacter(charInfo);
 	});
+	repickCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+	pickOnlyCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+}
+/**
+* Go on to the map server with the account's only character, once the list is
+* complete and holds exactly one.
+*
+* @param {Array} [charInfo] - characters just received
+* @param {boolean} last - no more characters to come
+*/
+function pickOnlyCharacter(charInfo, last) {
+	if (!_pickOnly) return;
+	if (charInfo) _listed.push(...charInfo);
+	if (last) {
+		_pickOnly = false;
+		if (_listed.length === 1) onConnectRequest(_listed[0]);
+	}
+}
+/**
+* Pick again the character whose map server could not be reached, as soon as
+* the list holds it. Without it in the list, the player picks by hand.
+*
+* @param {Array} [charInfo] - characters just received
+* @param {boolean} last - no more characters to come
+*/
+function repickCharacter(charInfo, last) {
+	if (_repickSlot < 0) return;
+	const character = charInfo && charInfo.find((info) => info.CharNum === _repickSlot);
+	if (character) {
+		_repickSlot = -1;
+		onConnectRequest(character);
+		return;
+	}
+	if (last) {
+		_repickSlot = -1;
+		AutoRetry.disarm();
+	}
 }
 /**
 * Connection accepted from char-server
@@ -341852,7 +341910,9 @@ function onConnectionAccepted$1(pkt) {
 		MapName.resetState();
 	}
 	UIManager.getComponent("WinLoading").remove();
-	AutoRetry.disarm();
+	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
+	_listed = [];
+	if (_repickSlot < 0) AutoRetry.disarm();
 	const ChSel = Controller$2.getUI();
 	ChSel.onExitRequest = onExitRequest$1;
 	ChSel.onConnectRequest = onConnectRequest;
@@ -341862,6 +341922,8 @@ function onConnectionAccepted$1(pkt) {
 	ChSel.onCancelDeleteRequest = onCancelDeleteRequest;
 	ChSel.append();
 	ChSel.setInfo(pkt);
+	repickCharacter(pkt.charInfo, !!pkt.charInfo);
+	pickOnlyCharacter(pkt.charInfo, !!pkt.charInfo);
 	/**
 	* In PACKETVERs < 20180124 that support pincode auth, we're supposed to
 	* show a button that will ask the server to perform it.
@@ -341936,6 +341998,7 @@ function onConnectionRefused$1(pkt) {
 */
 function onMapUnavailable(pkt) {
 	UIManager.showMessageBox(DB.getMessage(1811), "ok", () => {
+		AutoRetry.disarm();
 		UIManager.getComponent("WinLoading").remove();
 		Controller$2.getUI().append();
 	}, true);
@@ -342279,6 +342342,8 @@ function onPincodeCheckSuccess(pkt) {
 */
 function onConnectRequest(entity) {
 	SoundManager.play("¹öÆ°¼Ò¸®.wav");
+	if (AutoRetry.isEnabled()) AutoRetry.arm();
+	_pickedSlot = entity.CharNum;
 	Controller$2.getUI().remove();
 	UIManager.getComponent("WinLoading").append();
 	SessionStorage_default.Entity = new Player(entity);
@@ -342321,7 +342386,7 @@ function onReceiveMapInfo(pkt) {
 	SessionStorage_default.GID = pkt.GID;
 	MapEngine.init(pkt.addr.ip, pkt.addr.port, pkt.mapName);
 }
-var _server$1, _creationSlot, _pincodeAttempts, _inAuthPincodeReset, _resettingPincode, _creatingPincode, CharEngine, retryCount;
+var _server$1, _creationSlot, _pincodeAttempts, _inAuthPincodeReset, _resettingPincode, _creatingPincode, _pickedSlot, _repickSlot, _pickOnly, _listed, CharEngine, retryCount;
 var init_CharEngine = __esmMin((() => {
 	init_DBManager();
 	init_Configs();
@@ -342349,9 +342414,14 @@ var init_CharEngine = __esmMin((() => {
 	_inAuthPincodeReset = false;
 	_resettingPincode = false;
 	_creatingPincode = false;
+	_pickedSlot = -1;
+	_repickSlot = -1;
+	_pickOnly = false;
+	_listed = [];
 	CharEngine = class CharEngine {
-		static init(server) {
+		static init(server, repick) {
 			BGM.play("01.mp3");
+			_repickSlot = repick ? _pickedSlot : -1;
 			MapEngine.needsUIVerUpdate = _server$1 !== server;
 			_server$1 = server;
 			const forceAddress = Configs.get("forceUseAddress");
@@ -342404,13 +342474,14 @@ var init_CharEngine = __esmMin((() => {
 		* Reload Char-Select
 		*
 		* @param {function} [onBlack] - run once the fade has covered the screen
+		* @param {boolean} [repick] - pick the last character again once listed
 		*/
-		static reload(onBlack) {
+		static reload(onBlack, repick) {
 			Network.close();
 			Background.setLoginBackground(() => {
 				if (onBlack) onBlack();
 				UIManager.removeComponents();
-				CharEngine.init(_server$1);
+				CharEngine.init(_server$1, repick);
 			});
 		}
 	};
@@ -346997,14 +347068,6 @@ function failLogin(text, kind, code) {
 	if (AutoRetry.canRetry(kind, code)) AutoRetry.schedule(box);
 }
 /**
-* The loading popup's text, with the attempt number while auto-retry runs.
-*/
-function setLoadingText() {
-	let text = DB.getMessage(121);
-	if (AutoRetry.armed()) text += "\nAttempt #" + AutoRetry.attempt();
-	WinLoading._shadow.querySelector(".text").textContent = text;
-}
-/**
 * Trying to connect to Login server
 *
 * @param {string} username
@@ -347015,7 +347078,6 @@ function onConnectionRequest(username, password) {
 	if (AutoRetry.isEnabled()) AutoRetry.arm(username, password);
 	Controller.getUI().remove();
 	WinLoading.append();
-	setLoadingText();
 	_loginID = username;
 	Network.connect(_server.address, _server.port, (success) => {
 		if (!success) {
@@ -347106,7 +347168,6 @@ function onCharServerSelected(index) {
 	SoundManager.play("¹öÆ°¼Ò¸®.wav");
 	WinList_default.remove();
 	WinLoading.append();
-	setLoadingText();
 	SessionStorage_default.ServerName = _charServers[index].name;
 	Network.onDisconnect = null;
 	CharEngine.init(_charServers[index]);
@@ -347134,7 +347195,6 @@ function onConnectionAccepted(pkt) {
 	}
 	if (count === 1 && Configs.get("skipServerList")) {
 		WinLoading.append();
-		setLoadingText();
 		SessionStorage_default.ServerName = _charServers[0].name;
 		Network.onDisconnect = null;
 		CharEngine.init(_charServers[0]);
@@ -347626,6 +347686,15 @@ var init_LoginEngine = __esmMin((() => {
 		const text = this._shadow.querySelector(".text");
 		text.style.whiteSpace = "pre-line";
 		text.textContent = DB.getMessage(121);
+	};
+	/**
+	* The attempt number from the second one on, while auto-retry runs. Set on
+	* every append so a popup shown again after the run carries no stale line.
+	*/
+	WinLoading.onAppend = function onAppend() {
+		let text = DB.getMessage(121);
+		if (AutoRetry.attempt() > 1) text += "\nAttempt #" + AutoRetry.attempt();
+		this._shadow.querySelector(".text").textContent = text;
 	};
 	UIManager.addComponent(WinLoading);
 	_server = null;
