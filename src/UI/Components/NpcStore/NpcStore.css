@@ -197,6 +197,11 @@
 	top: 4px;
 	right: 15px;
 }
+#NpcStore .sellall {
+	position: absolute;
+	top: 4px;
+	right: 16px;
+}
 
 #NpcStore .content .item .nameOverlay {
 	position: relative;
