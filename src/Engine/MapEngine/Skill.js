@@ -341,6 +341,15 @@ function onSkillAdded(pkt) {
 }
 
 /**
+ * Remove a skill from the list
+ *
+ * @param {object} pkt - PACKET.ZC.SKILLINFO_DELETE
+ */
+function onSkillDeleted(pkt) {
+	SkillWindow.removeSkill(pkt.SKID);
+}
+
+/**
  * Server notify use that we need to cast a skill
  *
  * @param {object} pkt - PACKET.ZC.AUTORUN_SKILL
@@ -956,6 +965,7 @@ export default function SkillEngine() {
 	Network.hookPacket(PACKET.ZC.ADD_SKILL, onSkillAdded);
 	Network.hookPacket(PACKET.ZC.ADD_SKILL2, onSkillAdded);
 	Network.hookPacket(PACKET.ZC.ADD_SKILL3, onSkillAdded);
+	Network.hookPacket(PACKET.ZC.SKILLINFO_DELETE, onSkillDeleted);
 	Network.hookPacket(PACKET.ZC.SHORTCUT_KEY_LIST, onShortCutList);
 	Network.hookPacket(PACKET.ZC.SHORTCUT_KEY_LIST_V2, onShortCutList);
 	Network.hookPacket(PACKET.ZC.SHORTCUT_KEY_LIST_V3, onShortCutList);
