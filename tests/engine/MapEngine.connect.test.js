@@ -78,7 +78,7 @@ describe('MapEngine.init, map server unreachable', () => {
 		expect(mocks.charEngine.reload).not.toHaveBeenCalled();
 	});
 
-	it('goes back to char select to pick the character again once the delay ran out', async () => {
+	it('goes back to char select to pick the character again once the connection gap ran out', async () => {
 		AutoRetry.setEnabled(true);
 		AutoRetry.arm(); // the character pick
 		failConnect();
@@ -86,7 +86,7 @@ describe('MapEngine.init, map server unreachable', () => {
 		expect(UIManager.showErrorBox).not.toHaveBeenCalled();
 		expect(UIManager.showMessageBox).toHaveBeenCalledOnce();
 
-		await vi.advanceTimersByTimeAsync(2999);
+		await vi.advanceTimersByTimeAsync(3499);
 		expect(mocks.charEngine.reload).not.toHaveBeenCalled();
 
 		await vi.advanceTimersByTimeAsync(1);
