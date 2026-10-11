@@ -1,12 +1,13 @@
 /**
  * Engine/AutoRetry.js
  *
- * Replay the login form until the char server accepts us.
+ * Replay the login form until the char server accepts us, and the character
+ * pick until the map server does.
  *
  * Opt-in, from the checkbox under the login window. While armed it holds the
  * credentials the form submitted, counts the attempts so the loading popup can
- * show which one is running, and re-fires the connection a few seconds after a
- * failure that can clear on its own.
+ * show which one is running, and re-fires the connection after a failure that
+ * can clear on its own, waiting longer each time.
  *
  * It does not decide *when* it runs: the engines call in. They own the UI and
  * the sockets, this owns the state and the policy.
@@ -30,9 +31,10 @@ const _preferences = Preferences.get(
 );
 
 /**
- * @var {number} milliseconds a failure stays on screen before the next attempt
+ * @var {Array} milliseconds a failure stays on screen before the next attempt,
+ * by attempt that failed, the last one repeating
  */
-const DELAY = 3000;
+const DELAYS = [3000, 6000, 12000, 24000, 30000];
 
 /**
  * Failures worth replaying, by packet. Everything absent here fails the same
@@ -53,7 +55,6 @@ const RETRY_REFUSE = {
  */
 const RETRY_BAN = {
 	1: true, // Server closed
-	2: true, // Someone has logged in with this ID
 	4: true, // Server is jammed due to over populated
 	8: true // The server still recognizes your last log-in
 };
@@ -88,19 +89,20 @@ AutoRetry.setEnabled = function setEnabled(enabled) {
 };
 
 /**
- * Keep the credentials for the next attempt and count this one.
+ * Count this attempt and keep its credentials for the next one. Picking a
+ * character arms without any: there is no login to replay from there.
  *
- * @param {string} username
- * @param {string} password
+ * @param {string} [username]
+ * @param {string} [password]
  */
-AutoRetry.arm = function arm(username, password) {
+AutoRetry.arm = function arm(username = '', password = '') {
 	_username = username;
 	_password = password;
 	_attempt++;
 };
 
 /**
- * @returns {boolean} true between a connection request and the char server
+ * @returns {boolean} true between a connection request and the server it aims at
  */
 AutoRetry.armed = function armed() {
 	return _attempt > 0;
@@ -113,7 +115,7 @@ AutoRetry.attempt = function attempt() {
 	return _attempt;
 };
 
-/** Stop retrying: the char server accepted us, or the player clicked through. */
+/** Stop retrying: the server accepted us, or the player clicked through. */
 AutoRetry.disarm = function disarm() {
 	if (_timer) {
 		clearTimeout(_timer);
@@ -143,7 +145,8 @@ AutoRetry.cancel = function cancel() {
  * @returns {boolean}
  */
 AutoRetry.canRetry = function canRetry(kind, code) {
-	if (!AutoRetry.armed()) {
+	// Armed from char select: no credentials to log in again with
+	if (!AutoRetry.armed() || !_username) {
 		return false;
 	}
 	switch (kind) {
@@ -164,21 +167,25 @@ AutoRetry.canRetry = function canRetry(kind, code) {
  * path disarms.
  *
  * @param {object} box - component returned by UIManager.showMessageBox
+ * @param {function} [retry] - next attempt, the login replay by default
  */
-AutoRetry.schedule = function schedule(box) {
+AutoRetry.schedule = function schedule(box, retry = AutoRetry.onRetry) {
 	if (_timer) {
 		clearTimeout(_timer);
 	}
-	_timer = setTimeout(() => {
-		_timer = 0;
-		if (!AutoRetry.armed()) {
-			return;
-		}
-		if (box) {
-			box.remove();
-		}
-		AutoRetry.onRetry(_username, _password);
-	}, DELAY);
+	_timer = setTimeout(
+		() => {
+			_timer = 0;
+			if (!AutoRetry.armed()) {
+				return;
+			}
+			if (box) {
+				box.remove();
+			}
+			retry(_username, _password);
+		},
+		DELAYS[Math.min(_attempt, DELAYS.length) - 1]
+	);
 };
 
 /**

@@ -61,12 +61,27 @@ let _resettingPincode = false;
  */
 let _creatingPincode = false;
 
+/**
+ * @type {number} slot of the last character picked
+ */
+let _pickedSlot = -1;
+
+/**
+ * @type {number} slot to pick again once the list arrives, -1 for none
+ */
+let _repickSlot = -1;
+
 class CharEngine {
 	/*
 	 * Connect to char server
+	 *
+	 * @param {object} server
+	 * @param {boolean} [repick] - pick the last character again once listed
 	 */
-	static init(server) {
+	static init(server, repick) {
 		BGM.play('01.mp3');
+
+		_repickSlot = repick ? _pickedSlot : -1;
 
 		//Notify MapEngine if it needs UI update
 		MapEngine.needsUIVerUpdate = _server !== server;
@@ -137,15 +152,16 @@ class CharEngine {
 	 * Reload Char-Select
 	 *
 	 * @param {function} [onBlack] - run once the fade has covered the screen
+	 * @param {boolean} [repick] - pick the last character again once listed
 	 */
-	static reload(onBlack) {
+	static reload(onBlack, repick) {
 		Network.close();
 		Background.setLoginBackground(() => {
 			if (onBlack) {
 				onBlack();
 			}
 			UIManager.removeComponents();
-			CharEngine.init(_server);
+			CharEngine.init(_server, repick);
 		});
 	}
 }
@@ -167,6 +183,34 @@ function onCharacterListChunk(pkt) {
 	pkt.charInfo.forEach(charInfo => {
 		ChSel.addCharacter(charInfo);
 	});
+
+	// A page short of 3 characters ends the list
+	repickCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+}
+
+/**
+ * Pick again the character whose map server could not be reached, as soon as
+ * the list holds it. Without it in the list, the player picks by hand.
+ *
+ * @param {Array} [charInfo] - characters just received
+ * @param {boolean} last - no more characters to come
+ */
+function repickCharacter(charInfo, last) {
+	if (_repickSlot < 0) {
+		return;
+	}
+
+	const character = charInfo && charInfo.find(info => info.CharNum === _repickSlot);
+	if (character) {
+		_repickSlot = -1;
+		onConnectRequest(character);
+		return;
+	}
+
+	if (last) {
+		_repickSlot = -1;
+		AutoRetry.disarm();
+	}
 }
 
 /**
@@ -206,8 +250,11 @@ function onConnectionAccepted(pkt) {
 
 	UIManager.getComponent('WinLoading').remove();
 
-	// We are on the char server — the only thing auto-retry was waiting for.
-	AutoRetry.disarm();
+	// We are on the char server — what auto-retry was waiting for, unless it
+	// came back to pick the same character again.
+	if (_repickSlot < 0) {
+		AutoRetry.disarm();
+	}
 
 	// Initialize window
 	const ChSel = CharSelect.getUI();
@@ -219,6 +266,9 @@ function onConnectionAccepted(pkt) {
 	ChSel.onCancelDeleteRequest = onCancelDeleteRequest;
 	ChSel.append();
 	ChSel.setInfo(pkt);
+
+	// The header variant carries no list, a later packet does
+	repickCharacter(pkt.charInfo, !!pkt.charInfo);
 
 	/**
 	 * In PACKETVERs < 20180124 that support pincode auth, we're supposed to
@@ -313,6 +363,8 @@ function onMapUnavailable(pkt) {
 		DB.getMessage(1811),
 		'ok',
 		() => {
+			// Back at char select: the next pick counts from 1 again
+			AutoRetry.disarm();
 			UIManager.getComponent('WinLoading').remove();
 			CharSelect.getUI().append();
 		},
@@ -800,6 +852,12 @@ function onPincodeCheckSuccess(pkt) {
 function onConnectRequest(entity) {
 	// Play sound
 	Sound.play('\xB9\xF6\xC6\xB0\xBC\xD2\xB8\xAE.wav');
+
+	// Counted before the popup shows, which prints the attempt number
+	if (AutoRetry.isEnabled()) {
+		AutoRetry.arm();
+	}
+	_pickedSlot = entity.CharNum;
 
 	CharSelect.getUI().remove();
 	UIManager.getComponent('WinLoading').append();
