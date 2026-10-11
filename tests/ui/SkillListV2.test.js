@@ -308,3 +308,42 @@ describe('SkillListV2 prerequisite planning', () => {
 		expect(getTreeSkill(root, mocks.ids.HEAL).querySelector('.current').textContent).toBe('0');
 	});
 });
+
+
+describe('removeSkill drops an unlearned skill from the window', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	// ZC_SKILLINFO_DELETE: the skill is gone outright (quest skill forgotten,
+	// Plagiarism/Reproduce cleared, lost WE_CALLBABY on adoption breakup), not
+	// merely reset to level 0 like a respec.
+	it('removes the big-tree box, the mini row and the lookup entry', () => {
+		const component = createComponent();
+		const root = component.getRoot();
+
+		expect(getTreeSkill(root, mocks.ids.FAITH)).not.toBeNull();
+		expect(root.querySelector(`#minitab2 .skill.id${mocks.ids.FAITH}`)).not.toBeNull();
+
+		component.removeSkill(mocks.ids.FAITH);
+
+		expect(getTreeSkill(root, mocks.ids.FAITH)).toBeNull();
+		expect(root.querySelector(`#minitab2 .skill.id${mocks.ids.FAITH}`)).toBeNull();
+		expect(component.getSkillById(mocks.ids.FAITH)).toBeNull();
+	});
+
+	it('clears the shortcut slot the same way a full respec already does', () => {
+		const component = createComponent();
+		component.onUpdateSkill = vi.fn();
+
+		component.removeSkill(mocks.ids.FAITH);
+
+		expect(component.onUpdateSkill).toHaveBeenCalledWith(mocks.ids.FAITH, 0);
+	});
+
+	it('does nothing for a skill the window never had', () => {
+		const component = createComponent();
+
+		expect(() => component.removeSkill(9999)).not.toThrow();
+	});
+});
