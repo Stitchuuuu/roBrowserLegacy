@@ -963,7 +963,7 @@ class GUIComponent {
 			let _intersect;
 			let _enter = 0;
 
-			element.addEventListener('mouseenter', () => {
+			const onEnter = () => {
 				if (_enter === 0) {
 					_intersect = Mouse.intersect;
 					_enter++;
@@ -973,7 +973,12 @@ class GUIComponent {
 						_EntityManager?.setOverEntity(null);
 					}
 				}
-			});
+			};
+
+			element.addEventListener('mouseenter', onEnter);
+			// mouseover fires before mouseenter: a pointer landing straight on a
+			// clickable must find the scene cursor already dropped.
+			element.addEventListener('mouseover', onEnter, true);
 
 			element.addEventListener('mouseleave', () => {
 				if (_enter > 0) {

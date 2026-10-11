@@ -35,6 +35,7 @@ vi.mock('Renderer/EntityManager.js', () => ({ default: mocks.entityManager }));
 vi.mock('UI/Scrollbar.js', () => ({ default: {} }));
 
 const GUIComponent = (await import('UI/GUIComponent.js')).default;
+const Mouse = (await import('Controls/MouseEventHandler.js')).default;
 
 let seq = 0;
 
@@ -182,6 +183,65 @@ describe('the cursor over a clickable a component has marked refused', () => {
 		component._container.querySelector('.plain').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
 		expect(mocks.cursor.setType).toHaveBeenCalledWith(mocks.cursor.ACTION.CLICK);
+	});
+});
+
+/**
+ * A fast pointer lands on a clickable in the same move that enters the window,
+ * and the browser fires mouseover before mouseenter: the arrow replaced the
+ * click shape, and leaving the clickable brought back the NPC bubble of the
+ * entity hidden under the window.
+ */
+describe('the pointer entering a window straight onto a clickable', () => {
+	const TALK = 3;
+	let type;
+
+	beforeEach(() => {
+		type = TALK;
+		mocks.cursor.getActualType.mockImplementation(() => type);
+		mocks.cursor.setType.mockImplementation(value => {
+			type = value;
+		});
+		Mouse.intersect = true;
+	});
+
+	afterEach(() => {
+		mocks.cursor.getActualType.mockImplementation(() => 0);
+		mocks.cursor.setType.mockImplementation(() => undefined);
+		Mouse.intersect = false;
+	});
+
+	const enterOnButton = async (className = 'go') => {
+		const component = mount(`<button class="${className}">OK</button><div class="plain"></div>`);
+		await new Promise(resolve => setTimeout(resolve, 0));
+		component._container
+			.querySelector(`.${className}`)
+			.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, composed: true }));
+		component._host.dispatchEvent(new MouseEvent('mouseenter'));
+		return component;
+	};
+
+	it('takes the click shape', async () => {
+		await enterOnButton();
+
+		expect(type).toBe(mocks.cursor.ACTION.CLICK);
+	});
+
+	it('takes the refusal shape on a clickable marked refused', async () => {
+		await enterOnButton('denied');
+
+		expect(type).toBe(mocks.cursor.ACTION.NOWALK);
+	});
+
+	it('goes back to the arrow, not the NPC bubble, when leaving the clickable', async () => {
+		const component = await enterOnButton();
+		const plain = component._container.querySelector('.plain');
+
+		component._container
+			.querySelector('.go')
+			.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, composed: true, relatedTarget: plain }));
+
+		expect(type).toBe(mocks.cursor.ACTION.DEFAULT);
 	});
 });
 
