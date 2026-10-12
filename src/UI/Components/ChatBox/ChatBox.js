@@ -1601,7 +1601,7 @@ ChatBox.saveCurrentTabChat = function saveCurrentTabChat() {
 };
 
 /**
- * Update scroll by block (14px)
+ * Scroll by 3 lines per wheel notch
  */
 function onScroll(event) {
 	let delta;
@@ -1618,7 +1618,7 @@ function onScroll(event) {
 	}
 
 	const lineHeight = getScrollLineHeightPx(this);
-	this.scrollTop = Math.floor(this.scrollTop / lineHeight) * lineHeight - (delta || 0) * lineHeight;
+	this.scrollTop = Math.floor(this.scrollTop / lineHeight) * lineHeight - (delta || 0) * lineHeight * 3;
 	event.preventDefault();
 }
 

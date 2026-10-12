@@ -144,4 +144,24 @@ describe('ChatBox - mouse on a chat line', () => {
 		});
 	});
 
+	describe('wheel', () => {
+		it('scrolls 3 lines per notch', () => {
+			let top = 140;
+			Object.defineProperty(content, 'scrollTop', {
+				configurable: true,
+				get: () => top,
+				set: v => {
+					top = v;
+				}
+			});
+			const lineHeight = 14;
+
+			content.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, cancelable: true }));
+			expect(top).toBe(140 + 3 * lineHeight);
+
+			content.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, cancelable: true }));
+			expect(top).toBe(140);
+		});
+	});
+
 });
