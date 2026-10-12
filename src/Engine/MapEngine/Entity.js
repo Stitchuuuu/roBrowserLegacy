@@ -2703,8 +2703,6 @@ function onEntityMvpRewardExpMessage(pkt) {
 
 /**
  * Show MvP item lost to overweight message
- *
- * @param {object} pkt - PACKET.ZC.THROW_MVPITEM
  */
 function onEntityMvpNoItemMessage() {
 	ChatBox.addText(DB.getMessage(147), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
@@ -2718,7 +2716,7 @@ function onEntityMvpNoItemMessage() {
 function onPartyItemPickup(pkt) {
 	const entity = EntityManager.get(pkt.AID ?? pkt.accountID);
 	const name = entity ? entity.display.name : '';
-	const itemName = DB.getItemName(pkt, { showItemOptions: false });
+	const itemName = DB.getItemName({ ...pkt, enchantgrade: pkt.grade }, { showItemOptions: false });
 
 	ChatBox.addText(
 		DB.getMessage(1276).replace('%s', name).replace('%s', itemName),

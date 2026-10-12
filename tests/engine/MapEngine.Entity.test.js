@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Entity.js pulls in nearly every renderer/UI module it can touch across its many
-// packet handlers. Only Network, DB, ChatBox and EntityManager matter for the
-// handlers under test, so everything else gets an inert stub - same approach as
-// tests/engine/MapEngine.Guild.test.js, just a longer dependency list.
+// Only Network, DB, ChatBox and EntityManager matter for the handlers under
+// test, so every other Entity.js dependency gets an inert stub - same approach
+// as tests/engine/MapEngine.Guild.test.js, just a longer dependency list.
 const mocks = vi.hoisted(() => ({
 	hooks: new Map(),
 	chat: vi.fn(),
@@ -171,6 +170,31 @@ describe('party item pickup announcements', () => {
 		});
 
 		expect(mocks.chat).toHaveBeenCalledWith('Freya has acquired Yggdrasil Berry.', 1 << 8, 8);
+	});
+
+	// The 0xb67 struct names its enchant grade field "grade", but DB.getItemName
+	// reads "enchantgrade" - without the mapping the bracket never renders.
+	it('maps the 0xb67 grade field to enchantgrade for DB.getItemName', () => {
+		let seenItem = null;
+		mocks.entityGet = () => ({ display: { name: 'Freya' } });
+		mocks.itemNames = item => {
+			seenItem = item;
+			return 'Item';
+		};
+
+		deliver(PACKET.ZC.ITEM_PICKUP_PARTY2, {
+			AID: 150001,
+			ITID: 603,
+			IsIdentified: 1,
+			IsDamaged: 0,
+			slot: { card1: 0, card2: 0, card3: 0, card4: 0 },
+			location: 0,
+			itemType: 0,
+			RefiningLevel: 0,
+			grade: 3
+		});
+
+		expect(seenItem.enchantgrade).toBe(3);
 	});
 
 	it('falls back to an empty name when the picker is not on screen', () => {
