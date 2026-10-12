@@ -102,3 +102,15 @@ describe('equipment damaged notice', () => {
 		expect(mocks.chat).not.toHaveBeenCalled();
 	});
 });
+
+describe('item repair result', () => {
+	it('reports a success in cyan', () => {
+		deliver(PACKET.ZC.ACK_ITEMREPAIR, { index: 5, result: 0 });
+		expect(mocks.chat).toHaveBeenCalledWith('MSG813 %s %d', 2, 0, '#00FFFF');
+	});
+
+	it('reports a failure in red', () => {
+		deliver(PACKET.ZC.ACK_ITEMREPAIR, { index: 5, result: 1 });
+		expect(mocks.chat).toHaveBeenCalledWith('MSG814 %s %d', 1, 0, '#FF0000');
+	});
+});

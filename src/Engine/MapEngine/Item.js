@@ -718,6 +718,22 @@ function onEquipItemDamaged(pkt) {
 }
 
 /**
+ * Item repair result
+ *
+ * @param {object} pkt - PACKET.ZC.ACK_ITEMREPAIR
+ */
+function onItemRepairResult(pkt) {
+	switch (pkt.result) {
+		case 0: // Item has been successfully repaired.
+			ChatBox.addText(DB.getMessage(813), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG, '#00FFFF');
+			break;
+		case 1: // You have failed to repair this item.
+			ChatBox.addText(DB.getMessage(814), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG, '#FF0000');
+			break;
+	}
+}
+
+/**
  * Initialize
  */
 export default function ItemEngine() {
@@ -763,6 +779,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ITEMCOMPOSITION_LIST, onItemCompositionList);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMCOMPOSITION, onItemCompositionResult);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMREFINING, onRefineResult);
+	Network.hookPacket(PACKET.ZC.ACK_ITEMREPAIR, onItemRepairResult);
 	Network.hookPacket(PACKET.ZC.EQUIPITEM_DAMAGED, onEquipItemDamaged);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART2, onCartItemAdded);
