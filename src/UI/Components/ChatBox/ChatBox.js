@@ -1821,8 +1821,16 @@ ChatBox._setupItemLinkHandler = function _setupItemLinkHandler() {
 			return;
 		}
 
-		const item = DB.parseItemLink(link.dataset.item || link.getAttribute('data-item'));
+		const itemData = link.dataset.item || link.getAttribute('data-item');
+		const item = DB.parseItemLink(itemData);
 		if (!item) return;
+
+		// Shift+click: link it in the chat input
+		if (event.shiftKey) {
+			event.stopImmediatePropagation();
+			ChatBox.insertItemLink(itemData, item.name);
+			return;
+		}
 
 		const ItemInfo = UIManager.getComponent('ItemInfo');
 		ItemInfo.append();
@@ -1860,6 +1868,23 @@ ChatBox.insertText = function (text) {
 
 	input.appendChild(document.createTextNode(text));
 	input.focus();
+};
+
+/**
+ * Insert an item link into the chat input
+ *
+ * @param {string} itemData encoded item link
+ * @param {string} name item name
+ */
+ChatBox.insertItemLink = function insertItemLink(itemData, name) {
+	const msgBox = _root().querySelector('.input-chatbox');
+	if (!msgBox) {
+		return;
+	}
+
+	msgBox.innerHTML +=
+		'<span data-item="' + itemData + '" class="item-link" style="color:#A9B95F;">&lt;' + name + '&gt;</span> ';
+	msgBox.focus();
 };
 
 // Override mouseMode to CROSS since chatbox body is click-through

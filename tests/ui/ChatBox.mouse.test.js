@@ -164,4 +164,25 @@ describe('ChatBox - mouse on a chat line', () => {
 		});
 	});
 
+	describe('Shift+click on an item link', () => {
+		it('inserts the link into the chat input', () => {
+			const line = addLine('Lady Kaye : wts <ITEML>000001rI</ITEML>', ChatBox.TYPE.PUBLIC);
+			const link = line.querySelector('.item-link');
+			link.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+
+			const inserted = input.querySelector('.item-link');
+			expect(inserted).toBeTruthy();
+			expect(inserted.getAttribute('data-item')).toBe('<ITEML>000001rI</ITEML>');
+			expect(inserted.textContent).toBe('<Red Potion>');
+			expect(mocks.ItemInfo.setItem).not.toHaveBeenCalled();
+		});
+
+		it('still opens the item description without Shift', () => {
+			const line = addLine('Lady Kaye : wts <ITEML>000001rI</ITEML>', ChatBox.TYPE.PUBLIC);
+			line.querySelector('.item-link').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+			expect(mocks.ItemInfo.setItem).toHaveBeenCalled();
+			expect(input.innerHTML).toBe('');
+		});
+	});
 });
