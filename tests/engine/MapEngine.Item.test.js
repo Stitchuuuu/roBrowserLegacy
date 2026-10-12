@@ -114,3 +114,20 @@ describe('item repair result', () => {
 		expect(mocks.chat).toHaveBeenCalledWith('MSG814 %s %d', 1, 0, '#FF0000');
 	});
 });
+
+describe('upgrade weapon result', () => {
+	it.each([
+		[0, 'MSG911 Item1201 %d', '#00FFFF'],
+		[1, 'MSG912 Item1201 %d', '#00CDCD'],
+		[2, 'MSG913 Item1201 %d', '#FFC8C8'],
+		[3, 'MSG914 Item1201 %d', '#FFC8C8']
+	])('result %i shows its message with the item name', (msg, text, color) => {
+		deliver(PACKET.ZC.ACK_WEAPONREFINE, { msg, ITID: 1201 });
+		expect(mocks.chat).toHaveBeenCalledWith(text, expect.any(Number), 0, color);
+	});
+
+	it('ignores an unknown result', () => {
+		deliver(PACKET.ZC.ACK_WEAPONREFINE, { msg: 4, ITID: 1201 });
+		expect(mocks.chat).not.toHaveBeenCalled();
+	});
+});

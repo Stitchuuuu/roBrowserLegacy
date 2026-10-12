@@ -30,6 +30,14 @@ import MakeItemSelection from 'UI/Components/MakeItemSelection/MakeItemSelection
 import ItemListWindowSelection from 'UI/Components/MakeItemSelection/ItemListWindowSelection.js';
 import EffectManager from 'Renderer/EffectManager.js';
 
+// Upgrade Weapon result: message, type, color
+const WEAPONREFINE_RESULT = [
+	[911, ChatBox.TYPE.BLUE, '#00FFFF'], // Weapons upgraded: %s
+	[912, ChatBox.TYPE.BLUE, '#00CDCD'], // Weapons upgraded: %s
+	[913, ChatBox.TYPE.ERROR, '#FFC8C8'], // You cannot upgrade %s until you level up your Upgrade Weapon skill.
+	[914, ChatBox.TYPE.ERROR, '#FFC8C8'] // You lack a necessary item %s to upgrade this weapon.
+];
+
 /**
  * Spam an item on the map
  *
@@ -734,6 +742,21 @@ function onItemRepairResult(pkt) {
 }
 
 /**
+ * Upgrade Weapon result
+ *
+ * @param {object} pkt - PACKET.ZC.ACK_WEAPONREFINE
+ */
+function onWeaponRefineResult(pkt) {
+	const result = WEAPONREFINE_RESULT[pkt.msg];
+	if (!result) {
+		return;
+	}
+
+	const name = DB.getItemInfo(pkt.ITID).identifiedDisplayName;
+	ChatBox.addText(DB.getMessage(result[0]).replace('%s', name), result[1], ChatBox.FILTER.PUBLIC_LOG, result[2]);
+}
+
+/**
  * Initialize
  */
 export default function ItemEngine() {
@@ -779,6 +802,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ITEMCOMPOSITION_LIST, onItemCompositionList);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMCOMPOSITION, onItemCompositionResult);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMREFINING, onRefineResult);
+	Network.hookPacket(PACKET.ZC.ACK_WEAPONREFINE, onWeaponRefineResult);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMREPAIR, onItemRepairResult);
 	Network.hookPacket(PACKET.ZC.EQUIPITEM_DAMAGED, onEquipItemDamaged);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART, onCartItemAdded);
