@@ -682,6 +682,20 @@ function onMessage(pkt) {
 }
 
 /**
+ * Server message using msgstringtable, with a number
+ *
+ * @param {object} pkt - PACKET_ZC_MSG_VALUE
+ */
+function onMessageValue(pkt) {
+	ChatBox.addText(
+		DB.getMessage(pkt.msg).replace('%d', pkt.value),
+		ChatBox.TYPE.PUBLIC,
+		ChatBox.FILTER.PUBLIC_LOG,
+		'#FFFF00'
+	);
+}
+
+/**
  * Recovery of a status
  *
  * @param {object} pkt - PACKET.ZC.RECOVERY
@@ -1020,6 +1034,7 @@ export default function MainEngine() {
 	Network.hookPacket(PACKET.ZC.ACTION_FAILURE, onActionFailure);
 	Network.hookPacket(PACKET.ZC.MSG, onMessage);
 	Network.hookPacket(PACKET.ZC.MSG_COLOR, onMessage);
+	Network.hookPacket(PACKET.ZC.MSG_VALUE, onMessageValue);
 	if (PACKETVER.value < 20141022) {
 		Network.hookPacket(PACKET.ZC.RECOVERY, onRecovery);
 	} else {
