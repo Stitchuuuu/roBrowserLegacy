@@ -86,3 +86,24 @@ describe('message with a value', () => {
 		expect(mocks.chat).toHaveBeenCalledWith('MSG1862 7', 8, 0, '#FFFF00');
 	});
 });
+
+describe('ammunition equipped notice', () => {
+	it.each([
+		['an archer', JobId.ARCHER, 'MSG245 %d'],
+		['an assassin', JobId.ASSASSIN, 'MSG1040 %d'],
+		['a guillotine cross', JobId.GUILLOTINE_CROSS_H, 'MSG1040 %d'],
+		['a shadow cross', JobId.SHADOW_CROSS, 'MSG1040 %d'],
+		['a gunslinger', JobId.GUNSLINGER, 'MSG1175 %d'],
+		['a rebellion', JobId.REBELLION, 'MSG245 %d']
+	])('follows the job for %s', (_who, job, text) => {
+		Session.Entity._job = job;
+		deliver(PACKET.ZC.ACTION_FAILURE, { errorCode: 3 });
+		expect(mocks.chat).toHaveBeenCalledWith(text, 2, 5);
+	});
+
+	it.each([JobId.NINJA, JobId.NINJA_B])('says nothing to a ninja (%i)', job => {
+		Session.Entity._job = job;
+		deliver(PACKET.ZC.ACTION_FAILURE, { errorCode: 3 });
+		expect(mocks.chat).not.toHaveBeenCalled();
+	});
+});

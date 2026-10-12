@@ -34,6 +34,7 @@ import uint32ToRGB from 'Utils/colors.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import WinStats from 'UI/Components/WinStats/WinStats.js';
+import JobId from 'DB/Jobs/JobConst.js';
 import RankingTypes from 'DB/Jobs/RankingTypes.js';
 
 /**
@@ -661,10 +662,22 @@ function onActionFailure(pkt) {
 			ChatBox.addText(DB.getMessage(244), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
 			break;
 
-		case 3: // Ammunition has been equipped.
-			// TODO: check the class - assassin: 1040 | gunslinger: 1175 | default: 245
-			ChatBox.addText(DB.getMessage(245), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
+		case 3: {
+			// Ammunition has been equipped, worded after the job
+			const job = Session.Entity._job;
+			if (job === JobId.NINJA || job === JobId.NINJA_B) {
+				break;
+			}
+
+			let msg = 245; // Arrow has been equipped.
+			if (DB.isAssassin(job)) {
+				msg = 1040; // You have equipped throwing daggers.
+			} else if (job === JobId.GUNSLINGER) {
+				msg = 1175; // Bullets have been equipped.
+			}
+			ChatBox.addText(DB.getMessage(msg), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
 			break;
+		}
 	}
 }
 
