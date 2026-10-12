@@ -695,6 +695,29 @@ function onSwitchEquipRemove(pkt) {
 }
 
 /**
+ * One of our equipped items got damaged
+ *
+ * @param {object} pkt - PACKET.ZC.EQUIPITEM_DAMAGED
+ */
+function onEquipItemDamaged(pkt) {
+	if (!pkt.wearLocation || pkt.accountID !== Session.AID) {
+		return;
+	}
+
+	const item = Equipment.getItemByLocation(pkt.wearLocation);
+	if (!item) {
+		return;
+	}
+
+	ChatBox.addText(
+		DB.getMessage(1300).replace('%s', DB.getItemName(item)), // %s's Equipment has been damaged.
+		ChatBox.TYPE.ERROR,
+		ChatBox.FILTER.EQUIP_DAMAGE,
+		'#FF0000'
+	);
+}
+
+/**
  * Initialize
  */
 export default function ItemEngine() {
@@ -740,6 +763,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ITEMCOMPOSITION_LIST, onItemCompositionList);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMCOMPOSITION, onItemCompositionResult);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMREFINING, onRefineResult);
+	Network.hookPacket(PACKET.ZC.EQUIPITEM_DAMAGED, onEquipItemDamaged);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART2, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART3, onCartItemAdded);
