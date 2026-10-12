@@ -185,3 +185,75 @@ describe('ChatBox — Enter while a selection window is open', () => {
 		submit.mockRestore();
 	});
 });
+
+describe('ChatBox — Enter after a click on a menu button', () => {
+	let root;
+	let inventory;
+	let item;
+
+	// Native activation: a <button> fires click on Enter unless the keydown was cancelled.
+	function pressEnter(button) {
+		const event = enterEvent(button);
+		const result = ChatBox.onKeyDown(event);
+		if (result !== false && !event.preventDefault.mock.calls.length) {
+			button.click();
+		}
+		return event;
+	}
+
+	function pressTab(target) {
+		ChatBox.onKeyDown({ ...enterEvent(target), which: KEYS.TAB, key: 'Tab' });
+	}
+
+	function pointerDown(target) {
+		target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, composed: true }));
+	}
+
+	beforeEach(() => {
+		document.body.innerHTML = '';
+		root = mountChatBox();
+
+		// Basic Info's menu: a shadow-hosted <button id="item"> that toggles the inventory on click.
+		const host = document.createElement('div');
+		document.body.appendChild(host);
+		host.attachShadow({ mode: 'open' }).innerHTML =
+			'<div class="buttons"><button id="item"><span>Inventory</span></button></div>';
+		item = host.shadowRoot.querySelector('#item');
+		inventory = { visible: false };
+		item.addEventListener('click', () => {
+			inventory.visible = !inventory.visible;
+		});
+	});
+
+	it('leaves the inventory alone and focuses the chat on Enter after a click', () => {
+		pointerDown(item.querySelector('span'));
+		item.focus();
+		item.click();
+		expect(inventory.visible).toBe(true);
+
+		for (let i = 0; i < 3; ++i) {
+			const event = pressEnter(item);
+			expect(event.stopImmediatePropagation).toHaveBeenCalled();
+			expect(inventory.visible).toBe(true);
+			expect(KEYS.getDeepActiveElement()).toBe(root.querySelector('.input-chatbox'));
+			item.focus();
+		}
+	});
+
+	it('still clicks a button reached with Tab', () => {
+		pressTab(document.body);
+		item.focus();
+
+		pressEnter(item);
+		expect(inventory.visible).toBe(true);
+	});
+
+	it('clicks a clicked button again once Tab has moved the keyboard there', () => {
+		pointerDown(item);
+		item.focus();
+		pressTab(item);
+
+		pressEnter(item);
+		expect(inventory.visible).toBe(true);
+	});
+});

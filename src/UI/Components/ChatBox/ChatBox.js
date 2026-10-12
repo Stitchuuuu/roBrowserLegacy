@@ -66,6 +66,19 @@ let _messageBuffer = [];
 let _rafScheduled = false;
 
 /**
+ * @var {Element} button last focused by a pointer, until Tab moves the keyboard
+ */
+let _pointerButton = null;
+
+window.addEventListener(
+	'pointerdown',
+	event => {
+		_pointerButton = event.composedPath()[0].closest?.('button') || null;
+	},
+	true
+);
+
+/**
  * @var {Preferences} structure
  */
 const _preferences = Preferences.get(
@@ -916,6 +929,10 @@ ChatBox.processBattleMode = function processBattleMode(keyId) {
  * Key Event Handler
  */
 ChatBox.onKeyDown = function OnKeyDown(event) {
+	if (event.which === KEYS.TAB) {
+		_pointerButton = null;
+	}
+
 	const root = _root();
 	const messageBox = root.querySelector('.input-chatbox');
 	const nickBox = root.querySelector('.input .username');
@@ -1100,7 +1117,13 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 			// that default leaves every button in the client reachable by Tab
 			// but dead to Enter. Space already works, because a button
 			// activates on Space keyup, which never reaches this branch.
-			if (activeElement && activeElement.tagName === 'BUTTON' && !root.contains(activeElement)) {
+			// A button focused by a click keeps Enter for the chat.
+			if (
+				activeElement &&
+				activeElement.tagName === 'BUTTON' &&
+				activeElement !== _pointerButton &&
+				!root.contains(activeElement)
+			) {
 				return true;
 			}
 
