@@ -559,6 +559,19 @@ ChatBox.init = function init() {
 				event.stopPropagation();
 			}
 		});
+
+		// Double-click on a chat line sets its sender as whisper target
+		chatboxEl.addEventListener('dblclick', event => {
+			const line = event.target.closest('.content > div');
+			if (!line || !line.dataset.sender || event.target.closest('.item-link')) {
+				return;
+			}
+
+			if (nickBox) {
+				nickBox.value = line.dataset.sender;
+			}
+			_historyNickName.push(line.dataset.sender);
+		});
 	}
 
 	const bmtoggle = root.querySelector('.battlemode .bmtoggle');
@@ -1259,6 +1272,16 @@ function extractChatMessage(inputEl) {
  * Add text to chatbox
  */
 ChatBox.addText = function addText(text, colorType, filterType, color, override) {
+	let sender = '';
+
+	// Public, party and guild lines start with "sender : "
+	if (colorType & (ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD)) {
+		const pos = text.indexOf(' : ');
+		if (pos > 0) {
+			sender = text.substr(0, pos);
+		}
+	}
+
 	text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function (match) {
 		const item = DB.parseItemLink(match);
 		const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${item.name}&gt;</span>`;
@@ -1280,7 +1303,8 @@ ChatBox.addText = function addText(text, colorType, filterType, color, override)
 		colorType: colorType,
 		filterType: filterType,
 		color: color,
-		override: override
+		override: override,
+		sender: sender
 	});
 
 	if (!_rafScheduled) {
@@ -1337,6 +1361,9 @@ function flushMessageBuffer() {
 				div.textContent = msg.text;
 			} else {
 				div.innerHTML = msg.text;
+			}
+			if (msg.sender) {
+				div.dataset.sender = msg.sender;
 			}
 			fragment.appendChild(div);
 		});
