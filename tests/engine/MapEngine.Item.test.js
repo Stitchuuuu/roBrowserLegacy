@@ -131,3 +131,18 @@ describe('upgrade weapon result', () => {
 		expect(mocks.chat).not.toHaveBeenCalled();
 	});
 });
+
+describe('bind on equip notice', () => {
+	it('names the item and flags it as bound', () => {
+		const item = { index: 7, ITID: 2301, bindOnEquipType: 1 };
+		mocks.inventory[7] = item;
+		deliver(PACKET.ZC.NOTIFY_BIND_ON_EQUIP, { index: 7 });
+		expect(mocks.chat).toHaveBeenCalledWith('MSG1328 Name2301 %d', 2, 5, '#FFFF6E');
+		expect(item.bindOnEquipType).toBe(2);
+	});
+
+	it('stays silent when the item is unknown', () => {
+		deliver(PACKET.ZC.NOTIFY_BIND_ON_EQUIP, { index: 9 });
+		expect(mocks.chat).not.toHaveBeenCalled();
+	});
+});

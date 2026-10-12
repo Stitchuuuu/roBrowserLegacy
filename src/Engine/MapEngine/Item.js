@@ -757,6 +757,26 @@ function onWeaponRefineResult(pkt) {
 }
 
 /**
+ * An item just got bound to the character
+ *
+ * @param {object} pkt - PACKET.ZC.NOTIFY_BIND_ON_EQUIP
+ */
+function onBindOnEquip(pkt) {
+	const item = Inventory.getItemByIndex(pkt.index);
+	if (!item) {
+		return;
+	}
+
+	item.bindOnEquipType = 2;
+	ChatBox.addText(
+		DB.getMessage(1328).replace('%s', DB.getItemName(item)), // %s is now permanently bound to this character.
+		ChatBox.TYPE.BLUE,
+		ChatBox.FILTER.ITEM,
+		'#FFFF6E'
+	);
+}
+
+/**
  * Initialize
  */
 export default function ItemEngine() {
@@ -805,6 +825,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ACK_WEAPONREFINE, onWeaponRefineResult);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMREPAIR, onItemRepairResult);
 	Network.hookPacket(PACKET.ZC.EQUIPITEM_DAMAGED, onEquipItemDamaged);
+	Network.hookPacket(PACKET.ZC.NOTIFY_BIND_ON_EQUIP, onBindOnEquip);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART2, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART3, onCartItemAdded);
