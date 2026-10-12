@@ -304605,7 +304605,7 @@ function updateMapTable() {
 		else MapTable[key] = { name: MapInfo[key].displayName };
 	}
 }
-var lua, HO_AI, MER_AI, default_HO_AI, default_MER_AI, mountPalettes, MsgStringTable, JokeTable, ScreamTable, MapTable, SkillDescription, SexTable, PetTalkTable, CheckAttendanceTable, buyingStoreItemList, LaphineSysTable, LaphineUpgTable, ItemDBNameTbl, ItemReformTable, EnchantListTable, SignBoardTranslatedTable, SignBoardTable, NaviMapTable, NaviMobTable, NaviNpcTable, NaviLinkTable, NaviLinkDistanceTable, NaviNpcDistanceTable, QuestInfo, TitleTable, PetDBTable, EggIDToJobID, ReputeGroup, ReputeInfo, AchievementTable, MsgEmotionCSV, HatEffectID, HatEffectInfo, FootPrintEffectInfo, CashShopBannerTable, Ez2streffect, unknownItem, servers, langType, userCharpage, userStringDecoder, DB, SUFFIX_TO_FIELD, HARDCODED_FIELD_MAPPING;
+var lua, HO_AI, MER_AI, default_HO_AI, default_MER_AI, mountPalettes, mountPalettesProbe, MsgStringTable, JokeTable, ScreamTable, MapTable, SkillDescription, SexTable, PetTalkTable, CheckAttendanceTable, buyingStoreItemList, LaphineSysTable, LaphineUpgTable, ItemDBNameTbl, ItemReformTable, EnchantListTable, SignBoardTranslatedTable, SignBoardTable, NaviMapTable, NaviMobTable, NaviNpcTable, NaviLinkTable, NaviLinkDistanceTable, NaviNpcDistanceTable, QuestInfo, TitleTable, PetDBTable, EggIDToJobID, ReputeGroup, ReputeInfo, AchievementTable, MsgEmotionCSV, HatEffectID, HatEffectInfo, FootPrintEffectInfo, CashShopBannerTable, Ez2streffect, unknownItem, servers, langType, userCharpage, userStringDecoder, DB, SUFFIX_TO_FIELD, HARDCODED_FIELD_MAPPING;
 var init_DBManager = __esmMin((() => {
 	init_Client();
 	init_Configs();
@@ -304654,6 +304654,7 @@ var init_DBManager = __esmMin((() => {
 	init_PacketVerManager();
 	init_MemoryManager();
 	init_preload_helper();
+	mountPalettesProbe = null;
 	MsgStringTable = [];
 	JokeTable = [];
 	ScreamTable = [];
@@ -304739,7 +304740,8 @@ var init_DBManager = __esmMin((() => {
 			DB.count = 0;
 			DB.index = 0;
 			mountPalettes = void 0;
-			MemoryManager.remove(null, DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0));
+			if (mountPalettesProbe) mountPalettesProbe.stale = true;
+			else MemoryManager.remove(null, DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0));
 			let index = 0, count = 0;
 			function onLoad() {
 				count++;
@@ -305283,11 +305285,18 @@ var init_DBManager = __esmMin((() => {
 		*/
 		static hasMountPalettes(onAnswer) {
 			if (mountPalettes === void 0) {
+				const sentinel = DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0);
+				if (!mountPalettesProbe) mountPalettesProbe = { stale: false };
+				const probe = mountPalettesProbe;
 				const answer = (present) => {
-					mountPalettes = present;
+					if (probe === mountPalettesProbe) {
+						mountPalettesProbe = null;
+						if (probe.stale) MemoryManager.remove(null, sentinel);
+						else mountPalettes = present;
+					}
 					onAnswer();
 				};
-				Client.loadFile(DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0), () => answer(true), () => answer(false));
+				Client.loadFile(sentinel, () => answer(true), () => answer(false));
 			}
 			return mountPalettes;
 		}
