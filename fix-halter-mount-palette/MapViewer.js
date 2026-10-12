@@ -219779,7 +219779,7 @@ var init_ChatBox$2 = __esmMin((() => {
 //#region src/UI/Components/ChatBox/ChatBox.css?raw
 var ChatBox_default$1;
 var init_ChatBox$1 = __esmMin((() => {
-	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
+	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	/* A newline in a message is a line break. See docs/reference/chat/text-parsing.md */\r\n	white-space: pre-line;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ChatBoxSettings/ChatBoxSettings.html?raw
@@ -220212,7 +220212,7 @@ function makeResizableDiv() {
 		window.addEventListener("mouseup", stopResize);
 	});
 }
-var MAX_MSG, MAX_LENGTH, MAGIC_NUMBER, _historyMessage, _historyNickName, _heightIndex, _messageBuffer, _rafScheduled, _preferences$41, ChatBox, ChatBox_default;
+var MAX_MSG, MAX_LENGTH, MAGIC_NUMBER, _historyMessage, _historyNickName, _heightIndex, _messageBuffer, _rafScheduled, _preferences$41, ChatBox, ITEM_LINK, ChatBox_default;
 var init_ChatBox = __esmMin((() => {
 	init_DBManager();
 	init_Renderer();
@@ -220996,16 +220996,45 @@ var init_ChatBox = __esmMin((() => {
 		}
 		this.onRequestTalk(user, trimmedText, ChatBox.sendTo);
 	};
+	ITEM_LINK = /(<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>)/i;
+	/**
+	* Escape text for use in HTML content and quoted attributes.
+	* @param {string} text
+	* @returns {string}
+	*/
+	ChatBox.escapeHTML = function escapeHTML(text) {
+		return text.replace(/[&<>"]/g, (c) => ({
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			"\"": "&quot;"
+		})[c]);
+	};
+	/**
+	* Render a received message as HTML: colour codes dropped, item links clickable, the rest as text.
+	*
+	* @param {string} text
+	* @returns {string}
+	* @see docs/reference/chat/text-parsing.md
+	*/
+	ChatBox.messageToHTML = function messageToHTML(text) {
+		return text.replace(/\^[0-9A-Fa-f]{6}/g, "").split(ITEM_LINK).map((part, i) => {
+			if (!(i % 2)) return ChatBox.escapeHTML(part);
+			const item = DB.parseItemLink(part);
+			return `<span data-item="${ChatBox.escapeHTML(part)}" class="item-link" style="color:#FFFF63; cursor:pointer;">&lt;${ChatBox.escapeHTML(item.name)}&gt;</span>`;
+		}).join("");
+	};
 	/**
 	* Add text to chatbox
+	*
+	* @see docs/reference/chat/text-parsing.md
 	*/
 	ChatBox.addText = function addText(text, colorType, filterType, color, override) {
-		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function(match) {
-			const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${DB.parseItemLink(match).name}&gt;</span>`;
+		text = text.replace(/\^[0-9A-Fa-f]{6}/g, "");
+		if (!override && ITEM_LINK.test(text)) {
+			text = ChatBox.messageToHTML(text);
 			override = true;
-			return span;
-		});
-		if (!override && /<span\s+class="nickname-link"/.test(text)) override = true;
+		}
 		if (isNaN(filterType)) filterType = ChatBox.FILTER.PUBLIC_LOG;
 		_messageBuffer.push({
 			text,
@@ -225607,20 +225636,11 @@ var init_WhisperBox = __esmMin((() => {
 	* @param {string} color
 	*/
 	WhisperBox.addText = function addText(nickname, text, color) {
-		const instance = this.instances[nickname] || this.show(nickname, true);
-		let override = false;
-		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, (match) => {
-			const item = DB.parseItemLink(match);
-			if (!item) return match;
-			override = true;
-			return `<span data-item="${match}" class="item-link" style="color:#FFFF63; cursor:pointer;">&lt;${item.name}&gt;</span>`;
-		});
-		const contentEl = instance._contentEl;
+		const contentEl = (this.instances[nickname] || this.show(nickname, true))._contentEl;
 		const isAtBottom = contentEl.scrollHeight - contentEl.scrollTop <= contentEl.offsetHeight + 10;
 		const div = document.createElement("div");
 		div.style.color = color || "#ffffff";
-		if (override) div.innerHTML = text;
-		else div.textContent = text;
+		div.innerHTML = ChatBox_default.messageToHTML(text);
 		contentEl.appendChild(div);
 		while (contentEl.childElementCount > 100) contentEl.firstElementChild.remove();
 		if (isAtBottom) contentEl.scrollTop = contentEl.scrollHeight;
@@ -241872,8 +241892,8 @@ function createInventory(config) {
 	function transferItemToOtherUI(item) {
 		if (transferInventoryItemStack(item, UIManager.components)) return true;
 		const storageUI = StorageController;
-		const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-		const isCartOpen = CartItems_default._host ? CartItems_default._host.style.display !== "none" : false;
+		const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+		const isCartOpen = CartItems_default._host ? CartItems_default._host.isConnected && CartItems_default._host.style.display !== "none" : false;
 		if (!item) return false;
 		const count = item.count || 1;
 		if (isStorageOpen) StorageController.reqAddItem(item.index, count);
@@ -243330,8 +243350,8 @@ function onItemInfo$13(event) {
 function transferItemToOtherUI(item) {
 	const storageUI = StorageController;
 	const inventoryUI = InventoryController;
-	const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.style.display !== "none" : false;
+	const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.isConnected && inventoryUI._host.style.display !== "none" : false;
 	if (!item) return false;
 	const count = item.count || 1;
 	if (isStorageOpen) StorageController.reqAddItemFromCart(item.index, count);
@@ -260631,6 +260651,7 @@ var init_MapRenderer = __esmMin((() => {
 			BGM.stop();
 			PostProcess.clean(gl);
 			Mouse.intersect = false;
+			Cursor.setType(Cursor.ACTION.DEFAULT);
 			this.light = null;
 			this.water = null;
 			this.sounds = null;
@@ -261370,6 +261391,7 @@ var init_Renderer = __esmMin((() => {
 				}
 				this._lastFrameTime = 0;
 				this._renderBound = this._render.bind(this);
+				Cursor.setSceneDriven(true);
 				this.updateId = _requestAnimationFrame(this._renderBound);
 			}
 		}
@@ -261385,6 +261407,7 @@ var init_Renderer = __esmMin((() => {
 				} catch (e) {
 					console.error(e);
 				}
+				Cursor.setSceneDriven(false);
 				return;
 			}
 			const pos = this.renderCallbacks.indexOf(fn);
@@ -304582,7 +304605,7 @@ function updateMapTable() {
 		else MapTable[key] = { name: MapInfo[key].displayName };
 	}
 }
-var lua, HO_AI, MER_AI, default_HO_AI, default_MER_AI, MsgStringTable, JokeTable, ScreamTable, MapTable, SkillDescription, SexTable, PetTalkTable, CheckAttendanceTable, buyingStoreItemList, LaphineSysTable, LaphineUpgTable, ItemDBNameTbl, ItemReformTable, EnchantListTable, SignBoardTranslatedTable, SignBoardTable, NaviMapTable, NaviMobTable, NaviNpcTable, NaviLinkTable, NaviLinkDistanceTable, NaviNpcDistanceTable, QuestInfo, TitleTable, PetDBTable, EggIDToJobID, ReputeGroup, ReputeInfo, AchievementTable, MsgEmotionCSV, HatEffectID, HatEffectInfo, FootPrintEffectInfo, CashShopBannerTable, Ez2streffect, unknownItem, servers, langType, userCharpage, userStringDecoder, DB, SUFFIX_TO_FIELD, HARDCODED_FIELD_MAPPING;
+var lua, HO_AI, MER_AI, default_HO_AI, default_MER_AI, mountPalettes, MsgStringTable, JokeTable, ScreamTable, MapTable, SkillDescription, SexTable, PetTalkTable, CheckAttendanceTable, buyingStoreItemList, LaphineSysTable, LaphineUpgTable, ItemDBNameTbl, ItemReformTable, EnchantListTable, SignBoardTranslatedTable, SignBoardTable, NaviMapTable, NaviMobTable, NaviNpcTable, NaviLinkTable, NaviLinkDistanceTable, NaviNpcDistanceTable, QuestInfo, TitleTable, PetDBTable, EggIDToJobID, ReputeGroup, ReputeInfo, AchievementTable, MsgEmotionCSV, HatEffectID, HatEffectInfo, FootPrintEffectInfo, CashShopBannerTable, Ez2streffect, unknownItem, servers, langType, userCharpage, userStringDecoder, DB, SUFFIX_TO_FIELD, HARDCODED_FIELD_MAPPING;
 var init_DBManager = __esmMin((() => {
 	init_Client();
 	init_Configs();
@@ -304715,6 +304738,8 @@ var init_DBManager = __esmMin((() => {
 			DB.isLoaded = false;
 			DB.count = 0;
 			DB.index = 0;
+			mountPalettes = void 0;
+			MemoryManager.remove(null, DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0));
 			let index = 0, count = 0;
 			function onLoad() {
 				count++;
@@ -305248,6 +305273,23 @@ var init_DBManager = __esmMin((() => {
 		*/
 		static getAdminPath(sex) {
 			return "data/sprite/ÀÎ°£Á·/¸öÅë/" + SexTable[sex] + "/¿î¿µÀÚ_" + SexTable[sex];
+		}
+		/**
+		* Whether the archive ships the halter-lead mounts' own palettes, read off
+		* a file only those archives have: asked once per archive.
+		*
+		* @param {function} onAnswer - called once the archive answers, if it has not yet
+		* @return {boolean|undefined} undefined until the archive answers
+		*/
+		static hasMountPalettes(onAnswer) {
+			if (mountPalettes === void 0) {
+				const answer = (present) => {
+					mountPalettes = present;
+					onAnswer();
+				};
+				Client.loadFile(DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0), () => answer(true), () => answer(false));
+			}
+			return mountPalettes;
 		}
 		/**
 		* @return {string} path to body palette
@@ -310206,20 +310248,8 @@ function UpdateBodyPalette(pal) {
 		this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
 		return;
 	}
-	const host = Configs.get("remoteClient", "");
-	if (host in hasMountPalettes) {
-		this.files.body.pal = DB.getBodyPalPath(hasMountPalettes[host] ? job : this._job, pal, this._sex);
-		return;
-	}
-	if (sentinelHost !== host) {
-		sentinelHost = host;
-		MemoryManager.remove(null, MOUNT_PALETTE_SENTINEL);
-	}
-	const answer = (present) => {
-		hasMountPalettes[host] = present;
-		UpdateBodyPalette.call(this, this._bodypalette);
-	};
-	Client.loadFile(MOUNT_PALETTE_SENTINEL, () => answer(true), () => answer(false));
+	const own = DB.hasMountPalettes(() => UpdateBodyPalette.call(this, this._bodypalette));
+	if (own !== void 0) this.files.body.pal = DB.getBodyPalPath(own ? job : this._job, pal, this._sex);
 }
 /**
 * Update head
@@ -310435,11 +310465,9 @@ function Init$5() {
 	createTransformationProperty("active_monster_transform");
 	createTransformationProperty("job_transform");
 }
-var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs, MOUNT_PALETTE_SENTINEL, hasMountPalettes, sentinelHost;
+var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs;
 var init_EntityView = __esmMin((() => {
 	init_Client();
-	init_Configs();
-	init_MemoryManager();
 	init_DBManager();
 	init_ShadowTable();
 	init_MountTable();
@@ -310458,8 +310486,6 @@ var init_EntityView = __esmMin((() => {
 	];
 	AllMountJobs = {};
 	for (const baseJob in AllMountTable) AllMountJobs[AllMountTable[baseJob]] = true;
-	MOUNT_PALETTE_SENTINEL = DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0);
-	hasMountPalettes = {};
 }));
 //#endregion
 //#region src/Renderer/Entity/EntityWalk.js
@@ -313473,6 +313499,7 @@ function free() {
 	});
 	_list.length = 0;
 	_gidMap.clear();
+	_over = null;
 	_pickList.length = 0;
 	_renderSortDirty = true;
 	_pickSortDirty = true;
@@ -313919,6 +313946,13 @@ function bindMouseEvents() {
 	}, true);
 }
 /**
+* Keep the cursor animated while the scene render loop is stopped (login, server list)
+*/
+function renderLoop() {
+	Cursor.render(Date.now());
+	_loopId = requestAnimationFrame(renderLoop);
+}
+/**
 * Start pre-compiling animation to avoid building sprites
 * during the rendering loop
 */
@@ -314003,7 +314037,7 @@ function createSpriteSheet() {
 	}
 	for (let i = 0; i < totalSprites; i++) drawSprite(i);
 }
-var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
+var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sceneDriven, _loopId, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
 var init_CursorManager = __esmMin((() => {
 	init_Client();
 	init_MemoryManager();
@@ -314023,6 +314057,8 @@ var init_CursorManager = __esmMin((() => {
 	_lastX = 0;
 	_lastY = 0;
 	_compiledStyle = [];
+	_sceneDriven = false;
+	_loopId = 0;
 	Cursor = class Cursor {
 		/**
 		* Cursor animation Constant
@@ -314081,6 +314117,7 @@ var init_CursorManager = __esmMin((() => {
 				bindMouseEvents();
 				preCompiledAnimations();
 				createSpriteSheet();
+				Cursor.setSceneDriven(_sceneDriven);
 				fn();
 			});
 		}
@@ -314111,6 +314148,18 @@ var init_CursorManager = __esmMin((() => {
 		*/
 		static getActualType() {
 			return _type$4;
+		}
+		/**
+		* Let the scene render loop draw the cursor after its frame, or draw it on its own while the scene is stopped
+		*
+		* @param {boolean} value
+		*/
+		static setSceneDriven(value) {
+			_sceneDriven = value;
+			if (value) {
+				cancelAnimationFrame(_loopId);
+				_loopId = 0;
+			} else if (!_loopId && _compiledStyle.length) _loopId = requestAnimationFrame(renderLoop);
 		}
 		/**
 		* Render the cursor (update)
@@ -314787,6 +314836,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.mouseMode === MouseMode.FREEZE) {
 				Mouse.intersect = false;
 				SessionStorage_default.FreezeUI = true;
+				_EntityManager?.setOverEntity(null);
 				_Cursor?.setType(_Cursor?.ACTION?.DEFAULT ?? 0);
 			}
 			if (this.onAppend) this.onAppend();
@@ -332293,7 +332343,8 @@ function onPrivateMessage(pkt) {
 		ChatBox_default.saveNickName(pkt.sender);
 		return;
 	}
-	ChatBox_default.addText("[ " + prefix + " <span class=\"nickname-link\" data-nickname=\"" + pkt.sender + "\" style=\"cursor:pointer; text-decoration:underline;\">" + pkt.sender + "</span> ] : " + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+	const sender = ChatBox_default.escapeHTML(pkt.sender);
+	ChatBox_default.addText(`[ ${ChatBox_default.escapeHTML(prefix)} <span class="nickname-link" data-nickname="${sender}" style="cursor:pointer; text-decoration:underline;">${sender}</span> ] : ${ChatBox_default.messageToHTML(msg)}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
 	ChatBox_default.saveNickName(pkt.sender);
 }
 /**
@@ -332307,7 +332358,10 @@ function onPrivateMessageSent(pkt) {
 	if (pkt.result === 0) {
 		if (user && msg) {
 			if (getShouldOpenWhisperBox(user)) WhisperBox.addText(user, SessionStorage_default.Entity.display.name + " : " + msg, "#ffff00");
-			else ChatBox_default.addText("[ To <span class=\"nickname-link\" data-nickname=\"" + user + "\" style=\"cursor:pointer; text-decoration:underline;\">" + user + "</span> ] : " + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+			else {
+				const name = ChatBox_default.escapeHTML(user);
+				ChatBox_default.addText(`[ To <span class="nickname-link" data-nickname="${name}" style="cursor:pointer; text-decoration:underline;">${name}</span> ] : ${ChatBox_default.messageToHTML(msg)}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
+			}
 		}
 	} else {
 		const errorMsg = "(" + user + ") : " + DB.getMessage(147 + pkt.result);
@@ -338256,11 +338310,8 @@ function onRestartAnswer(pkt) {
 	if (!pkt.type) ChatBox_default.addText(DB.getMessage(502), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
 	else {
 		GuildEngine.guild_id = 0;
-		cleanGameUI();
 		SessionStorage_default.Achievement = null;
 		Mouse.intersect = false;
-		MapRenderer.free();
-		Renderer.stop();
 		onRestart();
 	}
 }
@@ -338519,7 +338570,11 @@ function onConfigUpdate(type, val) {
 * Go back from map-server to char-server
 */
 function onRestart() {
-	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
+	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload(() => {
+		cleanGameUI();
+		MapRenderer.free();
+		Renderer.stop();
+	})), void 0, import.meta.url);
 }
 /**
 * Reply to reassembly auth packet
@@ -341973,10 +342028,13 @@ var init_CharEngine = __esmMin((() => {
 		}
 		/**
 		* Reload Char-Select
+		*
+		* @param {function} [onBlack] - run once the fade has covered the screen
 		*/
-		static reload() {
+		static reload(onBlack) {
 			Network.close();
 			Background.setLoginBackground(() => {
+				if (onBlack) onBlack();
 				UIManager.removeComponents();
 				CharEngine.init(_server$1);
 			});
@@ -347119,6 +347177,7 @@ function onServerClosed(pkt) {
 			break;
 		case 110: msg_id = 1589;
 	}
+	SkillTargetSelection_default.remove();
 	UIManager.showMessageBox(DB.getMessage(msg_id), "ok", () => {
 		Renderer.stop();
 		MapRenderer.cancelLoad();
@@ -347149,6 +347208,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_UIManager();
 	init_WinList();
 	init_WinPopup();
+	init_SkillTargetSelection();
 	init_Queue();
 	init_Background();
 	init_spark_md5_min();
@@ -348422,6 +348482,7 @@ var init_UIManager = __esmMin((() => {
 		* @param {string} error message
 		*/
 		static showErrorBox(text) {
+			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
 			let overlay;
 			WinError.init = function Init() {
