@@ -365,6 +365,11 @@ function reqCloseBank() {
 }
 
 /**
+ * Public method for Engine/MapEngine/UIOpen.js
+ */
+Bank.openRequest = reqOpenBank;
+
+/**
  * Remove Bank from window
  */
 Bank.onRemove = function onRemove() {
