@@ -63,7 +63,7 @@ function buildClassMap() {
 function dispatch(fp) {
 	if (!classMap) {return}
 	const savePos = fp.tell()
-	while (fp.tell() < fp.length - 2) {
+	while (fp.tell() + 2 <= fp.length) {
 		const offset = fp.tell()
 		const id = fp.readUShort()
 		let length = PacketLength ? PacketLength.getPacketLength(id) : 0
