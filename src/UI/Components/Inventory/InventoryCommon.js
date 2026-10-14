@@ -641,9 +641,9 @@ export function createInventory(config) {
 	Component.setItems = function SetItems(items) {
 		const root = Component.getRoot();
 		for (let i = 0, count = items.length; i < count; ++i) {
-			const object = this.getItemByIndex(items[i].index);
-			if (object) {
-				this.removeItem(object.index, object.count);
+			// Replace every entry of this index, whatever its count
+			while (this.getItemByIndex(items[i].index)) {
+				this.removeItem(items[i].index, Infinity);
 			}
 			if (this.addItemSub(items[i])) {
 				this.list.push(items[i]);
