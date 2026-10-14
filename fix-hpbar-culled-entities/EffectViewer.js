@@ -212979,6 +212979,10 @@ function render$9(gl, modelView, projection, normalMat, fog, light, tick) {
 					}
 				}
 			}
+			if (inst.entity && inst.entity.culled) {
+				inst.screenRect = null;
+				continue;
+			}
 			worldAnchorToClip(inst.pos, modelView, projection, _clip);
 			if (frustumCullClip(_clip[0], _clip[1], _clip[3], CULL_MARGIN)) {
 				inst.screenRect = null;
