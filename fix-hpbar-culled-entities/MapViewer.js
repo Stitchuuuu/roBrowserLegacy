@@ -260707,6 +260707,7 @@ var init_MapRenderer = __esmMin((() => {
 			OccluderFade.beginFrame(gl, modelView, tick);
 			Models_default.render(gl, modelView, projection, normalMat, fog, light);
 			AnimatedModels_default.render(gl, modelView, projection, normalMat, fog, light, tick);
+			EntityManager.cull();
 			GR2ModelRenderer_default.render(gl, modelView, projection, normalMat, fog, light, tick);
 			ScreenEffectManager.render(gl, modelView, projection, fog, tick, true);
 			EffectManager.render(gl, modelView, projection, fog, tick, true);
@@ -313653,6 +313654,14 @@ function setCulled(entity, culled) {
 	if (entity.room.node) entity.room.node.ui[0].style.display = display;
 }
 /**
+* Decide, once per frame and before any pass draws, which entities are out of
+* the view area: their overlays are hidden and every pass skips them
+*/
+function cull() {
+	const culling = getCulling();
+	for (let i = 0, count = _list.length; i < count; ++i) setCulled(_list[i], isCulled(culling, _list[i]));
+}
+/**
 * Render all entities (picking or not)
 *
 * @param {object} gl webgl context
@@ -313675,7 +313684,6 @@ function render$4(gl, modelView, projection, fog, renderEffects) {
 		_pickSortDirty = true;
 	}
 	SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
-	const culling = getCulling();
 	for (i = 0, count = _list.length; i < count; ++i) if (_list[i].objecttype != _list[i].constructor.TYPE_EFFECT && !renderEffects || _list[i].objecttype == _list[i].constructor.TYPE_EFFECT && renderEffects) {
 		if (_list[i].remove_tick && _list[i].remove_tick + _list[i].remove_delay < tick) {
 			const entityFocus = getFocusEntity();
@@ -313692,11 +313700,7 @@ function render$4(gl, modelView, projection, fog, renderEffects) {
 			_pickSortDirty = true;
 			continue;
 		}
-		if (isCulled(culling, _list[i])) {
-			setCulled(_list[i], true);
-			continue;
-		}
-		setCulled(_list[i], false);
+		if (_list[i].culled) continue;
 		_list[i].render(modelView, projection);
 	}
 	SpriteRenderer.unbind(gl);
@@ -313872,6 +313876,7 @@ var init_EntityManager = __esmMin((() => {
 		getLife,
 		removeLife,
 		clearLifeCache,
+		cull,
 		render: render$4,
 		intersect,
 		setSupportPicking,
