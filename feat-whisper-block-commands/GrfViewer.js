@@ -220311,7 +220311,7 @@ var init_ChatBox = __esmMin((() => {
 	ChatBox.PrivateMessageStorage = {
 		nick: "",
 		msg: "",
-		blockNick: ""
+		blockNicks: []
 	};
 	ChatBox.lastTabID = -1;
 	ChatBox.tabCount = 0;
@@ -251453,7 +251453,7 @@ function requestWhisperSetting(name, type) {
 	pkt.name = name;
 	pkt.type = type;
 	Network.sendPacket(pkt);
-	ChatBox_default.PrivateMessageStorage.blockNick = name;
+	ChatBox_default.PrivateMessageStorage.blockNicks.push(name);
 }
 /**
 * Process command
@@ -332471,9 +332471,10 @@ function onPrivateMessageSent(pkt) {
 * @param {object} pkt - PACKET.ZC.SETTING_WHISPER_PC
 */
 function onWhisperSettingResult(pkt) {
+	const name = ChatBox_default.PrivateMessageStorage.blockNicks.shift() || "";
 	if (pkt.type > 1 || pkt.result > 2 || pkt.type === 0 && pkt.result === 0) return;
 	const msg = DB.getMessage(193 + pkt.type * 3 + pkt.result);
-	ChatBox_default.addText(ChatBox_default.PrivateMessageStorage.blockNick + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+	ChatBox_default.addText(`${name}${msg}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
 }
 /**
 * Result of a /exall or /inall request
@@ -338183,6 +338184,7 @@ function onConnectionAccepted$2(pkt) {
 	SessionStorage_default.hasGuild = false;
 	SessionStorage_default.guildPermission = 0;
 	GuildEngine.resetForNewCharacter();
+	ChatBox_default.PrivateMessageStorage.blockNicks.length = 0;
 	SessionStorage_default.homunId = 0;
 	SessionStorage_default.mapState = {
 		property: 0,
