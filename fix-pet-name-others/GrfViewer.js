@@ -334435,12 +334435,12 @@ function onPetInformation(pkt) {
 	PetInformations_default.append();
 	PetInformations_default.setInformations(pkt);
 	if (SessionStorage_default.petId) {
+		SessionStorage_default.pet.name = pkt.szName;
 		const entity = EntityManager.get(SessionStorage_default.petId);
 		if (entity) {
 			const oldHungry = SessionStorage_default.pet.hungry || pkt.nFullness;
 			SessionStorage_default.pet.job = pkt.job;
 			SessionStorage_default.pet.clevel = pkt.nLevel;
-			SessionStorage_default.pet.name = pkt.szName;
 			SessionStorage_default.pet.friendly = pkt.nRelationship;
 			SessionStorage_default.pet.oldHungry = oldHungry;
 			SessionStorage_default.pet.hungry = pkt.nFullness;
@@ -334486,7 +334486,7 @@ function petTalk(GID, msg) {
 	const entity = EntityManager.get(GID);
 	const name = getPetName(entity);
 	if (!name) return;
-	ChatBox_default.addText(name + " : " + msg, ChatBox_default.TYPE.PUBLIC, ChatBox_default.FILTER.PUBLIC_CHAT);
+	ChatBox_default.addText(`${name} : ${msg}`, ChatBox_default.TYPE.PUBLIC, ChatBox_default.FILTER.PUBLIC_CHAT);
 	entity.dialog.set(msg);
 }
 /**
@@ -334500,7 +334500,7 @@ function getPetName(entity) {
 	if (entity.display.name) return entity.display.name;
 	if (entity.GID === SessionStorage_default.petId && SessionStorage_default.pet.name) return SessionStorage_default.pet.name;
 	const now = Date.now();
-	if (now - (_nameRequestTick[entity.GID] || 0) >= NAME_REQUEST_DELAY) {
+	if (entity.display.load === entity.display.TYPE.NONE || now - (_nameRequestTick[entity.GID] || 0) >= NAME_REQUEST_DELAY) {
 		_nameRequestTick[entity.GID] = now;
 		entity.display.load = entity.display.TYPE.LOADING;
 		let pkt;
@@ -334522,6 +334522,7 @@ function onPetInformationUpdate(pkt) {
 	if (!entity) return;
 	switch (pkt.type) {
 		case 0:
+			if (SessionStorage_default.petId !== pkt.GID) SessionStorage_default.pet.name = "";
 			SessionStorage_default.petId = pkt.GID;
 			SessionStorage_default.pet.GID = pkt.GID;
 			SessionStorage_default.pet.job = entity._job;
