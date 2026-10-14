@@ -335219,7 +335219,6 @@ function onPetInformationUpdate(pkt) {
 	if (!entity) return;
 	switch (pkt.type) {
 		case 0:
-			if (SessionStorage_default.petId !== pkt.GID) SessionStorage_default.pet.name = "";
 			SessionStorage_default.petId = pkt.GID;
 			SessionStorage_default.pet.GID = pkt.GID;
 			SessionStorage_default.pet.job = entity._job;
