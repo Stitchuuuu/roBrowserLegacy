@@ -178,7 +178,7 @@ function rowHtml(p, open, confirm) {
 	];
 
 	return `
-<div class="pm-row${p.enabled ? '' : ' is-disabled'}${p.status === 'failed' ? ' is-failed' : ''}" data-name="${escapeHtml(p.name)}">
+<div class="pm-row${p.enabled ? '' : ' is-disabled'}${p.status === 'failed' ? ' is-failed' : ''}" data-name="${escapeHtml(p.name)}"${p.updateAvailable && p.url ? ` data-url="${escapeHtml(p.url)}"` : ''}>
 	<div class="pm-row-main">
 		<span class="pm-name">${escapeHtml(friendly)}</span>${slug}
 		<span class="pm-ver">v${escapeHtml(p.version || '?')}</span>
@@ -251,11 +251,12 @@ const init = (pars, deps) => {
 	}
 
 	// ── action delegation : EVERY action → LPM ; onChange re-renders the rows ──
-	async function perform(action, name) {
+	// `url` : the registry's latest build when it lists a newer version.
+	async function perform(action, name, url) {
 		if (!LPM || !name) { return; }
 		try {
 			let r;
-			if (action === 'update') { r = await LPM.update(name); }
+			if (action === 'update') { r = await LPM.update(name, url ? { sourceUrl: url } : undefined); }
 			else if (action === 'uninstall') { r = await LPM.remove(name); }
 			else if (action === 'enable') { r = await LPM.enable(name); }
 			else if (action === 'disable') { r = await LPM.disable(name); }
@@ -376,7 +377,7 @@ const init = (pars, deps) => {
 				const action = btn.getAttribute('data-action');
 				if (action === 'install') { installFromRegistry(row.getAttribute('data-url')); return; }
 				if (/version/.test(action)) { onVersionAction(action, row.getAttribute('data-name'), btn.getAttribute('data-version')); return; }
-				perform(action, row.getAttribute('data-name'));
+				perform(action, row.getAttribute('data-name'), row.getAttribute('data-url'));
 			});
 			listEl.addEventListener('change', (e) => {
 				const box = e.target.closest('.pm-enable');

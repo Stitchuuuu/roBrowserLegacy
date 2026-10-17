@@ -131,3 +131,21 @@ describe('plugin-manager-ui Versions', () => {
 		expect(LPM.update).not.toHaveBeenCalled();
 	});
 });
+
+describe('plugin-manager-ui Update', () => {
+	it('fetches the latest listed build, not the pinned installed one', async () => {
+		click('[data-action="update"]');
+		await flush();
+		expect(LPM.update).toHaveBeenCalledWith('tab-target', { sourceUrl: url('2.0.0') });
+	});
+
+	it('re-fetches the stored source when nothing newer is listed', async () => {
+		cleanups.forEach(fn => fn());
+		panel.remove();
+		mount([row('2.0.0')]);
+		await flush();
+		click('[data-action="update"]');
+		await flush();
+		expect(LPM.update).toHaveBeenCalledWith('tab-target', undefined);
+	});
+});
