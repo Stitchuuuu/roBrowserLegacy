@@ -123,6 +123,16 @@ describe('plugin-manager-ui Versions', () => {
 		expect(LPM.installFromUrl).not.toHaveBeenCalled();
 	});
 
+	it('closes the list when the install fails', async () => {
+		LPM.update.mockRejectedValueOnce(new Error('HTTP 404'));
+		click('[data-action="pick-version"][data-version="2.0.0"]');
+		await flush();
+		expect(panel.querySelector('.pm-versions')).toBeNull();
+		expect(text('.pm-status')).toBe('v2.0.0 failed: HTTP 404');
+		click('[data-action="versions"]');
+		expect(panel.querySelectorAll('.pm-vrow')).toHaveLength(3);
+	});
+
 	it('cancel goes back to the list without installing', () => {
 		click('[data-action="pick-version"][data-version="1.0.0"]');
 		click('[data-action="cancel-version"]');

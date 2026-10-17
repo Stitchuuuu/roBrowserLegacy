@@ -301,6 +301,7 @@ const init = (pars, deps) => {
 		if (!LPM || !v) { return; }
 		openVersions = null;
 		confirmVersion = null;
+		renderRows();
 		try {
 			const r = p.installed
 				? await LPM.update(slug, { sourceUrl: v.url, version })
