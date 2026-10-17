@@ -1,12 +1,17 @@
 /**
- * Config of https://robrowser.suuuper.app/cyro.live/ (assembled by pages-sites.yml): cyro.live's
- * server block, the client folder from the roBrowser relay extension.
+ * Config of https://robrowser.suuuper.app/<build>/cyro.live/ (assembled by pages-sites.yml, one copy per
+ * build in BUILDS): cyro.live's server block, the client folder from the roBrowser relay extension.
  *
  * GitHub Pages serves no /grf/, /userconfig, /emblem or /api: pwa/relay-sw.js answers them, from
  * the relay's folder and from https://cyro.live/api. They stay root-absolute; the service worker
  * sees every request of the pages it controls, whatever the path. gate.js holds the boot until both
  * the relay and that worker are there.
  */
+// This copy's folder, /<build>/cyro.live/ (or /cyro.live/): the plugins are under it.
+const PAGES_SITE = new URL('.', location.href).href;
+// The upstream build has no native plugin manager.
+const PAGES_PLUGIN_MANAGER = !new URL(PAGES_SITE).pathname.startsWith('/upstream/');
+
 window.ROConfigLocal = {
 	version: 1775350421,
 	development: false,
@@ -34,16 +39,18 @@ window.ROConfigLocal = {
 	skipIntro: true,
 	// Rocache refuses to init without it.
 	fetchIntercept: true,
-	// Native entries must start with '/' or 'http'. Community = the v3 plugins of `wtf dev`, on
-	// this machine only (http://localhost is a trustworthy origin from an https page).
-	plugins: {
-		ItemDb: '/cyro.live/plugins/item-db/item-db.esm.js',
-		LocalPluginManager: {
-			path: '/cyro.live/plugins/local-plugin-manager/local-plugin-manager.esm.js',
-			pars: { registries: { Community: 'http://localhost:6980/index.json' } }
-		},
-		PluginManagerUI: '/cyro.live/plugins/plugin-manager-ui/plugin-manager-ui.esm.js'
-	}
+	// Native entries must start with '/' or 'http'; full URLs, since a keyed build runs the client from
+	// a blob: URL, which resolves no path. Community = the public v3 plugin registry.
+	plugins: PAGES_PLUGIN_MANAGER
+		? {
+				ItemDb: `${PAGES_SITE}plugins/item-db/item-db.esm.js`,
+				LocalPluginManager: {
+					path: `${PAGES_SITE}plugins/local-plugin-manager/local-plugin-manager.esm.js`,
+					pars: { registries: { Community: 'https://cdn.jsdelivr.net/gh/meitogi/ro-plugins@main/index.json' } }
+				},
+				PluginManagerUI: `${PAGES_SITE}plugins/plugin-manager-ui/plugin-manager-ui.esm.js`
+			}
+		: {}
 };
 
 // The tab says which server it plays.

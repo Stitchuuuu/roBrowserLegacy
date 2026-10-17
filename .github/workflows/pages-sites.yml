@@ -1,16 +1,20 @@
 name: Deploy server sites to GitHub Pages
 
-# After "Deploy to GitHub Pages" published SOURCE_BRANCH to gh-pages/<safe-branch>/, copies that build
-# to gh-pages/<site>/ for every folder of .github/pages-sites/ but shared/ (cyro.live/…), with shared/
-# (relay service worker, gate) and the site's own files (Config.local.js) on top.
-# workflow_run reads this file from the default branch: nothing is added to SOURCE_BRANCH.
+# After "Deploy to GitHub Pages" published a branch to gh-pages/<safe-branch>/, assembles every client
+# build of .github/pages-sites/BUILDS into gh-pages/<folder>/<site>/, for every folder of
+# .github/pages-sites/ but shared/ (cyro.live/…): the build's gh-pages folder, its branch's plugins/,
+# shared/ (relay service worker, gate, landing page) and the site's own files (Config.local.js) on top.
+# A keyed build gets its Online.js locked by encrypt.mjs (secret NPM_ACCESS_KEYS).
+# workflow_run reads this file from the default branch: nothing is added to the source branches.
+# `upstream` is in the trigger because pages.yml of that branch (upstream's, never edited) clears
+# gh-pages/upstream/, where the upstream build's sites live: this run puts them back.
 
 on:
   workflow_run:
     workflows: ["Deploy to GitHub Pages"]
     types: [completed]
-    branches: [feat/native-plugin-manager]
-  # A change to the sites themselves redeploys them from SOURCE_BRANCH's current build.
+    branches: [feat/native-plugin-manager, upstream-relay, upstream]
+  # A change to the sites themselves redeploys them from the current builds.
   push:
     branches: [master]
     paths: ['.github/pages-sites/**', '.github/workflows/pages-sites.yml']
@@ -23,9 +27,6 @@ concurrency:
 permissions:
   contents: write
 
-env:
-  SOURCE_BRANCH: feat/native-plugin-manager
-
 jobs:
   deploy:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
@@ -37,12 +38,22 @@ jobs:
           path: repo
           sparse-checkout: .github/pages-sites
 
-      - name: Checkout plugins of the deployed commit
-        uses: actions/checkout@v5
-        with:
-          path: source
-          ref: ${{ github.event.workflow_run.head_sha || env.SOURCE_BRANCH }}
-          sparse-checkout: plugins
+      - name: Test the access key
+        run: node --test repo/.github/pages-sites/access-key.test.mjs
+
+      - name: Plugins of every source branch
+        run: |
+          set -euo pipefail
+          mkdir plugins
+          grep -v '^#' repo/.github/pages-sites/BUILDS | awk 'NF { print $2 }' | sort -u | while read -r branch; do
+            safe="$(printf '%s' "$branch" | tr '/' '-' | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
+            mkdir "plugins/$safe"
+            git -C repo fetch --quiet --depth 1 origin "$branch"
+            # upstream's tree has no plugins/
+            if git -C repo cat-file -e FETCH_HEAD:plugins 2>/dev/null; then
+              git -C repo archive FETCH_HEAD plugins | tar -x --strip-components=1 -C "plugins/$safe"
+            fi
+          done
 
       - name: Clone gh-pages
         env:
@@ -50,11 +61,12 @@ jobs:
         run: git clone --depth 1 --branch gh-pages "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ghpages
 
       - name: Commit and push (retry, no rebase)
+        env:
+          NPM_ACCESS_KEYS: ${{ secrets.NPM_ACCESS_KEYS }}
         run: |
           set -euo pipefail
-          SAFE_BRANCH="$(printf '%s' "$SOURCE_BRANCH" | tr '/' '-' | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
-          SHA="$(git -C source rev-parse --short HEAD)"
           SITES_DIR="$PWD/repo/.github/pages-sites"
+          PLUGINS_DIR="$PWD/plugins"
 
           cd ghpages
           git config user.name "github-actions[bot]"
@@ -64,20 +76,14 @@ jobs:
             git fetch origin gh-pages
             git reset --hard origin/gh-pages
 
-            SITES=""
-            for site in "$SITES_DIR"/*/; do
-              name="$(basename "$site")"
-              [ "$name" = shared ] && continue
-              bash "$SITES_DIR/assemble.sh" "$SAFE_BRANCH" ../source/plugins "$site" "$name"
-              SITES="$SITES $name"
-            done
+            DEPLOYED="$(bash "$SITES_DIR/build-sites.sh" "$PLUGINS_DIR")"
 
             git add -A
             if git diff --cached --quiet; then
               exit 0
             fi
 
-            git commit -m "Deploy${SITES} from ${SOURCE_BRANCH}@${SHA}"
+            git commit -m "Deploy${DEPLOYED}"
 
             if git push origin gh-pages; then
               exit 0
