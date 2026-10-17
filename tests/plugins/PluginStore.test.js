@@ -228,3 +228,149 @@ describe('listInstalled', () => {
 		expect(live.error).toBeNull();
 	});
 });
+
+// Serves a registry index plus versioned DI sources from one fetch mock.
+function serve(files) {
+	W.fetch.mockImplementation(async url => {
+		const body = files[url];
+		if (body === undefined) {
+			return { ok: false, status: 404, text: async () => '' };
+		}
+		return { ok: true, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)) };
+	});
+}
+
+function versionedSource(name, version) {
+	return `export default { name: ${JSON.stringify(name)}, version: ${JSON.stringify(version)}, init() { return true } }`;
+}
+
+const REG = 'http://registry.test/index.json';
+const CDN = 'http://cdn.test/tab-target';
+
+describe('registry index shapes', () => {
+	beforeEach(() => {
+		store = createPluginStore({
+			W,
+			PluginManager,
+			logger: { log() {}, warn() {}, error() {} },
+			registries: [{ label: 'Community', url: REG }]
+		});
+	});
+
+	it('reads the flat serve-dist shape as a single version', async () => {
+		serve({
+			[REG]: {
+				name: 'dev',
+				plugins: [{ slug: 'tab-target', name: 'TabTarget', version: '7.21.0-a.17', url: 'http://dev.test/plugins/tab-target.di.esm.js' }]
+			}
+		});
+		const rows = await store.list();
+		expect(rows).toHaveLength(1);
+		expect(rows[0].version).toBe('7.21.0-a.17');
+		expect(rows[0].versions).toEqual([
+			{ version: '7.21.0-a.17', url: 'http://dev.test/plugins/tab-target.di.esm.js', installed: false, older: false }
+		]);
+	});
+
+	it('reads latest + versions[], newest first, DI builds only', async () => {
+		serve({
+			[REG]: {
+				name: 'ro-plugins',
+				plugins: [
+					{
+						slug: 'tab-target',
+						name: 'TabTarget',
+						version: '7.21.0',
+						latest: '7.21.0',
+						url: `${CDN}/7.21.0/tab-target.di.esm.js`,
+						versions: [
+							{ version: '7.20.0', url: `${CDN}/7.20.0/tab-target.di.esm.js` },
+							{ version: '7.21.0-a.2', url: `${CDN}/7.21.0-a.2/tab-target.di.esm.js` },
+							{ version: '7.21.0-a.10', url: `${CDN}/7.21.0-a.10/tab-target.di.esm.js` },
+							{ version: '7.21.0', url: `${CDN}/7.21.0/tab-target.di.esm.js` },
+							{ version: '7.19.0', url: `${CDN}/7.19.0/tab-target.user.js` }
+						]
+					}
+				]
+			}
+		});
+		const rows = await store.list();
+		expect(rows[0].version).toBe('7.21.0');
+		expect(rows[0].versions.map(v => v.version)).toEqual(['7.21.0', '7.21.0-a.10', '7.21.0-a.2', '7.20.0']);
+	});
+
+	it('flags a release as an update over its own prerelease', async () => {
+		serve({
+			[REG]: { plugins: [{ slug: 'tab-target', version: '7.21.0', url: `${CDN}/7.21.0/tab-target.di.esm.js` }] }
+		});
+		await store.installFromSource(versionedSource('TabTarget', '7.21.0-a.17'), 'tab-target');
+		const rows = await store.list();
+		expect(rows[0].installed).toBe(true);
+		expect(rows[0].updateAvailable).toBe(true);
+		expect(rows[0].versions).toEqual([
+			{ version: '7.21.0', url: `${CDN}/7.21.0/tab-target.di.esm.js`, installed: false, older: false }
+		]);
+	});
+});
+
+describe('installed version marking', () => {
+	it('marks the installed version and flags the older ones', async () => {
+		store = createPluginStore({
+			W,
+			PluginManager,
+			logger: { log() {}, warn() {}, error() {} },
+			registries: [{ label: null, url: REG }]
+		});
+		const versions = ['1.0.0', '1.1.0', '2.0.0'].map(v => ({ version: v, url: `${CDN}/${v}/tab-target.di.esm.js` }));
+		serve({ [REG]: { plugins: [{ slug: 'tab-target', latest: '2.0.0', url: versions[2].url, versions }] } });
+		await store.installFromSource(versionedSource('TabTarget', '1.1.0'), 'tab-target');
+		const rows = await store.list();
+		expect(rows[0].versions.map(v => [v.version, v.installed, v.older])).toEqual([
+			['2.0.0', false, false],
+			['1.1.0', true, false],
+			['1.0.0', false, true]
+		]);
+	});
+});
+
+describe('update to another published version', () => {
+	const v1 = `${CDN}/1.0.0/tab-target.di.esm.js`;
+	const v2 = `${CDN}/2.0.0/tab-target.di.esm.js`;
+
+	beforeEach(() => {
+		serve({ [v1]: versionedSource('TabTarget', '1.0.0'), [v2]: versionedSource('TabTarget', '2.0.0') });
+		window.localStorage.setItem('TabTargetNative.lockKey', '{"code":"KeyQ"}');
+	});
+
+	afterEach(() => {
+		window.localStorage.removeItem('TabTargetNative.lockKey');
+	});
+
+	it('downgrades the live code and keeps settings and flags', async () => {
+		await store.install('tab-target', { sourceUrl: v2, debug: true });
+		const r = await store.update('tab-target', { sourceUrl: v1 });
+		expect(r).toMatchObject({ ok: true, version: '1.0.0', oldVersion: '2.0.0' });
+
+		const row = (await store.listInstalled()).find(x => x.name === 'tab-target');
+		expect(row).toMatchObject({ version: '1.0.0', enabled: true, debug: true, status: 'ok' });
+		expect(window.localStorage.getItem('TabTargetNative.lockKey')).toBe('{"code":"KeyQ"}');
+
+		// The old version is what boots next time.
+		PluginManager = createFakePluginManager();
+		store = createPluginStore({ W, PluginManager, logger: { log() {}, warn() {}, error() {} } });
+		await store.bootLoad();
+		const plain = await store.update('tab-target');
+		expect(plain.version).toBe('1.0.0');
+	});
+
+	it('labels a disabled plugin with the version it now holds', async () => {
+		await store.install('tab-target', { sourceUrl: v2 });
+		await store.disable('tab-target');
+		await store.update('tab-target', { sourceUrl: v1, version: '1.0.0' });
+		const row = (await store.listInstalled()).find(x => x.name === 'tab-target');
+		expect(row).toMatchObject({ version: '1.0.0', enabled: false });
+		await store.enable('tab-target');
+		expect(PluginManager.list()).toEqual([{ name: 'TabTarget', status: 'ok' }]);
+		expect((await store.listInstalled())[0].version).toBe('1.0.0');
+	});
+});

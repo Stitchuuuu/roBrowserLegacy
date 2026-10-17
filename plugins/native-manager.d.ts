@@ -46,6 +46,9 @@ export interface LpmRow {
 	url?: string | null;
 	registry?: string | null;
 	updateAvailable?: boolean;
+	/** Published versions, newest first (a flat listing yields one) ; `installed` /
+	 *  `older` are relative to the installed version. */
+	versions?: Array<{ version: string; url: string; installed: boolean; older: boolean }>;
 	/** From the live registration (matched on `pluginName`). `null` when not
 	 *  registered (e.g. disabled, or a registry-only row). */
 	status?: 'ok' | 'failed' | null;
@@ -66,7 +69,7 @@ export interface LpmResult {
 
 export interface LocalPluginManagerAPI {
 	/** Installed (IndexedDB) merged with the configured registry listings
-	 *  (`pars.registries`). Rows gain `url`/`registry`/`updateAvailable`; a dead
+	 *  (`pars.registries`). Rows gain `url`/`registry`/`versions`/`updateAvailable`; a dead
 	 *  registry is skipped, not fatal. Equals `listInstalled()` in local-only mode. */
 	list(): Promise<LpmRow[]>;
 	/** Installed only — IndexedDB, no network. */
@@ -80,7 +83,9 @@ export interface LocalPluginManagerAPI {
 	enable(name: string): Promise<LpmResult>;
 	disable(name: string): Promise<LpmResult>;
 	remove(name: string): Promise<LpmResult>;
-	update(name: string): Promise<LpmResult>;
+	/** Re-fetch the stored source, or `opts.sourceUrl` (another published version,
+	 *  kept as the new source ; `opts.version` labels it while disabled). Settings stay. */
+	update(name: string, opts?: { sourceUrl?: string; version?: string }): Promise<LpmResult>;
 	refreshAll(): Promise<{ updated: number; failed: number; results: LpmResult[] }>;
 	/** Fires (zero-arg) after every mutation. Returns an unsubscribe function. */
 	onChange(cb: () => void): () => void;
