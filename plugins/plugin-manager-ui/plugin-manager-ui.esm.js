@@ -20,12 +20,14 @@
  * update badges), else `listInstalled()` (IndexedDB only). Install goes through
  * a registry row, the URL field (registries only) or the upload button
  * (`installFromFile`). Drag-drop install is owned by LPM itself (document
- * capture-phase), not this UI.
+ * capture-phase), not this UI. « Versions » lists a row's published versions
+ * and installs one in place (`LPM.update(slug, { sourceUrl })`) ; an older one
+ * asks first.
  *
  * Wire it via ROConfig.plugins as `/plugins/plugin-manager-ui/plugin-manager-ui.esm.js`.
  */
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 const CSS = `
 .pm-panel { width: 380px; background: rgba(20,30,50,0.94); border: 1px solid #4af; border-radius: 4px; color: #fff; font-family: Arial, sans-serif; font-size: 11px; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 10px rgba(0,0,0,0.7); display: flex; flex-direction: column; }
@@ -76,6 +78,14 @@ const CSS = `
 .pm-badge.reg { color: #9cf; border-color: #47a; background: rgba(60,100,160,0.35); }
 .pm-row.is-registry { border-left-color: #6c6; }
 .pm-error { color: #fbb; font-size: 10px; word-break: break-word; }
+.pm-versions { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid rgba(74,170,255,0.3); padding-top: 4px; }
+.pm-vrow { display: flex; align-items: center; gap: 6px; min-height: 20px; }
+.pm-vrow .pm-btn { margin-left: auto; padding: 2px 8px; }
+.pm-vnum { color: #ad6; font-size: 10px; }
+.pm-vrow.is-installed .pm-vnum { color: #fff; font-weight: bold; }
+.pm-confirm { border-top: 1px solid rgba(255,200,100,0.4); padding-top: 4px; color: #fc6; display: flex; flex-direction: column; gap: 4px; }
+.pm-btn[data-action="confirm-version"] { border-color: #b83; background: rgba(180,120,40,0.6); }
+.pm-btn[data-action="confirm-version"]:hover { background: rgba(210,150,60,0.9); border-color: #fc6; }
 `;
 
 const HTML = `
@@ -108,7 +118,7 @@ function escapeHtml(s) {
 }
 
 /** A registry-only row (listed but not installed): name/version/registry + Install. */
-function registryRowHtml(p) {
+function registryRowHtml(p, open) {
 	const friendly = p.pluginName || p.name;
 	return `
 <div class="pm-row is-registry" data-name="${escapeHtml(p.name)}" data-url="${escapeHtml(p.url || '')}">
@@ -119,13 +129,42 @@ function registryRowHtml(p) {
 	<div class="pm-badges">
 		<span class="pm-badge reg">${escapeHtml(p.registry || 'registry')}</span>
 	</div>
-	<div class="pm-actions"><button class="pm-btn" data-action="install" title="Install">Install</button></div>
+	<div class="pm-actions"><button class="pm-btn" data-action="install" title="Install">Install</button>${hasVersionChoice(p) ? VERSIONS_BTN : ''}</div>
+	${open ? versionsHtml(p, null) : ''}
 </div>`.trim();
 }
 
+/** Whether a row has another published version to pick. */
+function hasVersionChoice(p) {
+	const v = p.versions || [];
+	return p.installed ? v.some((x) => !x.installed) : v.length > 1;
+}
+
+/** The « Versions » list under a row (newest first, installed marked), or the downgrade prompt. */
+function versionsHtml(p, confirm) {
+	if (confirm) {
+		return `
+<div class="pm-confirm">
+	<span>Replace v${escapeHtml(p.version || '?')} with the older v${escapeHtml(confirm)}?</span>
+	<div class="pm-actions">
+		<button class="pm-btn" data-action="confirm-version" data-version="${escapeHtml(confirm)}">Install v${escapeHtml(confirm)}</button>
+		<button class="pm-btn" data-action="cancel-version">Cancel</button>
+	</div>
+</div>`.trim();
+	}
+	const items = (p.versions || []).map((v) => `
+<div class="pm-vrow${v.installed ? ' is-installed' : ''}">
+	<span class="pm-vnum">v${escapeHtml(v.version)}</span>${v.installed ? '<span class="pm-badge on">installed</span>' : ''}${v.older ? '<span class="pm-badge">older</span>' : ''}
+	${v.installed ? '' : `<button class="pm-btn" data-action="pick-version" data-version="${escapeHtml(v.version)}">Install</button>`}
+</div>`.trim());
+	return `<div class="pm-versions">${items.join('')}</div>`;
+}
+
+const VERSIONS_BTN = '<button class="pm-btn" data-action="versions" title="Versions"><span class="ro-icon ro-icon-rotate-ccw"></span> Versions</button>';
+
 /** One installed-plugin row. Buttons dispatch via `data-action` / `.pm-enable`. */
-function rowHtml(p) {
-	if (p.available && !p.installed) { return registryRowHtml(p); }
+function rowHtml(p, open, confirm) {
+	if (p.available && !p.installed) { return registryRowHtml(p, open); }
 
 	const badge = (on, label) => `<span class="pm-badge${on ? ' on' : ''}">${label}</span>`;
 	const friendly = p.pluginName && p.pluginName !== p.name ? p.pluginName : p.name;
@@ -133,6 +172,7 @@ function rowHtml(p) {
 
 	const actions = [
 		'<button class="pm-btn pm-btn-icon" data-action="update" title="Update"><span class="ro-icon ro-icon-refresh-cw"></span></button>',
+		hasVersionChoice(p) ? VERSIONS_BTN : '',
 		'<button class="pm-btn pm-btn-icon" data-action="uninstall" title="Uninstall"><span class="ro-icon ro-icon-trash-2"></span></button>',
 		`<label class="pm-enable-wrap" title="${p.enabled ? 'Disable' : 'Enable'}"><input type="checkbox" class="pm-enable"${p.enabled ? ' checked' : ''}> ${p.enabled ? 'on' : 'off'}</label>`,
 	];
@@ -148,6 +188,7 @@ function rowHtml(p) {
 	</div>
 	${p.status === 'failed' ? `<div class="pm-error">${escapeHtml(p.error)}</div>` : ''}
 	<div class="pm-actions">${actions.join('')}</div>
+	${open ? versionsHtml(p, confirm) : ''}
 </div>`.trim();
 }
 
@@ -162,6 +203,9 @@ const init = (pars, deps) => {
 	let lastRows = [];
 	let query = '';
 	let unsub = null;
+	// Slug whose « Versions » list is open, and the older version awaiting a yes.
+	let openVersions = null;
+	let confirmVersion = null;
 
 	// ── shadow-routed DOM helpers (all queries go through the component root) ──
 	function setStatus(msg) {
@@ -183,7 +227,10 @@ const init = (pars, deps) => {
 		if (!listEl) { return; }
 		const rows = filtered();
 		listEl.innerHTML = rows.length
-			? rows.map(rowHtml).join('')
+			? rows.map((p) => {
+				const open = p.name === openVersions;
+				return rowHtml(p, open, open ? confirmVersion : null);
+			}).join('')
 			: '<div class="pm-empty">No plugins installed.</div>';
 	}
 
@@ -245,6 +292,43 @@ const init = (pars, deps) => {
 		}
 	}
 
+	// Install one published version : in place when installed (code swapped,
+	// settings kept), else a plain install of that build.
+	async function installVersion(slug, version) {
+		const p = lastRows.find((x) => x.name === slug);
+		const v = p && (p.versions || []).find((x) => x.version === version);
+		if (!LPM || !v) { return; }
+		openVersions = null;
+		confirmVersion = null;
+		try {
+			const r = p.installed
+				? await LPM.update(slug, { sourceUrl: v.url, version })
+				: await LPM.installFromUrl(v.url);
+			if (r && r.ok === false) { setStatus(`v${version}: init failed — ${r.error}`); }
+		} catch (e) {
+			setStatus(`v${version} failed: ` + ((e && e.message) || e));
+		}
+	}
+
+	function onVersionAction(action, slug, version) {
+		if (action === 'versions') {
+			openVersions = openVersions === slug ? null : slug;
+			confirmVersion = null;
+		} else if (action === 'cancel-version') {
+			confirmVersion = null;
+		} else if (action === 'confirm-version') {
+			installVersion(slug, version);
+			return;
+		} else if (action === 'pick-version') {
+			const p = lastRows.find((x) => x.name === slug);
+			const v = p && (p.versions || []).find((x) => x.version === version);
+			if (!v) { return; }
+			if (!v.older) { installVersion(slug, version); return; }
+			confirmVersion = version;
+		}
+		renderRows();
+	}
+
 	// Upload button → OS file picker → install the chosen file (same path as drop).
 	// A transient input appended to the document (a shadow-hosted input's picker is
 	// unreliable); removed after change.
@@ -291,6 +375,7 @@ const init = (pars, deps) => {
 				if (!row) { return; }
 				const action = btn.getAttribute('data-action');
 				if (action === 'install') { installFromRegistry(row.getAttribute('data-url')); return; }
+				if (/version/.test(action)) { onVersionAction(action, row.getAttribute('data-name'), btn.getAttribute('data-version')); return; }
 				perform(action, row.getAttribute('data-name'));
 			});
 			listEl.addEventListener('change', (e) => {
