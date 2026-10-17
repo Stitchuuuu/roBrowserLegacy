@@ -49,12 +49,14 @@ const LIBS = Object.freeze({
  * Build the DI map for a plugin's `init(pars, diMap)`.
  *
  * @param {Object<string, *>} [pluginExports] cross-plugin exports (session 3+).
+ * @param {object} [Commands] this plugin's view of `Commands`, in place of the engine's
  * @returns {Object<string, *>}
  */
-export function buildDiMap(pluginExports) {
+export function buildDiMap(pluginExports, Commands = ENGINE.Commands) {
 	return {
 		// Engine modules (session 1)
 		...ENGINE,
+		Commands,
 		// `(name, html, css)` window class for plugins on the old UIComponent
 		LegacyUIComponent,
 		// Lib namespaces
@@ -69,7 +71,7 @@ export function buildDiMap(pluginExports) {
 		devLog,
 		icon: icons.icon,
 		// Whole lib namespaces by lib name
-		libs: LIBS,
+		libs: Object.freeze({ ...LIBS, 'plugin-api': { ...pluginApi, Commands } }),
 		// Cross-plugin exports (session 3+)
 		...(pluginExports || {}),
 	};

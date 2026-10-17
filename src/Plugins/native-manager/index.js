@@ -24,7 +24,7 @@
  */
 
 import Configs from 'Core/Configs.js';
-import { register, results } from 'Plugins/native-manager/registry.js';
+import { register, results, removeCommands } from 'Plugins/native-manager/registry.js';
 import { topoSort, resolveDepExports } from 'Plugins/native-manager/deps.js';
 import * as lifecycle from 'Plugins/native-manager/libs/lifecycle.js';
 import { attachWorker } from 'Plugins/native-manager/libs/fetch-intercept.js';
@@ -208,12 +208,13 @@ function registerRuntime(def, pars, mod) {
 
 /**
  * Tear down a runtime plugin: flush the cleanups it registered (owner-scoped via
- * lifecycle) and drop it from the registry. Best-effort — a plugin that
+ * lifecycle), remove the chat commands it added, and drop it from the registry. Best-effort — a plugin that
  * registered no cleanups leaves no residue to flush.
  * @param {string} name
  */
 function unregisterRuntime(name) {
 	lifecycle.flushCleanup('unload', name);
+	removeCommands(name);
 	delete results[name];
 	delete namespaces[name];
 	delete registered[name];

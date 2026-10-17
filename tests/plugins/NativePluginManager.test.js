@@ -108,4 +108,28 @@ describe('runtime: PluginHost.register / unregister', () => {
 		host.unregister('RtToRemove');
 		expect(host.list().some(p => p.name === 'RtToRemove')).toBe(false);
 	});
+
+	it('unregister removes the chat commands the plugin added, after init and through libs too', async () => {
+		let addLater;
+		await host.register(
+			{
+				name: 'RtCommands',
+				init: (_pars, deps) => {
+					deps.Commands.add('rtcmdinit', '', () => {});
+					addLater = () => deps.libs['plugin-api'].Commands.add('rtcmdlater', '', () => {});
+				}
+			},
+			null,
+			null
+		);
+		addLater();
+		const { default: Commands } = await import('Controls/ProcessCommand.js');
+		expect(Commands.isEnabled('rtcmdinit')).toBe(true);
+		expect(Commands.isEnabled('rtcmdlater')).toBe(true);
+
+		host.unregister('RtCommands');
+
+		expect(Commands.isEnabled('rtcmdinit')).toBe(false);
+		expect(Commands.isEnabled('rtcmdlater')).toBe(false);
+	});
 });

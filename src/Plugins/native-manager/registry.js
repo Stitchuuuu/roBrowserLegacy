@@ -14,6 +14,7 @@
  */
 
 import { buildDiMap } from 'Plugins/native-manager/di.js';
+import { ENGINE } from 'Plugins/native-manager/engine-modules.js';
 
 /**
  * Collected `init()` return values, keyed by canonical plugin name. The loader
@@ -23,6 +24,48 @@ import { buildDiMap } from 'Plugins/native-manager/di.js';
  * @type {Object<string, *>}
  */
 export const results = Object.create(null);
+
+/**
+ * Chat commands each plugin added, keyed like `results`, so unregistering a
+ * plugin removes them even when its own cleanup forgets to.
+ * @type {Object<string, string[]>}
+ */
+const commands = Object.create(null);
+
+/**
+ * The plugin's own view of `Commands`: same API, `add` records the name.
+ * @param {string|null} key
+ * @returns {object}
+ */
+function ownCommands(key) {
+	const Commands = ENGINE.Commands;
+	if (!key) {
+		return Commands;
+	}
+	const names = commands[key] || (commands[key] = []);
+	return {
+		...Commands,
+		add(name, ...rest) {
+			names.push(name);
+			return Commands.add(name, ...rest);
+		}
+	};
+}
+
+/**
+ * Remove the chat commands a plugin added.
+ * @param {string} key
+ */
+export function removeCommands(key) {
+	const names = commands[key];
+	if (!names) {
+		return;
+	}
+	delete commands[key];
+	for (let i = 0; i < names.length; i++) {
+		ENGINE.Commands.remove(names[i]);
+	}
+}
 
 /**
  * Register a plugin default export and invoke its init with the DI map.
@@ -42,7 +85,7 @@ export async function register(def, pars, pluginExports, name) {
 	}
 
 	const key = name || def.name || null;
-	const diMap = buildDiMap(pluginExports);
+	const diMap = buildDiMap(pluginExports, ownCommands(key));
 
 	// Scope registerCleanup() calls made during init to this plugin, so lifecycle
 	// can flush them per-plugin later. The scope spans the awaited init — correct
