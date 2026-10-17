@@ -20,6 +20,7 @@
  */
 
 import { injectIconCss } from 'Plugins/native-manager/libs/icons.js';
+import ClampToViewport from 'UI/ClampToViewport.js';
 
 const BASES = import.meta.glob(['../../UI/UIComponent.js', '../../UI/GUIComponent.js'], {
 	eager: true,
@@ -80,6 +81,28 @@ function adapt(GUIComponent) {
 			}
 			this.ui[0] = el;
 			hostPosition(this._host, el);
+			this._home = { left: this._host.style.left, top: this._host.style.top };
+		}
+
+		/**
+		 * Old plugins drag their window themselves, so it is clamped even when
+		 * not draggable here; one opening off-screen goes back to where it first
+		 * opened.
+		 */
+		_fixPositionOverflow() {
+			const host = this._host;
+			if (!host || !this._home) {
+				super._fixPositionOverflow();
+				return;
+			}
+			const WIDTH = window.innerWidth;
+			const HEIGHT = window.innerHeight;
+			const rect = host.getBoundingClientRect();
+			if (rect.left < 0 || rect.top < 0 || rect.right > WIDTH || rect.bottom > HEIGHT) {
+				host.style.left = this._home.left;
+				host.style.top = this._home.top;
+			}
+			ClampToViewport(host, WIDTH, HEIGHT, this.magnet);
 		}
 	};
 }
