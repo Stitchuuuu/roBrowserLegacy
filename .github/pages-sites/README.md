@@ -14,7 +14,7 @@ then `shared/`, then the site's own files. Nothing is rebuilt.
 | `<site>/Config.local.js` | the server block; `/grf/` and the API root-absolute; the native plugin managers under `/<site>/plugins/`; loads the three shared scripts |
 | `shared/sw.js`, `shared/pwa/` | the page-shell service worker and the relay (`/grf/` from the extension's folder, the API from `https://cyro.live/api`) |
 | `shared/gate.js` | holds `loadApp()` until the relay is on and the service worker controls the page; else a message, and the client is never loaded |
-| `shared/index.html` | `/<site>/` → `api.html?app=ONLINE` |
+| `shared/index.html` | `/<site>/`: the landing page. What the client needs, the install link (`INSTALL_URL`), the relay's state, and **Play** (`api.html?app=ONLINE`) once it is `ready` |
 
 `<site>/Config.local.js` is ignored by the root `.gitignore` (`Config.local.js`): add a new one with
 `git add -f`. Once tracked, its edits show as usual.
