@@ -101,6 +101,42 @@
 				outline: 2px solid var(--fg);
 				outline-offset: 3px;
 			}
+			.key {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				margin: 24px 0 0;
+			}
+			.key label {
+				flex-basis: 100%;
+			}
+			.key input {
+				flex: 1 1 14em;
+				min-width: 0;
+				padding: 8px 10px;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--bg);
+				color: var(--fg);
+				font:
+					15px ui-monospace,
+					SFMono-Regular,
+					Menlo,
+					monospace;
+			}
+			.key button {
+				padding: 8px 18px;
+				border: 0;
+				border-radius: 8px;
+				background: var(--button);
+				color: var(--button-fg);
+				font: inherit;
+				font-weight: 600;
+			}
+			.forget {
+				margin: 12px 0 0;
+				font-size: 0.9em;
+			}
 			[hidden] {
 				display: none;
 			}
@@ -122,8 +158,21 @@
 					<p id="state-hint" class="hint" hidden>Reload this page once it is done.</p>
 				</div>
 			</div>
+			<form id="key" class="key" hidden>
+				<label for="key-input">This client is in private beta: enter your access key.</label>
+				<input
+					id="key-input"
+					autocomplete="off"
+					spellcheck="false"
+					placeholder="xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx-xxxx"
+				/>
+				<button>Unlock</button>
+				<p id="key-error" class="hint" role="alert" hidden></p>
+			</form>
 			<a id="play" class="play" href="api.html?app=ONLINE" hidden>Play</a>
+			<p id="forget" class="forget" hidden><a href="#">Forget my access key</a></p>
 		</main>
+		<script src="access-key.js"></script>
 		<script>
 			(() => {
 				// Until the relay is listed on AMO
@@ -155,13 +204,70 @@
 
 				document.getElementById('install').href = INSTALL_URL;
 
+				// Play needs the relay ready and, on a keyed build, a key that opens it
+				let relay = null;
+				let unlocked = false;
+
+				function update() {
+					document.getElementById('play').hidden = relay !== 'ready' || !unlocked;
+				}
+
 				function show(state) {
 					const entry = STATES[state] || STATES.off;
 					document.getElementById('mark').textContent = entry[0];
 					document.getElementById('state-text').textContent = entry[1];
 					document.getElementById('state-hint').hidden = !entry[2];
-					document.getElementById('play').hidden = state !== 'ready';
+					relay = state;
+					update();
 				}
+
+				// A keyed build ships keyslots.json: ask the key once, keep it in localStorage
+				async function access() {
+					const slots = await roAccessKey.slots();
+					const form = document.getElementById('key');
+					const error = document.getElementById('key-error');
+					const forget = document.getElementById('forget');
+					if (!slots) {
+						unlocked = true;
+						update();
+						return;
+					}
+
+					async function unlock(hex) {
+						unlocked = !!hex && !!(await roAccessKey.open(hex, slots));
+						form.hidden = unlocked;
+						forget.hidden = !unlocked;
+						update();
+						return unlocked;
+					}
+
+					form.addEventListener('submit', async e => {
+						e.preventDefault();
+						const hex = roAccessKey.parse(document.getElementById('key-input').value);
+						if (hex && (await unlock(hex))) {
+							roAccessKey.save(hex);
+							error.hidden = true;
+						} else {
+							error.textContent = hex
+								? 'This key does not open this client.'
+								: 'A key is 32 letters and digits (0-9, a-f).';
+							error.hidden = false;
+						}
+					});
+					forget.querySelector('a').addEventListener('click', e => {
+						e.preventDefault();
+						roAccessKey.forget();
+						unlock(null);
+					});
+
+					const stored = roAccessKey.stored();
+					if (!(await unlock(stored)) && stored) {
+						roAccessKey.forget();
+						error.textContent = 'Your access key does not open this client any more.';
+						error.hidden = false;
+					}
+				}
+				access();
 
 				// The relay sets the attribute, then fires the event: read the attribute first
 				const state = document.documentElement.dataset.roRelay;
