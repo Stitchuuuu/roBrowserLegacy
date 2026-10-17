@@ -1,6 +1,6 @@
 // Holds api.html's loadApp() until the roBrowser relay extension holds a client folder and the service
 // worker that reads it (pwa/sw.js) controls the page; otherwise says what is missing and the client is
-// never loaded. The relay's content script sets <html data-ro-relay="ready|off"> and fires `ro-relay`:
+// never loaded. The relay's content script sets <html data-ro-relay="ready|nogrf|off"> and fires `ro-relay`:
 // neither within RELAY_WAIT = no extension.
 (() => {
 	const RELAY_WAIT = 1500;
@@ -16,8 +16,9 @@
 			window.addEventListener(
 				'ro-relay',
 				(e) => {
+					const detail = e.detail || {};
 					clearTimeout(timer);
-					resolve(e.detail && e.detail.ready ? 'ready' : 'off');
+					resolve(detail.state || (detail.ready ? 'ready' : 'off'));
 				},
 				{ once: true }
 			);
@@ -46,6 +47,7 @@
 		missing:
 			'This page runs only with the roBrowser relay extension (Firefox). Install it, choose your client folder in its popup, then reload.',
 		off: 'The roBrowser relay is off or holds no client folder. Open its popup, choose the folder, switch it on, then reload.',
+		nogrf: 'The roBrowser relay holds no client folder. Open its popup, choose your client folder, then reload.',
 		worker: 'The service worker does not control this page. Reload normally (a forced reload bypasses it); a private window has none.'
 	};
 
