@@ -233193,16 +233193,368 @@ var init_ShortCutOption = __esmMin((() => {
 	ShortCutOption_default = UIManager.addComponent(ShortCutOption);
 }));
 //#endregion
+//#region src/UI/Components/PatchNotes/PatchLog.js
+/**
+* UI/Components/PatchNotes/PatchLog.js
+*
+* Resolve the client version and the unread releases from a patch log
+*
+* This file is part of ROBrowser, (http://www.robrowser.com/).
+*/
+/**
+* Compare two "major.minor.patch" versions
+*
+* @param {string} a
+* @param {string} b
+* @return {number} < 0, 0 or > 0
+*/
+function compare(a, b) {
+	const pa = String(a).split(".");
+	const pb = String(b).split(".");
+	for (let i = 0; i < 3; i++) {
+		const diff = (parseInt(pa[i], 10) || 0) - (parseInt(pb[i], 10) || 0);
+		if (diff) return diff;
+	}
+	return 0;
+}
+/**
+* Releases, newest first
+*
+* @param {Array} releases
+* @return {Array}
+*/
+function sorted(releases) {
+	return releases.slice().sort((a, b) => compare(b.version, a.version));
+}
+/**
+* Release of the running build: the one published from its sha,
+* else the latest one, as the log ships with the build
+*
+* @param {Array} releases
+* @param {string} sha of the build
+* @return {object|null} release
+*/
+function current(releases, sha) {
+	const list = sorted(releases);
+	if (sha) for (let i = 0; i < list.length; i++) {
+		const released = list[i].sha || "";
+		if (released && (released.startsWith(sha) || sha.startsWith(released))) return list[i];
+	}
+	return list[0] || null;
+}
+/**
+* Releases published after the last seen version, newest first,
+* the running one alone on a first visit
+*
+* @param {Array} releases
+* @param {string} version running
+* @param {string|null} seen version, null on a first visit
+* @return {Array}
+*/
+function unseen(releases, version, seen) {
+	if (!seen) return releases.filter((r) => compare(r.version, version) === 0);
+	return sorted(releases).filter((r) => compare(r.version, seen) > 0 && compare(r.version, version) <= 0);
+}
+var PatchLog_default;
+var init_PatchLog = __esmMin((() => {
+	PatchLog_default = {
+		compare,
+		sorted,
+		current,
+		unseen
+	};
+}));
+//#endregion
+//#region src/UI/Components/PatchNotes/PatchNotes.html?raw
+var PatchNotes_default$2;
+var init_PatchNotes$2 = __esmMin((() => {
+	PatchNotes_default$2 = "<div id=\"PatchNotes\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/titlebar_left.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/titlebar_mid.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/titlebar_right.bmp\"></ui-image></div>\r\n		<span class=\"text\">Patch Notes</span>\r\n	</div>\r\n	<div class=\"body\">\r\n		<div class=\"side left\"><ui-image src=\"basic_interface/itemwin_left.bmp\"></ui-image></div>\r\n		<div class=\"head\">\r\n			<div class=\"poring\"><ui-image src=\"basic_interface/notice_poring.bmp\"></ui-image></div>\r\n			<div class=\"info\">\r\n				<div class=\"title\"></div>\r\n				<div class=\"meta\"></div>\r\n			</div>\r\n			<div class=\"count\"></div>\r\n		</div>\r\n		<div class=\"content\"></div>\r\n		<div class=\"side right\"><ui-image src=\"basic_interface/itemwin_right.bmp\"></ui-image></div>\r\n	</div>\r\n	<div class=\"footer\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/btnbar_left2.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/btnbar_mid2.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/btnbar_right2.bmp\"></ui-image></div>\r\n		<ui-button class=\"btn back\" bg=\"btn_back.bmp\" hover=\"btn_back_a.bmp\" down=\"btn_back_b.bmp\"></ui-button>\r\n		<ui-button class=\"btn next\" bg=\"btn_next.bmp\" hover=\"btn_next_a.bmp\" down=\"btn_next_b.bmp\"></ui-button>\r\n		<ui-button class=\"btn ok\" bg=\"btn_ok.bmp\" hover=\"btn_ok_a.bmp\" down=\"btn_ok_b.bmp\"></ui-button>\r\n	</div>\r\n</div>\r\n";
+}));
+//#endregion
+//#region src/UI/Components/PatchNotes/PatchNotes.css?raw
+var PatchNotes_default$1;
+var init_PatchNotes$1 = __esmMin((() => {
+	PatchNotes_default$1 = ":host {\r\n	width: 600px;\r\n	height: 400px;\r\n}\r\n\r\n#PatchNotes {\r\n	position: relative;\r\n	width: 600px;\r\n	height: 400px;\r\n	color: black;\r\n}\r\n\r\n#PatchNotes .slice,\r\n#PatchNotes .side {\r\n	position: absolute;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#PatchNotes .titlebar {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 600px;\r\n	height: 17px;\r\n}\r\n#PatchNotes .titlebar .slice {\r\n	top: 0;\r\n	width: 12px;\r\n	height: 17px;\r\n}\r\n#PatchNotes .titlebar .left {\r\n	left: 0;\r\n}\r\n#PatchNotes .titlebar .mid {\r\n	left: 12px;\r\n	width: 576px;\r\n	background-repeat: repeat-x;\r\n}\r\n#PatchNotes .titlebar .right {\r\n	right: 0;\r\n}\r\n#PatchNotes .titlebar .text {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 17px;\r\n	font-size: 12px;\r\n	font-weight: bold;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#PatchNotes .body {\r\n	position: absolute;\r\n	top: 17px;\r\n	left: 0;\r\n	width: 600px;\r\n	height: 362px;\r\n	background-color: white;\r\n}\r\n#PatchNotes .side {\r\n	top: 0;\r\n	width: 20px;\r\n	height: 100%;\r\n	background-repeat: repeat-y;\r\n}\r\n#PatchNotes .side.left {\r\n	left: 0;\r\n}\r\n#PatchNotes .side.right {\r\n	right: 0;\r\n}\r\n\r\n/* Fixed header, only the notes scroll */\r\n#PatchNotes .head {\r\n	position: absolute;\r\n	top: 4px;\r\n	left: 20px;\r\n	width: 548px;\r\n	height: 55px;\r\n	padding: 0 6px;\r\n	display: flex;\r\n	align-items: center;\r\n	border-bottom: 1px solid #c7d2e4;\r\n}\r\n#PatchNotes .poring {\r\n	flex: none;\r\n	margin-right: 10px;\r\n	width: 65px;\r\n	height: 49px;\r\n	background-repeat: no-repeat;\r\n}\r\n#PatchNotes .head .title {\r\n	font-size: 15px;\r\n	font-weight: bold;\r\n	color: #253f73;\r\n}\r\n#PatchNotes .head .meta {\r\n	margin-top: 3px;\r\n	font-size: 11px;\r\n	color: #6b7686;\r\n}\r\n#PatchNotes .head .count {\r\n	margin-left: auto;\r\n	text-align: right;\r\n	font-size: 11px;\r\n	line-height: 15px;\r\n	color: #6b7686;\r\n}\r\n#PatchNotes .head .count b {\r\n	color: #253f73;\r\n}\r\n\r\n#PatchNotes .content {\r\n	position: absolute;\r\n	top: 64px;\r\n	left: 20px;\r\n	width: 563px;\r\n	height: 288px;\r\n	overflow-y: auto;\r\n	font-size: 12px;\r\n	line-height: 16px;\r\n}\r\n\r\n#PatchNotes .section {\r\n	display: flex;\r\n	align-items: center;\r\n	height: 22px;\r\n	margin: 6px 0 2px;\r\n	padding: 0 4px;\r\n	font-size: 13px;\r\n	font-weight: bold;\r\n	color: #1d3563;\r\n}\r\n#PatchNotes .section::after {\r\n	content: '';\r\n	flex: 1;\r\n	height: 1px;\r\n	margin: 0 8px 0 4px;\r\n	background: #c7d2e4;\r\n}\r\n#PatchNotes .section .icon {\r\n	flex: none;\r\n	margin-right: 6px;\r\n	background-repeat: no-repeat;\r\n	background-size: contain;\r\n}\r\n#PatchNotes .section.new .icon {\r\n	width: 13px;\r\n	height: 13px;\r\n}\r\n#PatchNotes .section.fixed .icon {\r\n	width: 18px;\r\n	height: 18px;\r\n}\r\n\r\n#PatchNotes .row {\r\n	position: relative;\r\n	padding: 4px 10px 4px 22px;\r\n}\r\n#PatchNotes .row.foldable {\r\n	cursor: pointer;\r\n}\r\n#PatchNotes .rows .row:nth-child(even) {\r\n	background: #f3f6fb;\r\n}\r\n#PatchNotes .row:hover {\r\n	background: #e6edf8;\r\n}\r\n#PatchNotes .row .fold {\r\n	position: absolute;\r\n	top: 7px;\r\n	left: 8px;\r\n	width: 10px;\r\n	height: 10px;\r\n	background-repeat: no-repeat;\r\n}\r\n#PatchNotes .row .fold.open,\r\n#PatchNotes .row.open .fold.closed {\r\n	display: none;\r\n}\r\n#PatchNotes .row.open .fold.open {\r\n	display: block;\r\n}\r\n#PatchNotes .row .keyword {\r\n	font-weight: bold;\r\n	color: #253f73;\r\n}\r\n#PatchNotes .row .details {\r\n	display: none;\r\n	margin: 4px 0 2px;\r\n	padding: 3px 7px;\r\n	font-size: 11px;\r\n	line-height: 14px;\r\n	color: #555;\r\n	background: #eef2f8;\r\n	border-left: 2px solid #b6c5de;\r\n}\r\n#PatchNotes .row.open .details {\r\n	display: block;\r\n}\r\n\r\n#PatchNotes .footer {\r\n	position: absolute;\r\n	left: 0;\r\n	bottom: 0;\r\n	width: 600px;\r\n	height: 29px;\r\n}\r\n#PatchNotes .footer .slice {\r\n	top: 0;\r\n	width: 21px;\r\n	height: 29px;\r\n}\r\n#PatchNotes .footer .left {\r\n	left: 0;\r\n}\r\n#PatchNotes .footer .mid {\r\n	left: 21px;\r\n	width: 558px;\r\n	background-repeat: repeat-x;\r\n}\r\n#PatchNotes .footer .right {\r\n	right: 0;\r\n}\r\n\r\n/* Buttons at y 376 */\r\n#PatchNotes .btn {\r\n	position: absolute;\r\n	top: 5px;\r\n	width: 42px;\r\n	height: 20px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n#PatchNotes .btn.back {\r\n	left: 244px;\r\n}\r\n#PatchNotes .btn.next {\r\n	left: 294px;\r\n}\r\n#PatchNotes .btn.ok {\r\n	left: 534px;\r\n}\r\n";
+}));
+//#endregion
+//#region src/UI/Components/PatchNotes/PatchNotes.js
+/**
+* @return {object|null} ROConfig.patchNotes
+*/
+function getConfig() {
+	const config = Configs.get("patchNotes");
+	return config && config.url ? config : null;
+}
+/**
+* Display a page
+*
+* @param {number} page index in _pages
+*/
+function show$1(page) {
+	if (page < 0 || page >= _pages.length) return;
+	_page$1 = page;
+	const root = PatchNotes.getRoot();
+	const release = _pages[page];
+	const config = getConfig() || {};
+	const notes = release.notes || [];
+	const content = root.querySelector(".content");
+	root.querySelector(".head .title").textContent = release.title || "";
+	root.querySelector(".head .meta").textContent = [`${config.product ? config.product + " " : ""}${release.version}`, formatDate(release.date)].filter(Boolean).join(" · ");
+	root.querySelector(".head .count").replaceChildren(...SECTIONS.flatMap((section) => {
+		const count = notes.filter((note) => (note.type || "new") === section.type).length;
+		return count ? [
+			create("b", "", count),
+			` ${section.type}`,
+			create("br")
+		] : [];
+	}));
+	content.replaceChildren(...SECTIONS.flatMap((section) => renderSection(section, notes)));
+	content.scrollTop = 0;
+	root.querySelector(".back").style.visibility = page < _pages.length - 1 ? "" : "hidden";
+	root.querySelector(".next").style.visibility = page > 0 ? "" : "hidden";
+}
+/**
+* @param {string} date YYYY-MM-DD
+* @return {string} October 18, 2026
+*/
+function formatDate(date) {
+	const parts = String(date || "").split("-");
+	return parts.length === 3 ? `${MONTHS[parseInt(parts[1], 10) - 1]} ${parseInt(parts[2], 10)}, ${parts[0]}` : "";
+}
+/**
+* @param {string} tag
+* @param {string} [className]
+* @param {string|number} [text]
+* @return {HTMLElement}
+*/
+function create(tag, className, text) {
+	const element = document.createElement(tag);
+	if (className) element.className = className;
+	if (text !== void 0) element.textContent = text;
+	return element;
+}
+/**
+* @param {string} className
+* @param {string} src interface image
+* @return {HTMLElement} element painted with the image
+*/
+function image(className, src) {
+	const element = create("div", className);
+	const img = create("ui-image");
+	img.setAttribute("src", src);
+	element.appendChild(img);
+	return element;
+}
+/**
+* Build a section: title, then a row per note
+*
+* @param {object} section of SECTIONS
+* @param {Array} notes of the release
+* @return {Array} elements, empty when the section has no note
+*/
+function renderSection(section, notes) {
+	const list = notes.filter((note) => (note.type || "new") === section.type);
+	if (!list.length) return [];
+	const title = create("div", `section ${section.type}`);
+	const rows = create("div", "rows");
+	title.appendChild(image("icon", section.icon));
+	title.appendChild(document.createTextNode(section.label));
+	list.forEach((note) => rows.appendChild(renderNote(note)));
+	return [title, rows];
+}
+/**
+* Build a note: keyword, text, details folded until the row is clicked
+*
+* @param {object} note
+* @return {HTMLElement}
+*/
+function renderNote(note) {
+	const row = create("div", "row");
+	row.appendChild(create("span", "keyword", note.keyword || ""));
+	row.appendChild(document.createTextNode(`  ${note.text || ""}`));
+	if (note.details) {
+		row.classList.add("foldable");
+		row.appendChild(image("fold closed", "basic_interface/folder_c.bmp"));
+		row.appendChild(image("fold open", "basic_interface/folder_o.bmp"));
+		row.appendChild(create("div", "details", note.details));
+	}
+	return row;
+}
+var PatchNotes, _loading, _releases, _current, _pages, _page$1, SECTIONS, MONTHS, PatchNotes_default;
+var init_PatchNotes = __esmMin((() => {
+	init_Configs();
+	init_Renderer();
+	init_KeyEventHandler();
+	init_UIManager();
+	init_GUIComponent();
+	init_PatchLog();
+	init_Elements();
+	init_PatchNotes$2();
+	init_PatchNotes$1();
+	PatchNotes = new GUIComponent("PatchNotes", PatchNotes_default$1);
+	PatchNotes.render = () => PatchNotes_default$2;
+	PatchNotes.needFocus = false;
+	_loading = null;
+	_releases = [];
+	_current = null;
+	_pages = [];
+	_page$1 = 0;
+	SECTIONS = [{
+		type: "new",
+		label: "New",
+		icon: "basic_interface/icon_new.bmp"
+	}, {
+		type: "fixed",
+		label: "Fixed",
+		icon: "item/bs_repairweapon.bmp"
+	}];
+	MONTHS = [
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December"
+	];
+	/**
+	* Initialize UI
+	*/
+	PatchNotes.init = function init() {
+		const root = this.getRoot();
+		root.querySelector(".back").addEventListener("click", () => show$1(_page$1 + 1));
+		root.querySelector(".next").addEventListener("click", () => show$1(_page$1 - 1));
+		root.querySelector(".ok").addEventListener("click", () => this.remove());
+		root.querySelector(".content").addEventListener("click", (event) => {
+			const row = event.target.closest(".row.foldable");
+			if (row) row.classList.toggle("open");
+		});
+		this.draggable(root.querySelector(".titlebar"));
+	};
+	/**
+	* Center the window, as the official notice window, above the login window
+	*/
+	PatchNotes.onAppend = function onAppend() {
+		this._host.style.left = `${Math.max(0, (Renderer.width - 640) / 2 + 33)}px`;
+		this._host.style.top = `${Math.max(0, (Renderer.height - 480) / 2 + 40)}px`;
+		this._host.style.zIndex = "100";
+	};
+	/**
+	* Close on Escape
+	*
+	* @param {object} event
+	* @return {boolean}
+	*/
+	PatchNotes.onKeyDown = function onKeyDown(event) {
+		if (event.which === KEYS.ESCAPE) {
+			this.remove();
+			event.stopImmediatePropagation();
+			return false;
+		}
+		return true;
+	};
+	/**
+	* @return {boolean} a patch log is configured
+	*/
+	PatchNotes.isEnabled = function isEnabled() {
+		return !!getConfig();
+	};
+	/**
+	* Load the patch log once
+	*
+	* @return {Promise}
+	*/
+	PatchNotes.load = function load() {
+		const config = getConfig();
+		if (!config) return Promise.resolve();
+		if (!_loading) {
+			const sha = config.sha ? Promise.resolve(config.sha) : fetch("build.json", { cache: "no-cache" }).then((response) => response.ok ? response.json() : null).then((build) => build && build.sha || "").catch(() => "");
+			_loading = Promise.all([fetch(config.url, { cache: "no-cache" }).then((response) => response.json()), sha]).then(([log, buildSha]) => {
+				_releases = log && log.releases || [];
+				_current = PatchLog_default.current(_releases, buildSha);
+			}).catch(() => {
+				_releases = [];
+				_current = null;
+			});
+		}
+		return _loading;
+	};
+	/**
+	* Client version, as displayed
+	*
+	* @return {string} empty when unknown
+	*/
+	PatchNotes.getVersionText = function getVersionText() {
+		const config = getConfig();
+		if (!config || !_current) return "";
+		return config.product ? `${config.product} ${_current.version}` : _current.version;
+	};
+	/**
+	* Show the running version in an element, a click opens the notes
+	*
+	* @param {HTMLElement} element
+	*/
+	PatchNotes.attachVersion = function attachVersion(element) {
+		element.style.display = "none";
+		element.addEventListener("click", () => {
+			PatchNotes.open(PatchLog_default.sorted(_releases), _current);
+		});
+		PatchNotes.load().then(() => {
+			const text = PatchNotes.getVersionText();
+			element.textContent = text;
+			element.style.display = text ? "" : "none";
+		});
+	};
+	/**
+	* Open the window on a list of releases
+	*
+	* @param {Array} releases, newest first
+	* @param {object} [release] shown first
+	*/
+	PatchNotes.open = function open(releases, release) {
+		if (!releases.length) return;
+		_pages = releases;
+		if (!this.__active) this.append();
+		show$1(Math.max(0, releases.indexOf(release)));
+	};
+	/**
+	* Pop the notes of the versions not seen yet, the running one alone on a first visit
+	*
+	* @return {Promise}
+	*/
+	PatchNotes.checkUnseen = function checkUnseen() {
+		return PatchNotes.load().then(() => {
+			if (!_current) return;
+			const key = `PatchNotes.seen.${getConfig().product || ""}`;
+			let seen = null;
+			try {
+				seen = localStorage.getItem(key);
+				localStorage.setItem(key, _current.version);
+			} catch (_e) {
+				return;
+			}
+			const unseen = PatchLog_default.unseen(_releases, _current.version, seen);
+			if (unseen.length) PatchNotes.open(unseen);
+		});
+	};
+	PatchNotes_default = UIManager.addComponent(PatchNotes);
+}));
+//#endregion
 //#region src/UI/Components/Escape/Escape.html?raw
 var Escape_default$2;
 var init_Escape$2 = __esmMin((() => {
-	Escape_default$2 = "<div id=\"Escape\" data-background=\"basic_interface/titlebar_fix.bmp\">\r\n	<div class=\"top\">\r\n		<button\r\n			class=\"node\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-hover=\"basic_interface/sys_base_on.bmp\"\r\n		></button>\r\n		<div class=\"title\" data-text=\"1483\">Select Option</div>\r\n	</div>\r\n\r\n	<div class=\"container\">\r\n		<button\r\n			class=\"resurection\"\r\n			data-background=\"esc_05a.bmp\"\r\n			data-hover=\"esc_05b.bmp\"\r\n			data-down=\"esc_05c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"savepoint\"\r\n			data-background=\"esc_04a.bmp\"\r\n			data-hover=\"esc_04b.bmp\"\r\n			data-down=\"esc_04c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"charselect\"\r\n			data-background=\"esc_01a.bmp\"\r\n			data-hover=\"esc_01b.bmp\"\r\n			data-down=\"esc_01c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"graphics\"\r\n			data-background=\"esc_06a.bmp\"\r\n			data-hover=\"esc_06b.bmp\"\r\n			data-down=\"esc_06c.bmp\"\r\n		></button>\r\n		<button class=\"sound\" data-background=\"esc_07a.bmp\" data-hover=\"esc_07b.bmp\" data-down=\"esc_07c.bmp\"></button>\r\n		<button class=\"hotkey\" data-background=\"esc_08a.bmp\" data-hover=\"esc_08b.bmp\" data-down=\"esc_08c.bmp\"></button>\r\n		<button class=\"exit\" data-background=\"esc_03a.bmp\" data-hover=\"esc_03b.bmp\" data-down=\"esc_03c.bmp\"></button>\r\n		<button class=\"cancel\" data-background=\"esc_02a.bmp\" data-hover=\"esc_02b.bmp\" data-down=\"esc_02c.bmp\"></button>\r\n	</div>\r\n</div>\r\n";
+	Escape_default$2 = "<div id=\"Escape\" data-background=\"basic_interface/titlebar_fix.bmp\">\r\n	<div class=\"top\">\r\n		<button\r\n			class=\"node\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-hover=\"basic_interface/sys_base_on.bmp\"\r\n		></button>\r\n		<div class=\"title\" data-text=\"1483\">Select Option</div>\r\n	</div>\r\n\r\n	<div class=\"container\">\r\n		<button\r\n			class=\"resurection\"\r\n			data-background=\"esc_05a.bmp\"\r\n			data-hover=\"esc_05b.bmp\"\r\n			data-down=\"esc_05c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"savepoint\"\r\n			data-background=\"esc_04a.bmp\"\r\n			data-hover=\"esc_04b.bmp\"\r\n			data-down=\"esc_04c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"charselect\"\r\n			data-background=\"esc_01a.bmp\"\r\n			data-hover=\"esc_01b.bmp\"\r\n			data-down=\"esc_01c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"graphics\"\r\n			data-background=\"esc_06a.bmp\"\r\n			data-hover=\"esc_06b.bmp\"\r\n			data-down=\"esc_06c.bmp\"\r\n		></button>\r\n		<button class=\"sound\" data-background=\"esc_07a.bmp\" data-hover=\"esc_07b.bmp\" data-down=\"esc_07c.bmp\"></button>\r\n		<button class=\"hotkey\" data-background=\"esc_08a.bmp\" data-hover=\"esc_08b.bmp\" data-down=\"esc_08c.bmp\"></button>\r\n		<button class=\"exit\" data-background=\"esc_03a.bmp\" data-hover=\"esc_03b.bmp\" data-down=\"esc_03c.bmp\"></button>\r\n		<button class=\"cancel\" data-background=\"esc_02a.bmp\" data-hover=\"esc_02b.bmp\" data-down=\"esc_02c.bmp\"></button>\r\n	</div>\r\n	<div class=\"version\"></div>\r\n</div>\r\n";
 }));
 //#endregion
 //#region src/UI/Components/Escape/Escape.css?raw
 var Escape_default$1;
 var init_Escape$1 = __esmMin((() => {
-	Escape_default$1 = ":host {\r\n	width: 280px;\r\n	height: auto;\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n#Escape {\r\n	width: 280px;\r\n	height: auto;\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .node {\r\n	width: 11px;\r\n	height: 11px;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 4px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .title {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 18px;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#Escape .container {\r\n	width: 220px;\r\n	height: auto;\r\n	padding: 20px 30px 6px 30px;\r\n}\r\n\r\n#Escape .container button {\r\n	width: 221px;\r\n	height: 20px;\r\n	margin-top: 3px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n";
+	Escape_default$1 = ":host {\r\n	width: 280px;\r\n	height: auto;\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n#Escape {\r\n	width: 280px;\r\n	height: auto;\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .node {\r\n	width: 11px;\r\n	height: 11px;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 4px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .title {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 18px;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#Escape .container {\r\n	width: 220px;\r\n	height: auto;\r\n	padding: 20px 30px 6px 30px;\r\n}\r\n\r\n#Escape .container button {\r\n	width: 221px;\r\n	height: 20px;\r\n	margin-top: 3px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .version {\r\n	padding: 0 30px 6px 30px;\r\n	text-align: right;\r\n	font-size: 11px;\r\n	color: #666;\r\n	cursor: pointer;\r\n}\r\n#Escape .version:hover {\r\n	text-decoration: underline;\r\n}\r\n";
 }));
 //#endregion
 //#region src/UI/Components/Escape/Escape.js
@@ -233236,6 +233588,7 @@ var init_Escape = __esmMin((() => {
 	init_SoundOption();
 	init_GraphicsOption();
 	init_ShortCutOption();
+	init_PatchNotes();
 	init_Escape$2();
 	init_Escape$1();
 	Escape = new GUIComponent("Escape", Escape_default$1);
@@ -233281,6 +233634,7 @@ var init_Escape = __esmMin((() => {
 		root.querySelector(".cancel").addEventListener("click", function() {
 			Escape._host.style.display = "none";
 		});
+		PatchNotes_default.attachVersion(root.querySelector(".version"));
 		this._host.style.display = "none";
 	};
 	/**
@@ -311809,6 +312163,22 @@ var init_EntityWalk = __esmMin((() => {
 }));
 //#endregion
 //#region src/Renderer/Entity/EntityRender.js
+function acquireSnapshotBuffers() {
+	const buf = _snapshotPool.pop();
+	if (buf) return buf;
+	return {
+		position: /* @__PURE__ */ new Float32Array(3),
+		_position: /* @__PURE__ */ new Int32Array(2),
+		color: /* @__PURE__ */ new Float32Array(4)
+	};
+}
+function releaseSnapshotBuffers(snapshot) {
+	if (_snapshotPool.length < 64) _snapshotPool.push({
+		position: snapshot.position,
+		_position: snapshot._position,
+		color: snapshot.color
+	});
+}
 /**
 * Render an Entity
 *
@@ -311840,6 +312210,9 @@ function render$5(modelView, projection) {
 		this.attachments.render(Date.now());
 	}
 	renderGUI(this, modelView, projection);
+}
+function isLookingBack(direction) {
+	return direction > 2 && direction < 6;
 }
 /**
 * Render second body (BL_DOUBLE_BODY + EF_MAKEBLUR)
@@ -311906,22 +312279,26 @@ function renderSecondBody(entity, layers, spr, pal, files, type, _position, opti
 			entity.ACTION.SKILL
 		].includes(entity.action) || entity.isFastMoving) && now - trail.lastTick > interval;
 		if (shouldCapture) {
+			const buffers = acquireSnapshotBuffers();
+			buffers.position.set(entity.position);
+			buffers._position.set(_position);
+			buffers.color.set(entity.effectColor);
 			trail.snapshots.unshift({
-				position: gl_matrix_default.vec3.clone(entity.position),
+				position: buffers.position,
+				_position: buffers._position,
+				color: buffers.color,
 				tick: now,
 				layers,
 				spr,
-				pal,
-				_position: new Int32Array(_position),
-				color: [...entity.effectColor]
+				pal
 			});
 			trail.lastTick = now;
-			if (trail.snapshots.length > maxLen) trail.snapshots.pop();
+			if (trail.snapshots.length > maxLen) releaseSnapshotBuffers(trail.snapshots.pop());
 		}
 		if (trail.snapshots.length) {
-			const originalPos = gl_matrix_default.vec3.clone(SpriteRenderer.position);
+			_scratchPosition.set(SpriteRenderer.position);
 			const originalZ = SpriteRenderer.zIndex;
-			const originalColor = new Float32Array(entity.effectColor);
+			_scratchColor.set(entity.effectColor);
 			SpriteRenderer.runWithDepth(true, false, false, function() {
 				const duration = blurType === 4 || blurType === 3 ? 800 : 400;
 				for (let idx = 0; idx < trail.snapshots.length; idx++) {
@@ -311942,9 +312319,9 @@ function renderSecondBody(entity, layers, spr, pal, files, type, _position, opti
 					for (let i = 0; i < snp.layers.length; ++i) entity.renderLayer(snp.layers[i], snp.spr, snp.pal, files.size, snp._position, type, false);
 				}
 			});
-			SpriteRenderer.position.set(originalPos);
+			SpriteRenderer.position.set(_scratchPosition);
 			SpriteRenderer.zIndex = originalZ;
-			entity.effectColor.set(originalColor);
+			entity.effectColor.set(_scratchColor);
 		}
 	}
 }
@@ -312111,7 +312488,7 @@ function Init$3() {
 	this.renderLayer = renderLayer;
 	this.renderEntity = renderEntity;
 }
-var WALK_DIST_TO_MOTION, renderGUI, SPRITE_LIFT, calculateBoundingRect, renderEntity, renderElement;
+var WALK_DIST_TO_MOTION, _snapshotPool, _scratchPosition, _scratchColor, renderGUI, SPRITE_LIFT, calculateBoundingRect, renderEntity, renderElement;
 var init_EntityRender = __esmMin((() => {
 	init_gl_matrix();
 	init_Camera();
@@ -312125,6 +312502,9 @@ var init_EntityRender = __esmMin((() => {
 	init_Graphics();
 	init_GR2ModelRenderer();
 	WALK_DIST_TO_MOTION = 170.2;
+	_snapshotPool = [];
+	_scratchPosition = /* @__PURE__ */ new Float32Array(3);
+	_scratchColor = /* @__PURE__ */ new Float32Array(4);
 	renderGUI = (function renderGUIClosure() {
 		const mat4 = gl_matrix_default.mat4;
 		const vec4 = gl_matrix_default.vec4;
@@ -312283,6 +312663,7 @@ var init_EntityRender = __esmMin((() => {
 						function robeCorrection(lookingFront) {
 							if (self.robe > 0 && self.robeHeight && self.bodyHeight) {
 								if (self.robeHeight + (self.action === self.ACTION.SIT ? 0 : RIDING_STATUS && lookingFront ? 50 : 25) > self.bodyHeight + 64) {
+									if ((self.action === self.ACTION.ATTACK || self.action === self.ACTION.ATTACK1 || self.action === self.ACTION.ATTACK2 || self.action === self.ACTION.ATTACK3) && !lookingFront) return -450;
 									if (self.action === self.ACTION.SIT) return lookingFront ? -450 : RIDING_STATUS ? 1 : -100;
 									return lookingFront ? -300 : RIDING_STATUS ? 100 : 1;
 								}
@@ -312294,7 +312675,7 @@ var init_EntityRender = __esmMin((() => {
 							SpriteRenderer.zIndex = -1;
 							renderElement(self, self.files.shield, "shield", _position, true);
 						});
-						if (!(direction > 2 && direction < 6)) {
+						if (!isLookingBack(direction)) {
 							if (SessionStorage_default.Playing == true && self.hasCart == true) {
 								cartidx = DB.isSuperNovice(self._job) ? 0 : self.CartNum;
 								SpriteRenderer.runWithDepth(true, false, false, function() {
@@ -312310,7 +312691,7 @@ var init_EntityRender = __esmMin((() => {
 							}
 						}
 						SpriteRenderer.zIndex = 150;
-						if (RIDING_STATUS && !(direction > 2 && direction < 6) && (self.action === self.ACTION.SIT || self.action === self.ACTION.WALK)) SpriteRenderer.zIndex *= 2;
+						if (RIDING_STATUS && !isLookingBack(direction) && (self.action === self.ACTION.SIT || self.action === self.ACTION.WALK)) SpriteRenderer.zIndex *= 2;
 						renderElement(self, self.files.body, "body", _position, true);
 						let bodyZOffset = 250;
 						if (RIDING_STATUS) {
@@ -312331,7 +312712,7 @@ var init_EntityRender = __esmMin((() => {
 							SpriteRenderer.zIndex = bodyZOffset + 300;
 							renderElement(self, self.files.accessory, "head", _position, false);
 						}
-						if (direction > 2 && direction < 6) {
+						if (isLookingBack(direction)) {
 							if (self.robe > 0) {
 								SpriteRenderer.zIndex = bodyZOffset + robeCorrection(false);
 								renderElement(self, self.files.robe, "robe", _position, true);
@@ -312370,6 +312751,7 @@ var init_EntityRender = __esmMin((() => {
 						renderElement(self, self.files.body, "body", _position, true);
 					});
 					break;
+				case Entity.TYPE_MOB:
 				case Entity.TYPE_NPC:
 				case Entity.TYPE_NPC2:
 					SpriteRenderer.position[2] = SpriteRenderer.position[2] + .2;
@@ -339347,6 +339729,7 @@ function onMapChange(pkt) {
 			SessionStorage_default.requestCashShop = false;
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
+		PatchNotes_default.checkUnseen();
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
 		notified = true;
@@ -339759,6 +340142,7 @@ var init_MapEngine = __esmMin((() => {
 	init_UIVersionManager();
 	init_EffectManager();
 	init_Escape();
+	init_PatchNotes();
 	init_ChatBox();
 	init_ChatBoxSettings();
 	init_StatusState();
@@ -346153,6 +346537,31 @@ var init_WinLogin$2 = __esmMin((() => {
 	WinLogin_default$1 = ":host {\r\n	width: 280px;\r\n	height: 120px;\r\n	top: 60%;\r\n	left: calc(50% - 140px);\r\n}\r\n\r\n#WinLogin {\r\n	position: absolute;\r\n	width: 280px;\r\n	height: 120px;\r\n}\r\n#WinLogin input {\r\n	position: absolute;\r\n	left: 91px;\r\n	height: 18px;\r\n	width: 127px;\r\n	border: none;\r\n	background-color: transparent;\r\n	padding-left: 2px;\r\n	outline: none;\r\n}\r\n#WinLogin input.user {\r\n	top: 29px;\r\n}\r\n#WinLogin input.pass {\r\n	top: 61px;\r\n}\r\n#WinLogin .save {\r\n	position: absolute;\r\n	top: 32px;\r\n	right: 10px;\r\n	display: block;\r\n	width: 38px;\r\n	height: 10px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n#WinLogin .btn {\r\n	position: absolute;\r\n	border: 0;\r\n	width: 42px;\r\n	height: 20px;\r\n	bottom: 4px;\r\n	background-color: transparent;\r\n}\r\n#WinLogin .btn.connect {\r\n	right: 50px;\r\n}\r\n#WinLogin .btn.signup {\r\n	left: 5px;\r\n}\r\n#WinLogin .btn.exit {\r\n	right: 5px;\r\n}\r\n\r\n/* Override browser autofill styles */\r\n#WinLogin input:-webkit-autofill,\r\n#WinLogin input:-webkit-autofill:hover,\r\n#WinLogin input:-webkit-autofill:focus,\r\n#WinLogin input:-webkit-autofill:active,\r\n#WinLogin input:-internal-autofill-selected,\r\n#WinLogin input:-internal-autofill-previewed {\r\n	-webkit-background-clip: text;\r\n	transition: background-color 5000sease-in-out 0s;\r\n	box-shadow: inset 0 0 20px 20px #ffffff00;\r\n}\r\n";
 }));
 //#endregion
+//#region src/UI/Components/PatchNotes/PatchNotesVersion.css?raw
+var PatchNotesVersion_default$1;
+var init_PatchNotesVersion$1 = __esmMin((() => {
+	PatchNotesVersion_default$1 = ":host {\r\n	top: auto;\r\n	left: auto;\r\n	right: 10px;\r\n	bottom: 8px;\r\n}\r\n\r\n.version {\r\n	color: white;\r\n	font-size: 11px;\r\n	text-shadow: 1px 1px 1px black;\r\n	opacity: 0.8;\r\n	cursor: pointer;\r\n}\r\n.version:hover {\r\n	opacity: 1;\r\n	text-decoration: underline;\r\n}\r\n";
+}));
+//#endregion
+//#region src/UI/Components/PatchNotes/PatchNotesVersion.js
+var PatchNotesVersion, PatchNotesVersion_default;
+var init_PatchNotesVersion = __esmMin((() => {
+	init_UIManager();
+	init_GUIComponent();
+	init_PatchNotes();
+	init_PatchNotesVersion$1();
+	PatchNotesVersion = new GUIComponent("PatchNotesVersion", PatchNotesVersion_default$1);
+	PatchNotesVersion.render = () => "<div class=\"version\"></div>";
+	PatchNotesVersion.needFocus = false;
+	/**
+	* Initialize UI
+	*/
+	PatchNotesVersion.init = function init() {
+		PatchNotes_default.attachVersion(this.getRoot().querySelector(".version"));
+	};
+	PatchNotesVersion_default = UIManager.addComponent(PatchNotesVersion);
+}));
+//#endregion
 //#region src/Engine/Replay/ReplayTypes.js
 /**
 * Informational replay logging, only emitted in development builds.
@@ -347652,6 +348061,10 @@ function createWinLogin({ name, htmlText, cssText }) {
 		if (_preferences.ID.length) _inputPassword.focus();
 		else _inputUsername.focus();
 		Component.placeOnTop();
+		if (PatchNotes_default.isEnabled()) PatchNotesVersion_default.append();
+	};
+	Component.onRemove = function onRemove() {
+		PatchNotesVersion_default.remove();
 	};
 	Component.onKeyDown = function onKeyDown(event) {
 		if (this._host.style.display === "none") return true;
@@ -347733,6 +348146,8 @@ var init_WinLoginCommon = __esmMin((() => {
 	init_KeyEventHandler();
 	init_UIManager();
 	init_GUIComponent();
+	init_PatchNotes();
+	init_PatchNotesVersion();
 	init_Elements();
 	init_preload_helper();
 }));
