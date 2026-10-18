@@ -8,7 +8,7 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropNames$1 = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esmMin = (fn, res, err) => () => {
@@ -19,7 +19,7 @@ var __esmMin = (fn, res, err) => () => {
 		throw err = [e], e;
 	}
 };
-var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
+var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod, mod.exports), cb = null), mod.exports);
 var __exportAll = (all, no_symbols) => {
 	let target = {};
 	for (var name in all) __defProp(target, name, {
@@ -30,7 +30,7 @@ var __exportAll = (all, no_symbols) => {
 	return target;
 };
 var __copyProps = (to, from, except, desc) => {
-	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
+	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames$1(from), i = 0, n = keys.length, key; i < n; i++) {
 		key = keys[i];
 		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
 			get: ((k) => from[k]).bind(null, key),
@@ -10934,6 +10934,34 @@ var init_BinaryReader = __esmMin((() => {
 		type = type || 2;
 		this.offset = type === 1 ? this.offset + index : type === 3 ? this.length + index : index;
 	};
+	/**
+	* Reset BinaryReader in-place to read from a new buffer (or sub-range of one),
+	* avoiding a heap allocation per network message on the hot path.
+	*
+	* Accepts either:
+	*   - An ArrayBuffer / Uint8Array  →  wraps in a new DataView
+	*   - A DataView already sized to the desired range  →  reused directly
+	*
+	* @param {ArrayBuffer|Uint8Array|DataView} buffer
+	* @param {number} [start=0]  byte offset into buffer (ignored when DataView is passed)
+	* @param {number} [end]      exclusive end byte (ignored when DataView is passed)
+	*/
+	BinaryReader.prototype.reset = function reset(buffer, start, end) {
+		if (buffer instanceof DataView) {
+			this.view = buffer;
+			this.length = buffer.byteLength;
+		} else {
+			const u8 = buffer instanceof Uint8Array ? buffer : null;
+			const ab = u8 ? u8.buffer : buffer;
+			const base = u8 ? u8.byteOffset : 0;
+			const s = base + (start || 0);
+			const e = end !== void 0 ? base + end : base + (u8 ? u8.byteLength : ab.byteLength);
+			this.view = new DataView(ab, s, e - s);
+			this.length = e - s;
+		}
+		this.buffer = this.view.buffer;
+		this.offset = 0;
+	};
 	bf_byteBuff = /* @__PURE__ */ new ArrayBuffer(4);
 	bf_wba = new Int8Array(bf_byteBuff);
 	bf_wia = new Int32Array(bf_byteBuff);
@@ -10993,7 +11021,7 @@ var init_BinaryReader = __esmMin((() => {
 function getDate(executable, callback) {
 	const reader = new FileReader();
 	reader.onload = function(event) {
-		_fp = new BinaryReader(event.target.result);
+		_fp$1 = new BinaryReader(event.target.result);
 		callback(getDateSub());
 	};
 	reader.readAsArrayBuffer(executable);
@@ -11004,14 +11032,14 @@ function getDate(executable, callback) {
 * @return {number}
 */
 function getDateSub() {
-	if (!_fp) throw new Error("Executable::getDate() - Executable is not loaded yet, or not specified");
-	_fp.seek(60, SEEK_SET);
-	const offset = _fp.readULong();
-	if (offset > _fp.length) throw new Error("Executable::getDate() - Invalid executable specified.");
-	_fp.seek(offset, SEEK_SET);
-	if (_fp.readString(4) !== "PE") throw new Error("Executable::getDate() - Invalid executable specified.");
-	_fp.seek(4, SEEK_CUR);
-	const date = /* @__PURE__ */ new Date(_fp.readULong() * 1e3);
+	if (!_fp$1) throw new Error("Executable::getDate() - Executable is not loaded yet, or not specified");
+	_fp$1.seek(60, SEEK_SET);
+	const offset = _fp$1.readULong();
+	if (offset > _fp$1.length) throw new Error("Executable::getDate() - Invalid executable specified.");
+	_fp$1.seek(offset, SEEK_SET);
+	if (_fp$1.readString(4) !== "PE") throw new Error("Executable::getDate() - Invalid executable specified.");
+	_fp$1.seek(4, SEEK_CUR);
+	const date = /* @__PURE__ */ new Date(_fp$1.readULong() * 1e3);
 	return date.getFullYear() * 1e4 + (date.getMonth() + 1) * 100 + date.getDate();
 }
 /**
@@ -11025,7 +11053,7 @@ function isROExec(file) {
 	if (file.size < 3145728 || file.size > 7340032) return false;
 	return true;
 }
-var _fp, Executable_default;
+var _fp$1, Executable_default;
 var init_Executable = __esmMin((() => {
 	init_BinaryReader();
 	Executable_default = {
@@ -85090,13 +85118,13 @@ var init_PalNameTable = __esmMin((() => {
 	PalNameTable[JobConst_default.PIG_BLACKSMITH] = JobNameTable[JobConst_default.PIG_BLACKSMITH];
 	PalNameTable[JobConst_default.LION_KNIGHT] = JobNameTable[JobConst_default.LION_KNIGHT];
 	PalNameTable[JobConst_default.DOG_ASSASSIN] = JobNameTable[JobConst_default.DOG_ASSASSIN];
-	PalNameTable[JobConst_default.SHEEP_MONK] = JobNameTable[JobConst_default.MONK];
-	PalNameTable[JobConst_default.OSTRICH_BARD] = JobNameTable[JobConst_default.BARD];
-	PalNameTable[JobConst_default.OSTRICH_DANCER] = JobNameTable[JobConst_default.DANCER];
-	PalNameTable[JobConst_default.FOX_SAGE] = JobNameTable[JobConst_default.SAGE];
-	PalNameTable[JobConst_default.PIG_ALCHE] = JobNameTable[JobConst_default.ALCHEMIST];
-	PalNameTable[JobConst_default.LION_CRUSADER] = "Å©·ç";
-	PalNameTable[JobConst_default.DOG_ROGUE] = JobNameTable[JobConst_default.ROGUE];
+	PalNameTable[JobConst_default.SHEEP_MONK] = JobNameTable[JobConst_default.SHEEP_MONK];
+	PalNameTable[JobConst_default.OSTRICH_BARD] = JobNameTable[JobConst_default.OSTRICH_BARD];
+	PalNameTable[JobConst_default.OSTRICH_DANCER] = JobNameTable[JobConst_default.OSTRICH_DANCER];
+	PalNameTable[JobConst_default.FOX_SAGE] = JobNameTable[JobConst_default.FOX_SAGE];
+	PalNameTable[JobConst_default.PIG_ALCHE] = JobNameTable[JobConst_default.PIG_ALCHE];
+	PalNameTable[JobConst_default.LION_CRUSADER] = JobNameTable[JobConst_default.LION_CRUSADER];
+	PalNameTable[JobConst_default.DOG_ROGUE] = JobNameTable[JobConst_default.DOG_ROGUE];
 	PalNameTable[JobConst_default.SHEEP_ARCB] = JobNameTable[JobConst_default.SHEEP_ARCB];
 	PalNameTable[JobConst_default.OSTRICH_RANGER] = JobNameTable[JobConst_default.OSTRICH_RANGER];
 	PalNameTable[JobConst_default.FOX_WARLOCK] = JobNameTable[JobConst_default.FOX_WARLOCK];
@@ -85111,27 +85139,27 @@ var init_PalNameTable = __esmMin((() => {
 	PalNameTable[JobConst_default.LION_ROYAL_GUARD] = JobNameTable[JobConst_default.LION_ROYAL_GUARD];
 	PalNameTable[JobConst_default.DOG_CHASER] = JobNameTable[JobConst_default.DOG_CHASER];
 	PalNameTable[JobConst_default.PORING_SNOVICE] = JobNameTable[JobConst_default.PORING_SNOVICE];
-	PalNameTable[JobConst_default.FROG_NINJA] = JobNameTable[JobConst_default.FROG_NINJA];
+	PalNameTable[JobConst_default.FROG_NINJA] = "µÎ²¨ºñ´ÑÀÚ";
 	PalNameTable[JobConst_default.PECO_GUNNER] = JobNameTable[JobConst_default.PECO_GUNNER];
 	PalNameTable[JobConst_default.PORING_TAEKWON] = JobNameTable[JobConst_default.PORING_TAEKWON];
-	PalNameTable[JobConst_default.PORING_STAR] = JobNameTable[JobConst_default.STAR];
+	PalNameTable[JobConst_default.PORING_STAR] = JobNameTable[JobConst_default.PORING_STAR];
 	PalNameTable[JobConst_default.FROG_LINKER] = JobNameTable[JobConst_default.FROG_LINKER];
 	PalNameTable[JobConst_default.FROG_KAGEROU] = JobNameTable[JobConst_default.FROG_KAGEROU];
 	PalNameTable[JobConst_default.FROG_OBORO] = JobNameTable[JobConst_default.FROG_OBORO];
 	PalNameTable[JobConst_default.PECO_REBELLION] = JobNameTable[JobConst_default.PECO_REBELLION];
-	PalNameTable[JobConst_default.SHEEP_HPRIEST] = "ÇÏÀÌÇÁ¸®½ºÆ®";
-	PalNameTable[JobConst_default.OSTRICH_SNIPER] = JobNameTable[JobConst_default.HUNTER_H];
-	PalNameTable[JobConst_default.FOX_HWIZ] = JobNameTable[JobConst_default.WIZARD_H];
-	PalNameTable[JobConst_default.PIG_WHITESMITH] = JobNameTable[JobConst_default.BLACKSMITH_H];
+	PalNameTable[JobConst_default.SHEEP_HPRIEST] = JobNameTable[JobConst_default.SHEEP_HPRIEST];
+	PalNameTable[JobConst_default.OSTRICH_SNIPER] = JobNameTable[JobConst_default.OSTRICH_SNIPER];
+	PalNameTable[JobConst_default.FOX_HWIZ] = JobNameTable[JobConst_default.FOX_HWIZ];
+	PalNameTable[JobConst_default.PIG_WHITESMITH] = JobNameTable[JobConst_default.PIG_WHITESMITH];
 	PalNameTable[JobConst_default.LION_KNIGHT_H] = JobNameTable[JobConst_default.LION_KNIGHT_H];
-	PalNameTable[JobConst_default.DOG_ASSA_X] = "¾î¼¼½ÅÅ©·Î½º";
-	PalNameTable[JobConst_default.SHEEP_CHAMP] = JobNameTable[JobConst_default.MONK_H];
-	PalNameTable[JobConst_default.OSTRICH_CROWN] = "Å©¶ó¿î";
-	PalNameTable[JobConst_default.OSTRICH_ZIPSI] = "Áý½Ã";
-	PalNameTable[JobConst_default.FOX_PROF] = JobNameTable[JobConst_default.SAGE_H];
-	PalNameTable[JobConst_default.PIG_CREATOR] = JobNameTable[JobConst_default.ALCHEMIST_H];
-	PalNameTable[JobConst_default.LION_CRUSADER_H] = JobNameTable[JobConst_default.CRUSADER_H];
-	PalNameTable[JobConst_default.DOG_STALKER] = JobNameTable[JobConst_default.ROGUE_H];
+	PalNameTable[JobConst_default.DOG_ASSA_X] = JobNameTable[JobConst_default.DOG_ASSA_X];
+	PalNameTable[JobConst_default.SHEEP_CHAMP] = JobNameTable[JobConst_default.SHEEP_CHAMP];
+	PalNameTable[JobConst_default.OSTRICH_CROWN] = JobNameTable[JobConst_default.OSTRICH_CROWN];
+	PalNameTable[JobConst_default.OSTRICH_ZIPSI] = JobNameTable[JobConst_default.OSTRICH_ZIPSI];
+	PalNameTable[JobConst_default.FOX_PROF] = JobNameTable[JobConst_default.FOX_PROF];
+	PalNameTable[JobConst_default.PIG_CREATOR] = JobNameTable[JobConst_default.PIG_CREATOR];
+	PalNameTable[JobConst_default.LION_CRUSADER_H] = JobNameTable[JobConst_default.LION_CRUSADER_H];
+	PalNameTable[JobConst_default.DOG_STALKER] = JobNameTable[JobConst_default.DOG_STALKER];
 	PalNameTable[JobConst_default.DRAGON_KNIGHT] = JobNameTable[JobConst_default.DRAGON_KNIGHT];
 	PalNameTable[JobConst_default.MEISTER] = JobNameTable[JobConst_default.MEISTER];
 	PalNameTable[JobConst_default.SHADOW_CROSS] = JobNameTable[JobConst_default.SHADOW_CROSS];
@@ -85230,7 +85258,7 @@ var init_PalNameTable = __esmMin((() => {
 	duplicateEntry$5(JobConst_default.OSTRICH_DANCER, JobConst_default.OSTRICH_DANCER_B);
 	duplicateEntry$5(JobConst_default.FOX_SAGE, JobConst_default.FOX_SAGE_B);
 	duplicateEntry$5(JobConst_default.PIG_ALCHE, JobConst_default.PIG_ALCHE_B);
-	duplicateEntry$5(JobConst_default.LION_CRUSADER, JobConst_default.LION_CRUSADER_B);
+	PalNameTable[JobConst_default.LION_CRUSADER_B] = "Å©·ç";
 	duplicateEntry$5(JobConst_default.DOG_ROGUE, JobConst_default.DOG_ROGUE_B);
 	duplicateEntry$5(JobConst_default.SHEEP_ARCB, JobConst_default.SHEEP_ARCB_B);
 	duplicateEntry$5(JobConst_default.OSTRICH_RANGER, JobConst_default.OSTRICH_RANGER_B);
@@ -85246,7 +85274,7 @@ var init_PalNameTable = __esmMin((() => {
 	duplicateEntry$5(JobConst_default.LION_ROYAL_GUARD, JobConst_default.LION_ROYAL_GUARD_B);
 	duplicateEntry$5(JobConst_default.DOG_CHASER, JobConst_default.DOG_CHASER_B);
 	duplicateEntry$5(JobConst_default.PORING_SNOVICE, JobConst_default.PORING_SNOVICE_B, JobConst_default.PORING_SNOVICE2, JobConst_default.PORING_SNOVICE2_B);
-	duplicateEntry$5(JobConst_default.FROG_NINJA, JobConst_default.FROG_NINJA_B);
+	PalNameTable[JobConst_default.FROG_NINJA_B] = PalNameTable[JobConst_default.FROG_NINJA];
 	duplicateEntry$5(JobConst_default.PECO_GUNNER, JobConst_default.PECO_GUNNER_B);
 	duplicateEntry$5(JobConst_default.PORING_TAEKWON, JobConst_default.PORING_TAEKWON_B);
 	duplicateEntry$5(JobConst_default.PORING_STAR, JobConst_default.PORING_STAR_B);
@@ -161338,7 +161366,7 @@ var init_PacketStructure = __esmMin((() => {
 	PACKET.ZC.GUILD_EMBLEM_IMG = function PACKET_ZC_GUILD_EMBLEM_IMG(fp, end) {
 		this.GDID = fp.readLong();
 		this.emblemVersion = fp.readLong();
-		this.img = new Uint8Array(fp.buffer, fp.offset, end - fp.offset);
+		this.img = new Uint8Array(fp.view.buffer, fp.view.byteOffset + fp.offset, end - fp.offset);
 	};
 	PACKET.ZC.GUILD_EMBLEM_IMG.size = -1;
 	PACKET.ZC.MEMBERMGR_INFO = function PACKET_ZC_MEMBERMGR_INFO(fp, end) {
@@ -205803,6 +205831,41 @@ function defaultSocketFactory(host, port) {
 	if (Socket.isSupported()) return new Socket(host, port, proxy);
 	return new Socket$1(host, port, proxy);
 }
+function _scheduleLogCallback(cb) {
+	if (typeof window !== "undefined" && window.requestIdleCallback) requestIdleCallback(cb);
+	else setTimeout(() => cb({
+		timeRemaining: () => 0,
+		didTimeout: true
+	}));
+}
+function _processLogEntry(entry) {
+	if (entry.type === LOG_ENTRY_KNOWN) {
+		if (entry.dumpBytes) console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: %s\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", entry.pktId.toString(16), entry.pktName, entry.pktLen, utilsBufferToHexString(entry.dumpBytes).toUpperCase());
+		console.log("%c[Network] Recv:", "color:#900090", entry.instance, entry.hasCallback ? "" : "(no callback)");
+	} else if (entry.type === LOG_ENTRY_UNKNOWN) {
+		if (entry.dumpBytes) console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: [UNKNOWN]\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", entry.pktId.toString(16), entry.pktLen, utilsBufferToHexString(entry.dumpBytes).toUpperCase());
+		console.error("[Network] Packet \"%c0x%s%c\" not registered, skipping %d bytes.", "font-weight:bold", entry.pktId.toString(16), "font-weight:normal", entry.pktLen);
+	}
+	entry.reset();
+}
+function _runLogDrain(deadline) {
+	while (_logHead !== _logTail && (deadline.timeRemaining() > 0 || deadline.didTimeout)) {
+		const entry = _logPool[_logHead & LOG_QUEUE_MASK];
+		_logHead++;
+		_processLogEntry(entry);
+	}
+	if (_logHead !== _logTail) _scheduleLogCallback(_runLogDrain);
+	else {
+		_logHead = 0;
+		_logTail = 0;
+		_logScheduled = false;
+	}
+}
+function _flushLogs() {
+	if (_logScheduled) return;
+	_logScheduled = true;
+	_scheduleLogCallback(_runLogDrain);
+}
 /**
 * Packets definition
 *
@@ -205835,6 +205898,8 @@ function connect(host, port, callback, isZone) {
 			msg = "Success";
 			color = "green";
 			if (_socket && _socket.ping) clearInterval(_socket.ping);
+			_ring_head = 0;
+			_ring_tail = 0;
 			socket.onMessage = receive;
 			_sockets.push(_socket = socket);
 			if (isZone) PacketCrypt_default.init();
@@ -205898,67 +205963,144 @@ function read$1(callback) {
 	read$1.callback = callback;
 }
 /**
-* Received data from server
+* Grow the ring buffer to at least `minCapacity` bytes, preserving pending data.
+* New capacity is the next power of two >= minCapacity.
 *
-* @param {Uint8Array} buffer
+* @param {number} minCapacity
+*/
+function _ringGrow(minCapacity) {
+	let newCap = _ring.length;
+	while (newCap < minCapacity) newCap *= 2;
+	const pending = _ring_tail - _ring_head;
+	const newRing = new Uint8Array(newCap);
+	if (pending > 0) {
+		const physHead = _ring_head & _ring_mask;
+		const physTail = _ring_tail & _ring_mask;
+		if (physTail > physHead) newRing.set(_ring.subarray(physHead, physTail), 0);
+		else {
+			const firstChunk = _ring.length - physHead;
+			newRing.set(_ring.subarray(physHead), 0);
+			newRing.set(_ring.subarray(0, physTail), firstChunk);
+		}
+	}
+	_ring = newRing;
+	_ring_mask = newCap - 1;
+	_ring_head = 0;
+	_ring_tail = pending;
+}
+/**
+* Return a contiguous Uint8Array view of `len` bytes starting at ring logical
+* position `logicalStart`.  When the slice crosses the ring's physical
+* boundary a minimal temporary copy is made (slow path, very rare).
+*
+* @param {number} logicalStart  logical read position (ring_head-relative)
+* @param {number} len           number of bytes to view
+* @return {Uint8Array}
+*/
+function _ringSlice(logicalStart, len) {
+	const physStart = logicalStart & _ring_mask;
+	const physEnd = physStart + len;
+	if (physEnd <= _ring.length) return _ring.subarray(physStart, physEnd);
+	const tmp = new Uint8Array(len);
+	const firstChunk = _ring.length - physStart;
+	tmp.set(_ring.subarray(physStart), 0);
+	tmp.set(_ring.subarray(0, len - firstChunk), firstChunk);
+	return tmp;
+}
+/**
+* Read a little-endian uint16 from the ring at logical position `logPos`
+* without going through BinaryReader (avoids a DataView when in the fast
+* path — both bytes are within the same physical region).
+*
+* @param {number} logPos
+* @return {number}
+*/
+function _ringReadUShort(logPos) {
+	const p = logPos & _ring_mask;
+	if (p + 2 <= _ring.length) return _ring[p] | _ring[p + 1] << 8;
+	return _ring[p] | _ring[0] << 8;
+}
+/**
+* Received data from server.
+* Appends `buf` into the persistent ring buffer, then parses as many complete
+* packets as available.  Incomplete packet bytes remain in the ring and are
+* consumed on the next call — no allocation needed for the common case.
+*
+* @param {ArrayBuffer|Uint8Array} buf
 */
 function receive(buf) {
+	const incoming = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+	const inLen = incoming.length;
+	const needed = _ring_tail - _ring_head + inLen;
+	if (needed > _ring.length) _ringGrow(needed);
+	const physTail = _ring_tail & _ring_mask;
+	const spaceToEnd = _ring.length - physTail;
+	if (inLen <= spaceToEnd) _ring.set(incoming, physTail);
+	else {
+		_ring.set(incoming.subarray(0, spaceToEnd), physTail);
+		_ring.set(incoming.subarray(spaceToEnd), 0);
+	}
+	_ring_tail += inLen;
+	if (!_fp) _fp = new BinaryReader(/* @__PURE__ */ new ArrayBuffer(0));
+	if (read$1.callback) {
+		const cb = read$1.callback;
+		read$1.callback = null;
+		const start = _ring_head;
+		_fp.reset(_ringSlice(start, _ring_tail - start));
+		cb(_fp);
+		if (_ring_head === start) _ring_head += _fp.tell();
+	}
 	let id, packet;
 	let length = 0;
-	let offset = 0;
-	let buffer;
-	if (_save_buffer) {
-		const _data = new Uint8Array(_save_buffer.length + buf.byteLength);
-		_data.set(_save_buffer, 0);
-		_data.set(new Uint8Array(buf), _save_buffer.length);
-		buffer = _data.buffer;
-	} else buffer = buf;
-	const fp = new BinaryReader(buffer);
-	if (read$1.callback) {
-		read$1.callback(fp);
-		read$1.callback = null;
-	}
-	while (fp.tell() < fp.length) {
-		offset = fp.tell();
-		if (offset + 2 > fp.length) {
-			_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
-			return;
-		}
-		id = fp.readUShort();
+	while (_ring_tail - _ring_head >= 2) {
+		const pktStart = _ring_head;
+		const avail = _ring_tail - pktStart;
+		if (avail < 2) break;
+		id = _ringReadUShort(pktStart);
 		let packet_len = PacketLength_default.getPacketLength(id);
-		packet_len = packet_len ? packet_len : fp.length - offset;
+		packet_len = packet_len ? packet_len : avail;
 		if (packet_len < 0) {
-			if (offset + 4 > fp.length) {
-				_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
-				return;
-			}
-			length = fp.readUShort();
+			if (avail < 4) break;
+			length = _ringReadUShort(pktStart + 2);
 		} else length = packet_len;
-		offset += length;
-		if (offset > fp.length) {
-			offset = fp.tell() - (packet_len < 0 ? 4 : 2);
-			_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
-			return;
-		}
+		if (avail < length) break;
+		const pktBytes = _ringSlice(pktStart, length);
+		_ring_head += length || 2;
 		if (Packets.list[id]) {
 			packet = Packets.list[id];
-			if (packetDump) {
-				const buffer_console = new Uint8Array(buffer, offset - length, length);
-				console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: %s\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", id.toString(16), packet.name, length, utilsBufferToHexString(buffer_console).toUpperCase());
-			}
-			packet.instance = new packet.Struct(fp, offset);
-			console.log("%c[Network] Recv:", "color:#900090", packet.instance, packet.callback ? "" : "(no callback)");
+			_fp.reset(pktBytes);
+			_fp.seek(packet_len < 0 ? 4 : 2, SEEK_SET);
+			packet.instance = new packet.Struct(_fp, length);
+			const entry = _logPool[_logTail & LOG_QUEUE_MASK];
+			_logTail++;
+			if (_logTail - _logHead > LOG_QUEUE_SIZE) _logHead = _logTail - LOG_QUEUE_SIZE;
+			entry.type = LOG_ENTRY_KNOWN;
+			entry.pktId = id;
+			entry.pktName = packet.name;
+			entry.pktLen = length;
+			entry.dumpBytes = packetDump ? pktBytes.slice() : null;
+			entry.instance = packet.instance;
+			entry.hasCallback = !!packet.callback;
+			_flushLogs();
 			if (packet.callback) packet.callback(packet.instance);
 		} else {
-			if (packetDump) {
-				const unknown_buffer = new Uint8Array(buffer, offset - length, length);
-				console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: [UNKNOWN]\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", id.toString(16), length, utilsBufferToHexString(unknown_buffer).toUpperCase());
-			}
-			console.error("[Network] Packet \"%c0x%s%c\" not registered, skipping %d bytes.", "font-weight:bold", id.toString(16), "font-weight:normal", length);
+			const entry = _logPool[_logTail & LOG_QUEUE_MASK];
+			_logTail++;
+			if (_logTail - _logHead > LOG_QUEUE_SIZE) _logHead = _logTail - LOG_QUEUE_SIZE;
+			entry.type = LOG_ENTRY_UNKNOWN;
+			entry.pktId = id;
+			entry.pktName = "";
+			entry.pktLen = length;
+			entry.dumpBytes = packetDump ? pktBytes.slice() : null;
+			entry.instance = null;
+			entry.hasCallback = false;
+			_flushLogs();
 		}
-		if (length) fp.seek(offset, SEEK_SET);
 	}
-	_save_buffer = null;
+	if (_ring_head === _ring_tail) {
+		_ring_head = 0;
+		_ring_tail = 0;
+	}
 }
 /**
 * Communication end
@@ -205990,6 +206132,8 @@ function close() {
 		if (s.ping) clearInterval(s.ping);
 		idx = _sockets.indexOf(s);
 		if (idx !== -1) _sockets.splice(idx, 1);
+		_ring_head = 0;
+		_ring_tail = 0;
 	}
 }
 /**
@@ -206038,7 +206182,7 @@ function utilsLongToIP(long) {
 function utilsBufferToHexString(buffer) {
 	return [...new Uint8Array(buffer)].map((x) => x.toString(16).padStart(2, "0") + " ").join("");
 }
-var _sockets, _socketFactory, _socket, _save_buffer, _onDisconnect, packetDump, Network;
+var _sockets, _socketFactory, _socket, LOG_ENTRY_KNOWN, LOG_ENTRY_UNKNOWN, LOG_QUEUE_SIZE, LOG_QUEUE_MASK, LogEntry, _logPool, _logHead, _logTail, _logScheduled, _ring, _ring_mask, _ring_head, _ring_tail, _fp, _onDisconnect, packetDump, Network;
 var init_NetworkManager = __esmMin((() => {
 	init_Configs();
 	init_BinaryReader();
@@ -206053,7 +206197,37 @@ var init_NetworkManager = __esmMin((() => {
 	_sockets = [];
 	_socketFactory = null;
 	_socket = null;
-	_save_buffer = null;
+	LOG_ENTRY_KNOWN = 1;
+	LOG_ENTRY_UNKNOWN = 2;
+	LOG_QUEUE_SIZE = 1024;
+	LOG_QUEUE_MASK = 1023;
+	LogEntry = class {
+		type = 0;
+		pktId = 0;
+		pktName = "";
+		pktLen = 0;
+		dumpBytes = null;
+		instance = null;
+		hasCallback = false;
+		reset() {
+			this.type = 0;
+			this.pktId = 0;
+			this.pktName = "";
+			this.pktLen = 0;
+			this.dumpBytes = null;
+			this.instance = null;
+			this.hasCallback = false;
+		}
+	};
+	_logPool = Array.from({ length: LOG_QUEUE_SIZE }, () => new LogEntry());
+	_logHead = 0;
+	_logTail = 0;
+	_logScheduled = false;
+	_ring = /* @__PURE__ */ new Uint8Array(262144);
+	_ring_mask = _ring.length - 1;
+	_ring_head = 0;
+	_ring_tail = 0;
+	_fp = null;
 	_onDisconnect = null;
 	packetDump = Configs.get("packetDump", false);
 	/**
@@ -206236,7 +206410,7 @@ var init_HtmlHelper = __esmMin((() => {
 * Render background (or a black background if no image is loaded yet)
 */
 function render$14() {
-	_ctx$6.clearRect(0, 0, _canvas.width, _canvas.height);
+	_ctx$5.clearRect(0, 0, _canvas.width, _canvas.height);
 	if (Background._progress > -1) Background.setPercent(Background._progress);
 }
 /**
@@ -206256,7 +206430,7 @@ function transition(callback) {
 		});
 	});
 }
-var _overlay, _container, _canvas, _ctx$6, Background;
+var _overlay, _container, _canvas, _ctx$5, Background;
 var init_Background = __esmMin((() => {
 	init_DBManager();
 	init_Client();
@@ -206289,7 +206463,7 @@ var init_Background = __esmMin((() => {
 		left: "0",
 		zIndex: "2"
 	});
-	_ctx$6 = _canvas.getContext("2d");
+	_ctx$5 = _canvas.getContext("2d");
 	Background = class Background {
 		/**
 		* Background loading progress
@@ -206339,7 +206513,7 @@ var init_Background = __esmMin((() => {
 				width: width + "px",
 				height: height + "px"
 			});
-			_ctx$6.clearRect(0, 0, width, height);
+			_ctx$5.clearRect(0, 0, width, height);
 			render$14();
 		}
 		/**
@@ -206477,14 +206651,14 @@ var init_Background = __esmMin((() => {
 			const height = 15;
 			const x = Math.floor((_canvas.width - width) * .5);
 			const y = Math.floor(_canvas.height * .75);
-			_ctx$6.fillStyle = "rgb(0,255,255)";
-			_ctx$6.fillRect(x, y, width, height);
-			_ctx$6.fillStyle = "rgb(140,140,140)";
-			_ctx$6.fillRect(x + 1, y + 1, 238, 13);
-			_ctx$6.fillStyle = "rgb(66,99,165)";
-			_ctx$6.fillRect(x + 2, y + 2, Math.floor(percent * 236 * .01), 11);
-			_ctx$6.fillStyle = "rgb(255,255,0)";
-			_ctx$6.fillText(percent + "%", Math.floor((_canvas.width - _ctx$6.measureText(percent + "%").width) * .5), y + 11);
+			_ctx$5.fillStyle = "rgb(0,255,255)";
+			_ctx$5.fillRect(x, y, width, height);
+			_ctx$5.fillStyle = "rgb(140,140,140)";
+			_ctx$5.fillRect(x + 1, y + 1, 238, 13);
+			_ctx$5.fillStyle = "rgb(66,99,165)";
+			_ctx$5.fillRect(x + 2, y + 2, Math.floor(percent * 236 * .01), 11);
+			_ctx$5.fillStyle = "rgb(255,255,0)";
+			_ctx$5.fillText(percent + "%", Math.floor((_canvas.width - _ctx$5.measureText(percent + "%").width) * .5), y + 11);
 		}
 	};
 }));
@@ -207612,7 +207786,7 @@ function fillImageData(imageData, frame, pal, color) {
 		}
 	}
 }
-var mat4$22, RenderCanvas2D, _program$25, _buffer$18, _ctx$5, _gl$2, _groupId, _lastGroupId, _shadow, _angle, _depth, _disableDepthCorrection, _depthMask, _depthTest, _texture$4, _usepal, _pos$8, _matrix$7, _size$7, _offset, SpriteRenderer;
+var mat4$22, RenderCanvas2D, _program$25, _buffer$18, _ctx$4, _gl$2, _groupId, _lastGroupId, _shadow, _angle, _depth, _disableDepthCorrection, _depthMask, _depthTest, _texture$4, _usepal, _pos$8, _matrix$7, _size$7, _offset, SpriteRenderer;
 var init_SpriteRenderer = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
@@ -207677,17 +207851,17 @@ var init_SpriteRenderer = __esmMin((() => {
 				_size$7[1] *= -1;
 			}
 			const canvas = getFrameCanvas(frame, pal, this.color);
-			_ctx$5.save();
-			_ctx$5.translate(_x | 0, _y | 0);
-			_ctx$5.rotate(this.angle / 180 * Math.PI);
-			_ctx$5.scale(scale_x, scale_y);
-			_ctx$5.drawImage(canvas, 0, 0, width, height, -_size$7[0] >> 1, -_size$7[1] >> 1, _size$7[0] | 0, _size$7[1] | 0);
-			_ctx$5.restore();
+			_ctx$4.save();
+			_ctx$4.translate(_x | 0, _y | 0);
+			_ctx$4.rotate(this.angle / 180 * Math.PI);
+			_ctx$4.scale(scale_x, scale_y);
+			_ctx$4.drawImage(canvas, 0, 0, width, height, -_size$7[0] >> 1, -_size$7[1] >> 1, _size$7[0] | 0, _size$7[1] | 0);
+			_ctx$4.restore();
 		};
 	})();
 	_program$25 = null;
 	_buffer$18 = null;
-	_ctx$5 = null;
+	_ctx$4 = null;
 	_gl$2 = null;
 	_groupId = 0;
 	_lastGroupId = 0;
@@ -207857,7 +208031,7 @@ var init_SpriteRenderer = __esmMin((() => {
 		* @param {number} y position
 		*/
 		static bind2DContext(ctx, x, y) {
-			_ctx$5 = ctx;
+			_ctx$4 = ctx;
 			_pos$8[0] = x;
 			_pos$8[1] = y;
 			this.render = RenderCanvas2D;
@@ -208017,7 +208191,6 @@ var _program$24, _buffer$17, _vertCount, _textures$1, _waveSpeed, _waveHeight, _
 var init_Water = __esmMin((() => {
 	init_WebGL();
 	init_SpriteRenderer();
-	init_Altitude();
 	init_Water$2();
 	init_Water$1();
 	_program$24 = null;
@@ -208471,7 +208644,7 @@ var init_Models = __esmMin((() => {
 //#region src/Renderer/Map/AnimatedModels.vs?raw
 var AnimatedModels_default$2;
 var init_AnimatedModels$2 = __esmMin((() => {
-	AnimatedModels_default$2 = "#version 300 es  \r\nprecision highp float;  \r\n  \r\nin vec3 aPosition;  \r\nin vec3 aNormal;  \r\nin vec2 aTextureCoord;  \r\nin float aAlpha;  \r\n  \r\nout vec2 vTextureCoord;  \r\nout float vLightWeighting;  \r\nout float vAlpha;  \r\nout float vFogFactor;  \r\nout vec3 vWorldPos;\r\n  \r\nuniform mat4 uModelViewMat;  \r\nuniform mat4 uProjectionMat;  \r\nuniform mat3 uNormalMat;  \r\n  \r\nuniform vec3 uLightDirection;  \r\nuniform float uLightOpacity;  \r\nuniform vec3 uLightAmbient;  \r\nuniform vec3 uLightDiffuse;  \r\n  \r\nuniform bool uFogUse;  \r\nuniform float uFogNear;  \r\nuniform float uFogFar;  \r\n  \r\nvoid main(void) {  \r\n    vec4 position = uModelViewMat * vec4(aPosition, 1.0);  \r\n    gl_Position = uProjectionMat * position;  \r\n  \r\n    vTextureCoord = aTextureCoord;  \r\n    vAlpha = aAlpha;  \r\n    vWorldPos = aPosition;\r\n  \r\n    vec3 normal = normalize(aNormal);  \r\n    float lightWeight = max(dot(normal, uLightDirection), 0.0);  \r\n    vLightWeighting = (1.0 - uLightOpacity) + lightWeight * uLightOpacity;  \r\n  \r\n    if (uFogUse) {  \r\n        float depth = length(position.xyz);  \r\n        vFogFactor = clamp((uFogFar - depth) / (uFogFar - uFogNear), 0.0, 1.0);  \r\n    } else {  \r\n        vFogFactor = 1.0;  \r\n    }  \r\n}";
+	AnimatedModels_default$2 = "#version 300 es  \r\nprecision highp float;  \r\n  \r\nin vec3 aPosition;  \r\nin vec3 aNormal;  \r\nin vec2 aTextureCoord;  \r\nin float aAlpha;  \r\nin float aMatrixIndex;  \r\n  \r\nout vec2 vTextureCoord;  \r\nout float vLightWeighting;  \r\nout float vAlpha;  \r\nout float vFogFactor;  \r\nout vec3 vWorldPos;  \r\n  \r\nuniform mat4 uModelViewMat;  \r\nuniform mat4 uProjectionMat;  \r\nuniform mat3 uNormalMat;  \r\n  \r\nuniform vec3 uLightDirection;  \r\nuniform float uLightOpacity;  \r\nuniform vec3 uLightAmbient;  \r\nuniform vec3 uLightDiffuse;  \r\n  \r\nuniform bool uFogUse;  \r\nuniform float uFogNear;  \r\nuniform float uFogFar;  \r\n  \r\nuniform highp sampler2D uMatrixTexture;  \r\n  \r\nmat4 fetchMatrix(int index) {  \r\n    int pixelIndex = index * 4;  \r\n    vec4 row0 = texelFetch(uMatrixTexture, ivec2(pixelIndex, 0), 0);  \r\n    vec4 row1 = texelFetch(uMatrixTexture, ivec2(pixelIndex + 1, 0), 0);  \r\n    vec4 row2 = texelFetch(uMatrixTexture, ivec2(pixelIndex + 2, 0), 0);  \r\n    vec4 row3 = texelFetch(uMatrixTexture, ivec2(pixelIndex + 3, 0), 0);  \r\n    return mat4(row0, row1, row2, row3);  \r\n}  \r\n  \r\nvoid main(void) {  \r\n    mat4 M = fetchMatrix(int(aMatrixIndex));  \r\n    vec4 worldPos = M * vec4(aPosition, 1.0);  \r\n    vec4 position = uModelViewMat * worldPos;  \r\n    gl_Position = uProjectionMat * position;  \r\n  \r\n    vTextureCoord = aTextureCoord;  \r\n    vAlpha = aAlpha;  \r\n    vWorldPos = worldPos.xyz;  \r\n  \r\n    vec3 c0 = normalize(M[0].xyz);  \r\n    vec3 c1 = normalize(M[1].xyz);  \r\n    vec3 c2 = normalize(M[2].xyz);  \r\n    mat3 rotMat = mat3(c0, c1, c2);  \r\n    vec3 normal = normalize(rotMat * aNormal);  \r\n  \r\n    float lightWeight = max(dot(normal, uLightDirection), 0.0);  \r\n    vLightWeighting = (1.0 - uLightOpacity) + lightWeight * uLightOpacity;  \r\n  \r\n    if (uFogUse) {  \r\n        float depth = length(position.xyz);  \r\n        vFogFactor = clamp((uFogFar - depth) / (uFogFar - uFogNear), 0.0, 1.0);  \r\n    } else {  \r\n        vFogFactor = 1.0;  \r\n    }  \r\n}";
 }));
 //#endregion
 //#region src/Renderer/Map/AnimatedModels.fs?raw
@@ -208500,6 +208673,7 @@ function init$8(gl) {
 		uFogFar: gl.getUniformLocation(_program$22, "uFogFar"),
 		uFogColor: gl.getUniformLocation(_program$22, "uFogColor"),
 		uDiffuse: gl.getUniformLocation(_program$22, "uDiffuse"),
+		uMatrixTexture: gl.getUniformLocation(_program$22, "uMatrixTexture"),
 		uOccluderFadeMode: gl.getUniformLocation(_program$22, "uOccluderFadeMode"),
 		uOccluderFadeEye: gl.getUniformLocation(_program$22, "uOccluderFadeEye"),
 		uOccluderFadeFocus: gl.getUniformLocation(_program$22, "uOccluderFadeFocus"),
@@ -208511,7 +208685,8 @@ function init$8(gl) {
 		aPosition: gl.getAttribLocation(_program$22, "aPosition"),
 		aNormal: gl.getAttribLocation(_program$22, "aNormal"),
 		aTextureCoord: gl.getAttribLocation(_program$22, "aTextureCoord"),
-		aAlpha: gl.getAttribLocation(_program$22, "aAlpha")
+		aAlpha: gl.getAttribLocation(_program$22, "aAlpha"),
+		aMatrixIndex: gl.getAttribLocation(_program$22, "aMatrixIndex")
 	};
 }
 /**
@@ -208522,9 +208697,90 @@ function free$4(gl) {
 		const model = _animatedModels[i];
 		if (model.vao) gl.deleteVertexArray(model.vao);
 		if (model.buffer) gl.deleteBuffer(model.buffer);
+		if (model.matrixTexture) gl.deleteTexture(model.matrixTexture);
 		for (const tex in model.textureObjects) if (model.textureObjects[tex]) gl.deleteTexture(model.textureObjects[tex]);
 	}
 	_animatedModels = [];
+}
+/**
+* Precompute face flat normals in node model-space
+*/
+function precalcFlatNormals(node) {
+	const faces = node.faces;
+	const vertices = node.vertices;
+	const normals = new Float32Array(faces.length * 3);
+	for (let f = 0; f < faces.length; f++) {
+		const face = faces[f];
+		const v0 = vertices[face.vertidx[0]];
+		const v1 = vertices[face.vertidx[1]];
+		const v2 = vertices[face.vertidx[2]];
+		const ax = v1[0] - v0[0];
+		const ay = v1[1] - v0[1];
+		const az = v1[2] - v0[2];
+		const bx = v2[0] - v0[0];
+		const by = v2[1] - v0[1];
+		const bz = v2[2] - v0[2];
+		let nx = ay * bz - az * by;
+		let ny = az * bx - ax * bz;
+		let nz = ax * by - ay * bx;
+		let len = nx * nx + ny * ny + nz * nz;
+		if (len > 0) {
+			len = 1 / Math.sqrt(len);
+			nx *= len;
+			ny *= len;
+			nz *= len;
+		}
+		const base = f * 3;
+		normals[base] = nx;
+		normals[base + 1] = ny;
+		normals[base + 2] = nz;
+	}
+	return normals;
+}
+/**
+* Precompute smooth normals per smoothGroup in node model-space
+*/
+function precalcSmoothNormals(node, flatNormals) {
+	const faces = node.faces;
+	const vertices = node.vertices;
+	const groupUsed = [];
+	for (let f = 0; f < faces.length; f++) {
+		const sg = faces[f].smoothGroup;
+		if (sg !== void 0 && sg >= 0 && sg < 32) groupUsed[sg] = true;
+	}
+	const groups = [];
+	const numVerts = vertices.length;
+	for (let j = 0; j < 32; j++) {
+		if (!groupUsed[j]) continue;
+		const norm = new Float32Array(numVerts * 3);
+		groups[j] = norm;
+		for (let v = 0; v < numVerts; v++) {
+			let x = 0;
+			let y = 0;
+			let z = 0;
+			for (let f = 0; f < faces.length; f++) {
+				const face = faces[f];
+				if (face.smoothGroup === j && (face.vertidx[0] === v || face.vertidx[1] === v || face.vertidx[2] === v)) {
+					const base = f * 3;
+					x += flatNormals[base];
+					y += flatNormals[base + 1];
+					z += flatNormals[base + 2];
+				}
+			}
+			let len = x * x + y * y + z * z;
+			if (len > 0) {
+				len = 1 / Math.sqrt(len);
+				x *= len;
+				y *= len;
+				z *= len;
+			}
+			const l = v * 3;
+			norm[l] = x;
+			norm[l + 1] = y;
+			norm[l + 2] = z;
+		}
+	}
+	return groups;
 }
 function isNodeStatic(node) {
 	return (!node.rotKeyframes || node.rotKeyframes.length === 0) && (!node.posKeyframes || node.posKeyframes.length === 0) && (!node.scaleKeyFrames || node.scaleKeyFrames.length === 0);
@@ -208597,6 +208853,11 @@ function add$2(gl, modelData) {
 			totalAnimationLength = Math.max(totalAnimationLength, kf.Frame || 0);
 			kf._vec = vec3$5.fromValues(kf.Scale[0], kf.Scale[1], kf.Scale[2]);
 		}
+		const suffixMat = mat4$20.create();
+		mat4$20.identity(suffixMat);
+		if (!node.is_only) mat4$20.translate(suffixMat, suffixMat, node.offset);
+		mat4$20.multiply(suffixMat, suffixMat, mat3$4.toMat4(node.mat3, _tempMat4Node));
+		node._cachedSuffix = suffixMat;
 		nodes.push(node);
 	}
 	let animLen = modelData.animLen || 0;
@@ -208613,6 +208874,11 @@ function add$2(gl, modelData) {
 	}
 	for (let n = 0; n < nodes.length; n++) {
 		const node = nodes[n];
+		node._flatNormals = precalcFlatNormals(node);
+		if (modelData.shadeType === 2) node._smoothGroups = precalcSmoothNormals(node, node._flatNormals);
+	}
+	for (let n = 0; n < nodes.length; n++) {
+		const node = nodes[n];
 		const facesPerTex = {};
 		for (let f = 0; f < node.faces.length; f++) {
 			const tid = node.textures[node.faces[f].texid];
@@ -208626,12 +208892,11 @@ function add$2(gl, modelData) {
 			};
 			for (let inst = 0; inst < instances.length; inst++) {
 				const vertCount = facesPerTex[tid] * 3;
-				const floatCount = vertCount * 9;
+				const floatCount = vertCount * 10;
 				textureGroups[tid].writePlan.push({
 					nodeIndex: n,
 					instanceIndex: inst,
 					faceCount: facesPerTex[tid],
-					startFaceIndex: 0,
 					targetOffset: 0
 				});
 				textureGroups[tid].count += vertCount;
@@ -208647,14 +208912,36 @@ function add$2(gl, modelData) {
 		for (let wp = 0; wp < group.writePlan.length; wp++) {
 			const plan = group.writePlan[wp];
 			plan.targetOffset = currentOffset;
-			currentOffset += plan.faceCount * 3 * 9;
+			currentOffset += plan.faceCount * 3 * 10;
 		}
 		meshInfos.push({
 			textureIdx: parseInt(tid),
-			vertOffset: startOffset / 9,
-			vertCount: (currentOffset - startOffset) / 9
+			vertOffset: startOffset / 10,
+			vertCount: (currentOffset - startOffset) / 10
 		});
 	}
+	const staticBuffer = new Float32Array(totalFloats);
+	const numInstances = instances.length;
+	for (const tid in textureGroups) {
+		const plans = textureGroups[tid].writePlan;
+		const textureId = parseInt(tid);
+		for (let p = 0; p < plans.length; p++) {
+			const plan = plans[p];
+			const node = nodes[plan.nodeIndex];
+			const matrixIndex = plan.nodeIndex * numInstances + plan.instanceIndex;
+			writeNodeGeometry(node, textureId, plan.targetOffset, staticBuffer, modelData.alpha, matrixIndex, modelData.shadeType);
+		}
+	}
+	const totalMatrices = nodes.length * numInstances;
+	const matrixData = new Float32Array(totalMatrices * 16);
+	const matrixTexture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, matrixTexture);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, totalMatrices * 4, 1, 0, gl.RGBA, gl.FLOAT, matrixData);
+	gl.bindTexture(gl.TEXTURE_2D, null);
 	const animModel = {
 		filename: modelData.filename,
 		animLen,
@@ -208673,27 +208960,35 @@ function add$2(gl, modelData) {
 		},
 		textureObjects: {},
 		buffer: gl.createBuffer(),
-		_gpuBuffer: new Float32Array(totalFloats),
+		matrixTexture,
+		matrixData,
+		totalMatrices,
 		meshInfos,
-		writePlans: textureGroups,
 		lastFrame: -1,
 		lastAnimFrame: -1,
 		staticModel: !hasAnyAnimation,
 		_nodeMap: {},
 		_globalMatrices: new Array(nodes.length)
 	};
+	animModel._boxMat = mat4$20.create();
+	mat4$20.identity(animModel._boxMat);
+	mat4$20.translate(animModel._boxMat, animModel._boxMat, [
+		-animModel.box.center[0],
+		-animModel.box.max[1],
+		-animModel.box.center[2]
+	]);
 	for (let n = 0; n < nodes.length; n++) {
 		animModel._nodeMap[nodes[n].name] = nodes[n];
 		animModel._globalMatrices[n] = mat4$20.create();
 	}
 	gl.bindBuffer(gl.ARRAY_BUFFER, animModel.buffer);
-	gl.bufferData(gl.ARRAY_BUFFER, animModel._gpuBuffer.byteLength, gl.DYNAMIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, staticBuffer, gl.STATIC_DRAW);
 	for (let t = 0; t < modelData.textures.length; t++) loadTexture$1(gl, animModel, "data\\texture\\" + modelData.textures[t], t);
 	animModel.vao = gl.createVertexArray();
 	gl.bindVertexArray(animModel.vao);
 	gl.bindBuffer(gl.ARRAY_BUFFER, animModel.buffer);
 	const attribute = _program$22.attribute;
-	const stride = 36;
+	const stride = 40;
 	gl.enableVertexAttribArray(attribute.aPosition);
 	gl.vertexAttribPointer(attribute.aPosition, 3, gl.FLOAT, false, stride, 0);
 	gl.enableVertexAttribArray(attribute.aNormal);
@@ -208702,6 +208997,8 @@ function add$2(gl, modelData) {
 	gl.vertexAttribPointer(attribute.aTextureCoord, 2, gl.FLOAT, false, stride, 24);
 	gl.enableVertexAttribArray(attribute.aAlpha);
 	gl.vertexAttribPointer(attribute.aAlpha, 1, gl.FLOAT, false, stride, 32);
+	gl.enableVertexAttribArray(attribute.aMatrixIndex);
+	gl.vertexAttribPointer(attribute.aMatrixIndex, 1, gl.FLOAT, false, stride, 36);
 	gl.bindVertexArray(null);
 	_animatedModels.push(animModel);
 	updateModelBuffer(gl, animModel, 0, true);
@@ -208766,59 +209063,51 @@ function getScaleAtFrame$2(keyframes, frame, out) {
 	return vec3$5.lerp(out, prev._vec, next._vec, t);
 }
 /**
-* Transform a specific node's geometry for a specific texture and instance
-* Writes directly to the monolithic buffer
+* Write static geometry (model space positions, precomputed normals, UVs, alpha, matrixIndex)
 */
-function transformAndWrite(node, finalMatrix, textureId, offset, buffer, alpha) {
-	const normalMat = node._cache.normalMat || mat4$20.create();
-	node._cache.normalMat = normalMat;
-	mat4$20.extractRotation(normalMat, finalMatrix);
-	const m = finalMatrix;
-	const n = normalMat;
-	const m0 = m[0], m1 = m[1], m2 = m[2], m4 = m[4], m5 = m[5], m6 = m[6], m8 = m[8], m9 = m[9], m10 = m[10], m12 = m[12], m13 = m[13], m14 = m[14];
-	const n0 = n[0], n1 = n[1], n2 = n[2], n4 = n[4], n5 = n[5], n6 = n[6], n8 = n[8], n9 = n[9], n10 = n[10];
+function writeNodeGeometry(node, textureId, offset, buffer, alpha, matrixIndex, shadeType) {
 	const faces = node.faces;
 	const vertices = node.vertices;
 	const tvertices = node.tvertices;
 	const textures = node.textures;
-	const output = buffer;
+	const flatNormals = node._flatNormals;
+	const smoothGroups = node._smoothGroups;
+	const isSmooth = shadeType === 2 && smoothGroups;
 	let o = offset;
 	for (let f = 0; f < faces.length; f++) {
 		const face = faces[f];
 		if (textures[face.texid] !== textureId) continue;
-		const v0 = vertices[face.vertidx[0]];
-		const v1 = vertices[face.vertidx[1]];
-		const v2 = vertices[face.vertidx[2]];
-		const ax = v1[0] - v0[0], ay = v1[1] - v0[1], az = v1[2] - v0[2];
-		const bx = v2[0] - v0[0], by = v2[1] - v0[1], bz = v2[2] - v0[2];
-		let nx = ay * bz - az * by;
-		let ny = az * bx - ax * bz;
-		let nz = ax * by - ay * bx;
-		let len = nx * nx + ny * ny + nz * nz;
-		if (len > 0) {
-			len = 1 / Math.sqrt(len);
-			nx *= len;
-			ny *= len;
-			nz *= len;
+		let fnx = 0;
+		let fny = 0;
+		let fnz = 0;
+		let smoothNorm = null;
+		if (isSmooth && face.smoothGroup !== void 0 && smoothGroups[face.smoothGroup]) smoothNorm = smoothGroups[face.smoothGroup];
+		else {
+			const fBase = f * 3;
+			fnx = flatNormals[fBase];
+			fny = flatNormals[fBase + 1];
+			fnz = flatNormals[fBase + 2];
 		}
-		const tnx = n0 * nx + n4 * ny + n8 * nz;
-		const tny = n1 * nx + n5 * ny + n9 * nz;
-		const tnz = n2 * nx + n6 * ny + n10 * nz;
 		for (let vi = 0; vi < 3; vi++) {
 			const vIdx = face.vertidx[vi];
 			const tIdx = face.tvertidx[vi];
-			const vx = vertices[vIdx][0];
-			const vy = vertices[vIdx][1];
-			const vz = vertices[vIdx][2];
-			output[o++] = m0 * vx + m4 * vy + m8 * vz + m12;
-			output[o++] = m1 * vx + m5 * vy + m9 * vz + m13;
-			output[o++] = m2 * vx + m6 * vy + m10 * vz + m14;
-			output[o++] = tnx;
-			output[o++] = tny;
-			output[o++] = tnz;
-			output[o++] = tvertices[tIdx * 6 + 4];
-			output[o++] = tvertices[tIdx * 6 + 5];
-			output[o++] = alpha;
+			buffer[o++] = vertices[vIdx][0];
+			buffer[o++] = vertices[vIdx][1];
+			buffer[o++] = vertices[vIdx][2];
+			if (smoothNorm) {
+				const nBase = vIdx * 3;
+				buffer[o++] = smoothNorm[nBase];
+				buffer[o++] = smoothNorm[nBase + 1];
+				buffer[o++] = smoothNorm[nBase + 2];
+			} else {
+				buffer[o++] = fnx;
+				buffer[o++] = fny;
+				buffer[o++] = fnz;
+			}
+			buffer[o++] = tvertices[tIdx * 6 + 4];
+			buffer[o++] = tvertices[tIdx * 6 + 5];
+			buffer[o++] = alpha;
+			buffer[o++] = matrixIndex;
 		}
 	}
 }
@@ -208832,7 +209121,7 @@ function updateModelBuffer(gl, model, frame, force) {
 	if (model.staticModel && model.lastAnimFrame !== -1 && !force) return;
 	model.lastAnimFrame = currentAnimFrame;
 	model.lastFrame = frame;
-	const box = model.box;
+	model.box;
 	const nodeMap = model._nodeMap;
 	const globalMatrices = model._globalMatrices;
 	for (let n = 0; n < model.nodes.length; n++) {
@@ -208855,35 +209144,25 @@ function updateModelBuffer(gl, model, frame, force) {
 			mat4$20.scale(globalMatrix, globalMatrix, animScale || node.scale);
 		}
 		const finalNodeMatrix = node._cache.final;
-		mat4$20.identity(finalNodeMatrix);
-		mat4$20.translate(finalNodeMatrix, finalNodeMatrix, [
-			-box.center[0],
-			-box.max[1],
-			-box.center[2]
-		]);
+		mat4$20.copy(finalNodeMatrix, model._boxMat);
 		mat4$20.multiply(finalNodeMatrix, finalNodeMatrix, globalMatrix);
-		if (!node.is_only) mat4$20.translate(finalNodeMatrix, finalNodeMatrix, node.offset);
-		mat4$20.multiply(finalNodeMatrix, finalNodeMatrix, mat3$4.toMat4(node.mat3));
+		mat4$20.multiply(finalNodeMatrix, finalNodeMatrix, node._cachedSuffix);
 		node.finalMatrix = finalNodeMatrix;
 	}
+	const matrixData = model.matrixData;
+	const numInstances = model.instances.length;
 	for (let n = 0; n < model.nodes.length; n++) {
 		const node = model.nodes[n];
-		for (let i = 0; i < model.instances.length; i++) mat4$20.multiply(node._cache.instances[i], model.instances[i], node.finalMatrix);
-	}
-	const buffer = model._gpuBuffer;
-	const writePlans = model.writePlans;
-	for (const tid in writePlans) {
-		const plans = writePlans[tid].writePlan;
-		const textureId = parseInt(tid);
-		for (let p = 0; p < plans.length; p++) {
-			const plan = plans[p];
-			const node = model.nodes[plan.nodeIndex];
-			const finalInstanceMatrix = node._cache.instances[plan.instanceIndex];
-			transformAndWrite(node, finalInstanceMatrix, textureId, plan.targetOffset, buffer, model.alpha);
+		for (let i = 0; i < numInstances; i++) {
+			const destMat = node._cache.instances[i];
+			mat4$20.multiply(destMat, model.instances[i], node.finalMatrix);
+			const matrixIndex = n * numInstances + i;
+			matrixData.set(destMat, matrixIndex * 16);
 		}
 	}
-	gl.bindBuffer(gl.ARRAY_BUFFER, model.buffer);
-	gl.bufferSubData(gl.ARRAY_BUFFER, 0, buffer);
+	gl.bindTexture(gl.TEXTURE_2D, model.matrixTexture);
+	gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, model.totalMatrices * 4, 1, gl.RGBA, gl.FLOAT, matrixData);
+	gl.bindTexture(gl.TEXTURE_2D, null);
 }
 /**
 * Bind program and per-frame uniforms shared by both model passes
@@ -208905,6 +209184,8 @@ function bind(gl, modelView, projection, normalMat, fog, light) {
 	gl.uniform3fv(uniform.uFogColor, fog.color);
 	gl.activeTexture(gl.TEXTURE0);
 	gl.uniform1i(uniform.uDiffuse, 0);
+	gl.activeTexture(gl.TEXTURE1);
+	gl.uniform1i(uniform.uMatrixTexture, 1);
 }
 /**
 * Issue the draw calls for every animated model
@@ -208913,6 +209194,9 @@ function drawModels(gl) {
 	for (let m = 0; m < _animatedModels.length; m++) {
 		const model = _animatedModels[m];
 		if (!model.buffer || model.meshInfos.length === 0) continue;
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, model.matrixTexture);
+		gl.activeTexture(gl.TEXTURE0);
 		gl.bindVertexArray(model.vao);
 		for (let i = 0; i < model.meshInfos.length; i++) {
 			const info = model.meshInfos[i];
@@ -208955,7 +209239,7 @@ function renderFaded(gl, modelView, projection, normalMat, fog, light) {
 function hasAnimatedModels() {
 	return _animatedModels.length > 0;
 }
-var mat3$4, mat4$20, vec3$5, quat$1, _tempVec3, _tempVec3Scale, _tempQuat, _tempMat4, _program$22, _animatedModels, AnimatedModels_default;
+var mat3$4, mat4$20, vec3$5, quat$1, _tempVec3, _tempVec3Scale, _tempQuat, _tempMat4, _tempMat4Node, _program$22, _animatedModels, AnimatedModels_default;
 var init_AnimatedModels = __esmMin((() => {
 	init_Client();
 	init_gl_matrix();
@@ -208972,6 +209256,7 @@ var init_AnimatedModels = __esmMin((() => {
 	_tempVec3Scale = vec3$5.create();
 	_tempQuat = quat$1.create();
 	_tempMat4 = mat4$20.create();
+	_tempMat4Node = mat4$20.create();
 	_program$22 = null;
 	_animatedModels = [];
 	AnimatedModels_default = {
@@ -213016,6 +213301,10 @@ function render$8(gl, modelView, projection, normalMat, fog, light, tick) {
 						}
 					}
 				}
+			}
+			if (inst.entity && inst.entity.culled) {
+				inst.screenRect = null;
+				continue;
 			}
 			worldAnchorToClip(inst.pos, modelView, projection, _clip);
 			if (frustumCullClip(_clip[0], _clip[1], _clip[3], CULL_MARGIN)) {
@@ -219780,7 +220069,7 @@ var init_ChatBox$2 = __esmMin((() => {
 //#region src/UI/Components/ChatBox/ChatBox.css?raw
 var ChatBox_default$1;
 var init_ChatBox$1 = __esmMin((() => {
-	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
+	ChatBox_default$1 = ":host {\r\n	position: absolute;\r\n}\r\n\r\n#chatbox {\r\n	position: relative;\r\n	left: 5px;\r\n	width: 595px;\r\n}\r\n\r\n/** Tabs **/\r\n#chatbox .header {\r\n	margin-left: 3px;\r\n	height: 17px;\r\n\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .header .tab {\r\n	width: 75px;\r\n	color: white;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header input {\r\n	border: none;\r\n	background-color: transparent;\r\n	color: white;\r\n	width: 75px;\r\n	height: 15px;\r\n	text-align: center;\r\n}\r\n\r\n#chatbox .header .tab div {\r\n	padding-top: 2px;\r\n	border-radius: 2px 2px 0px 0px;\r\n	background: rgba(0, 0, 0, 0.75);\r\n	border: 1px solid #959595;\r\n	border-bottom: 1px solid white;\r\n}\r\n\r\n#chatbox .header .tab div.on {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border: 1px solid white;\r\n	border-bottom: none;\r\n	border-right: none;\r\n	height: 18px;\r\n}\r\n\r\n#chatbox .header .options {\r\n	border-bottom: 1px solid white;\r\n	height: 18px;\r\n	margin-right: 4px;\r\n}\r\n\r\n/** Content **/\r\n#chatbox .body {\r\n	background: rgba(0, 0, 0, 0.5);\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-radius: 0px 3px 0px 0px;\r\n	padding: 0px 5px 5px 5px;\r\n	margin-left: 3px;\r\n	margin-right: -2px;\r\n	max-width: 100%;\r\n}\r\n#chatbox .contentwrapper {\r\n	height: 42px;\r\n}\r\n#chatbox .content {\r\n	text-shadow: 1px 1px 0px black;\r\n	height: 100%;\r\n	overflow-y: auto;\r\n	line-height: 14px;\r\n	/* A newline in a message is a line break. See docs/reference/chat/text-parsing.md */\r\n	white-space: pre-line;\r\n	display: none;\r\n}\r\n#chatbox .content.active {\r\n	display: block;\r\n}\r\n#chatbox .content a {\r\n	color: inherit;\r\n	text-decoration: underline;\r\n}\r\n\r\n#chatbox .content a,\r\n#chatbox .content .item-link {\r\n	cursor: pointer;\r\n}\r\n\r\n#chatbox .event_add_cursor {\r\n	height: 14px;\r\n	cursor: ns-resize;\r\n}\r\n\r\n#chatbox .battlemode {\r\n	width: 592px;\r\n	height: 25px;\r\n	position: relative;\r\n	border-left: 1px solid white;\r\n	border-right: 1px solid white;\r\n	border-top: 1px solid grey;\r\n	background-color: rgba(0, 0, 0, 0.5);\r\n	margin-left: 3px;\r\n	display: none;\r\n	max-width: 100%;\r\n}\r\n\r\n/** Input **/\r\n#chatbox .input {\r\n	width: 600px;\r\n	height: 25px;\r\n	position: relative;\r\n	max-width: 100%;\r\n}\r\n\r\n#chatbox .input.fix {\r\n	margin-top: 29px;\r\n}\r\n\r\n#chatbox .input input {\r\n	position: absolute;\r\n	top: 3px;\r\n	height: 18px;\r\n	background-color: transparent;\r\n	border: none;\r\n}\r\n\r\n#chatbox .input .username {\r\n	left: 4px;\r\n	width: 90px;\r\n	padding-left: 5px;\r\n}\r\n\r\n#chatbox .input .list {\r\n	width: 8px;\r\n	height: 18px;\r\n	border: none;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 97px;\r\n	background-repeat: no-repeat;\r\n	padding: 0;\r\n}\r\n#chatbox .input .wrapper {\r\n	display: flex;\r\n	align-items: center;\r\n	margin-left: 108px;\r\n	height: 100%;\r\n	overflow: hidden;\r\n	width: calc(100% - 140px);\r\n}\r\n\r\n#chatbox .input .message {\r\n	width: 100%;\r\n	padding-left: 5px;\r\n\r\n	line-height: 18px;\r\n	outline: none;\r\n	white-space: nowrap;\r\n	overflow-x: hidden;\r\n	overflow-y: hidden;\r\n	max-width: 100%;\r\n	vertical-align: middle;\r\n	display: inline-block;\r\n}\r\n#chatbox .input .message.party {\r\n	color: #840084;\r\n}\r\n#chatbox .input .message.guild {\r\n	color: #008484;\r\n}\r\n#chatbox .input .message.clan {\r\n	color: #ffa631;\r\n}\r\n\r\n#chatbox .input .filter,\r\n#chatbox .input .size {\r\n	width: 11px;\r\n	height: 11px;\r\n	border: none;\r\n	position: absolute;\r\n	right: 13px;\r\n	top: 8px;\r\n	background-color: transparent;\r\n}\r\n\r\n#chatbox .input .size {\r\n	right: 1px;\r\n}\r\n\r\n#chatbox .battlemode .bmtoggle {\r\n	height: 100%;\r\n}\r\n#chatbox .chat-function {\r\n	position: absolute;\r\n	right: 0px;\r\n	top: 0px;\r\n	/* Expand the \"no-walk\" header zone around buttons (but don't move them visually). */\r\n	padding: 6px;\r\n	margin: -6px;\r\n}\r\n#chatbox .chat-function button {\r\n	background-size: auto;\r\n	border: 0;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n#chatbox .chat-function .chatmode {\r\n	width: 15px;\r\n	height: 9px;\r\n}\r\n#chatbox .chat-function .battleopt {\r\n	width: 10px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .stickfucn {\r\n	width: 14px;\r\n	height: 10px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .battleopt2 {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .wndminib {\r\n	width: 9px;\r\n	height: 9px;\r\n	background-size: cover;\r\n}\r\n#chatbox .chat-function .lockdragwnd {\r\n	width: 15px;\r\n	height: 10px;\r\n}\r\n";
 }));
 //#endregion
 //#region src/UI/Components/ChatBoxSettings/ChatBoxSettings.html?raw
@@ -220213,7 +220502,7 @@ function makeResizableDiv() {
 		window.addEventListener("mouseup", stopResize);
 	});
 }
-var MAX_MSG, MAX_LENGTH, MAGIC_NUMBER, _historyMessage, _historyNickName, _heightIndex, _messageBuffer, _rafScheduled, _preferences$41, ChatBox, ChatBox_default;
+var MAX_MSG, MAX_LENGTH, MAGIC_NUMBER, _historyMessage, _historyNickName, _heightIndex, _messageBuffer, _rafScheduled, _preferences$41, ChatBox, ITEM_LINK, ChatBox_default;
 var init_ChatBox = __esmMin((() => {
 	init_DBManager();
 	init_Renderer();
@@ -220315,7 +220604,8 @@ var init_ChatBox = __esmMin((() => {
 	*/
 	ChatBox.PrivateMessageStorage = {
 		nick: "",
-		msg: ""
+		msg: "",
+		blockNicks: []
 	};
 	ChatBox.lastTabID = -1;
 	ChatBox.tabCount = 0;
@@ -220997,16 +221287,45 @@ var init_ChatBox = __esmMin((() => {
 		}
 		this.onRequestTalk(user, trimmedText, ChatBox.sendTo);
 	};
+	ITEM_LINK = /(<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>)/i;
+	/**
+	* Escape text for use in HTML content and quoted attributes.
+	* @param {string} text
+	* @returns {string}
+	*/
+	ChatBox.escapeHTML = function escapeHTML(text) {
+		return text.replace(/[&<>"]/g, (c) => ({
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			"\"": "&quot;"
+		})[c]);
+	};
+	/**
+	* Render a received message as HTML: colour codes dropped, item links clickable, the rest as text.
+	*
+	* @param {string} text
+	* @returns {string}
+	* @see docs/reference/chat/text-parsing.md
+	*/
+	ChatBox.messageToHTML = function messageToHTML(text) {
+		return text.replace(/\^[0-9A-Fa-f]{6}/g, "").split(ITEM_LINK).map((part, i) => {
+			if (!(i % 2)) return ChatBox.escapeHTML(part);
+			const item = DB.parseItemLink(part);
+			return `<span data-item="${ChatBox.escapeHTML(part)}" class="item-link" style="color:#FFFF63; cursor:pointer;">&lt;${ChatBox.escapeHTML(item.name)}&gt;</span>`;
+		}).join("");
+	};
 	/**
 	* Add text to chatbox
+	*
+	* @see docs/reference/chat/text-parsing.md
 	*/
 	ChatBox.addText = function addText(text, colorType, filterType, color, override) {
-		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function(match) {
-			const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${DB.parseItemLink(match).name}&gt;</span>`;
+		text = text.replace(/\^[0-9A-Fa-f]{6}/g, "");
+		if (!override && ITEM_LINK.test(text)) {
+			text = ChatBox.messageToHTML(text);
 			override = true;
-			return span;
-		});
-		if (!override && /<span\s+class="nickname-link"/.test(text)) override = true;
+		}
 		if (isNaN(filterType)) filterType = ChatBox.FILTER.PUBLIC_LOG;
 		_messageBuffer.push({
 			text,
@@ -221586,13 +221905,13 @@ function eventsBooks$1() {
 	if (!event) return;
 	Client.getFiles(["data/sprite/book/Ã¥ÀÐ±â.spr", "data/sprite/book/Ã¥ÀÐ±â.act"], function(spr, act) {
 		try {
-			_sprite$4 = new SPR(spr);
-			_action$4 = new ACT(act);
+			_sprite$3 = new SPR(spr);
+			_action$3 = new ACT(act);
 		} catch (e) {
 			console.error("Book::init() - " + e.message);
 			return;
 		}
-		const canvas = _sprite$4.getCanvasFromFrame(0);
+		const canvas = _sprite$3.getCanvasFromFrame(0);
 		canvas.className = "book_open event_add_cursor";
 		event.appendChild(canvas);
 		const bookOpen = root.querySelector(".book_open");
@@ -221617,7 +221936,7 @@ function eventsBooks$1() {
 		readCanvas.height = 15;
 		readCanvas.className = "book_read event_add_cursor";
 		event.appendChild(readCanvas);
-		_ctx$4 = readCanvas.getContext("2d");
+		_ctx$3 = readCanvas.getContext("2d");
 		const bookRead = root.querySelector(".book_read");
 		if (bookRead) {
 			bookRead.addEventListener("mouseover", (e) => {
@@ -221650,7 +221969,7 @@ function validateFieldsExist$1(event) {
 	if (!event.querySelector("button")) event.insertAdjacentHTML("beforeend", "<button class=\"view\" data-background=\"btn_view.bmp\" data-down=\"btn_view_a.bmp\" data-hover=\"btn_view_b.bmp\"></button>");
 	return true;
 }
-var _sprite$4, _action$4, _ctx$4, _type$7, _start$2, ItemCompare, rendering$3, ItemCompare_default;
+var _sprite$3, _action$3, _ctx$3, _type$6, _start$1, ItemCompare, rendering$3, ItemCompare_default;
 var init_ItemCompare = __esmMin((() => {
 	init_DBManager();
 	init_ItemType();
@@ -221669,8 +221988,8 @@ var init_ItemCompare = __esmMin((() => {
 	init_ItemCompare$1();
 	init_ItemInfo();
 	init_Entity$1();
-	_type$7 = 0;
-	_start$2 = 0;
+	_type$6 = 0;
+	_start$1 = 0;
 	ItemCompare = new GUIComponent("ItemCompare", ItemCompare_default$1);
 	ItemCompare.render = () => ItemCompare_default$2;
 	/**
@@ -221789,14 +222108,14 @@ var init_ItemCompare = __esmMin((() => {
 		const position = new Uint16Array([0, 0]);
 		return function render() {
 			const _entity = new Entity();
-			const action = _action$4.actions[_type$7];
-			const anim = Math.floor((Renderer.tick - _start$2) / action.delay);
+			const action = _action$3.actions[_type$6];
+			const anim = Math.floor((Renderer.tick - _start$1) / action.delay);
 			const animation = action.animations[anim % action.animations.length];
 			let i, count;
 			count = animation.layers.length;
-			SpriteRenderer.bind2DContext(_ctx$4, 10, 25);
-			_ctx$4.clearRect(0, 0, _ctx$4.canvas.width, _ctx$4.canvas.height);
-			for (i = 0, count = animation.layers.length; i < count; ++i) _entity.renderLayer(animation.layers[i], _sprite$4, _sprite$4, 1, position, false);
+			SpriteRenderer.bind2DContext(_ctx$3, 10, 25);
+			_ctx$3.clearRect(0, 0, _ctx$3.canvas.width, _ctx$3.canvas.height);
+			for (i = 0, count = animation.layers.length; i < count; ++i) _entity.renderLayer(animation.layers[i], _sprite$3, _sprite$3, 1, position, false);
 		};
 	})();
 	ItemCompare_default = UIManager.addComponent(ItemCompare);
@@ -221869,7 +222188,7 @@ function applyPreviewItem(entity) {
 	if (_previewLocation & EquipmentLocation_default.COSTUME_HEAD_TOP) entity.accessory2 = _previewSpriteId;
 	if (_previewLocation & EquipmentLocation_default.COSTUME_ROBE) entity.robe = _previewSpriteId;
 }
-var ItemPreview, _ctx$3, _direction, _previewLocation, _previewSpriteId, _rendering, _remove, renderPreview, ItemPreview_default;
+var ItemPreview, _ctx$2, _direction, _previewLocation, _previewSpriteId, _rendering, _remove, renderPreview, ItemPreview_default;
 var init_ItemPreview = __esmMin((() => {
 	init_DBManager();
 	init_EquipmentLocation();
@@ -221903,7 +222222,7 @@ var init_ItemPreview = __esmMin((() => {
 	*/
 	ItemPreview.init = function init() {
 		const root = this.getRoot();
-		_ctx$3 = root.querySelector("canvas").getContext("2d");
+		_ctx$2 = root.querySelector("canvas").getContext("2d");
 		root.querySelector(".close").addEventListener("click", () => {
 			ItemPreview.remove();
 		});
@@ -221987,8 +222306,8 @@ var init_ItemPreview = __esmMin((() => {
 			save: false
 		};
 		return function render() {
-			if (!_ctx$3) return;
-			_ctx$3.clearRect(0, 0, _ctx$3.canvas.width, _ctx$3.canvas.height);
+			if (!_ctx$2) return;
+			_ctx$2.clearRect(0, 0, _ctx$2.canvas.width, _ctx$2.canvas.height);
 			if (!_previewSpriteId || !_previewLocation || !SessionStorage_default.Entity) return;
 			const previewCharacter = new Entity();
 			previewCharacter.set({
@@ -222014,8 +222333,8 @@ var init_ItemPreview = __esmMin((() => {
 			previewCharacter.headDir = 0;
 			previewCharacter.action = previewCharacter.ACTION.IDLE;
 			previewCharacter.animation = _animation;
-			SpriteRenderer.bind2DContext(_ctx$3, Math.floor(_ctx$3.canvas.width / 2), _ctx$3.canvas.height);
-			previewCharacter.renderEntity(_ctx$3);
+			SpriteRenderer.bind2DContext(_ctx$2, Math.floor(_ctx$2.canvas.width / 2), _ctx$2.canvas.height);
+			previewCharacter.renderEntity(_ctx$2);
 			previewCharacter.effectColor.set(_savedColor);
 		};
 	})();
@@ -222063,26 +222382,94 @@ var init_UIVersionManager = __esmMin((() => {
 			console.log("%c[UIVersion] " + publicName + ": ", "color:#007000", SelectedUI.name);
 			return SelectedUI;
 		}
-		static getUIController(publicName, versionInfo) {
+		static getUIController(publicName, versionInfo, options = {}) {
+			const CONTROLLER_OWN = /* @__PURE__ */ new Set([
+				"selectUIVersion",
+				"selectUIVersionWithJob",
+				"selectSpecificUIVersion",
+				"selectUIVersionDefault",
+				"getUI"
+			]);
 			let _selectedUI;
-			const UIController = {};
-			UIController.selectUIVersion = function() {
-				_selectedUI = UIVersionManager.selectUIVersion(publicName, versionInfo);
+			const _pending = Object.create(null);
+			function _applyPending() {
+				if (_selectedUI) for (const prop in _pending) _selectedUI[prop] = _pending[prop];
+			}
+			const UIController = {
+				selectUIVersion() {
+					_selectedUI = UIVersionManager.selectUIVersion(publicName, versionInfo);
+					_applyPending();
+				},
+				selectUIVersionWithJob(job) {
+					_selectedUI = versionInfo.job[job] || versionInfo.job.default;
+					_UIAliases[publicName] = _selectedUI.name;
+					console.log("[UIVersion] " + publicName + ": ", _selectedUI.name);
+					_applyPending();
+				},
+				selectSpecificUIVersion(version) {
+					_selectedUI = versionInfo.common[version] || versionInfo.default;
+					_UIAliases[publicName] = _selectedUI.name;
+					console.log("[UIVersion] " + publicName + ": ", _selectedUI.name);
+					_applyPending();
+				},
+				selectUIVersionDefault() {
+					_selectedUI = versionInfo.default;
+					_UIAliases[publicName] = _selectedUI.name;
+					_applyPending();
+				},
+				getUI() {
+					return _selectedUI;
+				}
 			};
-			UIController.selectUIVersionWithJob = function(job) {
-				_selectedUI = versionInfo.job[job] || versionInfo.job.default;
-				_UIAliases[publicName] = _selectedUI.name;
-				console.log("[UIVersion] " + publicName + ": ", _selectedUI.name);
-			};
-			UIController.selectSpecificUIVersion = function(version) {
-				_selectedUI = versionInfo.common[version] || versionInfo.default;
-				_UIAliases[publicName] = _selectedUI.name;
-				console.log("[UIVersion] " + publicName + ": ", _selectedUI.name);
-			};
-			UIController.getUI = function() {
-				return _selectedUI;
-			};
-			return UIController;
+			const proxy = new Proxy(UIController, {
+				get(target, prop, receiver) {
+					if (CONTROLLER_OWN.has(prop) || Object.prototype.hasOwnProperty.call(target, prop)) return Reflect.get(target, prop, receiver);
+					if (!_selectedUI) return prop in _pending ? _pending[prop] : void 0;
+					const val = _selectedUI[prop];
+					return typeof val === "function" ? val.bind(_selectedUI) : val;
+				},
+				set(target, prop, value) {
+					if (CONTROLLER_OWN.has(prop) || Object.prototype.hasOwnProperty.call(target, prop)) return Reflect.set(target, prop, value);
+					_pending[prop] = value;
+					if (_selectedUI) _selectedUI[prop] = value;
+					return true;
+				},
+				has(target, prop) {
+					return prop in target || prop in _pending || _selectedUI !== void 0 && prop in _selectedUI;
+				}
+			});
+			UIVersionManager._registry.push({
+				proxy,
+				controller: UIController,
+				versionInfo,
+				publicName,
+				phase: options.phase || null
+			});
+			return proxy;
+		}
+		/**
+		* Select the correct UI version for all map-phase controllers.
+		* Skips job-based controllers (versionInfo.job defined) — those are
+		* selected later via selectUIVersionWithJob() when the job is known.
+		* Also skips char-phase controllers registered via selectAllChar().
+		*/
+		static selectAll() {
+			for (const entry of UIVersionManager._registry) if (!entry.versionInfo.job && entry.phase !== "char") entry.proxy.selectUIVersion();
+		}
+		/**
+		* Select the correct UI version for char-phase controllers
+		* (CharSelect, CharCreate). Called from CharEngine.
+		*/
+		static selectAllChar() {
+			for (const entry of UIVersionManager._registry) if (entry.phase === "char") entry.controller.selectUIVersion();
+		}
+		/**
+		* Select versionInfo.default for every registered controller.
+		* Test-only helper: bypasses PACKETVER/renewal so components work
+		* without a server selection. Not called by the game runtime.
+		*/
+		static selectAllDefaults() {
+			for (const entry of UIVersionManager._registry) entry.controller.selectUIVersionDefault();
 		}
 		static getEquipmentVersion() {
 			if (Configs.get("clientVersionMode") === "PacketVer") {
@@ -222109,6 +222496,7 @@ var init_UIVersionManager = __esmMin((() => {
 			return 1;
 		}
 	};
+	UIVersionManager._registry = [];
 }));
 //#endregion
 //#region src/UI/Components/InputBox/InputBox.html?raw
@@ -222528,7 +222916,7 @@ var init_SwitchEquip = __esmMin((() => {
 		if (swapBtn) swapBtn.addEventListener("click", () => {
 			SwitchEquip.RequestSwitch();
 		});
-		const currentEquipTabId = EquipmentController.getUI().getCurrentTabId();
+		const currentEquipTabId = EquipmentController.getCurrentTabId();
 		SwitchEquip.showSwapTab(currentEquipTabId);
 		const swapcontents = root.querySelectorAll(".swapcontent");
 		for (const content of swapcontents) {
@@ -222571,7 +222959,7 @@ var init_SwitchEquip = __esmMin((() => {
 	* Append to body
 	*/
 	SwitchEquip.onAppend = function onAppend() {
-		const currentEquipTabId = EquipmentController.getUI().getCurrentTabId();
+		const currentEquipTabId = EquipmentController.getCurrentTabId();
 		SwitchEquip.showSwapTab(currentEquipTabId);
 		const root = SwitchEquip.getRoot();
 		if ((root ? root.querySelector("canvas") : null) && this._host.style.display !== "none") Renderer.render(swaprender);
@@ -222683,7 +223071,7 @@ var init_SwitchEquip = __esmMin((() => {
 				headpalette: SessionStorage_default.Entity.headpalette,
 				bodypalette: SessionStorage_default.Entity.bodypalette
 			});
-			const currentEquipTabId = EquipmentController.getUI().getCurrentTabId();
+			const currentEquipTabId = EquipmentController.getCurrentTabId();
 			if (currentEquipTabId === "general") {
 				swap_character.accessory = SwitchEquip.checkEquipLoc(EquipmentLocation_default.HEAD_BOTTOM);
 				swap_character.accessory2 = SwitchEquip.checkEquipLoc(EquipmentLocation_default.HEAD_TOP);
@@ -222744,7 +223132,7 @@ var init_SwitchEquip = __esmMin((() => {
 	* @returns {number} The sprite number of the item in the specified location, or 0 if not equipped
 	*/
 	SwitchEquip.checkEquipLoc = function checkEquipLoc(location) {
-		const switchList = InventoryController.getUI().equipswitchlist;
+		const switchList = InventoryController.equipswitchlist;
 		for (let i = 0; i < switchList.length; i++) {
 			const item = switchList[i];
 			if (item.location & location) return item.wItemSpriteNumber;
@@ -223632,7 +224020,7 @@ function resetPathFindingWorker() {
 	terminatePathFindingWorker();
 	initializePathFindingWorker();
 }
-var Navigation, _arrow, _toolDealer, _weaponDealer, _armorDealer, _blacksmith, _guide, _inn, _kafra, _map, _ctx$2, _towninfo, _markers, _path, _lastPathUpdate, _pathUpdateThrottle, _pathUpdateLock, _pathFindingWorker, _mapData, _targetData, _finalTargetData, _isMapClickTarget, _blinking, _fadeInterval, _originalColor, _documentClickHandler, Navigation_default;
+var Navigation, _arrow, _toolDealer, _weaponDealer, _armorDealer, _blacksmith, _guide, _inn, _kafra, _map, _ctx$1, _towninfo, _markers, _path, _lastPathUpdate, _pathUpdateThrottle, _pathUpdateLock, _pathFindingWorker, _mapData, _targetData, _finalTargetData, _isMapClickTarget, _blinking, _fadeInterval, _originalColor, _documentClickHandler, Navigation_default;
 var init_Navigation = __esmMin((() => {
 	init_KeyEventHandler();
 	init_Renderer();
@@ -223658,7 +224046,7 @@ var init_Navigation = __esmMin((() => {
 	_inn = createAsyncImage();
 	_kafra = createAsyncImage();
 	_map = createAsyncImage();
-	_ctx$2 = null;
+	_ctx$1 = null;
 	_towninfo = [];
 	_markers = [];
 	_path = [];
@@ -223707,7 +224095,7 @@ var init_Navigation = __esmMin((() => {
 		const canvas = document.createElement("canvas");
 		canvas.width = 280;
 		canvas.height = 230;
-		_ctx$2 = canvas.getContext("2d");
+		_ctx$1 = canvas.getContext("2d");
 		const mapDisplay = root.querySelector(".map-display");
 		if (mapDisplay) mapDisplay.appendChild(canvas);
 		Client.loadFile(`${DB.INTERFACE_PATH}map/map_arrow.bmp`, (dataURI) => {
@@ -223986,7 +224374,7 @@ var init_Navigation = __esmMin((() => {
 		if ((this._host ? getComputedStyle(this._host).display : "none") === "none") return;
 		const width = 280;
 		const height = 230;
-		const ctx = _ctx$2;
+		const ctx = _ctx$1;
 		if (!ctx) return;
 		const currentMap = getCurrentMap();
 		const currentPos = getPlayerPosition();
@@ -224894,13 +225282,14 @@ var init_MiniMap = __esmMin((() => {
 		prere: {}
 	};
 	Controller$5 = UIVersionManager.getUIController(publicName$12, versionInfo$12);
-	/**
-	* Proxy for getMemberColor
-	*/
-	Controller$5.getMemberColor = function getMemberColor(key) {
-		const ui = Controller$5.getUI();
-		return ui && ui.getMemberColor ? ui.getMemberColor(key) : "white";
-	};
+	Object.defineProperty(Controller$5, "getMemberColor", {
+		value: function getMemberColor(key) {
+			const ui = Controller$5.getUI();
+			return ui && typeof ui.getMemberColor === "function" ? ui.getMemberColor(key) : "white";
+		},
+		writable: true,
+		configurable: true
+	});
 }));
 //#endregion
 //#region src/UI/Components/PartyFriends/PartyHelper/PartyHelper.html?raw
@@ -225097,7 +225486,7 @@ var Friends_exports = /* @__PURE__ */ __exportAll({ default: () => FriendEngine 
 */
 function onFriendList(pkt) {
 	_friends = pkt.friendList;
-	controller.getUI().setFriends(_friends);
+	controller.setFriends(_friends);
 }
 /**
 * Update friend information
@@ -225108,7 +225497,7 @@ function onFriendUpdate(pkt) {
 	const idx = getFriendIndex(pkt.AID, pkt.GID);
 	if (idx > -1) {
 		_friends[idx].State = pkt.State;
-		controller.getUI().updateFriendState(idx, pkt.State);
+		controller.updateFriendState(idx, pkt.State);
 	}
 }
 /**
@@ -225143,7 +225532,7 @@ function onFriendAdded(pkt) {
 			_friends[idx].GID = pkt.GID;
 			_friends[idx].Name = pkt.Name;
 			_friends[idx].State = 0;
-			controller.getUI().updateFriend(idx, _friends[idx]);
+			controller.updateFriend(idx, _friends[idx]);
 			break;
 		case 1:
 			ChatBox_default.addText(DB.getMessage(822).replace("%s", pkt.Name), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
@@ -225163,7 +225552,7 @@ function onFriendRemoved(pkt) {
 	const idx = getFriendIndex(pkt.AID, pkt.GID);
 	if (idx > -1) {
 		_friends.splice(idx, 1);
-		controller.getUI().removeFriend(idx);
+		controller.removeFriend(idx);
 	}
 }
 /**
@@ -225198,9 +225587,8 @@ var init_Friends = __esmMin((() => {
 			Network.hookPacket(PACKET.ZC.REQ_ADD_FRIENDS, onFriendRequest);
 			Network.hookPacket(PACKET.ZC.ADD_FRIENDS_LIST, onFriendAdded);
 			Network.hookPacket(PACKET.ZC.DELETE_FRIENDS, onFriendRemoved);
-			const FriendUI = controller.getUI();
-			FriendUI.onRequestNewFriend = FriendEngine.addFriend;
-			FriendUI.onRemoveFriend = FriendEngine.removeFriend;
+			controller.onRequestNewFriend = FriendEngine.addFriend;
+			controller.onRemoveFriend = FriendEngine.removeFriend;
 		}
 		/**
 		* Clean up from memory
@@ -225539,20 +225927,11 @@ var init_WhisperBox = __esmMin((() => {
 	* @param {string} color
 	*/
 	WhisperBox.addText = function addText(nickname, text, color) {
-		const instance = this.instances[nickname] || this.show(nickname, true);
-		let override = false;
-		text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, (match) => {
-			const item = DB.parseItemLink(match);
-			if (!item) return match;
-			override = true;
-			return `<span data-item="${match}" class="item-link" style="color:#FFFF63; cursor:pointer;">&lt;${item.name}&gt;</span>`;
-		});
-		const contentEl = instance._contentEl;
+		const contentEl = (this.instances[nickname] || this.show(nickname, true))._contentEl;
 		const isAtBottom = contentEl.scrollHeight - contentEl.scrollTop <= contentEl.offsetHeight + 10;
 		const div = document.createElement("div");
 		div.style.color = color || "#ffffff";
-		if (override) div.innerHTML = text;
-		else div.textContent = text;
+		div.innerHTML = ChatBox_default.messageToHTML(text);
 		contentEl.appendChild(div);
 		while (contentEl.childElementCount > 100) contentEl.firstElementChild.remove();
 		if (isAtBottom) contentEl.scrollTop = contentEl.scrollHeight;
@@ -225577,7 +225956,7 @@ function _root$18() {
 function onValidate$1() {
 	const root = _root$18();
 	const PartyFriends = UIManager.getComponent("PartyFriends");
-	switch (_type$6) {
+	switch (_type$5) {
 		case PartyHelper.Type.CREATE: {
 			const nameInput = root.querySelector(".content .name");
 			const name = nameInput ? nameInput.value : "";
@@ -225605,7 +225984,7 @@ function onValidate$1() {
 		}
 	}
 }
-var PartyHelper, _type$6, PartyHelper_default;
+var PartyHelper, _type$5, PartyHelper_default;
 var init_PartyHelper = __esmMin((() => {
 	init_UIManager();
 	init_GUIComponent();
@@ -225625,7 +226004,7 @@ var init_PartyHelper = __esmMin((() => {
 		INVITE: 2,
 		FRIEND_SETUP: 3
 	};
-	_type$6 = PartyHelper.Type.CREATE;
+	_type$5 = PartyHelper.Type.CREATE;
 	/**
 	* Render HTML
 	*/
@@ -225845,7 +226224,7 @@ var init_PartyHelper = __esmMin((() => {
 					el.style.display = "none";
 				});
 		}
-		_type$6 = type;
+		_type$5 = type;
 	};
 	/**
 	* Update party settings UI
@@ -225910,7 +226289,7 @@ var init_PartyHelper = __esmMin((() => {
 	* @returns {number}
 	*/
 	PartyHelper.getType = function getType() {
-		return _type$6;
+		return _type$5;
 	};
 	/**
 	* Hooks
@@ -226711,7 +227090,7 @@ var init_PartyMemberExternal = __esmMin((() => {
 				UIManager.showPromptBox(DB.getMessage(357), "ok", "cancel", () => {
 					if (controller && controller.onRequestLeave) controller.onRequestLeave();
 					else {
-						const ui = controller ? controller.getUI() : null;
+						const ui = controller ? controller : null;
 						if (ui && ui.onRequestLeave) ui.onRequestLeave();
 					}
 				});
@@ -227113,7 +227492,7 @@ function onDrop$11(event) {
 		InputBox_default.onSubmitRequest = function OnSubmitRequest(count) {
 			InputBox_default.remove();
 			Mail.parseMailWinopen(1);
-			if (data.from == "Inventory") InventoryController.getUI().removeItem(item.index, parseInt(count, 10));
+			if (data.from == "Inventory") InventoryController.removeItem(item.index, parseInt(count, 10));
 			Mail.parseMailSetattach(item.index, parseInt(count, 10));
 			_preferences$36.item_add_email = item;
 			_preferences$36.item_add_email.count = parseInt(count, 10);
@@ -227121,7 +227500,7 @@ function onDrop$11(event) {
 		};
 		return;
 	}
-	if (data.from == "Inventory") InventoryController.getUI().removeItem(item.index, 1);
+	if (data.from == "Inventory") InventoryController.removeItem(item.index, 1);
 	Mail.parseMailWinopen(1);
 	Mail.parseMailSetattach(item.index, 1);
 	_preferences$36.item_add_email = item;
@@ -229014,27 +229393,6 @@ var init_PartyFriends = __esmMin((() => {
 		prere: {}
 	};
 	controller = UIVersionManager.getUIController(publicName$11, versionInfo$11);
-	/**
-	* Proxy for isGroupMember
-	*/
-	controller.isGroupMember = function isGroupMember(name) {
-		const ui = controller.getUI();
-		return ui && ui.isGroupMember && ui.isGroupMember(name);
-	};
-	/**
-	* Proxy for onOpenChat1to1
-	*/
-	controller.onOpenChat1to1 = function onOpenChat1to1(name) {
-		const ui = controller.getUI();
-		if (ui && ui.onOpenChat1to1) ui.onOpenChat1to1(name);
-	};
-	/**
-	* Proxy for toggle
-	*/
-	controller.toggle = function toggle() {
-		const ui = controller.getUI();
-		if (ui && ui.toggle) ui.toggle();
-	};
 }));
 //#endregion
 //#region src/UI/Components/GuildCompanion/GuildCompanion.html?raw
@@ -229696,7 +230054,7 @@ var init_WinStats = __esmMin((() => {
 	_selectUIVersion$6 = WinStatsController.selectUIVersion;
 	WinStatsController.selectUIVersion = function() {
 		_selectUIVersion$6();
-		const component = WinStatsController.getUI();
+		const component = WinStatsController;
 		component.onKeyDown = function onKeyDown(e) {
 			if ((e.which === KEYS.ESCAPE || e.key === "Escape") && component.ui.is(":visible")) {
 				if (typeof component.toggle === "function") component.toggle();
@@ -230744,7 +231102,7 @@ var init_Guild$1 = __esmMin((() => {
 		updateDisbandButton(root, getActiveTab(root));
 		updateSkillFooter(root, getActiveTab(root));
 		updateMemberSort(root, getActiveTab(root));
-		WinStatsController.getUI().update("guildname", info.guildname);
+		WinStatsController.update("guildname", info.guildname);
 		updateInfoOptions(root);
 		if (_showsTendency()) renderTendency(info.honor, info.virtue);
 	};
@@ -234193,7 +234551,7 @@ var init_SkillList = __esmMin((() => {
 	_selectUIVersion$5 = Controller$4.selectUIVersion;
 	Controller$4.selectUIVersion = function() {
 		_selectUIVersion$5();
-		const component = Controller$4.getUI();
+		const component = Controller$4;
 		component.onKeyDown = (e) => {
 			if ((e.which === KEYS.ESCAPE || e.key === "Escape") && component.ui.is(":visible")) {
 				if (typeof component.toggle === "function") component.toggle();
@@ -235241,7 +235599,7 @@ var init_Quest$1 = __esmMin((() => {
 	_selectUIVersion$4 = Controller$3.selectUIVersion;
 	Controller$3.selectUIVersion = function() {
 		_selectUIVersion$4();
-		const component = Controller$3.getUI();
+		const component = Controller$3;
 		component.onKeyDown = function onKeyDown(e) {
 			if ((e.which === KEYS.ESCAPE || e.key === "Escape") && component.ui.is(":visible")) {
 				if (typeof component.toggle === "function") component.toggle();
@@ -236329,7 +236687,7 @@ var init_Reputation = __esmMin((() => {
 //#endregion
 //#region src/UI/Components/BasicInfo/BasicInfoCommon.js
 function createBasicInfo(config) {
-	const { name, htmlText, cssText, prefKey, reduceDefault = true, innerId, topbarItemSelector = ".topbar button", topbarDblClick = false, toggleButtonsEvent = "mousedown", buttonsSelector = ".buttons button", buttonsEvent = "mousedown", buttonKeyBy = "class", infoOpensWinStats = true, partyViaGetUI = false, hasToolbarToggle = false, miniLayout = false, hideIds = [], barScale = 1.27, hasApBar = false } = config;
+	const { name, htmlText, cssText, prefKey, reduceDefault = true, innerId, topbarItemSelector = ".topbar button", topbarDblClick = false, toggleButtonsEvent = "mousedown", buttonsSelector = ".buttons button", buttonsEvent = "mousedown", buttonKeyBy = "class", infoOpensWinStats = true, hasToolbarToggle = false, miniLayout = false, hideIds = [], barScale = 1.27, hasApBar = false } = config;
 	const Component = new GUIComponent(name, cssText);
 	/**
 	* Stored data
@@ -236362,23 +236720,22 @@ function createBasicInfo(config) {
 	function dispatchButton(key) {
 		switch (key) {
 			case "item":
-				InventoryController.getUI().toggle();
+				InventoryController.toggle();
 				break;
 			case "info":
-				(infoOpensWinStats ? WinStatsController.getUI() : EquipmentController.getUI()).toggle();
+				(infoOpensWinStats ? WinStatsController : EquipmentController).toggle();
 				break;
 			case "equip":
-				EquipmentController.getUI().toggle();
+				EquipmentController.toggle();
 				break;
 			case "skill":
-				Controller$4.getUI().toggle();
+				Controller$4.toggle();
 				break;
 			case "option":
 				Escape_default.ui.toggle();
 				break;
 			case "party":
-				if (partyViaGetUI) controller.getUI().toggle();
-				else controller.toggle();
+				controller.toggle();
 				break;
 			case "guild":
 				Guild_default.toggle();
@@ -236393,7 +236750,7 @@ function createBasicInfo(config) {
 				Bank_default.toggle();
 				break;
 			case "quest":
-				Controller$3.getUI().toggle();
+				Controller$3.toggle();
 				break;
 			case "mail":
 				Rodex_default.toggle();
@@ -236851,7 +237208,6 @@ var init_BasicInfoV4 = __esmMin((() => {
 		buttonsSelector: ".buttons button",
 		buttonsEvent: "click",
 		buttonKeyBy: "id",
-		partyViaGetUI: true,
 		hasToolbarToggle: true,
 		hideIds: [
 			"battle",
@@ -236895,7 +237251,6 @@ var init_BasicInfoV5 = __esmMin((() => {
 		buttonsSelector: ".buttons > div[id]",
 		buttonsEvent: "click",
 		buttonKeyBy: "id",
-		partyViaGetUI: true,
 		hasToolbarToggle: true,
 		hideIds: [
 			"battle",
@@ -236991,11 +237346,11 @@ function onOpenRefineUI() {
 		return false;
 	}
 	Refine.append();
-	if (!(InventoryController.getUI().ui ? InventoryController.getUI().ui.is(":visible") : false)) InventoryController.getUI().toggle();
+	if (!(InventoryController.ui ? InventoryController.ui.is(":visible") : false)) InventoryController.toggle();
 	const refineRect = Refine._host.getBoundingClientRect();
 	const refineWidth = Refine._host.offsetWidth;
-	const refineHeight = Refine._host.offsetHeight - InventoryController.getUI().ui.height();
-	InventoryController.getUI().ui.css({
+	const refineHeight = Refine._host.offsetHeight - InventoryController.ui.height();
+	InventoryController.ui.css({
 		position: "absolute",
 		top: refineRect.top ? refineRect.top + refineHeight : 200,
 		left: refineRect.left ? refineRect.left + refineWidth : 300
@@ -237070,7 +237425,7 @@ function onRefineUIUpdateMaterials(pkt) {
 	if (pkt && pkt.MaterialInfo.length > 0) {
 		if (root.querySelector(".item_to_refine .item")) onRemoveItem$1(false);
 		refine_item_index = pkt.itemIndex;
-		const item = InventoryController.getUI().getItemByIndex(pkt.itemIndex);
+		const item = InventoryController.getItemByIndex(pkt.itemIndex);
 		refiningMaterials = pkt.MaterialInfo;
 		blacksmithBlessing = pkt.blacksmithBlessing;
 		if (!Refine.hammer) {
@@ -237097,7 +237452,7 @@ function onRefineUIUpdateMaterials(pkt) {
 			for (let i = 0; i < refiningMaterials.length; i++) {
 				foundMaterial = refiningMaterials[i];
 				if (foundMaterial.itemId === refine_item_mat) {
-					foundItem = InventoryController.getUI().getItemById(foundMaterial.itemId);
+					foundItem = InventoryController.getItemById(foundMaterial.itemId);
 					materialFound = true;
 					refine_new_mats = 0;
 					break;
@@ -237134,7 +237489,7 @@ function onPopulateMaterials$1() {
 	for (let i = 0; i < refiningMaterials.length; i++) (function(idx) {
 		const material = refiningMaterials[idx];
 		const it = DB.getItemInfo(material.itemId);
-		const item = InventoryController.getUI().getItemById(material.itemId);
+		const item = InventoryController.getItemById(material.itemId);
 		const materialDiv = root.querySelector(`.material_${idx}`);
 		if (!materialDiv) return;
 		materialDiv.innerHTML = "";
@@ -237152,7 +237507,7 @@ function onPopulateMaterials$1() {
 		const iconEl = materialDiv.querySelector(".icon");
 		if (iconEl) iconEl.addEventListener("click", () => {
 			const clickedItemId = material.itemId;
-			const clickedItem = InventoryController.getUI().getItemById(clickedItemId);
+			const clickedItem = InventoryController.getItemById(clickedItemId);
 			if ((clickedItem ? clickedItem.count : 0) === 0) return;
 			for (const messageID in itemMessageMapping) if (itemMessageMapping[messageID].includes(clickedItemId)) {
 				showMessage$3(messageID, 0, "info");
@@ -237190,7 +237545,7 @@ function onPopulateMaterials$1() {
 	if (blacksmithBlessing) {
 		const bsbDiv = root.querySelector(".bsb_overlay .bsb");
 		const bsbItem = DB.getItemInfo(BSB_ITID);
-		const item = InventoryController.getUI().getItemById(BSB_ITID);
+		const item = InventoryController.getItemById(BSB_ITID);
 		bsbDiv.insertAdjacentHTML("beforeend", `<div class="item" data-index="${BSB_ITID}" draggable="false"><div class="icon"></div><div class="mat_count"></div></div>`);
 		Client.loadFile(DB.INTERFACE_PATH + "item/" + (bsbItem.IsIdentified ? bsbItem.identifiedResourceName : bsbItem.unidentifiedResourceName) + ".bmp", function(data) {
 			const icon = bsbDiv.querySelector(`.item[data-index="${BSB_ITID}"] .icon`);
@@ -237204,7 +237559,7 @@ function onPopulateMaterials$1() {
 		}
 		const bsbIcon = bsbDiv.querySelector(".icon");
 		if (bsbIcon) bsbIcon.addEventListener("click", () => {
-			const bsbInventoryItem = InventoryController.getUI().getItemById(BSB_ITID);
+			const bsbInventoryItem = InventoryController.getItemById(BSB_ITID);
 			if ((bsbInventoryItem ? bsbInventoryItem.count : 0) >= blacksmithBlessing) {
 				const bsbOverlay = bsbDiv.closest(".bsb_overlay");
 				if (bsbOverlay.classList.contains("selected")) {
@@ -237244,7 +237599,7 @@ function selectMaterial(material, item) {
 		refine_can_cont = 0;
 	}
 	if (refine_bsb) {
-		const bsbinInventory = InventoryController.getUI().getItemById(BSB_ITID);
+		const bsbinInventory = InventoryController.getItemById(BSB_ITID);
 		const bsbCount = bsbinInventory ? bsbinInventory.count || 0 : 0;
 		if (!bsbinInventory || bsbCount < refine_bsb) {
 			refine_no_bsb = 1;
@@ -237424,8 +237779,8 @@ function showMessage$3(messageID, timeout, type) {
 */
 function onRequestRefine() {
 	const root = _root$11();
-	const item = InventoryController.getUI().getItemByIndex(refine_item_index);
-	const material = InventoryController.getUI().getItemById(refine_item_mat);
+	const item = InventoryController.getItemByIndex(refine_item_index);
+	const material = InventoryController.getItemById(refine_item_mat);
 	if (!item) return;
 	if (!material) return;
 	if (SessionStorage_default.zeny < refine_fee) {
@@ -237575,7 +237930,7 @@ function onUpdateRefineUI(result) {
 	const refineCont = root.querySelector(".refine_cont");
 	if (refineCont) refineCont.style.display = "block";
 	if (!refine_item_broken) {
-		const refineditem = InventoryController.getUI().getItemByIndex(refine_item_index);
+		const refineditem = InventoryController.getItemByIndex(refine_item_index);
 		if (refineditem) {
 			const itemToRefineName = root.querySelector(".item_to_refine_name");
 			if (itemToRefineName) itemToRefineName.textContent = DB.getItemName(refineditem);
@@ -237618,7 +237973,7 @@ function onHideContRefineButtons() {
 */
 function onCheckItemBroken() {
 	const root = _root$11();
-	if (!InventoryController.getUI().getItemByIndex(refine_item_index)) {
+	if (!InventoryController.getItemByIndex(refine_item_index)) {
 		refine_result_div = "fail_refine_cont_disabled";
 		const itemToRefineName = root.querySelector(".item_to_refine_name");
 		if (itemToRefineName) itemToRefineName.textContent = DB.getMessage(3246);
@@ -237656,7 +238011,7 @@ function onItemInfo$16(event) {
 	event.stopImmediatePropagation();
 	event.preventDefault();
 	const ITID = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemById(ITID) ? InventoryController.getUI().getItemById(ITID) : InventoryController.getUI().getItemByIndex(ITID);
+	const item = InventoryController.getItemById(ITID) ? InventoryController.getItemById(ITID) : InventoryController.getItemByIndex(ITID);
 	if (!item) return;
 	if (ItemCompare_default.ui) ItemCompare_default.remove();
 	if (ItemInfo_default.uid === item.ITID) {
@@ -237667,8 +238022,8 @@ function onItemInfo$16(event) {
 	ItemInfo_default.append();
 	ItemInfo_default.uid = item.ITID;
 	ItemInfo_default.setItem(item);
-	const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-	if (compareItem && InventoryController.getUI().itemcomp) {
+	const compareItem = EquipmentController.isInEquipList(item.location);
+	if (compareItem && InventoryController.itemcomp) {
 		ItemCompare_default.prepare();
 		ItemCompare_default.append();
 		ItemCompare_default.uid = compareItem.ITID;
@@ -237985,10 +238340,10 @@ var init_Refine = __esmMin((() => {
 			if (backButton) backButton.style.display = "none";
 			const refineCont = root.querySelector(".refine_cont");
 			if (refineCont) refineCont.style.display = "none";
-			const item = InventoryController.getUI().removeItem(pkt.itemIndex, 1);
+			const item = InventoryController.removeItem(pkt.itemIndex, 1);
 			if (item) {
 				item.RefiningLevel = pkt.RefiningLevel;
-				InventoryController.getUI().addItem(item);
+				InventoryController.addItem(item);
 			}
 			stopCurrentLoop();
 			refine_result = pkt.result;
@@ -238169,7 +238524,7 @@ function onEnchantGradeUIUpdateMaterials(pkt) {
 		if (root.querySelector(".enchant_container .item")) onRemoveItem();
 		EnchantGrade_item_index = pkt.index;
 		EnchantGrade_current_success = pkt.success_chance;
-		const item = InventoryController.getUI().getItemByIndex(pkt.index);
+		const item = InventoryController.getItemByIndex(pkt.index);
 		gradingMaterials = pkt.materialList;
 		onPopulateMaterials();
 		clearTimeout(EnchantGrade.imageLoopTimeout["idle"]);
@@ -238199,7 +238554,7 @@ function onEnchantGradeUIUpdateMaterials(pkt) {
 		const bless = pkt.blessing_info;
 		if (!bless || !bless.id) return;
 		const blessItem = DB.getItemInfo(bless.id);
-		const invBless = InventoryController.getUI().getItemById(bless.id);
+		const invBless = InventoryController.getItemById(bless.id);
 		const invCount = invBless ? invBless.count : 0;
 		const bedContainer = root.querySelector(".BED_container");
 		if (bedContainer) bedContainer.innerHTML = `<div class="item" data-index="${bless.id}"><div class="icon"></div></div><div class="additional_mat_name" style="margin-right: 3px; margin-left: 7px;">${blessItem.identifiedDisplayName}</div><div class="additonal_mat_amount">${EnchantGrade_currentBlessing} ea</div>`;
@@ -238328,7 +238683,7 @@ function onPopulateMaterials() {
 			let insufficent = false;
 			const zenyCost = root.querySelector(".zeny_cost_container");
 			if (zenyCost) zenyCost.textContent = price;
-			const item = InventoryController.getUI().getItemById(material_ITID);
+			const item = InventoryController.getItemById(material_ITID);
 			const material_count = item ? item.count : 0;
 			if (!item || material_count < material_amount) insufficent = true;
 			if (SessionStorage_default.zeny < price) insufficent = true;
@@ -238459,11 +238814,11 @@ function onEnchantGradeResult(pkt) {
 				});
 			}
 		});
-		const item = InventoryController.getUI().removeItem(pkt.index, 1);
+		const item = InventoryController.removeItem(pkt.index, 1);
 		if (item) {
 			item.enchantgrade = pkt.grade;
 			item.RefiningLevel = pkt.result === 0 ? 0 : item.RefiningLevel;
-			InventoryController.getUI().addItem(item);
+			InventoryController.addItem(item);
 		}
 	}
 }
@@ -238492,7 +238847,7 @@ function onItemInfo$15(event) {
 	event.stopImmediatePropagation();
 	event.preventDefault();
 	const ITID = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemById(ITID) ? InventoryController.getUI().getItemById(ITID) : InventoryController.getUI().getItemByIndex(ITID);
+	const item = InventoryController.getItemById(ITID) ? InventoryController.getItemById(ITID) : InventoryController.getItemByIndex(ITID);
 	if (!item) return false;
 	if (ItemCompare_default.ui) ItemCompare_default.remove();
 	if (ItemInfo_default.uid === item.ITID) {
@@ -238503,8 +238858,8 @@ function onItemInfo$15(event) {
 	ItemInfo_default.append();
 	ItemInfo_default.uid = item.ITID;
 	ItemInfo_default.setItem(item);
-	const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-	if (compareItem && InventoryController.getUI().itemcomp) {
+	const compareItem = EquipmentController.isInEquipList(item.location);
+	if (compareItem && InventoryController.itemcomp) {
 		ItemCompare_default.prepare();
 		ItemCompare_default.append();
 		ItemCompare_default.uid = compareItem.ITID;
@@ -238731,7 +239086,7 @@ var init_EnchantGrade = __esmMin((() => {
 	*/
 	EnchantGrade.onOpenEnchantGradeUI = function onOpenEnchantGradeUI() {
 		EnchantGrade.append();
-		const invUI = InventoryController.getUI();
+		const invUI = InventoryController;
 		if (!(invUI && invUI._host ? invUI._host.isConnected && invUI._host.style.display !== "none" : false)) invUI.toggle();
 		const hostRect = EnchantGrade._host.getBoundingClientRect();
 		const invHost = invUI._host || invUI.ui && invUI.ui[0];
@@ -238871,7 +239226,7 @@ function calculateAnimation(layer, keyIndex, result) {
 	}
 	return true;
 }
-var mat4$18, D3DBLEND, _program$20, _buffer$15, _bufferData, _matrix$6, _lastAngle, PIXEL_TO_WORLD_Z, anim, StrEffect;
+var mat4$18, D3DBLEND, _program$20, _buffer$15, _bufferData, _matrix$6, _spriteOffset, _lastAngle, PIXEL_TO_WORLD_Z, anim, StrEffect;
 var init_StrEffect = __esmMin((() => {
 	init_StrEffect$2();
 	init_StrEffect$1();
@@ -238884,6 +239239,7 @@ var init_StrEffect = __esmMin((() => {
 	_buffer$15 = null;
 	_bufferData = /* @__PURE__ */ new Float32Array(16);
 	_matrix$6 = mat4$18.create();
+	_spriteOffset = /* @__PURE__ */ new Float32Array(2);
 	_lastAngle = -1;
 	PIXEL_TO_WORLD_Z = 1 / 5;
 	anim = {
@@ -239017,18 +239373,17 @@ var init_StrEffect = __esmMin((() => {
 				mat4$18.rotateZ(_matrix$6, _matrix$6, -animat.angle / 180 * Math.PI);
 				_lastAngle = animat.angle;
 			}
-			const spriteOffset = /* @__PURE__ */ new Float32Array(2);
 			let verticalBase = .5;
 			if (this.ownerEntity) {
-				spriteOffset[0] = animat.pos[0] - 320 + (this.xOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
-				spriteOffset[1] = animat.pos[1] - 320 - (this.yOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
+				_spriteOffset[0] = animat.pos[0] - 320 + (this.xOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
+				_spriteOffset[1] = animat.pos[1] - 320 - (this.yOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
 				verticalBase = 0;
 			} else {
-				spriteOffset[0] = animat.pos[0] - 320;
-				spriteOffset[1] = animat.pos[1] - 320;
+				_spriteOffset[0] = animat.pos[0] - 320;
+				_spriteOffset[1] = animat.pos[1] - 320;
 			}
 			gl.uniform4fv(uniform.uSpriteColor, animat.color);
-			gl.uniform2fv(uniform.uSpriteOffset, spriteOffset);
+			gl.uniform2fv(uniform.uSpriteOffset, _spriteOffset);
 			gl.uniform1f(uniform.uVerticalBase, verticalBase);
 			gl.uniform3fv(uniform.uSpritePosition, this.position);
 			gl.uniformMatrix4fv(uniform.uSpriteAngle, false, _matrix$6);
@@ -239602,7 +239957,7 @@ function hasEnoughZeny(zeny) {
 }
 function hasEnoughMaterials(materials) {
 	if (!materials || !materials.length) return true;
-	const inventoryUI = InventoryController.getUI && InventoryController.getUI();
+	const inventoryUI = InventoryController;
 	if (!inventoryUI || !inventoryUI.getItemById) return false;
 	for (let i = 0; i < materials.length; i++) {
 		const mat = materials[i];
@@ -239625,7 +239980,6 @@ function renderMaterials(materials) {
 	if (!list) return;
 	list.innerHTML = "";
 	if (!materials || !materials.length) return;
-	const inventoryUI = InventoryController.getUI && InventoryController.getUI();
 	materials.forEach((mat) => {
 		const entry = document.createElement("div");
 		entry.className = "material";
@@ -239639,8 +239993,8 @@ function renderMaterials(materials) {
 		const label = matId ? getItemDisplayName(matId, mat.base) : mat.base || "Unknown";
 		let current = 0;
 		const required = Number(mat.count) || 0;
-		if (matId && inventoryUI && inventoryUI.getItemById) {
-			const inventoryItem = inventoryUI.getItemById(matId);
+		if (matId && InventoryController.getItemById) {
+			const inventoryItem = InventoryController.getItemById(matId);
 			current = inventoryItem ? inventoryItem.count : 0;
 		}
 		nameEl.textContent = label;
@@ -239712,8 +240066,7 @@ function renderItemList() {
 		list.appendChild(empty);
 		return;
 	}
-	const inventoryUI = InventoryController.getUI && InventoryController.getUI();
-	const items = inventoryUI && inventoryUI.list ? inventoryUI.list : [];
+	const items = InventoryController && InventoryController.list ? InventoryController.list : [];
 	let selectedIndex = EnchantState.item ? EnchantState.item.index : 0;
 	let selectedValid = false;
 	const candidates = [];
@@ -240047,8 +240400,7 @@ function validateItem(item) {
 	return { ok: true };
 }
 function getInventoryItemByIndex(index) {
-	const inventoryUI = InventoryController.getUI && InventoryController.getUI();
-	return inventoryUI && inventoryUI.getItemByIndex ? inventoryUI.getItemByIndex(index) : null;
+	return InventoryController.getItemByIndex(index);
 }
 function resolveItemContext(target) {
 	const slotEntry = target.closest(".slot_entry");
@@ -240168,8 +240520,7 @@ function onItemSelect$2(event) {
 	if (!entry) return;
 	const index = parseInt(entry.dataset.index, 10);
 	if (isNaN(index)) return;
-	const inventoryUI = InventoryController.getUI && InventoryController.getUI();
-	const item = inventoryUI && inventoryUI.getItemByIndex ? inventoryUI.getItemByIndex(index) : null;
+	const item = InventoryController.getItemByIndex(index);
 	if (!item) return;
 	Enchant.onRequestItemEnchant(item);
 }
@@ -241256,7 +241607,7 @@ function createInventory(config) {
 				this._host.style.display = "none";
 			}
 		}
-		const basicInfoUI = BasicInfoController.getUI();
+		const basicInfoUI = BasicInfoController;
 		if (basicInfoUI._host) {
 			const changeUI = basicInfoUI.getRoot().querySelector("#item .btn_overlay");
 			if (changeUI) changeUI.style.display = "none";
@@ -241277,7 +241628,7 @@ function createInventory(config) {
 			});
 			this._host.style.display = "none";
 		}
-		const basicInfoUI = BasicInfoController.getUI();
+		const basicInfoUI = BasicInfoController;
 		if (basicInfoUI._host) {
 			const changeUI = basicInfoUI.getRoot().querySelector("#item .btn_overlay");
 			if (changeUI) changeUI.style.display = "none";
@@ -241392,7 +241743,7 @@ function createInventory(config) {
 		}
 	};
 	function countLabel() {
-		return Component.list.length + EquipmentController.getUI().getNumber() + (favoriteTab ? " / " : "");
+		return Component.list.length + EquipmentController.getNumber() + (favoriteTab ? " / " : "");
 	}
 	/**
 	* Insert Item to inventory
@@ -241406,7 +241757,7 @@ function createInventory(config) {
 		if (equippedIndex !== -1) Component.equippedItems.splice(equippedIndex, 1);
 		else {
 			Component.newItems.push(item.index);
-			const basicInfoUI = BasicInfoController.getUI();
+			const basicInfoUI = BasicInfoController;
 			if (basicInfoUI._host) {
 				const changeUI = basicInfoUI.getRoot().querySelector("#item .btn_overlay");
 				if (changeUI) changeUI.style.display = "block";
@@ -241458,7 +241809,7 @@ function createInventory(config) {
 		let tab = getItemTab(item);
 		if (favoriteTab && item.PlaceETCTab) tab = Component.TAB.FAV;
 		if (item.WearState && item.type !== ItemType_default.AMMO && item.type !== ItemType_default.CARD) {
-			EquipmentController.getUI().equip(item, item.WearState);
+			EquipmentController.equip(item, item.WearState);
 			return false;
 		}
 		const isInSwitchList = equipSwitch ? Component.equipswitchlist.some((equipItem) => equipItem.index === item.index) : false;
@@ -241816,7 +242167,7 @@ function createInventory(config) {
 		ItemInfo_default.uid = item.ITID;
 		ItemInfo_default.setItem(item);
 		if (favoriteTab) {
-			const compareItem = EquipmentController.getUI().isInEquipList(item.location);
+			const compareItem = EquipmentController.isInEquipList(item.location);
 			if (compareItem && Component.itemcomp) {
 				ItemCompare_default.prepare();
 				ItemCompare_default.append();
@@ -241831,9 +242182,9 @@ function createInventory(config) {
 	*/
 	function transferItemToOtherUI(item) {
 		if (transferInventoryItemStack(item, UIManager.components)) return true;
-		const storageUI = StorageController.getUI();
-		const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-		const isCartOpen = CartItems_default._host ? CartItems_default._host.style.display !== "none" : false;
+		const storageUI = StorageController;
+		const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+		const isCartOpen = CartItems_default._host ? CartItems_default._host.isConnected && CartItems_default._host.style.display !== "none" : false;
 		if (!item) return false;
 		const count = item.count || 1;
 		if (isStorageOpen) StorageController.reqAddItem(item.index, count);
@@ -242011,7 +242362,7 @@ function createInventory(config) {
 				SwitchEquip_default.unEquip(item.index, item.location);
 				this.equipswitchlist.splice(existingItemIndex, 1);
 				ChatBox_default.addText(DB.getItemName(item) + " " + DB.getMessage(3144), ChatBox_default.TYPE.BLUE, ChatBox_default.FILTER.ITEM);
-				EquipmentController.getUI().equipItemsToSwitch();
+				EquipmentController.equipItemsToSwitch();
 				Component.equipAllFromSwitchList();
 			}
 		};
@@ -242271,7 +242622,7 @@ var init_Inventory = __esmMin((() => {
 	_selectUIVersion$3 = InventoryController.selectUIVersion;
 	InventoryController.selectUIVersion = function() {
 		_selectUIVersion$3();
-		const component = InventoryController.getUI();
+		const component = InventoryController;
 		DB.UpdateOwnerName.Inventory = component.onUpdateOwnerName;
 		component.onKeyDown = function onKeyDown(e) {
 			if ((e.which === KEYS.ESCAPE || e.key === "Escape") && component.ui.is(":visible")) {
@@ -242711,7 +243062,7 @@ function createStorage(config) {
 		return false;
 	}
 	Component.transferItemToOtherUI = function transferItemToOtherUI(item) {
-		const isInventoryOpen = InventoryController.getUI().ui ? InventoryController.getUI().ui.is(":visible") : false;
+		const isInventoryOpen = InventoryController.ui ? InventoryController.ui.is(":visible") : false;
 		const isCartOpen = CartItems_default.ui ? CartItems_default.ui.is(":visible") : false;
 		if (!item) return false;
 		const count = item.count || 1;
@@ -243172,7 +243523,7 @@ function onDrop$9(event) {
 				case "Storage":
 					StorageController.reqMoveItemToCart(item.index, parseInt(count, 10));
 					break;
-				case "Inventory": InventoryController.getUI().reqMoveItemToCart(item.index, parseInt(count, 10));
+				case "Inventory": InventoryController.reqMoveItemToCart(item.index, parseInt(count, 10));
 			}
 		};
 		return false;
@@ -243181,7 +243532,7 @@ function onDrop$9(event) {
 		case "Storage":
 			StorageController.reqMoveItemToCart(item.index, 1);
 			break;
-		case "Inventory": InventoryController.getUI().reqMoveItemToCart(item.index, 1);
+		case "Inventory": InventoryController.reqMoveItemToCart(item.index, 1);
 	}
 	return false;
 }
@@ -243275,8 +243626,8 @@ function onItemInfo$13(event) {
 	ItemInfo_default.append();
 	ItemInfo_default.uid = item.ITID;
 	ItemInfo_default.setItem(item);
-	const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-	if (compareItem && InventoryController.getUI().itemcomp) {
+	const compareItem = EquipmentController.isInEquipList(item.location);
+	if (compareItem && InventoryController.itemcomp) {
 		ItemCompare_default.prepare();
 		ItemCompare_default.append();
 		ItemCompare_default.uid = compareItem.ITID;
@@ -243288,10 +243639,10 @@ function onItemInfo$13(event) {
 * Alt Right Click Request Transfer
 */
 function transferItemToOtherUI(item) {
-	const storageUI = StorageController.getUI();
-	const inventoryUI = InventoryController.getUI();
-	const isStorageOpen = storageUI._host ? storageUI._host.style.display !== "none" : false;
-	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.style.display !== "none" : false;
+	const storageUI = StorageController;
+	const inventoryUI = InventoryController;
+	const isStorageOpen = storageUI._host ? storageUI._host.isConnected && storageUI._host.style.display !== "none" : false;
+	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.isConnected && inventoryUI._host.style.display !== "none" : false;
 	if (!item) return false;
 	const count = item.count || 1;
 	if (isStorageOpen) StorageController.reqAddItemFromCart(item.index, count);
@@ -243894,7 +244245,7 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 			if (panel) panel.style.display = "none";
 		}
 		if (UIVersionManager.getEquipmentVersion() > 0) {
-			if (_preferences.stats && _preferences.show) WinStatsController.getUI().embed(Component._host);
+			if (_preferences.stats && _preferences.show) WinStatsController.embed(Component._host);
 			else Client.loadFile(DB.INTERFACE_PATH + "basic_interface/viewon.bmp", (data) => {
 				const btn = Component.getRoot().querySelector(".view_status");
 				if (btn) btn.style.backgroundImage = `url(${data})`;
@@ -243920,8 +244271,7 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 		_preferences.show = this._host.style.display !== "none";
 		const panel = root.querySelector(".panel");
 		_preferences.reduce = panel ? panel.style.display === "none" : false;
-		const winStats = WinStatsController.getUI();
-		_preferences.stats = winStats.isEmbedded();
+		_preferences.stats = WinStatsController.isEmbedded();
 		hideStatus();
 		_preferences.y = parseInt(this._host.style.top, 10);
 		_preferences.x = parseInt(this._host.style.left, 10);
@@ -243933,7 +244283,7 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 			Renderer.render(renderCharacter);
 			if (UIVersionManager.getEquipmentVersion() > 0) {
 				if (_btnLevelUp && _btnLevelUp.parentNode) _btnLevelUp.remove();
-				if (_preferences.stats) WinStatsController.getUI().embed(Component._host);
+				if (_preferences.stats) WinStatsController.embed(Component._host);
 			}
 			this.focus();
 		} else {
@@ -244000,9 +244350,9 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 				el.style.backgroundImage = `url(${data})`;
 			});
 		});
-		if (!InventoryController.getUI().equippedItems.includes(item.index)) InventoryController.getUI().equippedItems.push(item.index);
+		if (!InventoryController.equippedItems.includes(item.index)) InventoryController.equippedItems.push(item.index);
 		if (switchEquip && PacketVerManager_default.value >= 20170621) {
-			if (!InventoryController.getUI().isInEquipSwitchList(location)) SwitchEquip_default.equip(item, location, false);
+			if (!InventoryController.isInEquipSwitchList(location)) SwitchEquip_default.equip(item, location, false);
 		}
 	};
 	Component.unEquip = function unEquip(index, location) {
@@ -244025,12 +244375,12 @@ function createEquipment({ name, htmlText, cssText, entityRender = true, enchant
 		return 0;
 	};
 	function hideStatus() {
-		const winStats = WinStatsController.getUI();
+		const winStats = WinStatsController;
 		if (winStats.isEmbedded()) winStats.unembed();
 	}
 	function toggleStatus() {
 		const self = Component.getRoot().querySelector(".view_status");
-		const winStats = WinStatsController.getUI();
+		const winStats = WinStatsController;
 		const isVisible = winStats.isEmbedded();
 		const state = isVisible ? "on" : "off";
 		if (isVisible) {
@@ -244563,7 +244913,7 @@ var init_Equipment = __esmMin((() => {
 	_selectUIVersion$1 = EquipmentController.selectUIVersion;
 	EquipmentController.selectUIVersion = function() {
 		_selectUIVersion$1();
-		const component = EquipmentController.getUI();
+		const component = EquipmentController;
 		DB.UpdateOwnerName.Equipment = component.onUpdateOwnerName;
 		component.onKeyDown = function onKeyDown(e) {
 			if ((e.which === KEYS.ESCAPE || e.key === "Escape") && component.ui.is(":visible")) {
@@ -244733,13 +245083,13 @@ function eventsBooks() {
 	if (!event) return;
 	Client.getFiles(["data/sprite/book/Ã¥ÀÐ±â.spr", "data/sprite/book/Ã¥ÀÐ±â.act"], function(spr, act) {
 		try {
-			_sprite$3 = new SPR(spr);
-			_action$3 = new ACT(act);
+			_sprite$2 = new SPR(spr);
+			_action$2 = new ACT(act);
 		} catch (e) {
 			console.error("Book::init() - " + e.message);
 			return;
 		}
-		const canvas = _sprite$3.getCanvasFromFrame(0);
+		const canvas = _sprite$2.getCanvasFromFrame(0);
 		canvas.className = "book_open event_add_cursor";
 		event.appendChild(canvas);
 		const bookOpen = root.querySelector(".book_open");
@@ -244764,7 +245114,7 @@ function eventsBooks() {
 		readCanvas.height = 15;
 		readCanvas.className = "book_read event_add_cursor";
 		event.appendChild(readCanvas);
-		_ctx$1 = readCanvas.getContext("2d");
+		_ctx = readCanvas.getContext("2d");
 		const bookRead = root.querySelector(".book_read");
 		if (bookRead) {
 			bookRead.addEventListener("mouseover", (e) => {
@@ -244805,7 +245155,7 @@ function validateFieldsExist(event) {
 */
 function onItemPreview(pkt) {
 	if (pkt) {
-		const item = InventoryController.getUI().getItemByIndex(pkt.index);
+		const item = InventoryController.getItemByIndex(pkt.index);
 		if (!item) return false;
 		if (ItemCompare_default.ui) ItemCompare_default.remove();
 		if (ItemInfo.uid === item.ITID) {
@@ -244816,8 +245166,8 @@ function onItemPreview(pkt) {
 		ItemInfo.append();
 		ItemInfo.uid = item.ITID;
 		ItemInfo.setItem(item);
-		const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-		if (compareItem && InventoryController.getUI().itemcomp) {
+		const compareItem = EquipmentController.isInEquipList(item.location);
+		if (compareItem && InventoryController.itemcomp) {
 			ItemCompare_default.prepare();
 			ItemCompare_default.append();
 			ItemCompare_default.uid = compareItem.ITID;
@@ -244835,7 +245185,7 @@ function buildMoveInfoTooltip(moveInfo) {
 	for (const entry of MOVE_INFO_MESSAGES) if (moveInfo[entry.key] === true) lines.push(DB.getMessage(entry.msgId));
 	return lines.map((l) => `<div>${l}</div>`).join("");
 }
-var ItemInfo, _sprite$3, _action$3, _ctx$1, _type$5, _start$1, MOVE_INFO_MESSAGES, rendering$2, ItemInfo_default;
+var ItemInfo, _sprite$2, _action$2, _ctx, _type$4, _start, MOVE_INFO_MESSAGES, rendering$2, ItemInfo_default;
 var init_ItemInfo = __esmMin((() => {
 	init_DBManager();
 	init_ItemType();
@@ -244864,8 +245214,8 @@ var init_ItemInfo = __esmMin((() => {
 	init_Inventory();
 	ItemInfo = new GUIComponent("ItemInfo", ItemInfo_default$1);
 	ItemInfo.render = () => ItemInfo_default$2;
-	_type$5 = 0;
-	_start$1 = 0;
+	_type$4 = 0;
+	_start = 0;
 	/**
 	* @let {number} ItemInfo unique id
 	*/
@@ -245075,14 +245425,14 @@ var init_ItemInfo = __esmMin((() => {
 		const position = new Uint16Array([0, 0]);
 		return function render() {
 			const _entity = new Entity();
-			const action = _action$3.actions[_type$5];
-			const anim = Math.floor((Renderer.tick - _start$1) / action.delay);
+			const action = _action$2.actions[_type$4];
+			const anim = Math.floor((Renderer.tick - _start) / action.delay);
 			const animation = action.animations[anim % action.animations.length];
 			let i, count;
 			count = animation.layers.length;
-			SpriteRenderer.bind2DContext(_ctx$1, 10, 25);
-			_ctx$1.clearRect(0, 0, _ctx$1.canvas.width, _ctx$1.canvas.height);
-			for (i = 0, count = animation.layers.length; i < count; ++i) _entity.renderLayer(animation.layers[i], _sprite$3, _sprite$3, 1, position, false);
+			SpriteRenderer.bind2DContext(_ctx, 10, 25);
+			_ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
+			for (i = 0, count = animation.layers.length; i < count; ++i) _entity.renderLayer(animation.layers[i], _sprite$2, _sprite$2, 1, position, false);
 		};
 	})();
 	/**
@@ -245918,7 +246268,7 @@ function onPartyCreate(pkt) {
 				if (entity.job !== void 0) memberData.class_ = entity.job;
 				if (entity.life && entity.life.display) memberData.life = entity.life;
 			}
-			controller.getUI().setParty(_partyName, [memberData]);
+			controller.setParty(_partyName, [memberData]);
 			break;
 		}
 		case 1:
@@ -245936,7 +246286,7 @@ function onPartyCreate(pkt) {
 * @param {object} pkt - PACKET.ZC.GROUP_ISALIVE
 */
 function onPartyIsAlive(pkt) {
-	controller.getUI().updateMemberDead(pkt.AID, pkt.isDead);
+	controller.updateMemberDead(pkt.AID, pkt.isDead);
 }
 /**
 * Get list of party members
@@ -245955,7 +246305,7 @@ function onPartyList(pkt) {
 			if (!pkt.groupInfo[i].class_ && entity.job !== void 0) pkt.groupInfo[i].class_ = entity.job;
 		}
 	}
-	controller.getUI().setParty(pkt.groupName, pkt.groupInfo);
+	controller.setParty(pkt.groupName, pkt.groupInfo);
 	WorldMap_default.updatePartyMembers(pkt);
 }
 /**
@@ -245970,10 +246320,9 @@ function onPartyMemberJoin(pkt) {
 		if (!pkt.baseLevel && entity.display && entity.display.lvl) pkt.baseLevel = entity.display.lvl;
 		if (!pkt.class_ && entity.job !== void 0) pkt.class_ = entity.job;
 	}
-	const PartyUI = controller.getUI();
 	if (pkt.AID === SessionStorage_default.AID) SessionStorage_default.hasParty = true;
-	PartyUI.setOptions(pkt.expOption, pkt.ItemPickupRule, pkt.ItemDivisionRule);
-	PartyUI.addPartyMember(pkt);
+	controller.setOptions(pkt.expOption, pkt.ItemPickupRule, pkt.ItemDivisionRule);
+	controller.addPartyMember(pkt);
 }
 /**
 * Remove a player from the group
@@ -245992,7 +246341,7 @@ function onPartyMemberLeave(pkt) {
 			return;
 	}
 	if (SessionStorage_default.AID === pkt.AID) SessionStorage_default.hasParty = false;
-	controller.getUI().removePartyMember(pkt.AID, pkt.characterName);
+	controller.removePartyMember(pkt.AID, pkt.characterName);
 }
 /**
 * Display entity life
@@ -246009,7 +246358,7 @@ function onMemberLifeUpdate(pkt) {
 		entity.life.hp = pkt.hp;
 		entity.life.hp_max = pkt.maxhp;
 		entity.life.update();
-		if (entity && entity.life && entity.life.canvas) controller.getUI().updateMemberLife(pkt.AID, entity.life.canvas, pkt.hp, pkt.maxhp);
+		if (entity && entity.life && entity.life.canvas) controller.updateMemberLife(pkt.AID, entity.life.canvas, pkt.hp, pkt.maxhp);
 	}
 }
 /**
@@ -246028,8 +246377,8 @@ function onMemberTalk$1(pkt) {
 * @param {object} pkt - PACKET.ZC.NOTIFY_POSITION_TO_GROUPM
 */
 function onMemberMove$1(pkt) {
-	if (pkt.xPos < 0 || pkt.yPos < 0) Controller$5.getUI().removePartyMemberMark(pkt.AID);
-	else Controller$5.getUI().addPartyMemberMark(pkt.AID, pkt.xPos, pkt.yPos);
+	if (pkt.xPos < 0 || pkt.yPos < 0) Controller$5.removePartyMemberMark(pkt.AID);
+	else Controller$5.addPartyMemberMark(pkt.AID, pkt.xPos, pkt.yPos);
 }
 /**
 * Get party information
@@ -246037,7 +246386,7 @@ function onMemberMove$1(pkt) {
 * @param {object} pkt - PACKET.ZC.GROUPINFO_CHANGE
 */
 function onPartyOption(pkt) {
-	controller.getUI().setOptions(pkt.expOption, pkt.ItemPickupRule, pkt.ItemDivisionRule);
+	controller.setOptions(pkt.expOption, pkt.ItemPickupRule, pkt.ItemDivisionRule);
 	ChatBox_default.addText(DB.getMessage(291) + "  - " + DB.getMessage(292) + "  : " + DB.getMessage(287 + pkt.expOption), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.PARTY_SETUP);
 	if (pkt.ItemPickupRule !== void 0) ChatBox_default.addText(DB.getMessage(291) + "  - " + DB.getMessage(293) + "  : " + DB.getMessage(289 + pkt.ItemPickupRule), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.PARTY_SETUP);
 	if (pkt.ItemDivisionRule !== void 0) ChatBox_default.addText(DB.getMessage(291) + "  - " + DB.getMessage(738) + "  : " + DB.getMessage(287 + pkt.ItemDivisionRule), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.PARTY_SETUP);
@@ -246144,7 +246493,7 @@ var init_Group = __esmMin((() => {
 			Network.hookPacket(PACKET.ZC.DELETE_MEMBER_FROM_GROUP, onPartyMemberLeave);
 			Network.hookPacket(PACKET.ZC.ACK_MAKE_GROUP, onPartyCreate);
 			Network.hookPacket(PACKET.ZC.GROUP_ISALIVE, onPartyIsAlive);
-			const PartyUI = controller.getUI();
+			const PartyUI = controller;
 			PartyUI.onExpelMember = GroupEngine.onRequestExpel;
 			PartyUI.onRequestChangeLeader = GroupEngine.onRequestChangeLeader;
 			PartyUI.onRequestLeave = GroupEngine.onRequestLeave;
@@ -247148,7 +247497,7 @@ function getSkillOwner(id) {
 	if (id >= SkillConst_default.GD_APPROVAL && id <= SkillConst_default.GD_LAST) return Guild_default;
 	if (id >= SkillConst_default.HOMUN_BEGIN && id <= SkillConst_default.HOMUN_LAST) return SkillListMH_default.homunculus;
 	if (id >= SkillConst_default.MERCENARY_BEGIN && id <= SkillConst_default.MERCENARY_LAST) return SkillListMH_default.mercenary;
-	return Controller$4.getUI();
+	return Controller$4;
 }
 /**
 * Update tooltip for empty slots with hotkey only
@@ -247412,7 +247761,7 @@ function onElementInfo(event, icon) {
 		}
 		ItemInfo_default.append();
 		ItemInfo_default.uid = _list$4[index].ID;
-		ItemInfo_default.setItem(InventoryController.getUI().getItemById(_list$4[index].ID));
+		ItemInfo_default.setItem(InventoryController.getItemById(_list$4[index].ID));
 	}
 }
 /**
@@ -247432,8 +247781,8 @@ function clickElement(index) {
 	if (!shortcut) return;
 	if (shortcut.isSkill) ShortCut.useSkill(shortcut.ID, shortcut.count);
 	else {
-		const item = InventoryController.getUI().getItemById(_list$4[index].ID);
-		if (item) InventoryController.getUI().useItem(item);
+		const item = InventoryController.getItemById(_list$4[index].ID);
+		if (item) InventoryController.useItem(item);
 	}
 }
 /**
@@ -247709,7 +248058,7 @@ var init_ShortCut = __esmMin((() => {
 			el.addEventListener("mouseleave", onContainerMouseLeave);
 		});
 		DB.UpdateOwnerName.ShortCut = onUpdateOwnerName$1;
-		InventoryController.getUI().onUpdateItem = onUpdateItem;
+		InventoryController.onUpdateItem = onUpdateItem;
 	};
 	/**
 	* Append to body
@@ -247723,7 +248072,7 @@ var init_ShortCut = __esmMin((() => {
 		this.magnet.BOTTOM = _preferences$23.magnet_bottom;
 		this.magnet.LEFT = _preferences$23.magnet_left;
 		this.magnet.RIGHT = _preferences$23.magnet_right;
-		Controller$4.getUI().onUpdateSkill = onUpdateSkill;
+		Controller$4.onUpdateSkill = onUpdateSkill;
 		updateEmptySlotTooltips();
 	};
 	/**
@@ -247823,7 +248172,7 @@ var init_ShortCut = __esmMin((() => {
 				let name = "";
 				if (_list$4[i].isSkill && SkillInfo[_list$4[i].ID]) name = SkillInfo[_list$4[i].ID].SkillName;
 				else if (_list$4[i].ID) {
-					const item = InventoryController.getUI().getItemById(_list$4[i].ID);
+					const item = InventoryController.getItemById(_list$4[i].ID);
 					if (item) name = DB.getItemName(item);
 				}
 				if (name) {
@@ -247864,7 +248213,7 @@ var init_ShortCut = __esmMin((() => {
 			}
 		} else {
 			_list$4[index].count = count;
-			const item = InventoryController.getUI().getItemById(ID);
+			const item = InventoryController.getItemById(ID);
 			if (!item) return;
 			const it = DB.getItemInfo(ID);
 			file = item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName;
@@ -248031,8 +248380,8 @@ function onMemberTalk(pkt) {
 * @param {object} pkt - PACKET.ZC.NOTIFY_POSITION_TO_GUILDM
 */
 function onMemberMove(pkt) {
-	if (pkt.xPos < 0 || pkt.yPos < 0) Controller$5.getUI().removeGuildMemberMark(pkt.AID);
-	else Controller$5.getUI().addGuildMemberMark(pkt.AID, pkt.xPos, pkt.yPos);
+	if (pkt.xPos < 0 || pkt.yPos < 0) Controller$5.removeGuildMemberMark(pkt.AID);
+	else Controller$5.addGuildMemberMark(pkt.AID, pkt.xPos, pkt.yPos);
 }
 /**
 * Get guild informations
@@ -251388,6 +251737,19 @@ function loadAliases() {
 	for (const cmd in CommandStore) if (CommandStore[cmd].aliases) for (let i = 0; i < CommandStore[cmd].aliases.length; i++) aliases[CommandStore[cmd].aliases[i]] = cmd;
 }
 /**
+* Block or allow whispers from a character
+*
+* @param {string} name
+* @param {number} type - 0 block, 1 allow
+*/
+function requestWhisperSetting(name, type) {
+	const pkt = new PACKET.CZ.SETTING_WHISPER_PC();
+	pkt.name = name;
+	pkt.type = type;
+	Network.sendPacket(pkt);
+	ChatBox_default.PrivateMessageStorage.blockNicks.push(name);
+}
+/**
 * Process command
 */
 function processCommand(text) {
@@ -251810,6 +252172,45 @@ var init_ProcessCommand = __esmMin((() => {
 			description: "Sends the specified message to everyone on your friend list",
 			callback: function() {
 				FriendEngine.sayHi();
+			}
+		},
+		ex: {
+			description: "Blocks whispers from <Character Name>, or lists the blocked characters",
+			callback: function(text) {
+				const matches = text.match(/^ex\s+(.*\S)/);
+				if (matches) {
+					requestWhisperSetting(matches[1], 0);
+					return;
+				}
+				const pkt = new PACKET.CZ.REQ_WHISPER_LIST();
+				Network.sendPacket(pkt);
+			}
+		},
+		in: {
+			description: "Allows whispers from <Character Name>",
+			callback: function(text) {
+				const matches = text.match(/^in\s+(.*\S)/);
+				if (matches) {
+					requestWhisperSetting(matches[1], 1);
+					return;
+				}
+				this.addText(DB.getMessage(44), this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+			}
+		},
+		exall: {
+			description: "Blocks whispers from everyone",
+			callback: function() {
+				const pkt = new PACKET.CZ.SETTING_WHISPER_STATE();
+				pkt.type = 0;
+				Network.sendPacket(pkt);
+			}
+		},
+		inall: {
+			description: "Allows whispers from everyone",
+			callback: function() {
+				const pkt = new PACKET.CZ.SETTING_WHISPER_STATE();
+				pkt.type = 1;
+				Network.sendPacket(pkt);
 			}
 		},
 		guild: {
@@ -253750,17 +254151,15 @@ var init_Model = __esmMin((() => {
 * Interpolate between two quaternions using SLERP
 */
 function slerpQuat(q1, q2, t) {
-	const out = quat.create();
-	quat.slerp(out, q1, q2, t);
-	return out;
+	quat.slerp(_scratchQuat, q1, q2, t);
+	return _scratchQuat;
 }
 /**
 * Interpolate between two vec3 using linear interpolation
 */
 function lerpVec3(v1, v2, t) {
-	const out = vec3$3.create();
-	vec3$3.lerp(out, v1, v2, t);
-	return out;
+	vec3$3.lerp(_scratchVec3Scale, v1, v2, t);
+	return _scratchVec3Scale;
 }
 /**
 * Get rotation at a specific frame from keyframes
@@ -253795,11 +254194,12 @@ function getRotationAtFrame(rotKeyframes, frame, animLen) {
 */
 function getPositionAtFrame(posKeyframes, frame, animLen) {
 	if (!posKeyframes || posKeyframes.length === 0) return null;
-	if (posKeyframes.length === 1) return [
-		posKeyframes[0].px,
-		posKeyframes[0].py,
-		posKeyframes[0].pz
-	];
+	if (posKeyframes.length === 1) {
+		_scratchVec3Pos[0] = posKeyframes[0].px;
+		_scratchVec3Pos[1] = posKeyframes[0].py;
+		_scratchVec3Pos[2] = posKeyframes[0].pz;
+		return _scratchVec3Pos;
+	}
 	let prevIdx = 0;
 	let nextIdx = 0;
 	for (let i = 0; i < posKeyframes.length; i++) {
@@ -253815,11 +254215,10 @@ function getPositionAtFrame(posKeyframes, frame, animLen) {
 	}
 	if (prevIdx === nextIdx) {
 		const kf = posKeyframes[prevIdx];
-		return [
-			kf.px,
-			kf.py,
-			kf.pz
-		];
+		_scratchVec3Pos[0] = kf.px;
+		_scratchVec3Pos[1] = kf.py;
+		_scratchVec3Pos[2] = kf.pz;
+		return _scratchVec3Pos;
 	}
 	const prevFrame = posKeyframes[prevIdx].frame;
 	let nextFrame = posKeyframes[nextIdx].frame;
@@ -253829,15 +254228,10 @@ function getPositionAtFrame(posKeyframes, frame, animLen) {
 	t = Math.max(0, Math.min(1, t));
 	const p1 = posKeyframes[prevIdx];
 	const p2 = posKeyframes[nextIdx];
-	return lerpVec3([
-		p1.px,
-		p1.py,
-		p1.pz
-	], [
-		p2.px,
-		p2.py,
-		p2.pz
-	], t);
+	_scratchVec3Pos[0] = p1.px + (p2.px - p1.px) * t;
+	_scratchVec3Pos[1] = p1.py + (p2.py - p1.py) * t;
+	_scratchVec3Pos[2] = p1.pz + (p2.pz - p1.pz) * t;
+	return _scratchVec3Pos;
 }
 /**
 * Get scale at a specific frame from keyframes
@@ -253879,7 +254273,7 @@ function calcNormal_NONE(out) {
 function calcNormal_FLAT(node, out, normalMat, groupUsed) {
 	let i, j, count;
 	let face;
-	const temp_vec = vec3$3.create();
+	const temp_vec = _scratchTempVec;
 	const faces = node.faces;
 	const vertices = node.vertices;
 	for (i = 0, j = 0, count = faces.length; i < count; ++i, j += 3) {
@@ -253999,24 +254393,25 @@ function generate_mesh_SMOOTH(node, vert, shadeGroup, mesh) {
 * Compile a node at a specific animation frame
 */
 function compileNodeAtFrame(node, instanceMatrix, frame, animLen) {
-	const modelViewMat = mat4$15.create();
-	const normalMat = mat4$15.create();
+	const modelViewMat = _scratchModelViewMat;
+	const normalMat = _scratchNormalMat;
 	const textures = node.textures;
 	const faces = node.faces;
 	const vertices = node.vertices;
 	const mesh = {};
 	const mesh_size = [];
-	const shadeGroup = new Array(32);
-	const shadeGroupUsed = new Array(32);
+	for (let g = 0; g < 32; g++) {
+		_shadeGroup[g] = null;
+		_shadeGroupUsed[g] = false;
+	}
 	let i, x, y, z, count;
-	const matrix = mat4$15.create();
+	const matrix = _scratchMatrix;
 	mat4$15.identity(matrix);
-	mat4$15.translate(matrix, matrix, [
-		-node.main.box.center[0],
-		-node.main.box.max[1],
-		-node.main.box.center[2]
-	]);
-	const nodeMatrix = mat4$15.create();
+	_scratchVec3BoxCenter[0] = -node.main.box.center[0];
+	_scratchVec3BoxCenter[1] = -node.main.box.max[1];
+	_scratchVec3BoxCenter[2] = -node.main.box.center[2];
+	mat4$15.translate(matrix, matrix, _scratchVec3BoxCenter);
+	const nodeMatrix = _scratchNodeMatrix;
 	mat4$15.identity(nodeMatrix);
 	const animPos = getPositionAtFrame(node.posKeyframes, frame, animLen);
 	if (animPos) mat4$15.translate(nodeMatrix, nodeMatrix, animPos);
@@ -254030,7 +254425,7 @@ function compileNodeAtFrame(node, instanceMatrix, frame, animLen) {
 	else mat4$15.scale(nodeMatrix, nodeMatrix, node.scale);
 	mat4$15.multiply(matrix, matrix, nodeMatrix);
 	if (!node.is_only) mat4$15.translate(matrix, matrix, node.offset);
-	mat4$15.multiply(matrix, matrix, mat3$1.toMat4(node.mat3));
+	mat4$15.multiply(matrix, matrix, mat3$1.toMat4(node.mat3, _scratchMat4Node));
 	mat4$15.multiply(modelViewMat, instanceMatrix, matrix);
 	mat4$15.extractRotation(normalMat, modelViewMat);
 	count = vertices.length;
@@ -254054,13 +254449,13 @@ function compileNodeAtFrame(node, instanceMatrix, frame, animLen) {
 			generate_mesh_FLAT(node, vert, face_normal, mesh);
 			break;
 		case 1:
-			calcNormal_FLAT(node, face_normal, normalMat, shadeGroupUsed);
+			calcNormal_FLAT(node, face_normal, normalMat, _shadeGroupUsed);
 			generate_mesh_FLAT(node, vert, face_normal, mesh);
 			break;
 		case 2:
-			calcNormal_FLAT(node, face_normal, normalMat, shadeGroupUsed);
-			calcNormal_SMOOTH(node, face_normal, shadeGroupUsed, shadeGroup);
-			generate_mesh_SMOOTH(node, vert, shadeGroup, mesh);
+			calcNormal_FLAT(node, face_normal, normalMat, _shadeGroupUsed);
+			calcNormal_SMOOTH(node, face_normal, _shadeGroupUsed, _shadeGroup);
+			generate_mesh_SMOOTH(node, vert, _shadeGroup, mesh);
 	}
 	return mesh;
 }
@@ -254154,7 +254549,7 @@ function initModel(gl, data) {
 		WebGL_default.texture(gl, data.infos[i].texture, onTextureLoaded, i);
 	}
 }
-var _program$18, _normalMat, mat4$15, mat3$1, quat, vec3$3, _light, RsmEffect;
+var _program$18, _normalMat, mat4$15, mat3$1, quat, vec3$3, _light, _scratchModelViewMat, _scratchNormalMat, _scratchMatrix, _scratchNodeMatrix, _scratchMat4Node, _scratchTempVec, _scratchQuat, _scratchVec3Pos, _scratchVec3Scale, _scratchVec3BoxCenter, _shadeGroup, _shadeGroupUsed, RsmEffect;
 var init_RsmEffect = __esmMin((() => {
 	init_RsmEffect$2();
 	init_RsmEffect$1();
@@ -254186,6 +254581,18 @@ var init_RsmEffect = __esmMin((() => {
 			0
 		])
 	};
+	_scratchModelViewMat = mat4$15.create();
+	_scratchNormalMat = mat4$15.create();
+	_scratchMatrix = mat4$15.create();
+	_scratchNodeMatrix = mat4$15.create();
+	_scratchMat4Node = mat4$15.create();
+	_scratchTempVec = vec3$3.create();
+	_scratchQuat = quat.create();
+	_scratchVec3Pos = vec3$3.create();
+	_scratchVec3Scale = vec3$3.create();
+	_scratchVec3BoxCenter = vec3$3.create();
+	_shadeGroup = new Array(32);
+	_shadeGroupUsed = new Array(32);
 	RsmEffect = class {
 		constructor(params) {
 			this.position = params.Inst.position;
@@ -258384,7 +258791,7 @@ function updateJoystickSlot(joystickSlotIndex, shortcutIndex) {
 			amount.textContent = item.count;
 		});
 	} else {
-		const inventoryItem = InventoryController.getUI().getItemById(item.ID);
+		const inventoryItem = InventoryController.getItemById(item.ID);
 		if (inventoryItem) {
 			const itemInfo = DB.getItemInfo(item.ID);
 			const fileName = inventoryItem.IsIdentified ? itemInfo.identifiedResourceName : itemInfo.unidentifiedResourceName;
@@ -259214,7 +259621,7 @@ var init_JoystickInteractionService = __esmMin((() => {
 			const shortcut = ShortCut_default.getList()[index];
 			if (!shortcut) return;
 			if (!shortcut.isSkill) {
-				const item = InventoryController.getUI().getItemById(shortcut.ID);
+				const item = InventoryController.getItemById(shortcut.ID);
 				if (!item || item.count === 0) return;
 			} else if (Controls_default.attackTargetMode) {
 				const targetEntity = JoystickTargetService_default.getEntity();
@@ -259239,7 +259646,7 @@ var init_JoystickInteractionService = __esmMin((() => {
 			const isSkill = draggableElement.closest(".skill");
 			let itemData;
 			if (!isSkill) {
-				const item = InventoryController.getUI().getItemByIndex(index);
+				const item = InventoryController.getItemByIndex(index);
 				if (item) {
 					if (item.type === ItemType_default.UNKNOWN || item.type === ItemType_default.ETC || item.type === ItemType_default.CARD || item.type === ItemType_default.PETEGG || item.type === ItemType_default.PETARMOR) return false;
 					itemData = {
@@ -260593,6 +261000,7 @@ var init_MapRenderer = __esmMin((() => {
 			BGM.stop();
 			PostProcess.clean(gl);
 			Mouse.intersect = false;
+			Cursor.setType(Cursor.ACTION.DEFAULT);
 			this.light = null;
 			this.water = null;
 			this.sounds = null;
@@ -260644,6 +261052,7 @@ var init_MapRenderer = __esmMin((() => {
 			OccluderFade.beginFrame(gl, modelView, tick);
 			Models_default.render(gl, modelView, projection, normalMat, fog, light);
 			AnimatedModels_default.render(gl, modelView, projection, normalMat, fog, light, tick);
+			EntityManager.cull();
 			GR2ModelRenderer_default.render(gl, modelView, projection, normalMat, fog, light, tick);
 			ScreenEffectManager.render(gl, modelView, projection, fog, tick, true);
 			EffectManager.render(gl, modelView, projection, fog, tick, true);
@@ -261332,6 +261741,7 @@ var init_Renderer = __esmMin((() => {
 				}
 				this._lastFrameTime = 0;
 				this._renderBound = this._render.bind(this);
+				Cursor.setSceneDriven(true);
 				this.updateId = _requestAnimationFrame(this._renderBound);
 			}
 		}
@@ -261347,6 +261757,7 @@ var init_Renderer = __esmMin((() => {
 				} catch (e) {
 					console.error(e);
 				}
+				Cursor.setSceneDriven(false);
 				return;
 			}
 			const pos = this.renderCallbacks.indexOf(fn);
@@ -282454,7 +282865,7 @@ var init_liblua5_1 = __esmMin((() => {
 }));
 //#endregion
 //#region node_modules/lodash/lodash.js
-var require_lodash = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var require_lodash = /* @__PURE__ */ __commonJSMin(((exports, module, this$2) => {
 	/**
 	* @license
 	* Lodash <https://lodash.com/>
@@ -297040,7 +297451,7 @@ var require_lodash = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			(freeModule.exports = _)._ = _;
 			freeExports._ = _;
 		} else root._ = _;
-	}).call(exports);
+	}).call(this$2);
 }));
 //#endregion
 //#region src/Vendors/wasmoon-lua5.1.js
@@ -304544,7 +304955,7 @@ function updateMapTable() {
 		else MapTable[key] = { name: MapInfo[key].displayName };
 	}
 }
-var lua, HO_AI, MER_AI, default_HO_AI, default_MER_AI, MsgStringTable, JokeTable, ScreamTable, MapTable, SkillDescription, SexTable, PetTalkTable, CheckAttendanceTable, buyingStoreItemList, LaphineSysTable, LaphineUpgTable, ItemDBNameTbl, ItemReformTable, EnchantListTable, SignBoardTranslatedTable, SignBoardTable, NaviMapTable, NaviMobTable, NaviNpcTable, NaviLinkTable, NaviLinkDistanceTable, NaviNpcDistanceTable, QuestInfo, TitleTable, PetDBTable, EggIDToJobID, ReputeGroup, ReputeInfo, AchievementTable, MsgEmotionCSV, HatEffectID, HatEffectInfo, FootPrintEffectInfo, CashShopBannerTable, Ez2streffect, unknownItem, servers, langType, userCharpage, userStringDecoder, DB, SUFFIX_TO_FIELD, HARDCODED_FIELD_MAPPING;
+var lua, HO_AI, MER_AI, default_HO_AI, default_MER_AI, mountPalettes, mountPalettesProbe, MsgStringTable, JokeTable, ScreamTable, MapTable, SkillDescription, SexTable, PetTalkTable, CheckAttendanceTable, buyingStoreItemList, LaphineSysTable, LaphineUpgTable, ItemDBNameTbl, ItemReformTable, EnchantListTable, SignBoardTranslatedTable, SignBoardTable, NaviMapTable, NaviMobTable, NaviNpcTable, NaviLinkTable, NaviLinkDistanceTable, NaviNpcDistanceTable, QuestInfo, TitleTable, PetDBTable, EggIDToJobID, ReputeGroup, ReputeInfo, AchievementTable, MsgEmotionCSV, HatEffectID, HatEffectInfo, FootPrintEffectInfo, CashShopBannerTable, Ez2streffect, unknownItem, servers, langType, userCharpage, userStringDecoder, DB, SUFFIX_TO_FIELD, HARDCODED_FIELD_MAPPING;
 var init_DBManager = __esmMin((() => {
 	init_Client();
 	init_Configs();
@@ -304593,6 +305004,7 @@ var init_DBManager = __esmMin((() => {
 	init_PacketVerManager();
 	init_MemoryManager();
 	init_preload_helper();
+	mountPalettesProbe = null;
 	MsgStringTable = [];
 	JokeTable = [];
 	ScreamTable = [];
@@ -304677,6 +305089,9 @@ var init_DBManager = __esmMin((() => {
 			DB.isLoaded = false;
 			DB.count = 0;
 			DB.index = 0;
+			mountPalettes = void 0;
+			if (mountPalettesProbe) mountPalettesProbe.stale = true;
+			else MemoryManager.remove(null, DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0));
 			let index = 0, count = 0;
 			function onLoad() {
 				count++;
@@ -305210,6 +305625,30 @@ var init_DBManager = __esmMin((() => {
 		*/
 		static getAdminPath(sex) {
 			return "data/sprite/ÀÎ°£Á·/¸öÅë/" + SexTable[sex] + "/¿î¿µÀÚ_" + SexTable[sex];
+		}
+		/**
+		* Whether the archive ships the halter-lead mounts' own palettes, read off
+		* a file only those archives have: asked once per archive.
+		*
+		* @param {function} onAnswer - called once the archive answers, if it has not yet
+		* @return {boolean|undefined} undefined until the archive answers
+		*/
+		static hasMountPalettes(onAnswer) {
+			if (mountPalettes === void 0) {
+				const sentinel = DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0);
+				if (!mountPalettesProbe) mountPalettesProbe = { stale: false };
+				const probe = mountPalettesProbe;
+				const answer = (present) => {
+					if (probe === mountPalettesProbe) {
+						mountPalettesProbe = null;
+						if (probe.stale) MemoryManager.remove(null, sentinel);
+						else mountPalettes = present;
+					}
+					onAnswer();
+				};
+				Client.loadFile(sentinel, () => answer(true), () => answer(false));
+			}
+			return mountPalettes;
 		}
 		/**
 		* @return {string} path to body palette
@@ -307814,7 +308253,7 @@ var init_Trade$1 = __esmMin((() => {
 			if (zenySend) zenySend.value = prettifyZeny$2(_tmpCount[index]);
 			return;
 		}
-		const inventoryItem = InventoryController.getUI().removeItem(index, _tmpCount[index]);
+		const inventoryItem = InventoryController.removeItem(index, _tmpCount[index]);
 		const item = Object.assign({}, inventoryItem);
 		const it = DB.getItemInfo(item.ITID);
 		const idx = _send.push(item) - 1;
@@ -310154,6 +310593,7 @@ function UpdateBodyStyle(look) {
 * Update body palette
 *
 * @param {number} body palette number
+* @see docs/reference/renderer/body-palette.md
 */
 function UpdateBodyPalette(pal) {
 	this._bodypalette = pal;
@@ -310163,7 +310603,12 @@ function UpdateBodyPalette(pal) {
 	}
 	if (this._job === -1) return;
 	const job = this._bodyStyleJob && !hasTransformation.call(this) ? this._bodyStyleJob : getEffectiveJob.call(this);
-	this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
+	if (!AllMountJobs[job]) {
+		this.files.body.pal = DB.getBodyPalPath(job, this._bodypalette, this._sex);
+		return;
+	}
+	const own = DB.hasMountPalettes(() => UpdateBodyPalette.call(this, this._bodypalette));
+	if (own !== void 0) this.files.body.pal = DB.getBodyPalPath(own ? job : this._job, pal, this._sex);
 }
 /**
 * Update head
@@ -310379,7 +310824,7 @@ function Init$5() {
 	createTransformationProperty("active_monster_transform");
 	createTransformationProperty("job_transform");
 }
-var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts;
+var GR2_MODEL_ROOT, GR2_FALLBACK_JOB, HeadParts, AllMountJobs;
 var init_EntityView = __esmMin((() => {
 	init_Client();
 	init_DBManager();
@@ -310398,6 +310843,8 @@ var init_EntityView = __esmMin((() => {
 		"accessory2",
 		"accessory3"
 	];
+	AllMountJobs = {};
+	for (const baseJob in AllMountTable) AllMountJobs[AllMountTable[baseJob]] = true;
 }));
 //#endregion
 //#region src/Renderer/Entity/EntityWalk.js
@@ -310749,6 +311196,60 @@ function fastMoveTo(to_x, to_y, speed = 15, onEnd, keepDirection = false) {
 	return true;
 }
 /**
+* Compute segment duration based on diagonal movement
+*/
+function getSegmentDuration(dx, dy, baseSpeed) {
+	let duration = dx && dy ? baseSpeed * Math.SQRT2 : baseSpeed;
+	if (!duration || duration < 1) duration = 1;
+	return duration;
+}
+/**
+* Finish walking sequence for entity
+*/
+function finishWalk(entity, pos, walk, path, total) {
+	const cellHeight = entity.objecttype == entity.constructor.TYPE_FALCON ? Altitude.getCellHeight(path[total - 2], path[total - 1]) + 5 : Altitude.getCellHeight(path[total - 2], path[total - 1]);
+	pos[0] = path[total - 2];
+	pos[1] = path[total - 1];
+	pos[2] = cellHeight;
+	walk.lastPos.set(pos);
+	if (entity.isFastMoving) {
+		entity.isFastMoving = false;
+		entity._fastMoveTrail = false;
+		entity._preserveDirection = false;
+		if (typeof entity._normalSpeed === "number") {
+			entity.walk.speed = entity._normalSpeed;
+			delete entity._normalSpeed;
+		}
+	}
+	if (entity.objecttype == entity.constructor.TYPE_WUG && entity.isAttacking) entity.setAction({
+		action: entity.ACTION.ATTACK,
+		frame: 0,
+		repeat: false,
+		play: true,
+		next: {
+			delay: Date.now() + 432,
+			action: entity.ACTION.IDLE,
+			frame: 0,
+			repeat: false,
+			play: true,
+			next: false
+		}
+	});
+	else if (entity.action !== entity.ACTION.DIE) entity.setAction({
+		action: entity.ACTION.IDLE,
+		frame: 0,
+		play: true,
+		repeat: true
+	});
+	entity.onWalkEnd();
+	if (walk.onEnd) {
+		walk.onEnd();
+		walk.onEnd = null;
+	}
+	entity.resetRoute();
+	entity.isAttacking = false;
+}
+/**
 * Process walking
 */
 function walkProcess() {
@@ -310780,56 +311281,8 @@ function walkProcess() {
 		console.trace("Stack trace of debug:");
 	}
 	if (this.action === this.ACTION.WALK || this.isFastMoving || this.objecttype === this.constructor.TYPE_FALCON || this.objecttype === this.constructor.TYPE_WUG) {
-		const getSegmentDuration = function getSegmentDuration(dx, dy, baseSpeed) {
-			let duration = dx && dy ? baseSpeed * Math.SQRT2 : baseSpeed;
-			if (!duration || duration < 1) duration = 1;
-			return duration;
-		};
-		const finishWalk = () => {
-			const cellHeight = this.objecttype == this.constructor.TYPE_FALCON ? Altitude.getCellHeight(path[total - 2], path[total - 1]) + 5 : Altitude.getCellHeight(path[total - 2], path[total - 1]);
-			pos[0] = path[total - 2];
-			pos[1] = path[total - 1];
-			pos[2] = cellHeight;
-			walk.lastPos.set(pos);
-			if (this.isFastMoving) {
-				this.isFastMoving = false;
-				this._fastMoveTrail = false;
-				this._preserveDirection = false;
-				if (typeof this._normalSpeed === "number") {
-					this.walk.speed = this._normalSpeed;
-					delete this._normalSpeed;
-				}
-			}
-			if (this.objecttype == this.constructor.TYPE_WUG && this.isAttacking) this.setAction({
-				action: this.ACTION.ATTACK,
-				frame: 0,
-				repeat: false,
-				play: true,
-				next: {
-					delay: Date.now() + 432,
-					action: this.ACTION.IDLE,
-					frame: 0,
-					repeat: false,
-					play: true,
-					next: false
-				}
-			});
-			else if (this.action !== this.ACTION.DIE) this.setAction({
-				action: this.ACTION.IDLE,
-				frame: 0,
-				play: true,
-				repeat: true
-			});
-			this.onWalkEnd();
-			if (walk.onEnd) {
-				walk.onEnd();
-				walk.onEnd = null;
-			}
-			this.resetRoute();
-			this.isAttacking = false;
-		};
 		if (index >= total) {
-			finishWalk();
+			finishWalk(this, pos, walk, path, total);
 			return;
 		}
 		let startX = walk.pos[0];
@@ -310901,7 +311354,7 @@ function walkProcess() {
 		walk.tick = segmentStart;
 		walk.prevTick = TICK;
 		if (!(index >= total - 2 && t >= .999 && TICK >= segmentEnd)) return;
-		finishWalk();
+		finishWalk(this, pos, walk, path, total);
 	} else {
 		if (index < total) {
 			this.walk.tick += TICK - this.walk.prevTick;
@@ -310947,7 +311400,7 @@ function resetRoute(keepDistance) {
 	this.walk.tick = 0;
 	this.walk.prevTick = 0;
 	if (!keepDistance) this.walk.dist = 0;
-	this.walk.path = new Int16Array(PathFinding_default.MAX_WALKPATH * 2);
+	this.walk.path.fill(0);
 	if (this.walk.segmentDurations) this.walk.segmentDurations.fill(0);
 	this.walk.lastPos[0] = 0;
 	this.walk.lastPos[1] = 0;
@@ -311349,7 +311802,6 @@ var init_EntityRender = __esmMin((() => {
 	init_SpriteRenderer();
 	init_Ground();
 	init_Altitude();
-	init_Water();
 	init_SessionStorage();
 	init_DBManager();
 	init_Graphics();
@@ -311880,6 +312332,7 @@ var init_EntityRoom = __esmMin((() => {
 			this.node = EntityRoom_default.clone("EntityRoom", true);
 			this.node.init = init;
 			this.node.append();
+			if (this.owner.culled) this.node.ui[0].style.display = "none";
 		}
 		/**
 		* Remove Room
@@ -312927,6 +313380,7 @@ var init_Entity$1 = __esmMin((() => {
 			this.position = vec3.create();
 			this.gr2 = null;
 			this.gr2Model = null;
+			this.culled = false;
 			Init$11.call(this);
 			Init$10.call(this);
 			Init$9.call(this);
@@ -313412,6 +313866,7 @@ function free() {
 	});
 	_list.length = 0;
 	_gidMap.clear();
+	_over = null;
 	_pickList.length = 0;
 	_renderSortDirty = true;
 	_pickSortDirty = true;
@@ -313533,6 +313988,31 @@ function isCulled(culling, entity) {
 	return dx * dx + dy * dy > culling.viewAreaSq;
 }
 /**
+* Hide the entity overlays while culled, show them back once drawn
+*
+* @param {Entity} entity
+* @param {boolean} culled
+*/
+function setCulled(entity, culled) {
+	if (entity.culled === culled) return;
+	entity.culled = culled;
+	const display = culled ? "none" : "";
+	entity.life.canvas.style.display = display;
+	entity.emblem.canvas.style.display = display;
+	entity.display.canvas.style.display = display;
+	entity.dialog.canvas.style.display = display;
+	entity.cast.canvas.style.display = display;
+	if (entity.room.node) entity.room.node.ui[0].style.display = display;
+}
+/**
+* Decide, once per frame and before any pass draws, which entities are out of
+* the view area: their overlays are hidden and every pass skips them
+*/
+function cull() {
+	const culling = getCulling();
+	for (let i = 0, count = _list.length; i < count; ++i) setCulled(_list[i], isCulled(culling, _list[i]));
+}
+/**
 * Render all entities (picking or not)
 *
 * @param {object} gl webgl context
@@ -313555,7 +314035,6 @@ function render$4(gl, modelView, projection, fog, renderEffects) {
 		_pickSortDirty = true;
 	}
 	SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
-	const culling = getCulling();
 	for (i = 0, count = _list.length; i < count; ++i) if (_list[i].objecttype != _list[i].constructor.TYPE_EFFECT && !renderEffects || _list[i].objecttype == _list[i].constructor.TYPE_EFFECT && renderEffects) {
 		if (_list[i].remove_tick && _list[i].remove_tick + _list[i].remove_delay < tick) {
 			const entityFocus = getFocusEntity();
@@ -313572,7 +314051,7 @@ function render$4(gl, modelView, projection, fog, renderEffects) {
 			_pickSortDirty = true;
 			continue;
 		}
-		if (isCulled(culling, _list[i])) continue;
+		if (_list[i].culled) continue;
 		_list[i].render(modelView, projection);
 	}
 	SpriteRenderer.unbind(gl);
@@ -313748,6 +314227,7 @@ var init_EntityManager = __esmMin((() => {
 		getLife,
 		removeLife,
 		clearLifeCache,
+		cull,
 		render: render$4,
 		intersect,
 		setSupportPicking,
@@ -313858,6 +314338,13 @@ function bindMouseEvents() {
 	}, true);
 }
 /**
+* Keep the cursor animated while the scene render loop is stopped (login, server list)
+*/
+function renderLoop() {
+	Cursor.render(Date.now());
+	_loopId = requestAnimationFrame(renderLoop);
+}
+/**
 * Start pre-compiling animation to avoid building sprites
 * during the rendering loop
 */
@@ -313873,14 +314360,14 @@ function preCompiledAnimations() {
 	const dataURIList = [];
 	_compiledStyle = [];
 	const position = [0, 0];
-	for (i = 0, count = _action$2.actions.length; i < count; ++i) {
-		action = _action$2.actions[i];
+	for (i = 0, count = _action$1.actions.length; i < count; ++i) {
+		action = _action$1.actions[i];
 		info = ActionInformations[i] || ActionInformations[Cursor.ACTION.DEFAULT];
 		for (j = 0, size = action.animations.length; j < size; ++j) {
 			animation = action.animations[j];
 			SpriteRenderer.bind2DContext(ctx, info.drawX, info.drawY);
 			ctx.clearRect(0, 0, 50, 50);
-			for (k = 0, total = animation.layers.length; k < total; ++k) entity.renderLayer(animation.layers[k], _sprite$2, _sprite$2, 1, position, false);
+			for (k = 0, total = animation.layers.length; k < total; ++k) entity.renderLayer(animation.layers[k], _sprite$1, _sprite$1, 1, position, false);
 			dataURI = canvas.toDataURL("image/png");
 			pos = dataURIList.indexOf(dataURI);
 			if (pos > -1) {
@@ -313942,7 +314429,7 @@ function createSpriteSheet() {
 	}
 	for (let i = 0; i < totalSprites; i++) drawSprite(i);
 }
-var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sprite$2, _action$2, _selector, Cursor, _type$4, ActionInformations;
+var _tick, _norepeat, _animation, _play, _lastStyleId, _lastX, _lastY, _compiledStyle, _sceneDriven, _loopId, _sprite$1, _action$1, _selector, Cursor, _type$3, ActionInformations;
 var init_CursorManager = __esmMin((() => {
 	init_Client();
 	init_MemoryManager();
@@ -313962,6 +314449,8 @@ var init_CursorManager = __esmMin((() => {
 	_lastX = 0;
 	_lastY = 0;
 	_compiledStyle = [];
+	_sceneDriven = false;
+	_loopId = 0;
 	Cursor = class Cursor {
 		/**
 		* Cursor animation Constant
@@ -314003,14 +314492,14 @@ var init_CursorManager = __esmMin((() => {
 		* Load cursor data (action, sprite)
 		*/
 		static init(fn) {
-			if (_sprite$2) {
+			if (_sprite$1) {
 				fn();
 				return;
 			}
 			Client.getFiles(["data/sprite/cursors.spr", "data/sprite/cursors.act"], (spr, act) => {
 				try {
-					_sprite$2 = new SPR(spr);
-					_action$2 = new ACT(act);
+					_sprite$1 = new SPR(spr);
+					_action$1 = new ACT(act);
 				} catch (e) {
 					console.error("Cursor::init() - " + e.message);
 					return;
@@ -314020,6 +314509,7 @@ var init_CursorManager = __esmMin((() => {
 				bindMouseEvents();
 				preCompiledAnimations();
 				createSpriteSheet();
+				Cursor.setSceneDriven(_sceneDriven);
 				fn();
 			});
 		}
@@ -314032,7 +314522,7 @@ var init_CursorManager = __esmMin((() => {
 		*/
 		static setType(type, norepeat, animation) {
 			if (Cursor.freeze) return;
-			_type$4 = type;
+			_type$3 = type;
 			_tick = Date.now();
 			_norepeat = !!norepeat;
 			if (typeof animation !== "undefined") {
@@ -314049,7 +314539,19 @@ var init_CursorManager = __esmMin((() => {
 		* @return {number} Cursor.ACTION.*
 		*/
 		static getActualType() {
-			return _type$4;
+			return _type$3;
+		}
+		/**
+		* Let the scene render loop draw the cursor after its frame, or draw it on its own while the scene is stopped
+		*
+		* @param {boolean} value
+		*/
+		static setSceneDriven(value) {
+			_sceneDriven = value;
+			if (value) {
+				cancelAnimationFrame(_loopId);
+				_loopId = 0;
+			} else if (!_loopId && _compiledStyle.length) _loopId = requestAnimationFrame(renderLoop);
 		}
 		/**
 		* Render the cursor (update)
@@ -314060,8 +314562,8 @@ var init_CursorManager = __esmMin((() => {
 				return;
 			}
 			if (_selector && _selector.style.display === "none") _selector.style.display = "block";
-			const info = ActionInformations[_type$4] || ActionInformations[Cursor.ACTION.DEFAULT];
-			const action = _action$2.actions[_type$4] || _action$2.actions[Cursor.ACTION.DEFAULT];
+			const info = ActionInformations[_type$3] || ActionInformations[Cursor.ACTION.DEFAULT];
+			const action = _action$1.actions[_type$3] || _action$1.actions[Cursor.ACTION.DEFAULT];
 			let anim = _animation;
 			const delay = action.delay * info.delayMult;
 			let x = info.startX;
@@ -314100,7 +314602,7 @@ var init_CursorManager = __esmMin((() => {
 			}
 		}
 	};
-	_type$4 = Cursor.ACTION.DEFAULT;
+	_type$3 = Cursor.ACTION.DEFAULT;
 	ActionInformations = {};
 	ActionInformations[Cursor.ACTION.DEFAULT] = {
 		drawX: 1,
@@ -314726,6 +315228,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.mouseMode === MouseMode.FREEZE) {
 				Mouse.intersect = false;
 				SessionStorage_default.FreezeUI = true;
+				_EntityManager?.setOverEntity(null);
 				_Cursor?.setType(_Cursor?.ACTION?.DEFAULT ?? 0);
 			}
 			if (this.onAppend) this.onAppend();
@@ -319075,11 +319578,11 @@ function onDrop$6(event) {
 		if (comp && comp.ui) (comp.ui[0] || comp.ui).dispatchEvent(new MouseEvent("mouseleave", { bubbles: false }));
 	}
 	if (data.type !== "item" || data.from !== "Inventory") return;
-	if (EquipmentController.getUI().ui.is(":visible")) {
+	if (EquipmentController.ui.is(":visible")) {
 		ChatBox_default.addText(DB.getMessage(189), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.ITEM);
 		return;
 	}
-	if (UIManager.getComponent("Inventory").name !== "InventoryV0" && InventoryController.getUI().itemlock === true) return;
+	if (UIManager.getComponent("Inventory").name !== "InventoryV0" && InventoryController.itemlock === true) return;
 	const item = data.data;
 	if (item.count > 1) {
 		InputBox_default.append();
@@ -319330,11 +319833,11 @@ function addItem$1(content, item, isinput) {
 		const price = prettyZeny$3(item.price, true);
 		const container = document.createElement("div");
 		container.className = "item-container";
-		const amountText = _type$3 === Vending.Type.BUYING_STORE ? item.total : item.IsStackable ? item.count : "";
-		const eaHtml = _type$3 === Vending.Type.BUYING_STORE ? `<div class="amount_">${item.count} ea</div>` : "";
+		const amountText = _type$2 === Vending.Type.BUYING_STORE ? item.total : item.IsStackable ? item.count : "";
+		const eaHtml = _type$2 === Vending.Type.BUYING_STORE ? `<div class="amount_">${item.count} ea</div>` : "";
 		container.innerHTML = `<div class="item output" draggable="true" data-index="${item.index}"><div class="icon"></div><div class="amount">${amountText}</div>` + eaHtml + `<div class="name">${escapeHtml(DB.getItemName(item))}</div><div class="price">${textPrice} ${price}</div></div>`;
 		itemObj = container;
-		if (_type$3 === Vending.Type.BUYING_STORE) {
+		if (_type$2 === Vending.Type.BUYING_STORE) {
 			const limitInput = Vending.getRoot().querySelector(".limitZeny");
 			let limit = parseInt(limitInput.value, 10);
 			limit += item.count * item.price;
@@ -319360,7 +319863,7 @@ function requestMoveItem$1(index, fromContent, toContent, isAdding) {
 		if (!(countSlotsUsed() < _slots)) return false;
 		count = _input$1[index].count;
 	} else count = _output$1[index].count;
-	if ((item.count === 1 || !item.IsStackable) && _type$3 === Vending.Type.VENDING_STORE) {
+	if ((item.count === 1 || !item.IsStackable) && _type$2 === Vending.Type.VENDING_STORE) {
 		if (isAdding) {
 			InputBox_default.append();
 			InputBox_default.setType("price", false, item_price);
@@ -319377,11 +319880,11 @@ function requestMoveItem$1(index, fromContent, toContent, isAdding) {
 	InputBox_default.onSubmitRequest = function(_count) {
 		InputBox_default.remove();
 		if (_count > 0) {
-			if (_count >= 9999 && _type$3 === Vending.Type.BUYING_STORE) {
+			if (_count >= 9999 && _type$2 === Vending.Type.BUYING_STORE) {
 				VendingModelMessage_default.setInit(1742);
 				return;
 			}
-			if (item.count + _count > 9999 && _type$3 === Vending.Type.BUYING_STORE) {
+			if (item.count + _count > 9999 && _type$2 === Vending.Type.BUYING_STORE) {
 				VendingModelMessage_default.setInit(1728);
 				return;
 			}
@@ -319426,7 +319929,7 @@ function onItemInfo$11(event) {
 	ItemInfo_default.setItem(item);
 }
 function onItemSelected$1() {
-	if (_type$3 === Vending.Type.BUY || _type$3 === Vending.Type.VENDING_STORE) return;
+	if (_type$2 === Vending.Type.BUY || _type$2 === Vending.Type.VENDING_STORE) return;
 	const root = Vending.getRoot();
 	const inputWin = root.querySelector(".InputWindow");
 	let from, to;
@@ -319503,7 +320006,7 @@ function submitNetworkPacket(pkt) {
 function onItemOver$8() {
 	if (!this.classList.contains("input")) return;
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = _type$3 === Vending.Type.VENDING_STORE ? CartItems_default.getItemByIndex(idx) : InventoryController.getUI().getItemByIndex(idx);
+	const item = _type$2 === Vending.Type.VENDING_STORE ? CartItems_default.getItemByIndex(idx) : InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	const overlay = Vending.getRoot().querySelector(".overlay");
 	overlay.style.display = "";
@@ -319515,7 +320018,7 @@ function onItemOut$9() {
 	const overlay = Vending.getRoot().querySelector(".overlay");
 	if (overlay) overlay.style.display = "none";
 }
-var Vending, _preferences$16, _input$1, _output$1, _slots, _type$3, transferItem$1, Vending_default;
+var Vending, _preferences$16, _input$1, _output$1, _slots, _type$2, transferItem$1, Vending_default;
 var init_Vending = __esmMin((() => {
 	init_DBManager();
 	init_NetworkManager();
@@ -319578,7 +320081,7 @@ var init_Vending = __esmMin((() => {
 			cancelBtn.addEventListener("click", (e) => {
 				e.stopImmediatePropagation();
 				let pkt;
-				if (_type$3 === Vending.Type.VENDING_STORE) pkt = new PACKET.CZ.REQ_OPENSTORE2();
+				if (_type$2 === Vending.Type.VENDING_STORE) pkt = new PACKET.CZ.REQ_OPENSTORE2();
 				else pkt = new PACKET.CZ.REQ_OPEN_BUYING_STORE();
 				submitNetworkPacket(pkt);
 				Vending.onRemove();
@@ -319687,10 +320190,10 @@ var init_Vending = __esmMin((() => {
 					el.style.display = "";
 				});
 				root.querySelector(".zenySpan").textContent = prettyZeny$3(SessionStorage_default.zeny);
-				root.querySelector(".weightSpan").textContent = `${BasicInfoController.getUI().weight}/${BasicInfoController.getUI().weight_max}`;
+				root.querySelector(".weightSpan").textContent = `${BasicInfoController.weight}/${BasicInfoController.weight_max}`;
 				root.querySelector(".limitZeny").value = "0";
 		}
-		_type$3 = type;
+		_type$2 = type;
 	};
 	Vending.onRemove = function onRemove() {
 		VendingModelMessage_default.onRemove();
@@ -319753,17 +320256,17 @@ var init_Vending = __esmMin((() => {
 					VendingModelMessage_default.setInit(603);
 					return;
 				}
-				_output$1[index].count = _type$3 === Vending.Type.BUYING_STORE ? count : Math.min(_output$1[index].count + count, _input$1[index].count);
+				_output$1[index].count = _type$2 === Vending.Type.BUYING_STORE ? count : Math.min(_output$1[index].count + count, _input$1[index].count);
 				tmpItem = Object.assign({}, _input$1[index]);
-				tmpItem.count = _type$3 === Vending.Type.BUYING_STORE ? 0 : _input$1[index].count - _output$1[index].count;
+				tmpItem.count = _type$2 === Vending.Type.BUYING_STORE ? 0 : _input$1[index].count - _output$1[index].count;
 				addItem$1(fromContent, tmpItem, true);
 				addItem$1(toContent, _output$1[index], false);
 			} else {
 				count = Math.min(count, _output$1[index].count);
 				if (!count) return;
-				_output$1[index].count = _type$3 === Vending.Type.BUYING_STORE ? 0 : _output$1[index].count - count;
+				_output$1[index].count = _type$2 === Vending.Type.BUYING_STORE ? 0 : _output$1[index].count - count;
 				tmpItem = Object.assign({}, _input$1[index]);
-				tmpItem.count = _type$3 === Vending.Type.BUYING_STORE ? _input$1[index].total : _input$1[index].count + _output$1[index].count;
+				tmpItem.count = _type$2 === Vending.Type.BUYING_STORE ? _input$1[index].total : _input$1[index].count + _output$1[index].count;
 				addItem$1(fromContent, _output$1[index], false);
 				addItem$1(toContent, tmpItem, true);
 			}
@@ -319784,8 +320287,8 @@ var init_Vending = __esmMin((() => {
 		if (Vending.isOpen) return;
 		_slots = pkt.itemcount;
 		const buyable = [];
-		for (const key in InventoryController.getUI().list) {
-			const item = InventoryController.getUI().list[key];
+		for (const key in InventoryController.list) {
+			const item = InventoryController.list[key];
 			if (isItemStackable(item) && DB.isBuyable(item.ITID)) buyable.push(item);
 		}
 		this.setList(buyable);
@@ -319816,7 +320319,7 @@ var init_Vending = __esmMin((() => {
 			return;
 		}
 		let pkt;
-		if (_type$3 === Vending.Type.VENDING_STORE) pkt = new PACKET.CZ.REQ_OPENSTORE2();
+		if (_type$2 === Vending.Type.VENDING_STORE) pkt = new PACKET.CZ.REQ_OPENSTORE2();
 		else {
 			pkt = new PACKET.CZ.REQ_OPEN_BUYING_STORE();
 			limitZeny = parseInt(root.querySelector(".limitZeny").value, 10);
@@ -319930,7 +320433,7 @@ function onItemOver$7(itemEl, root) {
 	overlay.style.left = `${itemEl.offsetLeft + 35}px`;
 	overlay.textContent = `${DB.getItemName(item)} ${prettyZeny$2(item.price, false)} ${DB.getMessage(2328)}`;
 	if (item.IsIdentified) overlay.classList.remove("grey");
-	else if (_type$2 === VendingShop.Type.VENDING_LIST) overlay.classList.add("grey");
+	else if (_type$1 === VendingShop.Type.VENDING_LIST) overlay.classList.add("grey");
 }
 /**
 * Hide the item name
@@ -319975,7 +320478,7 @@ function onItemUsed(event, itemEl) {
 	event.stopImmediatePropagation();
 	event.preventDefault();
 }
-var VendingShop, _realSize, _type$2, _preferences$15, VendingShop_default;
+var VendingShop, _realSize, _type$1, _preferences$15, VendingShop_default;
 var init_VendingShop = __esmMin((() => {
 	init_DBManager();
 	init_NetworkManager();
@@ -320077,7 +320580,7 @@ var init_VendingShop = __esmMin((() => {
 	* @param {number} type (see NpcStore.Type.*)
 	*/
 	VendingShop.setType = function setType(type) {
-		_type$2 = type;
+		_type$1 = type;
 	};
 	/**
 	* Remove Inventory from window (and so clean up items)
@@ -320252,11 +320755,11 @@ var init_VendingShop = __esmMin((() => {
 	*/
 	VendingShop.onSubmit = function onSubmit() {
 		let pkt;
-		if (_type$2 === VendingShop.Type.VENDING_LIST) pkt = new PACKET.CZ.REQ_CLOSESTORE();
+		if (_type$1 === VendingShop.Type.VENDING_LIST) pkt = new PACKET.CZ.REQ_CLOSESTORE();
 		else pkt = new PACKET.CZ.REQ_CLOSE_BUYING_STORE();
 		Network.sendPacket(pkt);
 		this.onRemove();
-		if (_type$2 === VendingShop.Type.VENDING_LIST && PacketVerManager_default.value >= 20141016) VendingReport_default.append();
+		if (_type$1 === VendingShop.Type.VENDING_LIST && PacketVerManager_default.value >= 20141016) VendingReport_default.append();
 	};
 	VendingShop.mouseMode = GUIComponent.MouseMode.STOP;
 	VendingShop_default = UIManager.addComponent(VendingShop);
@@ -320989,16 +321492,16 @@ function refreshList(contentEl) {
 		const emo = Emotions_default.order[index];
 		canvas.setAttribute("data-index", emo);
 		canvas.title = "/" + Emotions_default.names[emo];
-		const animations = _action$1.actions[emo].animations;
+		const animations = _action.actions[emo].animations;
 		const layers = animations[Math.floor(animations.length / 5)].layers;
 		const count = layers.length;
 		SpriteRenderer.bind2DContext(ctx, 20 - layers[0].pos[0], 40 - layers[0].pos[1]);
-		for (let i = 0; i < count; ++i) _entity$1.renderLayer(layers[i], _sprite$1, _sprite$1, 1, pos, false);
+		for (let i = 0; i < count; ++i) _entity$1.renderLayer(layers[i], _sprite, _sprite, 1, pos, false);
 		contentEl.appendChild(canvas);
 		index++;
 	}
 }
-var Emoticons, _page, EMOTICONS_PER_PAGE, TOTAL_PAGES, EMOTICONS_COUNT, _action$1, _sprite$1, _entity$1, _preferences$13, Emoticons_default;
+var Emoticons, _page, EMOTICONS_PER_PAGE, TOTAL_PAGES, EMOTICONS_COUNT, _action, _sprite, _entity$1, _preferences$13, Emoticons_default;
 var init_Emoticons = __esmMin((() => {
 	init_Emotions();
 	init_Client();
@@ -321034,8 +321537,8 @@ var init_Emoticons = __esmMin((() => {
 		const root = this.getRoot();
 		const contentEl = root.querySelector(".content");
 		Client.loadFiles(["data/sprite/ÀÌÆÑÆ®/emotion.act", "data/sprite/ÀÌÆÑÆ®/emotion.spr"], (act, spr) => {
-			_action$1 = act;
-			_sprite$1 = spr;
+			_action = act;
+			_sprite = spr;
 			TOTAL_PAGES = Math.max(0, Math.ceil(EMOTICONS_COUNT / EMOTICONS_PER_PAGE) - 1);
 			const totalEl = root.querySelector(".total");
 			if (totalEl) totalEl.textContent = TOTAL_PAGES + 1;
@@ -322282,7 +322785,7 @@ function resetReformUIState() {
 */
 function GetInventoryItemsById$2(id) {
 	const items = [];
-	const list = InventoryController.getUI().list;
+	const list = InventoryController.list;
 	for (let i = 0, count = list.length; i < count; ++i) if (list[i].ITID === id) items.push(list[i]);
 	return items;
 }
@@ -322295,7 +322798,7 @@ function onOpenReformUI(pkt) {
 		ReformInfo = {};
 		SelectedReformInfo = {};
 		const reformids = DB.findReformListByItemID(pkt.ITID);
-		const item = InventoryController.getUI().getItemById(pkt.ITID);
+		const item = InventoryController.getItemById(pkt.ITID);
 		if (!item) return false;
 		ReformUIState.itemId = pkt.ITID;
 		if (reformids) {
@@ -322358,7 +322861,7 @@ function onAddMaterialItem$2(item) {
 */
 function onMaterialSelect(element) {
 	const idx = parseInt(element.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	ReformUIState.index = item.index;
 	SelectedReformInfo = ReformInfo.find((info) => info.BaseItemId === item.ITID);
@@ -322369,7 +322872,7 @@ function onMaterialSelect(element) {
 	availableMatList.querySelectorAll(".item").forEach((el) => {
 		el.classList.remove("selected");
 		const resetIdx = parseInt(el.getAttribute("data-index"), 10);
-		const resetItem = InventoryController.getUI().getItemByIndex(resetIdx);
+		const resetItem = InventoryController.getItemByIndex(resetIdx);
 		if (resetItem) Client.loadFile(DB.INTERFACE_PATH + "itemreform/btn_reform_item.bmp", function(data) {
 			const target = availableMatList.querySelector(`.item[data-index="${resetItem.index}"]`);
 			if (target) target.style.backgroundImage = `url(${data})`;
@@ -322388,7 +322891,7 @@ function onMaterialSelect(element) {
 function onHoverContainer(element) {
 	if (element.classList.contains("selected")) return;
 	const idx = parseInt(element.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	const availableMatList = _root$5().querySelector(".available_material_list");
 	if (!availableMatList) return;
@@ -322403,7 +322906,7 @@ function onHoverContainer(element) {
 function onHoverOutContainer(element) {
 	if (element.classList.contains("selected")) return;
 	const idx = parseInt(element.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	const availableMatList = _root$5().querySelector(".available_material_list");
 	if (!availableMatList) return;
@@ -322460,7 +322963,7 @@ function UpdatePossibleReformUI(item, info) {
 	let withenoughMat = 0;
 	limitedMaterials.forEach((material) => {
 		const mat_it = DB.getItemInfo(material.MaterialItemID);
-		const mat_item = InventoryController.getUI().getItemById(material.MaterialItemID);
+		const mat_item = InventoryController.getItemById(material.MaterialItemID);
 		let inventory_mat_count;
 		if (!mat_item) inventory_mat_count = 0;
 		else inventory_mat_count = mat_item.type === ItemType_default.WEAPON || mat_item.type === ItemType_default.ARMOR ? 1 : mat_item.count;
@@ -322519,7 +323022,7 @@ function onHoverOutDetails() {
 function onItemReformResult(pkt) {
 	if (pkt) switch (pkt.result) {
 		case 0: {
-			const item = InventoryController.getUI().getItemByIndex(pkt.index);
+			const item = InventoryController.getItemByIndex(pkt.index);
 			const EF_Init_Par = {
 				effectId: EffectConst_default.EF_NEW_SUCCESS,
 				ownerAID: SessionStorage_default.AID
@@ -322575,7 +323078,7 @@ function onItemOver$5(event, element) {
 		IsIdentified: 1
 	};
 	else if (element.classList.contains("resultitem")) item = ReformUIState.resultItem;
-	else item = InventoryController.getUI().getItemByIndex(idx);
+	else item = InventoryController.getItemByIndex(idx);
 	const overlay = _root$5().querySelector(".overlay");
 	if (!overlay) return;
 	overlay.style.display = "block";
@@ -322620,7 +323123,7 @@ function onItemInfo$7(element) {
 		IsIdentified: 1
 	};
 	else if (element.classList.contains("resultitem")) item = ReformUIState.resultItem;
-	else item = InventoryController.getUI().getItemByIndex(idx);
+	else item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	showItemPreview(item);
 }
@@ -322639,8 +323142,8 @@ function showItemPreview(item) {
 	ItemInfo_default.append();
 	ItemInfo_default.uid = item.ITID;
 	ItemInfo_default.setItem(item);
-	const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-	if (compareItem && InventoryController.getUI().itemcomp) {
+	const compareItem = EquipmentController.isInEquipList(item.location);
+	if (compareItem && InventoryController.itemcomp) {
 		ItemCompare_default.prepare();
 		ItemCompare_default.append();
 		ItemCompare_default.uid = compareItem.ITID;
@@ -322850,7 +323353,7 @@ function onOpenLaphineUI(pkt) {
 * Updates the Laphine UI with the current state information.
 */
 function onUpdateLaphineUI() {
-	const item = InventoryController.getUI().getItemById(LaphineUIState.itemId);
+	const item = InventoryController.getItemById(LaphineUIState.itemId);
 	if (!item) return false;
 	const root = _root$4();
 	root.querySelector(".item_text").textContent = DB.getItemName(item);
@@ -322865,7 +323368,7 @@ function onUpdateLaphineUI() {
 */
 function GetInventoryItemsById$1(id) {
 	const items = [];
-	const list = InventoryController.getUI().list;
+	const list = InventoryController.list;
 	for (let i = 0, count = list.length; i < count; ++i) if (list[i].ITID === id) items.push(list[i]);
 	return items;
 }
@@ -322929,7 +323432,7 @@ function onItemSelect$1(e) {
 		return;
 	}
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) {
 		e.preventDefault();
 		e.stopImmediatePropagation();
@@ -322950,7 +323453,7 @@ function onSubmitItem$1() {
 	let idx;
 	if (selectedItem) idx = parseInt(selectedItem.closest(".item").getAttribute("data-index"), 10);
 	else idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	if (LaphineSys.submittedItems.some((submittedItem) => submittedItem.index === item.index)) return;
 	const sourceItem = LaphineUIState.sourceItems.find((si) => si.id === item.ITID);
@@ -323020,7 +323523,7 @@ function adjustSubmittedMatList() {
 */
 function onItemRemove$1() {
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (item) onRemoveItemSubmitList$1(item, this);
 }
 function onRemoveItemSubmitList$1(item, element = null) {
@@ -323048,7 +323551,7 @@ function updateAvailableMatList$1(itemId, itemIndex, countChange, increase) {
 	let itemExists = false;
 	availableMatList.querySelectorAll(".item").forEach((el) => {
 		const idx = parseInt(el.getAttribute("data-index"), 10);
-		const item = InventoryController.getUI().getItemByIndex(idx);
+		const item = InventoryController.getItemByIndex(idx);
 		if (item.ITID === itemId && idx === itemIndex) {
 			itemExists = true;
 			let tempCount = item.type === ItemType_default.WEAPON || item.type === ItemType_default.ARMOR ? 1 : item.count;
@@ -323072,7 +323575,7 @@ function updateAvailableMatList$1(itemId, itemIndex, countChange, increase) {
 		}
 	});
 	if (increase && !itemExists) {
-		const item = InventoryController.getUI().getItemByIndex(itemIndex);
+		const item = InventoryController.getItemByIndex(itemIndex);
 		if (item) {
 			const inventory_count = item.type === ItemType_default.WEAPON || item.type === ItemType_default.ARMOR ? 1 : item.count;
 			const sourceItem = LaphineUIState.sourceItems.find((si) => si.id === itemId);
@@ -323120,7 +323623,7 @@ function onRequestSynthesis() {
 */
 function onItemOver$4() {
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	const root = _root$4();
 	const overlay = root.querySelector(".overlay");
@@ -323158,7 +323661,7 @@ function stopPropagation$5(event) {
 */
 function onItemDragStart$3(event) {
 	const index = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(index);
+	const item = InventoryController.getItemByIndex(index);
 	if (!item) return;
 	const img = new Image();
 	const iconEl = this.querySelector(".icon");
@@ -323227,7 +323730,7 @@ function onItemInfo$6(event) {
 	event.stopImmediatePropagation();
 	event.preventDefault();
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	if (ItemCompare_default.ui) ItemCompare_default.remove();
 	if (ItemInfo_default.uid === item.ITID) {
@@ -323238,8 +323741,8 @@ function onItemInfo$6(event) {
 	ItemInfo_default.append();
 	ItemInfo_default.uid = item.ITID;
 	ItemInfo_default.setItem(item);
-	const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-	if (compareItem && InventoryController.getUI().itemcomp) {
+	const compareItem = EquipmentController.isInEquipList(item.location);
+	if (compareItem && InventoryController.itemcomp) {
 		ItemCompare_default.prepare();
 		ItemCompare_default.append();
 		ItemCompare_default.uid = compareItem.ITID;
@@ -323460,7 +323963,7 @@ function onOpenLaphineUpgUI(pkt) {
 * Updates the Laphine UI with the current state information.
 */
 function onUpdateLaphineUpgUI() {
-	const item = InventoryController.getUI().getItemById(LaphineUpgUIState.itemId);
+	const item = InventoryController.getItemById(LaphineUpgUIState.itemId);
 	if (!item) return false;
 	const root = _root$3();
 	root.querySelector(".item_text").textContent = DB.getItemName(item);
@@ -323474,7 +323977,7 @@ function onUpdateLaphineUpgUI() {
 */
 function GetInventoryItemsById(id) {
 	const items = [];
-	const list = InventoryController.getUI().list;
+	const list = InventoryController.list;
 	for (let i = 0, count = list.length; i < count; ++i) if (list[i].ITID === id) items.push(list[i]);
 	return items;
 }
@@ -323546,7 +324049,7 @@ function onRequestLaphineUpgClose() {
 */
 function onItemSelect(e) {
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) {
 		e.preventDefault();
 		e.stopImmediatePropagation();
@@ -323566,7 +324069,7 @@ function onSubmitItem() {
 	let idx;
 	if (selectedItem) idx = parseInt(selectedItem.closest(".item").getAttribute("data-index"), 10);
 	else idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	if (LaphineUpg.submittedIndex !== 0) return;
 	if (root.querySelector(".submitted_mat_list .item")) return;
@@ -323609,7 +324112,7 @@ function onCheckSubmittedItem(item) {
 */
 function onItemRemove() {
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (item) onRemoveItemSubmitList(item, this);
 }
 /**
@@ -323636,13 +324139,13 @@ function updateAvailableMatList(itemId, itemIndex, remove) {
 	let itemExists = false;
 	availableMatList.querySelectorAll(".item").forEach((el) => {
 		const idx = parseInt(el.getAttribute("data-index"), 10);
-		if (InventoryController.getUI().getItemByIndex(idx).ITID === itemId && idx === itemIndex) {
+		if (InventoryController.getItemByIndex(idx).ITID === itemId && idx === itemIndex) {
 			itemExists = true;
 			if (remove) el.remove();
 		}
 	});
 	if (!remove && !itemExists) {
-		const item = InventoryController.getUI().getItemByIndex(itemIndex);
+		const item = InventoryController.getItemByIndex(itemIndex);
 		if (item) {
 			const targetItem = LaphineUpgUIState.targetItems.find((ti) => ti.id === itemId);
 			if (targetItem) {
@@ -323671,7 +324174,7 @@ function showMessage(message) {
 * Handles the upgrade request by preparing and sending the packet.
 */
 function onRequestLaphineUpg() {
-	if (!InventoryController.getUI().getItemByIndex(LaphineUpg.submittedIndex)) return;
+	if (!InventoryController.getItemByIndex(LaphineUpg.submittedIndex)) return;
 	const pkt = new PACKET.CZ.REQ_RANDOM_UPGRADE_ITEM();
 	pkt.itemId = LaphineUpgUIState.itemId;
 	pkt.item_index = LaphineUpg.submittedIndex;
@@ -323685,7 +324188,7 @@ function onRequestLaphineUpg() {
 */
 function onItemOver$3() {
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	const root = _root$3();
 	const overlay = root.querySelector(".overlay");
@@ -323726,7 +324229,7 @@ function stopPropagation$4(event) {
 */
 function onItemDragStart$2(event) {
 	const index = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(index);
+	const item = InventoryController.getItemByIndex(index);
 	if (!item) return;
 	const img = new Image();
 	const iconEl = this.querySelector(".icon");
@@ -323796,7 +324299,7 @@ function onItemInfo$5(event) {
 	event.stopImmediatePropagation();
 	event.preventDefault();
 	const idx = parseInt(this.getAttribute("data-index"), 10);
-	const item = InventoryController.getUI().getItemByIndex(idx);
+	const item = InventoryController.getItemByIndex(idx);
 	if (!item) return;
 	if (ItemCompare_default.ui) ItemCompare_default.remove();
 	if (ItemInfo_default.uid === item.ITID) {
@@ -323807,8 +324310,8 @@ function onItemInfo$5(event) {
 	ItemInfo_default.append();
 	ItemInfo_default.uid = item.ITID;
 	ItemInfo_default.setItem(item);
-	const compareItem = EquipmentController.getUI().isInEquipList(item.location);
-	if (compareItem && InventoryController.getUI().itemcomp) {
+	const compareItem = EquipmentController.isInEquipList(item.location);
+	if (compareItem && InventoryController.itemcomp) {
 		ItemCompare_default.prepare();
 		ItemCompare_default.append();
 		ItemCompare_default.uid = compareItem.ITID;
@@ -325758,7 +326261,7 @@ var init_PlayerViewEquip = __esmMin((() => {
 	_selectUIVersion = PlayerViewEquipController.selectUIVersion;
 	PlayerViewEquipController.selectUIVersion = function() {
 		_selectUIVersion();
-		const component = PlayerViewEquipController.getUI();
+		const component = PlayerViewEquipController;
 		DB.UpdateOwnerName.PlayerViewEquip = component.onUpdateOwnerName;
 		component.onKeyDown = function onKeyDown(e) {
 			if ((e.which === KEYS.ESCAPE || e.key === "Escape") && component.ui.is(":visible")) {
@@ -326123,32 +326626,32 @@ function onAttackRangeUpdate(pkt) {
 * @param {object} pkt - PACKET.ZC.STATUS
 */
 function onStatusParameterChange(pkt) {
-	WinStatsController.getUI().update("str", pkt.str);
-	WinStatsController.getUI().update("agi", pkt.agi);
-	WinStatsController.getUI().update("vit", pkt.vit);
-	WinStatsController.getUI().update("int", pkt.Int);
-	WinStatsController.getUI().update("dex", pkt.dex);
-	WinStatsController.getUI().update("luk", pkt.luk);
-	WinStatsController.getUI().update("str3", pkt.standardStr);
-	WinStatsController.getUI().update("agi3", pkt.standardAgi);
-	WinStatsController.getUI().update("vit3", pkt.standardVit);
-	WinStatsController.getUI().update("int3", pkt.standardInt);
-	WinStatsController.getUI().update("dex3", pkt.standardDex);
-	WinStatsController.getUI().update("luk3", pkt.standardLuk);
-	WinStatsController.getUI().update("aspd", (pkt.ASPD + pkt.plusASPD) / 4);
-	WinStatsController.getUI().update("atak", pkt.attPower);
-	WinStatsController.getUI().update("atak2", pkt.refiningPower);
-	WinStatsController.getUI().update("matak", pkt.min_mattPower);
-	WinStatsController.getUI().update("matak2", pkt.max_mattPower);
-	WinStatsController.getUI().update("flee", pkt.avoidSuccessValue);
-	WinStatsController.getUI().update("flee2", pkt.plusAvoidSuccessValue);
-	WinStatsController.getUI().update("critical", pkt.criticalSuccessValue);
-	WinStatsController.getUI().update("hit", pkt.hitSuccessValue);
-	WinStatsController.getUI().update("def", pkt.itemdefPower);
-	WinStatsController.getUI().update("def2", pkt.plusdefPower);
-	WinStatsController.getUI().update("mdef", pkt.mdefPower);
-	WinStatsController.getUI().update("mdef2", pkt.plusmdefPower);
-	WinStatsController.getUI().update("statuspoint", pkt.point);
+	WinStatsController.update("str", pkt.str);
+	WinStatsController.update("agi", pkt.agi);
+	WinStatsController.update("vit", pkt.vit);
+	WinStatsController.update("int", pkt.Int);
+	WinStatsController.update("dex", pkt.dex);
+	WinStatsController.update("luk", pkt.luk);
+	WinStatsController.update("str3", pkt.standardStr);
+	WinStatsController.update("agi3", pkt.standardAgi);
+	WinStatsController.update("vit3", pkt.standardVit);
+	WinStatsController.update("int3", pkt.standardInt);
+	WinStatsController.update("dex3", pkt.standardDex);
+	WinStatsController.update("luk3", pkt.standardLuk);
+	WinStatsController.update("aspd", (pkt.ASPD + pkt.plusASPD) / 4);
+	WinStatsController.update("atak", pkt.attPower);
+	WinStatsController.update("atak2", pkt.refiningPower);
+	WinStatsController.update("matak", pkt.min_mattPower);
+	WinStatsController.update("matak2", pkt.max_mattPower);
+	WinStatsController.update("flee", pkt.avoidSuccessValue);
+	WinStatsController.update("flee2", pkt.plusAvoidSuccessValue);
+	WinStatsController.update("critical", pkt.criticalSuccessValue);
+	WinStatsController.update("hit", pkt.hitSuccessValue);
+	WinStatsController.update("def", pkt.itemdefPower);
+	WinStatsController.update("def2", pkt.plusdefPower);
+	WinStatsController.update("mdef", pkt.mdefPower);
+	WinStatsController.update("mdef2", pkt.plusmdefPower);
+	WinStatsController.update("statuspoint", pkt.point);
 }
 /**
 * Answer from server for updating parameter
@@ -326159,39 +326662,39 @@ function onStatusParameterUpdateAnswer(pkt) {
 	if (!pkt.result) return;
 	switch (pkt.statusID) {
 		case StatusProperty_default.STR:
-			WinStatsController.getUI().update("str", pkt.value);
+			WinStatsController.update("str", pkt.value);
 			break;
 		case StatusProperty_default.AGI:
-			WinStatsController.getUI().update("agi", pkt.value);
+			WinStatsController.update("agi", pkt.value);
 			break;
 		case StatusProperty_default.VIT:
-			WinStatsController.getUI().update("vit", pkt.value);
+			WinStatsController.update("vit", pkt.value);
 			break;
 		case StatusProperty_default.INT:
-			WinStatsController.getUI().update("int", pkt.value);
+			WinStatsController.update("int", pkt.value);
 			break;
 		case StatusProperty_default.DEX:
-			WinStatsController.getUI().update("dex", pkt.value);
+			WinStatsController.update("dex", pkt.value);
 			break;
 		case StatusProperty_default.LUK:
-			WinStatsController.getUI().update("luk", pkt.value);
+			WinStatsController.update("luk", pkt.value);
 			break;
 		case StatusProperty_default.VAR_SP_POW:
-			WinStatsController.getUI().update("pow", pkt.value);
+			WinStatsController.update("pow", pkt.value);
 			break;
 		case StatusProperty_default.VAR_SP_STA:
-			WinStatsController.getUI().update("sta", pkt.value);
+			WinStatsController.update("sta", pkt.value);
 			break;
 		case StatusProperty_default.VAR_SP_WIS:
-			WinStatsController.getUI().update("wis", pkt.value);
+			WinStatsController.update("wis", pkt.value);
 			break;
 		case StatusProperty_default.VAR_SP_SPL:
-			WinStatsController.getUI().update("spl", pkt.value);
+			WinStatsController.update("spl", pkt.value);
 			break;
 		case StatusProperty_default.VAR_SP_CON:
-			WinStatsController.getUI().update("con", pkt.value);
+			WinStatsController.update("con", pkt.value);
 			break;
-		case StatusProperty_default.VAR_SP_CRT: WinStatsController.getUI().update("crt", pkt.value);
+		case StatusProperty_default.VAR_SP_CRT: WinStatsController.update("crt", pkt.value);
 	}
 }
 /**
@@ -326213,12 +326716,12 @@ function onParameterChange$1(pkt) {
 			SessionStorage_default.Entity.walk.speed = amount;
 			break;
 		case StatusProperty_default.EXP:
-			BasicInfoController.getUI().base_exp = amount;
-			if (BasicInfoController.getUI().base_exp_next) BasicInfoController.getUI().update("bexp", BasicInfoController.getUI().base_exp, BasicInfoController.getUI().base_exp_next);
+			BasicInfoController.base_exp = amount;
+			if (BasicInfoController.base_exp_next) BasicInfoController.update("bexp", BasicInfoController.base_exp, BasicInfoController.base_exp_next);
 			break;
 		case StatusProperty_default.JOBEXP:
-			BasicInfoController.getUI().job_exp = amount;
-			if (BasicInfoController.getUI().job_exp_next) BasicInfoController.getUI().update("jexp", BasicInfoController.getUI().job_exp, BasicInfoController.getUI().job_exp_next);
+			BasicInfoController.job_exp = amount;
+			if (BasicInfoController.job_exp_next) BasicInfoController.update("jexp", BasicInfoController.job_exp, BasicInfoController.job_exp_next);
 			break;
 		case StatusProperty_default.VIRTUE:
 		case StatusProperty_default.HONOR: break;
@@ -326226,8 +326729,8 @@ function onParameterChange$1(pkt) {
 			SessionStorage_default.Entity.life.hp = amount;
 			SessionStorage_default.Entity.life.update();
 			if (SessionStorage_default.Entity.life.hp_max > -1) {
-				BasicInfoController.getUI().update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
-				if (SessionStorage_default.hasParty) controller.getUI().updateMemberLife(SessionStorage_default.AID, SessionStorage_default.Entity.life.canvas, SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
+				BasicInfoController.update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
+				if (SessionStorage_default.hasParty) controller.updateMemberLife(SessionStorage_default.AID, SessionStorage_default.Entity.life.canvas, SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
 			}
 			if (SessionStorage_default.Entity.life.hp <= 25 / 100 * SessionStorage_default.Entity.life.hp_max) {
 				if (SessionStorage_default.pet.friendly > 900 && (SessionStorage_default.pet.lastTalk || 0) + 1e4 < Date.now()) {
@@ -326254,28 +326757,28 @@ function onParameterChange$1(pkt) {
 			SessionStorage_default.Entity.life.hp_max = amount;
 			SessionStorage_default.Entity.life.update();
 			if (SessionStorage_default.Entity.life.hp > -1) {
-				BasicInfoController.getUI().update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
-				if (SessionStorage_default.hasParty) controller.getUI().updateMemberLife(SessionStorage_default.AID, SessionStorage_default.Entity.life.canvas, SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
+				BasicInfoController.update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
+				if (SessionStorage_default.hasParty) controller.updateMemberLife(SessionStorage_default.AID, SessionStorage_default.Entity.life.canvas, SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
 			}
 			break;
 		case StatusProperty_default.SP:
 			SessionStorage_default.Entity.life.sp = amount;
 			SessionStorage_default.Entity.life.update();
-			if (SessionStorage_default.Entity.life.sp_max > -1) BasicInfoController.getUI().update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
+			if (SessionStorage_default.Entity.life.sp_max > -1) BasicInfoController.update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
 			break;
 		case StatusProperty_default.MAXSP:
 			SessionStorage_default.Entity.life.sp_max = amount;
 			SessionStorage_default.Entity.life.update();
-			if (SessionStorage_default.Entity.life.sp > -1) BasicInfoController.getUI().update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
+			if (SessionStorage_default.Entity.life.sp > -1) BasicInfoController.update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
 			break;
 		case StatusProperty_default.POINT:
-			WinStatsController.getUI().update("statuspoint", amount);
+			WinStatsController.update("statuspoint", amount);
 			break;
 		case StatusProperty_default.CLEVEL:
 			SessionStorage_default.Entity.clevel = amount;
 			SessionStorage_default.Entity.aura.load(EffectManager);
-			BasicInfoController.getUI().update("blvl", amount);
-			EquipmentController.getUI().onLevelUp();
+			BasicInfoController.update("blvl", amount);
+			EquipmentController.onLevelUp();
 			ChangeCart_default.onLevelUp(amount);
 			if (SessionStorage_default.pet.friendly > 900) {
 				const hunger = DB.getPetHungryState(SessionStorage_default.pet.oldHungry);
@@ -326287,185 +326790,185 @@ function onParameterChange$1(pkt) {
 			}
 			break;
 		case StatusProperty_default.SKPOINT:
-			Controller$4.getUI().setPoints(amount);
+			Controller$4.setPoints(amount);
 			break;
 		case StatusProperty_default.STR:
-			WinStatsController.getUI().update("str", pkt.defaultStatus);
-			WinStatsController.getUI().update("str2", pkt.plusStatus);
+			WinStatsController.update("str", pkt.defaultStatus);
+			WinStatsController.update("str2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.AGI:
-			WinStatsController.getUI().update("agi", pkt.defaultStatus);
-			WinStatsController.getUI().update("agi2", pkt.plusStatus);
+			WinStatsController.update("agi", pkt.defaultStatus);
+			WinStatsController.update("agi2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VIT:
-			WinStatsController.getUI().update("vit", pkt.defaultStatus);
-			WinStatsController.getUI().update("vit2", pkt.plusStatus);
+			WinStatsController.update("vit", pkt.defaultStatus);
+			WinStatsController.update("vit2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.INT:
-			WinStatsController.getUI().update("int", pkt.defaultStatus);
-			WinStatsController.getUI().update("int2", pkt.plusStatus);
+			WinStatsController.update("int", pkt.defaultStatus);
+			WinStatsController.update("int2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.DEX:
-			WinStatsController.getUI().update("dex", pkt.defaultStatus);
-			WinStatsController.getUI().update("dex2", pkt.plusStatus);
+			WinStatsController.update("dex", pkt.defaultStatus);
+			WinStatsController.update("dex2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.LUK:
-			WinStatsController.getUI().update("luk", pkt.defaultStatus);
-			WinStatsController.getUI().update("luk2", pkt.plusStatus);
+			WinStatsController.update("luk", pkt.defaultStatus);
+			WinStatsController.update("luk2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.MONEY:
-			BasicInfoController.getUI().update("zeny", amount);
+			BasicInfoController.update("zeny", amount);
 			break;
 		case StatusProperty_default.MAXEXP:
-			BasicInfoController.getUI().base_exp_next = amount;
-			if (BasicInfoController.getUI().base_exp > -1) BasicInfoController.getUI().update("bexp", BasicInfoController.getUI().base_exp, BasicInfoController.getUI().base_exp_next);
+			BasicInfoController.base_exp_next = amount;
+			if (BasicInfoController.base_exp > -1) BasicInfoController.update("bexp", BasicInfoController.base_exp, BasicInfoController.base_exp_next);
 			break;
 		case StatusProperty_default.MAXJOBEXP:
-			BasicInfoController.getUI().job_exp_next = amount;
-			if (BasicInfoController.getUI().job_exp > -1) BasicInfoController.getUI().update("jexp", BasicInfoController.getUI().job_exp, BasicInfoController.getUI().job_exp_next);
+			BasicInfoController.job_exp_next = amount;
+			if (BasicInfoController.job_exp > -1) BasicInfoController.update("jexp", BasicInfoController.job_exp, BasicInfoController.job_exp_next);
 			break;
 		case StatusProperty_default.WEIGHT:
 			SessionStorage_default.Entity.weight = amount;
-			if (BasicInfoController.getUI().weight_max > -1) BasicInfoController.getUI().update("weight", SessionStorage_default.Entity.weight, BasicInfoController.getUI().weight_max);
+			if (BasicInfoController.weight_max > -1) BasicInfoController.update("weight", SessionStorage_default.Entity.weight, BasicInfoController.weight_max);
 			break;
 		case StatusProperty_default.MAXWEIGHT:
 			SessionStorage_default.Entity.max_weight = amount;
-			BasicInfoController.getUI().weight_max = amount;
-			if (BasicInfoController.getUI().weight > -1) BasicInfoController.getUI().update("weight", SessionStorage_default.Entity.weight, BasicInfoController.getUI().weight_max);
+			BasicInfoController.weight_max = amount;
+			if (BasicInfoController.weight > -1) BasicInfoController.update("weight", SessionStorage_default.Entity.weight, BasicInfoController.weight_max);
 			break;
 		case StatusProperty_default.STANDARD_STR:
-			WinStatsController.getUI().update("str3", amount);
+			WinStatsController.update("str3", amount);
 			break;
 		case StatusProperty_default.STANDARD_AGI:
-			WinStatsController.getUI().update("agi3", amount);
+			WinStatsController.update("agi3", amount);
 			break;
 		case StatusProperty_default.STANDARD_VIT:
-			WinStatsController.getUI().update("vit3", amount);
+			WinStatsController.update("vit3", amount);
 			break;
 		case StatusProperty_default.STANDARD_INT:
-			WinStatsController.getUI().update("int3", amount);
+			WinStatsController.update("int3", amount);
 			break;
 		case StatusProperty_default.STANDARD_DEX:
-			WinStatsController.getUI().update("dex3", amount);
+			WinStatsController.update("dex3", amount);
 			break;
 		case StatusProperty_default.STANDARD_LUK:
-			WinStatsController.getUI().update("luk3", amount);
+			WinStatsController.update("luk3", amount);
 			break;
 		case StatusProperty_default.ATTPOWER:
-			WinStatsController.getUI().update("atak", amount);
+			WinStatsController.update("atak", amount);
 			break;
 		case StatusProperty_default.REFININGPOWER:
-			WinStatsController.getUI().update("atak2", amount);
+			WinStatsController.update("atak2", amount);
 			break;
 		case StatusProperty_default.MAX_MATTPOWER:
-			WinStatsController.getUI().update("matak", amount);
+			WinStatsController.update("matak", amount);
 			break;
 		case StatusProperty_default.MIN_MATTPOWER:
-			WinStatsController.getUI().update("matak2", amount);
+			WinStatsController.update("matak2", amount);
 			break;
 		case StatusProperty_default.ITEMDEFPOWER:
-			WinStatsController.getUI().update("def", amount);
+			WinStatsController.update("def", amount);
 			break;
 		case StatusProperty_default.PLUSDEFPOWER:
-			WinStatsController.getUI().update("def2", amount);
+			WinStatsController.update("def2", amount);
 			break;
 		case StatusProperty_default.MDEFPOWER:
-			WinStatsController.getUI().update("mdef", amount);
+			WinStatsController.update("mdef", amount);
 			break;
 		case StatusProperty_default.PLUSMDEFPOWER:
-			WinStatsController.getUI().update("mdef2", amount);
+			WinStatsController.update("mdef2", amount);
 			break;
 		case StatusProperty_default.HITSUCCESSVALUE:
-			WinStatsController.getUI().update("hit", amount);
+			WinStatsController.update("hit", amount);
 			break;
 		case StatusProperty_default.AVOIDSUCCESSVALUE:
-			WinStatsController.getUI().update("flee", amount);
+			WinStatsController.update("flee", amount);
 			break;
 		case StatusProperty_default.PLUSAVOIDSUCCESSVALUE:
-			WinStatsController.getUI().update("flee2", amount);
+			WinStatsController.update("flee2", amount);
 			break;
 		case StatusProperty_default.CRITICALSUCCESSVALUE:
-			WinStatsController.getUI().update("critical", amount);
+			WinStatsController.update("critical", amount);
 			break;
 		case StatusProperty_default.ASPD:
-			WinStatsController.getUI().update("aspd", amount);
+			WinStatsController.update("aspd", amount);
 			break;
 		case StatusProperty_default.JOBLEVEL:
-			BasicInfoController.getUI().update("jlvl", amount);
-			Controller$4.getUI().onLevelUp();
+			BasicInfoController.update("jlvl", amount);
+			Controller$4.onLevelUp();
 			break;
 		case StatusProperty_default.VAR_SP_POW:
-			WinStatsController.getUI().update("pow", pkt.defaultStatus);
-			WinStatsController.getUI().update("pow2", pkt.plusStatus);
+			WinStatsController.update("pow", pkt.defaultStatus);
+			WinStatsController.update("pow2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VAR_SP_STA:
-			WinStatsController.getUI().update("sta", pkt.defaultStatus);
-			WinStatsController.getUI().update("sta2", pkt.plusStatus);
+			WinStatsController.update("sta", pkt.defaultStatus);
+			WinStatsController.update("sta2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VAR_SP_WIS:
-			WinStatsController.getUI().update("wis", pkt.defaultStatus);
-			WinStatsController.getUI().update("wis2", pkt.plusStatus);
+			WinStatsController.update("wis", pkt.defaultStatus);
+			WinStatsController.update("wis2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VAR_SP_SPL:
-			WinStatsController.getUI().update("spl", pkt.defaultStatus);
-			WinStatsController.getUI().update("spl2", pkt.plusStatus);
+			WinStatsController.update("spl", pkt.defaultStatus);
+			WinStatsController.update("spl2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VAR_SP_CON:
-			WinStatsController.getUI().update("con", pkt.defaultStatus);
-			WinStatsController.getUI().update("con2", pkt.plusStatus);
+			WinStatsController.update("con", pkt.defaultStatus);
+			WinStatsController.update("con2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VAR_SP_CRT:
-			WinStatsController.getUI().update("crt", pkt.defaultStatus);
-			WinStatsController.getUI().update("crt2", pkt.plusStatus);
+			WinStatsController.update("crt", pkt.defaultStatus);
+			WinStatsController.update("crt2", pkt.plusStatus);
 			break;
 		case StatusProperty_default.VAR_SP_PATK:
-			WinStatsController.getUI().update("patk", amount);
+			WinStatsController.update("patk", amount);
 			break;
 		case StatusProperty_default.VAR_SP_SMATK:
-			WinStatsController.getUI().update("smatk", amount);
+			WinStatsController.update("smatk", amount);
 			break;
 		case StatusProperty_default.VAR_SP_RES:
-			WinStatsController.getUI().update("res", amount);
+			WinStatsController.update("res", amount);
 			break;
 		case StatusProperty_default.VAR_SP_MRES:
-			WinStatsController.getUI().update("mres", amount);
+			WinStatsController.update("mres", amount);
 			break;
 		case StatusProperty_default.VAR_SP_HPLUS:
-			WinStatsController.getUI().update("hplus", amount);
+			WinStatsController.update("hplus", amount);
 			break;
 		case StatusProperty_default.VAR_SP_CRATE:
-			WinStatsController.getUI().update("crate", amount);
+			WinStatsController.update("crate", amount);
 			break;
 		case StatusProperty_default.VAR_SP_TRAITPOINT:
-			WinStatsController.getUI().update("trait_point", amount);
+			WinStatsController.update("trait_point", amount);
 			break;
 		case StatusProperty_default.VAR_SP_AP:
 			SessionStorage_default.Entity.life.ap = amount;
 			SessionStorage_default.Entity.life.update();
-			if (SessionStorage_default.Entity.life.ap_max > -1) BasicInfoController.getUI().update("ap", SessionStorage_default.Entity.life.ap, SessionStorage_default.Entity.life.ap_max);
+			if (SessionStorage_default.Entity.life.ap_max > -1) BasicInfoController.update("ap", SessionStorage_default.Entity.life.ap, SessionStorage_default.Entity.life.ap_max);
 			break;
 		case StatusProperty_default.VAR_SP_MAXAP:
 			SessionStorage_default.Entity.life.ap_max = amount;
 			SessionStorage_default.Entity.life.update();
-			if (SessionStorage_default.Entity.life.ap > -1) BasicInfoController.getUI().update("ap", SessionStorage_default.Entity.life.ap, SessionStorage_default.Entity.life.ap_max);
+			if (SessionStorage_default.Entity.life.ap > -1) BasicInfoController.update("ap", SessionStorage_default.Entity.life.ap, SessionStorage_default.Entity.life.ap_max);
 			break;
 		case StatusProperty_default.VAR_SP_UPOW:
-			WinStatsController.getUI().update("pow3", amount);
+			WinStatsController.update("pow3", amount);
 			break;
 		case StatusProperty_default.VAR_SP_USTA:
-			WinStatsController.getUI().update("sta3", amount);
+			WinStatsController.update("sta3", amount);
 			break;
 		case StatusProperty_default.VAR_SP_UWIS:
-			WinStatsController.getUI().update("wis3", amount);
+			WinStatsController.update("wis3", amount);
 			break;
 		case StatusProperty_default.VAR_SP_USPL:
-			WinStatsController.getUI().update("spl3", amount);
+			WinStatsController.update("spl3", amount);
 			break;
 		case StatusProperty_default.VAR_SP_UCON:
-			WinStatsController.getUI().update("con3", amount);
+			WinStatsController.update("con3", amount);
 			break;
 		case StatusProperty_default.VAR_SP_UCRT:
-			WinStatsController.getUI().update("crt3", amount);
+			WinStatsController.update("crt3", amount);
 			break;
 		default: console.error("Main::onParameterChange() - Unsupported type", pkt);
 	}
@@ -326544,7 +327047,7 @@ function onRecovery(pkt) {
 			EffectManager.spam(EF_Init_Par);
 			SessionStorage_default.Entity.life.hp += pkt.amount;
 			SessionStorage_default.Entity.life.update();
-			if (SessionStorage_default.Entity.life.hp_max > -1) BasicInfoController.getUI().update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
+			if (SessionStorage_default.Entity.life.hp_max > -1) BasicInfoController.update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
 			break;
 		}
 		case StatusProperty_default.SP: {
@@ -326556,7 +327059,7 @@ function onRecovery(pkt) {
 			EffectManager.spam(EF_Init_Par);
 			SessionStorage_default.Entity.life.sp += pkt.amount;
 			SessionStorage_default.Entity.life.update();
-			if (SessionStorage_default.Entity.life.sp_max > -1) BasicInfoController.getUI().update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
+			if (SessionStorage_default.Entity.life.sp_max > -1) BasicInfoController.update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
 			break;
 		}
 	}
@@ -327084,12 +327587,12 @@ function onCutin(pkt) {
 function onMinimapMarker(pkt) {
 	switch (pkt.type) {
 		case 0:
-			Controller$5.getUI().addNpcMark(pkt.id, pkt.xPos, pkt.yPos, pkt.color, 15e3);
+			Controller$5.addNpcMark(pkt.id, pkt.xPos, pkt.yPos, pkt.color, 15e3);
 			break;
 		case 1:
-			Controller$5.getUI().addNpcMark(pkt.id, pkt.xPos, pkt.yPos, pkt.color, Infinity);
+			Controller$5.addNpcMark(pkt.id, pkt.xPos, pkt.yPos, pkt.color, Infinity);
 			break;
-		case 2: Controller$5.getUI().removeNpcMark(pkt.id);
+		case 2: Controller$5.removeNpcMark(pkt.id);
 	}
 }
 /**
@@ -328324,7 +328827,7 @@ function updateEntityStyle(entity) {
 }
 function onTitleChangeAck(pkt) {
 	if (pkt.result === 0) {
-		const comp = EquipmentController.getUI();
+		const comp = EquipmentController;
 		if (comp && typeof comp.setTitle === "function") comp.setTitle(pkt.title_id);
 	}
 }
@@ -328399,7 +328902,7 @@ function onEntityQuestNotifyEffect(pkt) {
 			break;
 		default: return;
 	}
-	Controller$5.getUI().addNpcMark(pkt.npcID, pkt.xPos, pkt.yPos, color, Infinity);
+	Controller$5.addNpcMark(pkt.npcID, pkt.xPos, pkt.yPos, color, Infinity);
 }
 /**
 * Updating entity direction
@@ -328438,17 +328941,17 @@ function onEntityViewChange(pkt) {
 				else entity.job = pkt.value;
 				if (entity === SessionStorage_default.Entity) {
 					if (PacketVerManager_default.value >= 20200520) {
-						BasicInfoController.getUI().remove();
+						BasicInfoController.remove();
 						BasicInfoController.selectUIVersionWithJob(DB.getJobClass(pkt.value));
-						BasicInfoController.getUI().prepare();
-						BasicInfoController.getUI().update("blvl", SessionStorage_default.Entity.clevel);
-						BasicInfoController.getUI().update("jlvl", SessionStorage_default.Entity.joblevel);
-						BasicInfoController.getUI().update("zeny", SessionStorage_default.Entity.money);
-						BasicInfoController.getUI().update("name", SessionStorage_default.Entity.display.name);
-						BasicInfoController.getUI().update("bexp", BasicInfoController.getUI().base_exp, BasicInfoController.getUI().base_exp_next);
-						BasicInfoController.getUI().append();
+						BasicInfoController.prepare();
+						BasicInfoController.update("blvl", SessionStorage_default.Entity.clevel);
+						BasicInfoController.update("jlvl", SessionStorage_default.Entity.joblevel);
+						BasicInfoController.update("zeny", SessionStorage_default.Entity.money);
+						BasicInfoController.update("name", SessionStorage_default.Entity.display.name);
+						BasicInfoController.update("bexp", BasicInfoController.base_exp, BasicInfoController.base_exp_next);
+						BasicInfoController.append();
 					}
-					BasicInfoController.getUI().update("job", pkt.value);
+					BasicInfoController.update("job", pkt.value);
 				}
 			}
 			break;
@@ -329370,8 +329873,8 @@ function onNotifyExp(pkt) {
 *   probably it's not updated with Tombstone system, but Tombstones are fail...
 */
 function onMarkMvp(pkt) {
-	Controller$5.getUI().removeNpcMark("mvp");
-	if (pkt.infoType == 1) Controller$5.getUI().addNpcMark("mvp", pkt.xPos, pkt.yPos, 16711680, Infinity);
+	Controller$5.removeNpcMark("mvp");
+	if (pkt.infoType == 1) Controller$5.addNpcMark("mvp", pkt.xPos, pkt.yPos, 16711680, Infinity);
 	if (pkt.infoType == 0) ChatBox_default.addText("Boss monster not found.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
 }
 /**
@@ -329441,7 +329944,7 @@ function onEntityWillBeHitSub(pkt, dstEntity) {
 * Does player have a Token of Siegfried?
 */
 function haveSiegfriedItem() {
-	const itemInfo = InventoryController.getUI().getItemById(7621);
+	const itemInfo = InventoryController.getItemById(7621);
 	if (SessionStorage_default.IsPKZone || SessionStorage_default.IsSiegeMode || SessionStorage_default.IsEventPVPMode) return false;
 	else if (itemInfo && itemInfo.count > 0) return true;
 	else return false;
@@ -329968,7 +330471,7 @@ var init_ItemSelection = __esmMin((() => {
 				addElement$3(DB.INTERFACE_PATH + "item/" + file + ".bmp", list[i], name);
 			}
 		} else {
-			const item = InventoryController.getUI().getItemByIndex(list[i]);
+			const item = InventoryController.getItemByIndex(list[i]);
 			if (item) {
 				const it = DB.getItemInfo(item.ITID);
 				if (it) {
@@ -330257,7 +330760,7 @@ var init_MakeItemSelection = __esmMin((() => {
 	*/
 	MakeItemSelection.selectIndex = function selectIndex() {
 		this.onIndexSelected(this.index, this.material, this.mkType);
-		if (this.index == -1) this.material.forEach((item) => InventoryController.getUI().addItem(item));
+		if (this.index == -1) this.material.forEach((item) => InventoryController.addItem(item));
 		this.remove();
 	};
 	/**
@@ -330295,7 +330798,7 @@ var init_MakeItemSelection = __esmMin((() => {
 		if (this.material.length < 3 && (validMultipleMaterials.includes(item.ITID) || validSingleMaterials.includes(item.ITID) && !singleMatUsed)) {
 			if (this.addItemSub(item)) {
 				switch (from) {
-					case "Inventory": InventoryController.getUI().removeItem(item.index, 1);
+					case "Inventory": InventoryController.removeItem(item.index, 1);
 				}
 				this.material.push(item);
 			}
@@ -331000,13 +331503,13 @@ var init_ItemListWindowSelection = __esmMin((() => {
 			if (item) onItemInfo$3.call(item, e);
 		});
 		this.draggable(root.querySelector(".titlebar"));
-		this.setList(InventoryController.getUI().list);
+		this.setList(InventoryController.list);
 	};
 	/**
 	* Apply preferences once append to body
 	*/
 	ItemListWindowSelection.onAppend = function OnAppend() {
-		this.setList(InventoryController.getUI().list);
+		this.setList(InventoryController.list);
 		ConvertItems_default.append();
 	};
 	/**
@@ -331170,7 +331673,7 @@ function onItemPickAnswer(pkt) {
 	ItemObtain_default.set(pkt);
 	const getTextItem = DB.getItemName(pkt, { showItemOptions: false });
 	ChatBox_default.addText(DB.getMessage(153).replace("%s", getTextItem).replace("%d", pkt.count), ChatBox_default.TYPE.BLUE, ChatBox_default.FILTER.ITEM);
-	InventoryController.getUI().addItem(pkt);
+	InventoryController.addItem(pkt);
 }
 /**
 * Generic function to add items to inventory
@@ -331178,7 +331681,7 @@ function onItemPickAnswer(pkt) {
 * @param {object} pkt - PACKET.ZC.EQUIPMENT_ITEMLIST
 */
 function onInventorySetList(pkt) {
-	InventoryController.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+	InventoryController.setItems(pkt.itemInfo || pkt.ItemInfo);
 }
 /**
 * Remove item from inventory
@@ -331186,7 +331689,7 @@ function onInventorySetList(pkt) {
 * @param {object} pkt - PACKET.ZC.ITEM_THROW_ACK
 */
 function onIventoryRemoveItem(pkt) {
-	InventoryController.getUI().removeItem(pkt.Index, pkt.count || pkt.Count || 0);
+	InventoryController.removeItem(pkt.Index, pkt.count || pkt.Count || 0);
 }
 /**
 * Remove an item from equipment, add it to inventory
@@ -331195,25 +331698,25 @@ function onIventoryRemoveItem(pkt) {
 */
 function onEquipementTakeOff(pkt) {
 	if (pkt.result) {
-		const item = EquipmentController.getUI().unEquip(pkt.index, pkt.wearLocation);
+		const item = EquipmentController.unEquip(pkt.index, pkt.wearLocation);
 		if (item) {
 			item.WearState = 0;
 			const it = DB.getItemInfo(item.ITID);
 			ChatBox_default.addText(it.identifiedDisplayName + " " + DB.getMessage(171), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.ITEM);
-			if (!(pkt.wearLocation & EquipmentLocation_default.AMMO)) InventoryController.getUI().addItem(item);
+			if (!(pkt.wearLocation & EquipmentLocation_default.AMMO)) InventoryController.addItem(item);
 		}
-		if (pkt.wearLocation & EquipmentLocation_default.HEAD_TOP) SessionStorage_default.Entity.accessory2 = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_TOP);
-		if (pkt.wearLocation & EquipmentLocation_default.HEAD_MID) SessionStorage_default.Entity.accessory3 = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_MID);
-		if (pkt.wearLocation & EquipmentLocation_default.HEAD_BOTTOM) SessionStorage_default.Entity.accessory = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_BOTTOM);
-		if (pkt.wearLocation & EquipmentLocation_default.GARMENT) SessionStorage_default.Entity.robe = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_ROBE);
+		if (pkt.wearLocation & EquipmentLocation_default.HEAD_TOP) SessionStorage_default.Entity.accessory2 = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_TOP);
+		if (pkt.wearLocation & EquipmentLocation_default.HEAD_MID) SessionStorage_default.Entity.accessory3 = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_MID);
+		if (pkt.wearLocation & EquipmentLocation_default.HEAD_BOTTOM) SessionStorage_default.Entity.accessory = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_BOTTOM);
+		if (pkt.wearLocation & EquipmentLocation_default.GARMENT) SessionStorage_default.Entity.robe = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_ROBE);
 		if (pkt.wearLocation & EquipmentLocation_default.WEAPON) SessionStorage_default.Entity.weapon = 0;
 		if (pkt.wearLocation & EquipmentLocation_default.SHIELD) SessionStorage_default.Entity.shield = 0;
-		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_HEAD_TOP) SessionStorage_default.Entity.accessory2 = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.HEAD_TOP);
-		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_HEAD_MID) SessionStorage_default.Entity.accessory3 = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.HEAD_MID);
-		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_HEAD_BOTTOM) SessionStorage_default.Entity.accessory = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.HEAD_BOTTOM);
-		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_ROBE) SessionStorage_default.Entity.robe = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.GARMENT);
+		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_HEAD_TOP) SessionStorage_default.Entity.accessory2 = EquipmentController.checkEquipLoc(EquipmentLocation_default.HEAD_TOP);
+		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_HEAD_MID) SessionStorage_default.Entity.accessory3 = EquipmentController.checkEquipLoc(EquipmentLocation_default.HEAD_MID);
+		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_HEAD_BOTTOM) SessionStorage_default.Entity.accessory = EquipmentController.checkEquipLoc(EquipmentLocation_default.HEAD_BOTTOM);
+		if (pkt.wearLocation & EquipmentLocation_default.COSTUME_ROBE) SessionStorage_default.Entity.robe = EquipmentController.checkEquipLoc(EquipmentLocation_default.GARMENT);
 		if (PacketVerManager_default.value >= 20170208) {
-			if (!InventoryController.getUI().isInEquipSwitchList(pkt.wearLocation)) SwitchEquip_default.unEquip(pkt.index, pkt.wearLocation);
+			if (!InventoryController.isInEquipSwitchList(pkt.wearLocation)) SwitchEquip_default.unEquip(pkt.index, pkt.wearLocation);
 		}
 	}
 }
@@ -331224,13 +331727,13 @@ function onEquipementTakeOff(pkt) {
 */
 function onItemEquip(pkt) {
 	if (pkt.result == 1) {
-		const item = InventoryController.getUI().removeItem(pkt.index, 1);
-		EquipmentController.getUI().equip(item, pkt.wearLocation);
+		const item = InventoryController.removeItem(pkt.index, 1);
+		EquipmentController.equip(item, pkt.wearLocation);
 		ChatBox_default.addText(DB.getItemName(item) + " " + DB.getMessage(170), ChatBox_default.TYPE.BLUE, ChatBox_default.FILTER.ITEM);
-		const CostumeCheckTop = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_TOP);
-		const CostumeCheckMid = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_MID);
-		const CostumeCheckBot = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_BOTTOM);
-		const CostumeCheckRobe = EquipmentController.getUI().checkEquipLoc(EquipmentLocation_default.COSTUME_ROBE);
+		const CostumeCheckTop = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_TOP);
+		const CostumeCheckMid = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_MID);
+		const CostumeCheckBot = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_HEAD_BOTTOM);
+		const CostumeCheckRobe = EquipmentController.checkEquipLoc(EquipmentLocation_default.COSTUME_ROBE);
 		if (pkt.wearLocation & EquipmentLocation_default.HEAD_TOP) SessionStorage_default.Entity.accessory2 = CostumeCheckTop ? CostumeCheckTop : pkt.viewid;
 		if (pkt.wearLocation & EquipmentLocation_default.HEAD_MID) SessionStorage_default.Entity.accessory3 = CostumeCheckMid ? CostumeCheckMid : pkt.viewid;
 		if (pkt.wearLocation & EquipmentLocation_default.HEAD_BOTTOM) SessionStorage_default.Entity.accessory = CostumeCheckBot ? CostumeCheckBot : pkt.viewid;
@@ -331249,7 +331752,7 @@ function onItemEquip(pkt) {
 */
 function onItemUseAnswer(pkt) {
 	if (!pkt.hasOwnProperty("AID") || SessionStorage_default.Entity.GID === pkt.AID) {
-		if (pkt.result) InventoryController.getUI().updateItem(pkt.index, pkt.count);
+		if (pkt.result) InventoryController.updateItem(pkt.index, pkt.count);
 	}
 	if (pkt.result) EffectManager.spamItem(pkt.id, pkt.AID, null, null, null);
 }
@@ -331259,10 +331762,10 @@ function onItemUseAnswer(pkt) {
 * @param {object} pkt - ZC_EQUIPWIN_MICROSCOPE
 */
 function onShowPlayerEquip(pkt) {
-	PlayerViewEquipController.getUI().append();
-	PlayerViewEquipController.getUI().setTitleBar(pkt.characterName);
-	PlayerViewEquipController.getUI().setEquipmentData(pkt.ItemInfo);
-	PlayerViewEquipController.getUI().setChar2Render(pkt);
+	PlayerViewEquipController.append();
+	PlayerViewEquipController.setTitleBar(pkt.characterName);
+	PlayerViewEquipController.setEquipmentData(pkt.ItemInfo);
+	PlayerViewEquipController.setChar2Render(pkt);
 }
 /**
 * Equip an arrow
@@ -331270,8 +331773,8 @@ function onShowPlayerEquip(pkt) {
 * @param {object} pkt - PACKET_ZC_EQUIP_ARROW
 */
 function onArrowEquipped(pkt) {
-	const item = InventoryController.getUI().getItemByIndex(pkt.index);
-	EquipmentController.getUI().equip(item, EquipmentLocation_default.AMMO);
+	const item = InventoryController.getItemByIndex(pkt.index);
+	EquipmentController.equip(item, EquipmentLocation_default.AMMO);
 }
 /**
 * Ask to get a list of equipments where we can put a card
@@ -331291,7 +331794,7 @@ function onUseCard(index) {
 */
 function onItemCompositionList(pkt) {
 	if (!pkt.ITIDList.length) return;
-	const card = InventoryController.getUI().getItemByIndex(_cardComposition);
+	const card = InventoryController.getItemByIndex(_cardComposition);
 	ItemSelection_default.append();
 	ItemSelection_default.setList(pkt.ITIDList);
 	ItemSelection_default.setTitle(DB.getMessage(522) + "(" + DB.getItemInfo(card.ITID).identifiedDisplayName + ")");
@@ -331313,14 +331816,14 @@ function onItemCompositionList(pkt) {
 function onItemCompositionResult(pkt) {
 	switch (pkt.result) {
 		case 0: {
-			const item = InventoryController.getUI().removeItem(pkt.equipIndex, 1);
-			const card = InventoryController.getUI().removeItem(pkt.cardIndex, 1);
+			const item = InventoryController.removeItem(pkt.equipIndex, 1);
+			const card = InventoryController.removeItem(pkt.cardIndex, 1);
 			if (item) {
 				for (let i = 0; i < 4; ++i) if (!item.slot["card" + (i + 1)]) {
 					item.slot["card" + (i + 1)] = card.ITID;
 					break;
 				}
-				InventoryController.getUI().addItem(item);
+				InventoryController.addItem(item);
 			}
 			break;
 		}
@@ -331334,10 +331837,10 @@ function onItemCompositionResult(pkt) {
 function onRefineResult(pkt) {
 	if (Configs.get("enableRefineUI") && PacketVerManager_default.value >= 20161012) __vitePreload(() => Promise.resolve().then(() => (init_Refine(), Refine_exports)).then((m) => m.default.onRefineResult(pkt)), void 0, import.meta.url);
 	else {
-		const item = InventoryController.getUI().removeItem(pkt.itemIndex, 1);
+		const item = InventoryController.removeItem(pkt.itemIndex, 1);
 		if (item) {
 			item.RefiningLevel = pkt.RefiningLevel;
-			InventoryController.getUI().addItem(item);
+			InventoryController.addItem(item);
 		}
 		switch (pkt.result) {
 			case 0:
@@ -331455,7 +331958,7 @@ function onMakeitem_List(pkt) {
 function onBodyItemSize(pkt) {
 	if (pkt) {
 		const newlimit = 100 + pkt.type;
-		InventoryController.getUI().ui.find(".mcnt").text(newlimit);
+		InventoryController.ui.find(".mcnt").text(newlimit);
 	}
 }
 /**
@@ -331474,14 +331977,14 @@ function onRecoverPenaltyOverweight(pkt) {
 function onItemListNormal(pkt) {
 	switch (pkt.invType) {
 		case 0:
-			InventoryController.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+			InventoryController.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
 		case 1:
 			CartItems_default.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
 		case 2:
-			StorageController.getUI().append();
-			StorageController.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+			StorageController.append();
+			StorageController.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
 		default: throw new Error("[PACKET.ZC.SPLIT_SEND_ITEMLIST_NORMAL] - Unknown invType '" + pkt.invType + "'.");
 	}
@@ -331494,13 +331997,13 @@ function onItemListNormal(pkt) {
 function onItemListEquip(pkt) {
 	switch (pkt.invType) {
 		case 0:
-			InventoryController.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+			InventoryController.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
 		case 1:
 			CartItems_default.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
 		case 2:
-			StorageController.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+			StorageController.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
 		default: throw new Error("[PACKET.ZC.SPLIT_SEND_ITEMLIST_NORMAL] - Unknown invType '" + pkt.invType + "'.");
 	}
@@ -331516,7 +332019,7 @@ function onItemListEquip(pkt) {
 function onFavItemList(pkt) {
 	if (pkt) {
 		const isfavitem = pkt.favorite ? 0 : 1;
-		InventoryController.getUI().updatePlaceETCTab(pkt.index, isfavitem);
+		InventoryController.updatePlaceETCTab(pkt.index, isfavitem);
 	}
 }
 /**
@@ -331524,7 +332027,7 @@ function onFavItemList(pkt) {
 */
 function onSwitchEquipList(pkt) {
 	if (pkt && pkt.ItemInfo) pkt.ItemInfo.forEach(function(item) {
-		if (InventoryController.getUI().getItemByIndex(item.index)) InventoryController.getUI().addItemtoSwitch(item.index);
+		if (InventoryController.getItemByIndex(item.index)) InventoryController.addItemtoSwitch(item.index);
 	});
 }
 /**
@@ -331533,7 +332036,7 @@ function onSwitchEquipList(pkt) {
 function onSwitchEquipAdd(pkt) {
 	if (pkt) switch (pkt.flag) {
 		case 0:
-			InventoryController.getUI().addItemtoSwitch(pkt.index);
+			InventoryController.addItemtoSwitch(pkt.index);
 			break;
 		case 1:
 		case 2: break;
@@ -331546,7 +332049,7 @@ function onSwitchEquipAdd(pkt) {
 function onSwitchEquipRemove(pkt) {
 	if (pkt) switch (pkt.flag) {
 		case 0:
-			InventoryController.getUI().removeItemFromSwitch(pkt.index);
+			InventoryController.removeItemFromSwitch(pkt.index);
 			break;
 		case 1: break;
 		case 2: break;
@@ -331623,8 +332126,8 @@ function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.SEND_SWAP_EQUIPITEM_INFO, onSwitchEquipList);
 	Network.hookPacket(PACKET.ZC.REQ_WEAR_SWITCHEQUIP_ADD_RESULT, onSwitchEquipAdd);
 	Network.hookPacket(PACKET.ZC.REQ_WEAR_SWITCHEQUIP_REMOVE_RESULT, onSwitchEquipRemove);
-	InventoryController.getUI().onUseCard = onUseCard;
-	InventoryController.getUI().reqMoveItemToCart = reqMoveItemToCart;
+	InventoryController.onUseCard = onUseCard;
+	InventoryController.reqMoveItemToCart = reqMoveItemToCart;
 }
 var _cardComposition;
 var init_Item = __esmMin((() => {
@@ -332232,7 +332735,8 @@ function onPrivateMessage(pkt) {
 		ChatBox_default.saveNickName(pkt.sender);
 		return;
 	}
-	ChatBox_default.addText("[ " + prefix + " <span class=\"nickname-link\" data-nickname=\"" + pkt.sender + "\" style=\"cursor:pointer; text-decoration:underline;\">" + pkt.sender + "</span> ] : " + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+	const sender = ChatBox_default.escapeHTML(pkt.sender);
+	ChatBox_default.addText(`[ ${ChatBox_default.escapeHTML(prefix)} <span class="nickname-link" data-nickname="${sender}" style="cursor:pointer; text-decoration:underline;">${sender}</span> ] : ${ChatBox_default.messageToHTML(msg)}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
 	ChatBox_default.saveNickName(pkt.sender);
 }
 /**
@@ -332246,7 +332750,10 @@ function onPrivateMessageSent(pkt) {
 	if (pkt.result === 0) {
 		if (user && msg) {
 			if (getShouldOpenWhisperBox(user)) WhisperBox.addText(user, SessionStorage_default.Entity.display.name + " : " + msg, "#ffff00");
-			else ChatBox_default.addText("[ To <span class=\"nickname-link\" data-nickname=\"" + user + "\" style=\"cursor:pointer; text-decoration:underline;\">" + user + "</span> ] : " + msg, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+			else {
+				const name = ChatBox_default.escapeHTML(user);
+				ChatBox_default.addText(`[ To <span class="nickname-link" data-nickname="${name}" style="cursor:pointer; text-decoration:underline;">${name}</span> ] : ${ChatBox_default.messageToHTML(msg)}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER, null, true);
+			}
 		}
 	} else {
 		const errorMsg = "(" + user + ") : " + DB.getMessage(147 + pkt.result);
@@ -332256,6 +332763,37 @@ function onPrivateMessageSent(pkt) {
 	ChatBox_default.PrivateMessageStorage.msg = "";
 }
 /**
+* Result of a /ex or /in request
+*
+* @param {object} pkt - PACKET.ZC.SETTING_WHISPER_PC
+*/
+function onWhisperSettingResult(pkt) {
+	const name = ChatBox_default.PrivateMessageStorage.blockNicks.shift() || "";
+	if (pkt.type > 1 || pkt.result > 2 || pkt.type === 0 && pkt.result === 0) return;
+	const msg = DB.getMessage(193 + pkt.type * 3 + pkt.result);
+	ChatBox_default.addText(`${name}${msg}`, ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+}
+/**
+* Result of a /exall or /inall request
+*
+* @param {object} pkt - PACKET.ZC.SETTING_WHISPER_STATE
+*/
+function onWhisperStateResult(pkt) {
+	if (pkt.type > 1 || pkt.result > 1) return;
+	ChatBox_default.addText(DB.getMessage(58 + pkt.type * 2 + pkt.result), ChatBox_default.TYPE.PRIVATE, ChatBox_default.FILTER.WHISPER);
+}
+/**
+* Received the whisper block list
+*
+* @param {object} pkt - PACKET.ZC.WHISPER_LIST
+*/
+function onWhisperList(pkt) {
+	const list = pkt.wisperList;
+	const count = list.length;
+	ChatBox_default.addText(DB.getMessage(count ? 63 : 62), ChatBox_default.TYPE.BLUE, ChatBox_default.FILTER.WHISPER);
+	for (let i = 0; i < count; ++i) ChatBox_default.addText(list[i].name, ChatBox_default.TYPE.BLUE, ChatBox_default.FILTER.WHISPER);
+}
+/**
 * Initialize
 */
 function PrivateMessageEngine() {
@@ -332263,6 +332801,9 @@ function PrivateMessageEngine() {
 	Network.hookPacket(PACKET.ZC.WHISPER2, onPrivateMessage);
 	Network.hookPacket(PACKET.ZC.ACK_WHISPER, onPrivateMessageSent);
 	Network.hookPacket(PACKET.ZC.ACK_WHISPER2, onPrivateMessageSent);
+	Network.hookPacket(PACKET.ZC.SETTING_WHISPER_PC, onWhisperSettingResult);
+	Network.hookPacket(PACKET.ZC.SETTING_WHISPER_STATE, onWhisperStateResult);
+	Network.hookPacket(PACKET.ZC.WHISPER_LIST, onWhisperList);
 	WhisperBox.onRequestTalk = function(nickname, text) {
 		const pkt = new PACKET.CZ.WHISPER();
 		pkt.receiver = nickname;
@@ -332290,12 +332831,12 @@ var init_PrivateMessage = __esmMin((() => {
 * @param {object} pkt - PACKET.ZC.NOTIFY_STOREITEM_COUNTINFO
 */
 function onStorageInfo(pkt) {
-	if (!(StorageController.getUI().__loaded && StorageController.getUI().__active)) {
-		StorageController.getUI().append();
-		if (PacketVerManager_default.value >= 20181002) StorageController.getUI().ui.find(".titlebar .text").text(InvTypeName);
+	if (!(StorageController.__loaded && StorageController.__active)) {
+		StorageController.append();
+		if (PacketVerManager_default.value >= 20181002) StorageController.ui.find(".titlebar .text").text(InvTypeName);
 	}
-	StorageController.getUI().setItemInfo(pkt.curCount, pkt.maxCount);
-	StorageController.getUI().setItems(itemBuffer);
+	StorageController.setItemInfo(pkt.curCount, pkt.maxCount);
+	StorageController.setItems(itemBuffer);
 	itemBuffer = [];
 }
 /**
@@ -332312,7 +332853,7 @@ function onStorageList(pkt) {
 * @param {object} pkt - PACKET.ZC.ADD_ITEM_TO_STORE
 */
 function onStorageItemAdded(pkt) {
-	StorageController.getUI().addItem(Object.assign({}, pkt));
+	StorageController.addItem(Object.assign({}, pkt));
 }
 /**
 * Remove item from storage
@@ -332320,7 +332861,7 @@ function onStorageItemAdded(pkt) {
 * @param {object} pkt - PACKET.ZC.DELETE_ITEM_FROM_STORE
 */
 function onStorageItemRemoved(pkt) {
-	StorageController.getUI().removeItem(pkt.index, pkt.count);
+	StorageController.removeItem(pkt.index, pkt.count);
 }
 /**
 * Server want you to close the storage
@@ -332328,7 +332869,7 @@ function onStorageItemRemoved(pkt) {
 * @param {object} pkt - PACKET.ZC.CLOSE_STORE
 */
 function onStorageClose() {
-	StorageController.getUI().remove();
+	StorageController.remove();
 }
 /**
 * Inventory Type has been started
@@ -332398,7 +332939,7 @@ var init_Storage = __esmMin((() => {
 	StorageController.onClosePressed = function onClosePressed() {
 		const pkt = new PACKET.CZ.CLOSE_STORE();
 		Network.sendPacket(pkt);
-		StorageController.getUI().remove();
+		StorageController.remove();
 	};
 	/**
 	* Send item to storage
@@ -333116,7 +333657,7 @@ function onSkillResult(pkt) {
 * @param {object} pkt - PACKET_ZC_SKILLINFO_LIST
 */
 function onSkillList$2(pkt) {
-	Controller$4.getUI().setSkills(pkt.skillList);
+	Controller$4.setSkills(pkt.skillList);
 }
 /**
 * Update a specified skill
@@ -333124,7 +333665,7 @@ function onSkillList$2(pkt) {
 * @param {object} pkt - PACKET.ZC.SKILLINFO_UPDATE
 */
 function onSkillUpdate$2(pkt) {
-	Controller$4.getUI().updateSkill(pkt);
+	Controller$4.updateSkill(pkt);
 }
 /**
 * List of skills/items in hotkey
@@ -333141,7 +333682,7 @@ function onShortCutList(pkt) {
 * @param {object} pkt - PACKET.ZC.ADD_SKILL
 */
 function onSkillAdded(pkt) {
-	Controller$4.getUI().addSkill(pkt.data);
+	Controller$4.addSkill(pkt.data);
 }
 /**
 * Server notify use that we need to cast a skill
@@ -333149,7 +333690,7 @@ function onSkillAdded(pkt) {
 * @param {object} pkt - PACKET.ZC.AUTORUN_SKILL
 */
 function onAutoCastSkill(pkt) {
-	Controller$4.getUI().useSkill(pkt.data);
+	Controller$4.useSkill(pkt.data);
 }
 /**
 * Get a list of item to identify
@@ -333179,10 +333720,10 @@ function onIdentifyResult(pkt) {
 	switch (pkt.result) {
 		case 0: {
 			ChatBox_default.addText(DB.getMessage(491), ChatBox_default.TYPE.BLUE, ChatBox_default.FILTER.ITEM);
-			const item = InventoryController.getUI().removeItem(pkt.index, 1);
+			const item = InventoryController.removeItem(pkt.index, 1);
 			if (item) {
 				item.IsIdentified = true;
-				InventoryController.getUI().addItem(item);
+				InventoryController.addItem(item);
 			}
 			break;
 		}
@@ -333383,7 +333924,7 @@ function onUseSkill(id, level, targetID) {
 	else entity = SessionStorage_default.Entity;
 	if (entity && entity.amotionTick > Renderer.tick) return;
 	const target = EntityManager.get(targetID) || entity;
-	const skill = Controller$4.getUI().getSkillById(id);
+	const skill = Controller$4.getSkillById(id);
 	const out = [];
 	if (skill) range = skill.attackRange + 1;
 	else if (SkillInfo[id]) range = SkillInfo[id].AttackRange[level - 1] + 1;
@@ -333478,8 +334019,8 @@ function onSense(pkt) {
 	Sense_default.setWindow(pkt);
 }
 function hookSkillWindow() {
-	Controller$4.getUI().onIncreaseSkill = onIncreaseSkill;
-	Controller$4.getUI().onUseSkill = onUseSkill;
+	Controller$4.onIncreaseSkill = onIncreaseSkill;
+	Controller$4.onUseSkill = onUseSkill;
 }
 /**
 * Initialize
@@ -333607,7 +334148,7 @@ var init_Skill = __esmMin((() => {
 		}
 		if (entity && entity.amotionTick > Renderer.tick) return;
 		const pos = entity.position;
-		const skill = Controller$4.getUI().getSkillById(id);
+		const skill = Controller$4.getSkillById(id);
 		const out = [];
 		if (skill) range = skill.attackRange + 1;
 		else if (SkillInfo[id]) range = SkillInfo[id].AttackRange[level - 1] + 1;
@@ -333867,7 +334408,7 @@ var init_SlotMachine$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/UI/Components/SlotMachine/SlotMachine.js
-var SlotMachine, _sprite, _action, _type$1, _result, _ctx, _entity, _start, rendering, SlotMachine_default;
+var SlotMachine, _entity, rendering, SlotMachine_default;
 var init_SlotMachine = __esmMin((() => {
 	init_GUIComponent();
 	init_UIManager();
@@ -333880,26 +334421,49 @@ var init_SlotMachine = __esmMin((() => {
 	init_SlotMachine$1();
 	SlotMachine = new GUIComponent("SlotMachine", SlotMachine_default$1);
 	SlotMachine.render = () => SlotMachine_default$2;
-	_type$1 = 0;
-	_result = false;
+	/**
+	* @var {Sprite,Action} objects
+	*/
+	SlotMachine._sprite = null;
+	SlotMachine._action = null;
+	/**
+	* @var {boolean} sprite and action ready to render
+	*/
+	SlotMachine._loaded = false;
+	/**
+	* @var {number} type
+	*/
+	SlotMachine._type = 0;
+	/**
+	* @var {boolean} result
+	*/
+	SlotMachine._result = false;
+	/**
+	* @var {CanvasRenderingContext2D}
+	*/
+	SlotMachine._ctx = null;
 	_entity = new Entity();
-	_start = 0;
+	/**
+	* @var {number} start tick
+	*/
+	SlotMachine._start = 0;
 	/**
 	* Initialize UI
 	*/
 	SlotMachine.init = function init() {
 		const canvas = this.getRoot().querySelector("canvas");
-		_ctx = canvas.getContext("2d");
+		SlotMachine._ctx = canvas.getContext("2d");
 		this._host.style.zIndex = "500";
 		Client.loadFiles(["data/sprite/slotmachine.spr", "data/sprite/slotmachine.act"], (spr, act) => {
-			_sprite = spr;
-			_action = act;
-			_type$1 = 0;
-			_start = Renderer.tick;
+			SlotMachine._sprite = spr;
+			SlotMachine._action = act;
+			SlotMachine._type = 0;
+			SlotMachine._loaded = true;
+			SlotMachine._start = Renderer.tick;
 			if (this._host.parentNode) Renderer.render(rendering);
 		});
 		canvas.addEventListener("mousedown", (event) => {
-			if (_type$1 === 0) {
+			if (SlotMachine._loaded && SlotMachine._type === 0) {
 				SlotMachine.onTry();
 				event.stopImmediatePropagation();
 				event.preventDefault();
@@ -333910,11 +334474,11 @@ var init_SlotMachine = __esmMin((() => {
 	* Once append to body
 	*/
 	SlotMachine.onAppend = function onAppend() {
-		_type$1 = 0;
-		_start = Renderer.tick;
+		SlotMachine._type = 0;
+		SlotMachine._start = Renderer.tick;
 		this._host.style.top = `${Renderer.height / 2 - 130}px`;
 		this._host.style.left = `${Renderer.width / 2 - 135}px`;
-		if (_sprite && _action) Renderer.render(rendering);
+		if (SlotMachine._sprite && SlotMachine._action) Renderer.render(rendering);
 	};
 	/**
 	* Once removed from body
@@ -333928,36 +334492,36 @@ var init_SlotMachine = __esmMin((() => {
 	* @param {boolean} result
 	*/
 	SlotMachine.setResult = function setResult(result) {
-		_type$1 = 1;
-		_result = result;
-		_start = Renderer.tick;
+		SlotMachine._type = 1;
+		SlotMachine._result = result;
+		SlotMachine._start = Renderer.tick;
 	};
 	rendering = (() => {
 		const position = new Uint16Array([0, 0]);
 		return () => {
 			let action, anim;
-			switch (_type$1) {
+			switch (SlotMachine._type) {
 				case 0:
-					action = _action.actions[0];
-					anim = Math.floor((Renderer.tick - _start) / action.delay * 2);
+					action = SlotMachine._action.actions[0];
+					anim = Math.floor((Renderer.tick - SlotMachine._start) / action.delay * 2);
 					break;
 				case 1: {
-					action = _action.actions[1];
-					const max = action.animations.length + (_result ? 7 : 3);
-					anim = Renderer.tick - _start;
+					action = SlotMachine._action.actions[1];
+					const max = action.animations.length + (SlotMachine._result ? 7 : 3);
+					anim = Renderer.tick - SlotMachine._start;
 					anim = Math.floor(anim / action.delay);
 					anim = Math.min(anim, max);
 					if (anim === max) {
-						_type$1 = _result ? 2 : 3;
-						_start = Renderer.tick;
+						SlotMachine._type = SlotMachine._result ? 2 : 3;
+						SlotMachine._start = Renderer.tick;
 					}
 					break;
 				}
 				case 2:
 				case 3: {
-					action = _action.actions[_type$1];
+					action = SlotMachine._action.actions[SlotMachine._type];
 					const max = action.animations.length;
-					anim = Renderer.tick - _start;
+					anim = Renderer.tick - SlotMachine._start;
 					anim = Math.floor(anim / action.delay);
 					if (anim >= max) {
 						Renderer.stop(rendering);
@@ -333969,9 +334533,9 @@ var init_SlotMachine = __esmMin((() => {
 				}
 			}
 			const animation = action.animations[anim % action.animations.length];
-			SpriteRenderer.bind2DContext(_ctx, 140, 165);
-			_ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
-			for (let i = 0, count = animation.layers.length; i < count; ++i) _entity.renderLayer(animation.layers[i], _sprite, _sprite, 1, position, false);
+			SpriteRenderer.bind2DContext(SlotMachine._ctx, 140, 165);
+			SlotMachine._ctx.clearRect(0, 0, SlotMachine._ctx.canvas.width, SlotMachine._ctx.canvas.height);
+			for (let i = 0, count = animation.layers.length; i < count; ++i) _entity.renderLayer(animation.layers[i], SlotMachine._sprite, SlotMachine._sprite, 1, position, false);
 		};
 	})();
 	/**
@@ -334209,7 +334773,7 @@ var init_PetEvolution = __esmMin((() => {
 	PetEvolution.hasEnoughMaterials = function() {
 		if (!currentMaterials) return false;
 		for (const mat of currentMaterials) {
-			const item = InventoryController.getUI().getItemById(mat.MaterialID);
+			const item = InventoryController.getItemById(mat.MaterialID);
 			if ((item ? item.count : 0) < mat.Amount) return false;
 		}
 		return true;
@@ -334278,12 +334842,12 @@ function onPetInformation(pkt) {
 	PetInformations_default.append();
 	PetInformations_default.setInformations(pkt);
 	if (SessionStorage_default.petId) {
+		SessionStorage_default.pet.name = pkt.szName;
 		const entity = EntityManager.get(SessionStorage_default.petId);
 		if (entity) {
 			const oldHungry = SessionStorage_default.pet.hungry || pkt.nFullness;
 			SessionStorage_default.pet.job = pkt.job;
 			SessionStorage_default.pet.clevel = pkt.nLevel;
-			SessionStorage_default.pet.name = pkt.szName;
 			SessionStorage_default.pet.friendly = pkt.nRelationship;
 			SessionStorage_default.pet.oldHungry = oldHungry;
 			SessionStorage_default.pet.hungry = pkt.nFullness;
@@ -334327,8 +334891,32 @@ function onFeedResult$1(pkt) {
 */
 function petTalk(GID, msg) {
 	const entity = EntityManager.get(GID);
-	ChatBox_default.addText(entity.display.name + " : " + msg, ChatBox_default.TYPE.PUBLIC, ChatBox_default.FILTER.PUBLIC_CHAT);
+	const name = getPetName(entity);
+	if (!name) return;
+	ChatBox_default.addText(`${name} : ${msg}`, ChatBox_default.TYPE.PUBLIC, ChatBox_default.FILTER.PUBLIC_CHAT);
 	entity.dialog.set(msg);
+}
+/**
+* Name to print in front of a pet's talk, empty while it is still unknown
+*
+* @see docs/reference/pet/talk-name.md
+* @param {object} entity
+* @return {string}
+*/
+function getPetName(entity) {
+	if (entity.display.name) return entity.display.name;
+	if (entity.GID === SessionStorage_default.petId && SessionStorage_default.pet.name) return SessionStorage_default.pet.name;
+	const now = Date.now();
+	if (entity.display.load === entity.display.TYPE.NONE || now - (_nameRequestTick[entity.GID] || 0) >= NAME_REQUEST_DELAY) {
+		_nameRequestTick[entity.GID] = now;
+		entity.display.load = entity.display.TYPE.LOADING;
+		let pkt;
+		if (PacketVerManager_default.value >= 20180307) pkt = new PACKET.CZ.REQNAME2();
+		else pkt = new PACKET.CZ.REQNAME();
+		pkt.AID = entity.GID;
+		Network.sendPacket(pkt);
+	}
+	return "";
 }
 /**
 * Update pet information
@@ -334425,10 +335013,12 @@ function NPCEngine$1() {
 	Network.hookPacket(PACKET.ZC.CHANGESTATE_PET, onPetInformationUpdate);
 	Network.hookPacket(PACKET.ZC.PET_ACT, onPetAction);
 }
+var _nameRequestTick, NAME_REQUEST_DELAY;
 var init_Pet = __esmMin((() => {
 	init_DBManager();
 	init_NetworkManager();
 	init_PacketStructure();
+	init_PacketVerManager();
 	init_Client();
 	init_SessionStorage();
 	init_EntityManager();
@@ -334441,6 +335031,8 @@ var init_Pet = __esmMin((() => {
 	init_Emotions();
 	init_PetMessageConst();
 	init_PetEvolution();
+	_nameRequestTick = {};
+	NAME_REQUEST_DELAY = 2500;
 	/**
 	* Client request to feed QPet.
 	*/
@@ -335573,7 +336165,7 @@ var init_NpcStore = __esmMin((() => {
 					out = Object.assign({}, items[i]);
 					out.count = 0;
 					addItem(content, items[i]);
-					it = InventoryController.getUI().getItemById(items[i].ITID);
+					it = InventoryController.getItemById(items[i].ITID);
 					if (it) {
 						item = Object.assign({}, it);
 						item.ITID = it.ITID;
@@ -335604,8 +336196,8 @@ var init_NpcStore = __esmMin((() => {
 			case NpcStore.Type.SELL: {
 				const InventoryVersion = UIManager.getComponent("Inventory").name;
 				for (i = 0, count = items.length; i < count; ++i) {
-					it = InventoryController.getUI().getItemByIndex(items[i].index);
-					if (InventoryVersion !== "InventoryV0" ? it && (!InventoryController.getUI().npcsalelock || it.PlaceETCTab < 1) : it) {
+					it = InventoryController.getItemByIndex(items[i].index);
+					if (InventoryVersion !== "InventoryV0" ? it && (!InventoryController.npcsalelock || it.PlaceETCTab < 1) : it) {
 						item = Object.assign({}, it);
 						item.price = items[i].price;
 						item.overchargeprice = items[i].overchargeprice;
@@ -335915,7 +336507,7 @@ function onBarterBuyList(pkt) {
 		const _pkt = new PACKET.CZ.NPC_BARTER_MARKET_PURCHASE();
 		const count = itemList.length;
 		for (let i = 0; i < count; ++i) {
-			const item = InventoryController.getUI().getItemById(itemList[i].matcurrency);
+			const item = InventoryController.getItemById(itemList[i].matcurrency);
 			const item_index = item ? item.index : -1;
 			_pkt.itemList.push({
 				itemId: itemList[i].ITID,
@@ -336530,7 +337122,7 @@ function onAllQuestList(pkt) {
 		}
 		quest_list[local_quest.questID] = local_quest;
 	}
-	Controller$3.getUI().setQuestList(quest_list);
+	Controller$3.setQuestList(quest_list);
 }
 /**
 * Quest added
@@ -336574,7 +337166,7 @@ function onAddQuest(pkt) {
 		const ID = hunt.huntID ? hunt.huntID : hunt.mobGID;
 		quest.hunt_list[ID] = local_hunt;
 	}
-	Controller$3.getUI().addQuest(quest, quest.questID);
+	Controller$3.addQuest(quest, quest.questID);
 }
 /**
 * Quest Hunt updated
@@ -336586,7 +337178,7 @@ function onUpdateMissionHunt(pkt) {
 		const local_hunt = pkt.hunt[i];
 		const ID = local_hunt.huntID ? local_hunt.huntID : local_hunt.mobGID;
 		if (local_hunt.questID !== void 0) {
-			if (Controller$3.getUI().questExists(local_hunt.questID)) Controller$3.getUI().updateMissionHunt(local_hunt, local_hunt.questID, ID);
+			if (Controller$3.questExists(local_hunt.questID)) Controller$3.updateMissionHunt(local_hunt, local_hunt.questID, ID);
 			else {
 				const quest_info = DB.getQuestInfo(local_hunt.questID);
 				const local_quest = {
@@ -336619,11 +337211,11 @@ function onUpdateMissionHunt(pkt) {
 					maxCount: local_hunt.maxCount || 0,
 					mobName: local_hunt.mobName || ""
 				};
-				Controller$3.getUI().addQuest(local_quest, local_quest.questID);
+				Controller$3.addQuest(local_quest, local_quest.questID);
 			}
 		} else {
-			const quest_saved_id = Controller$3.getUI().getQuestIDByServerID(ID);
-			if (quest_saved_id > 0) Controller$3.getUI().updateMissionHunt(local_hunt, quest_saved_id, ID);
+			const quest_saved_id = Controller$3.getQuestIDByServerID(ID);
+			if (quest_saved_id > 0) Controller$3.updateMissionHunt(local_hunt, quest_saved_id, ID);
 		}
 	}
 }
@@ -336633,7 +337225,7 @@ function onUpdateMissionHunt(pkt) {
 * @param {object} pkt - PACKET.ZC.ACTIVE_QUEST
 */
 function onActiveQuest(pkt) {
-	Controller$3.getUI().toggleQuestActive(pkt.questID, pkt.active);
+	Controller$3.toggleQuestActive(pkt.questID, pkt.active);
 }
 /**
 * Quest deleted
@@ -336641,7 +337233,7 @@ function onActiveQuest(pkt) {
 * @param {object} pkt - PACKET.ZC.DEL_QUEST
 */
 function onDeleteQuest(pkt) {
-	Controller$3.getUI().removeQuest(pkt.questID);
+	Controller$3.removeQuest(pkt.questID);
 }
 /**
 * Initialize
@@ -337873,7 +338465,7 @@ function onPingLive(pkt) {
 function onConfig(pkt) {
 	switch (pkt.Config) {
 		case 0:
-			EquipmentController.getUI().setEquipConfig(pkt.Value);
+			EquipmentController.setEquipConfig(pkt.Value);
 			ChatBox_default.addText(DB.getMessage(1358 + (pkt.Value ? 1 : 0)), ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 			break;
 		case 1:
@@ -337889,7 +338481,7 @@ function onConfig(pkt) {
 			ChatBox_default.addText(DB.getMessage(3282 + (pkt.Value ? 0 : 1)), ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 			break;
 		case 5:
-			EquipmentController.getUI().setCostumeConfig(pkt.Value);
+			EquipmentController.setCostumeConfig(pkt.Value);
 			break;
 		default: console.error("[PACKET_ZC_CONFIG] Unknown Config Type %d (value:%d)", pkt.Config, pkt.Value);
 	}
@@ -337901,7 +338493,7 @@ function onConfig(pkt) {
 */
 function onConfigNotify(pkt) {
 	if (typeof pkt.show_eq_flag !== "undefined") {
-		EquipmentController.getUI().setEquipConfig(pkt.show_eq_flag);
+		EquipmentController.setEquipConfig(pkt.show_eq_flag);
 		ChatBox_default.addText(DB.getMessage(1358 + (pkt.show_eq_flag ? 1 : 0)), ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 	}
 	if (typeof pkt.pet_autofeeding_flag !== "undefined") {
@@ -337940,6 +338532,7 @@ function onConnectionAccepted$2(pkt) {
 	SessionStorage_default.hasGuild = false;
 	SessionStorage_default.guildPermission = 0;
 	GuildEngine.resetForNewCharacter();
+	ChatBox_default.PrivateMessageStorage.blockNicks.length = 0;
 	SessionStorage_default.homunId = 0;
 	SessionStorage_default.mapState = {
 		property: 0,
@@ -337957,13 +338550,13 @@ function onConnectionAccepted$2(pkt) {
 	};
 	if (PacketVerManager_default.value >= 20200520) {
 		BasicInfoController.selectUIVersionWithJob(DB.getJobClass(SessionStorage_default.Entity.job));
-		BasicInfoController.getUI().prepare();
+		BasicInfoController.prepare();
 	}
-	BasicInfoController.getUI().update("blvl", SessionStorage_default.Entity.clevel);
-	BasicInfoController.getUI().update("jlvl", SessionStorage_default.Entity.joblevel);
-	BasicInfoController.getUI().update("zeny", SessionStorage_default.Entity.money);
-	BasicInfoController.getUI().update("name", SessionStorage_default.Entity.display.name);
-	BasicInfoController.getUI().update("job", SessionStorage_default.Entity.job);
+	BasicInfoController.update("blvl", SessionStorage_default.Entity.clevel);
+	BasicInfoController.update("jlvl", SessionStorage_default.Entity.joblevel);
+	BasicInfoController.update("zeny", SessionStorage_default.Entity.money);
+	BasicInfoController.update("name", SessionStorage_default.Entity.display.name);
+	BasicInfoController.update("job", SessionStorage_default.Entity.job);
 	onMapChange({
 		xPos: pkt.PosDir[0],
 		yPos: pkt.PosDir[1],
@@ -338041,30 +338634,30 @@ function onMapChange(pkt) {
 		}
 		Camera.setTarget(SessionStorage_default.Entity);
 		Camera.init();
-		Controller$5.getUI().append();
-		Controller$5.getUI().setMap(MapRenderer.currentMap);
+		Controller$5.append();
+		Controller$5.setMap(MapRenderer.currentMap);
 		if (Configs.get("enableMapName")) {
 			MapName_default.setMap(MapRenderer.currentMap);
 			MapName_default.append();
 		}
 		ChatBox_default.append();
 		ChatBoxSettings_default.append();
-		BasicInfoController.getUI().append();
+		BasicInfoController.append();
 		Escape_default.append();
-		InventoryController.getUI().append();
+		InventoryController.append();
 		CartItems_default.append();
 		Vending_default.append();
 		ChangeCart_default.append();
 		CartDecoration_default.append();
-		EquipmentController.getUI().append();
+		EquipmentController.append();
 		ShortCuts_default.append();
 		StatusIcons_default.append();
 		ShortCut_default.append();
 		ChatRoomCreate_default.append();
 		Emoticons_default.append();
-		Controller$4.getUI().append();
+		Controller$4.append();
 		FPS_default.append();
-		controller.getUI().append();
+		controller.append();
 		Guild_default.append();
 		WorldMap_default.append();
 		SkillListMH_default.homunculus.append();
@@ -338075,8 +338668,8 @@ function onMapChange(pkt) {
 		Roulette_default.append();
 		if (Configs.get("enableAchievements") && PacketVerManager_default.value >= 20150513) Achievement_default.append();
 		if (SessionStorage_default.PCGoldTimer) PCGoldTimer_default.append();
-		WinStatsController.getUI().append();
-		Controller$3.getUI().append();
+		WinStatsController.append();
+		Controller$3.append();
 		if (Configs.get("enableCashShop")) CashShopIcon_default.append();
 		if (Configs.get("enableCheckAttendance") && PacketVerManager_default.value >= 20180307) CheckAttendance_default.append();
 		Plugins.init();
@@ -338117,10 +338710,7 @@ function cleanGameUI() {
 		[controller, "clean"],
 		[CashShop_default, "clean"]
 	];
-	for (const [target, method] of tasks) {
-		const component = typeof target.getUI === "function" ? target.getUI() : target;
-		if (component && component.__loaded && typeof component[method] === "function") component[method]();
-	}
+	for (const [target, method] of tasks) if (target && target.__loaded && typeof target[method] === "function") target[method]();
 }
 /**
 * Ask the server to disconnect
@@ -338198,11 +338788,8 @@ function onRestartAnswer(pkt) {
 	if (!pkt.type) ChatBox_default.addText(DB.getMessage(502), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
 	else {
 		GuildEngine.guild_id = 0;
-		cleanGameUI();
 		SessionStorage_default.Achievement = null;
 		Mouse.intersect = false;
-		MapRenderer.free();
-		Renderer.stop();
 		onRestart();
 	}
 }
@@ -338252,7 +338839,7 @@ function onRequestTalk(user, text, target) {
 	pkt.msg = SessionStorage_default.Entity.display.name + " : " + text;
 	Network.sendPacket(pkt);
 	if (chatLines > 7 && DB.isSuperNovice(SessionStorage_default.Entity._job)) {
-		if (Math.floor(BasicInfoController.getUI().base_exp / BasicInfoController.getUI().base_exp_next * 1e3) % 100 == 0) {
+		if (Math.floor(BasicInfoController.base_exp / BasicInfoController.base_exp_next * 1e3) % 100 == 0) {
 			if (text == DB.getMessage(790)) snCounter = 1;
 			else if (snCounter == 1 && text == DB.getMessage(791) + " " + SessionStorage_default.Entity.display.name + " " + DB.getMessage(792)) snCounter = 2;
 			else if (snCounter == 2 && text == DB.getMessage(793)) snCounter = 3;
@@ -338461,7 +339048,11 @@ function onConfigUpdate(type, val) {
 * Go back from map-server to char-server
 */
 function onRestart() {
-	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
+	__vitePreload(() => Promise.resolve().then(() => (init_CharEngine(), CharEngine_exports)).then((m) => m.default.reload(() => {
+		cleanGameUI();
+		MapRenderer.free();
+		Renderer.stop();
+	})), void 0, import.meta.url);
 }
 /**
 * Reply to reassembly auth packet
@@ -338495,6 +339086,7 @@ var init_MapEngine = __esmMin((() => {
 	init_MouseEventHandler();
 	init_KeyEventHandler();
 	init_UIManager();
+	init_UIVersionManager();
 	init_EffectManager();
 	init_Escape();
 	init_ChatBox();
@@ -338503,7 +339095,6 @@ var init_MapEngine = __esmMin((() => {
 	init_CheckAttendance();
 	init_WinStats();
 	init_Inventory();
-	init_Storage$1();
 	init_CartItems();
 	init_Vending();
 	init_VendingReport();
@@ -338651,15 +339242,7 @@ var init_MapEngine = __esmMin((() => {
 			}, true);
 			if (MapEngine.needsUIVerUpdate || !_isInitialised) {
 				if (PacketVerManager_default.value < 20200520) BasicInfoController.selectUIVersion();
-				Controller$5.selectUIVersion();
-				Controller$4.selectUIVersion();
-				Controller$3.selectUIVersion();
-				EquipmentController.selectUIVersion();
-				PlayerViewEquipController.selectUIVersion();
-				WinStatsController.selectUIVersion();
-				InventoryController.selectUIVersion();
-				StorageController.selectUIVersion();
-				controller.selectUIVersion();
+				UIVersionManager.selectAll();
 			}
 			if (!_isInitialised) {
 				_isInitialised = true;
@@ -338724,17 +339307,17 @@ var init_MapEngine = __esmMin((() => {
 				Escape_default.prepare();
 				PvPTimer_default.prepare();
 				PvPCount_default.prepare();
-				InventoryController.getUI().prepare();
+				InventoryController.prepare();
 				CartItems_default.prepare();
 				Vending_default.prepare();
 				ChangeCart_default.prepare();
-				EquipmentController.getUI().prepare();
+				EquipmentController.prepare();
 				ShortCuts_default.prepare();
 				ShortCut_default.prepare();
 				ChatRoomCreate_default.prepare();
 				Emoticons_default.prepare();
 				FPS_default.prepare();
-				controller.getUI().prepare();
+				controller.prepare();
 				StatusIcons_default.prepare();
 				ChatBox_default.prepare();
 				ChatBoxSettings_default.prepare();
@@ -338785,20 +339368,20 @@ var init_MapEngine = __esmMin((() => {
 				WhisperBox.onRequestTalk = onRequestTalk;
 			}
 			if (MapEngine.needsUIVerUpdate || !_isInitialised) {
-				Controller$5.getUI().prepare();
-				Controller$4.getUI().prepare();
-				if (PacketVerManager_default.value < 20200520) BasicInfoController.getUI().prepare();
-				EquipmentController.getUI().prepare();
-				Controller$3.getUI().prepare();
-				WinStatsController.getUI().prepare();
+				Controller$5.prepare();
+				Controller$4.prepare();
+				if (PacketVerManager_default.value < 20200520) BasicInfoController.prepare();
+				EquipmentController.prepare();
+				Controller$3.prepare();
+				WinStatsController.prepare();
 				controller.selectUIVersion();
-				WinStatsController.getUI().onRequestUpdate = onRequestStatUpdate;
-				EquipmentController.getUI().onUnEquip = onUnEquip;
-				EquipmentController.getUI().onConfigUpdate = onConfigUpdate;
-				EquipmentController.getUI().onEquipItem = onEquipItem;
-				EquipmentController.getUI().onRemoveOption = onRemoveOption;
-				InventoryController.getUI().onUseItem = onUseItem;
-				InventoryController.getUI().onEquipItem = onEquipItem;
+				WinStatsController.onRequestUpdate = onRequestStatUpdate;
+				EquipmentController.onUnEquip = onUnEquip;
+				EquipmentController.onConfigUpdate = onConfigUpdate;
+				EquipmentController.onEquipItem = onEquipItem;
+				EquipmentController.onRemoveOption = onRemoveOption;
+				InventoryController.onUseItem = onUseItem;
+				InventoryController.onEquipItem = onEquipItem;
 				MapEngine.needsUIVerUpdate = false;
 			}
 		}
@@ -340389,7 +340972,7 @@ var init_CharSelect = __esmMin((() => {
 		re: {},
 		prere: {}
 	};
-	Controller$2 = UIVersionManager.getUIController(publicName$2, versionInfo$2);
+	Controller$2 = UIVersionManager.getUIController(publicName$2, versionInfo$2, { phase: "char" });
 }));
 //#endregion
 //#region src/UI/Components/CharCreate/CharCreate/CharCreate.html?raw
@@ -341332,7 +341915,7 @@ var init_CharCreate = __esmMin((() => {
 		re: {},
 		prere: {}
 	};
-	Controller$1 = UIVersionManager.getUIController(publicName$1, versionInfo$1);
+	Controller$1 = UIVersionManager.getUIController(publicName$1, versionInfo$1, { phase: "char" });
 }));
 //#endregion
 //#region src/Renderer/Entity/Player.js
@@ -341356,10 +341939,8 @@ function onExitRequest$1() {
 * @param {object} pkt - PACKET.HC.ACCEPT_ENTER_NEO_UNION_LIST or PACKET.HC.ACCEPT_ENTER_NEO_UNION_LIST2
 */
 function onCharacterListChunk(pkt) {
-	const ChSel = Controller$2.getUI();
-	if (!ChSel) return;
 	pkt.charInfo.forEach((charInfo) => {
-		ChSel.addCharacter(charInfo);
+		Controller$2.addCharacter(charInfo);
 	});
 }
 /**
@@ -341386,15 +341967,14 @@ function onConnectionAccepted$1(pkt) {
 		MapName.resetState();
 	}
 	UIManager.getComponent("WinLoading").remove();
-	const ChSel = Controller$2.getUI();
-	ChSel.onExitRequest = onExitRequest$1;
-	ChSel.onConnectRequest = onConnectRequest;
-	ChSel.onCreateRequest = onCreateRequest;
-	ChSel.onDeleteRequest = onDeleteRequest;
-	ChSel.onDeleteReqDelay = onDeleteReqDelay;
-	ChSel.onCancelDeleteRequest = onCancelDeleteRequest;
-	ChSel.append();
-	ChSel.setInfo(pkt);
+	Controller$2.onExitRequest = onExitRequest$1;
+	Controller$2.onConnectRequest = onConnectRequest;
+	Controller$2.onCreateRequest = onCreateRequest;
+	Controller$2.onDeleteRequest = onDeleteRequest;
+	Controller$2.onDeleteReqDelay = onDeleteReqDelay;
+	Controller$2.onCancelDeleteRequest = onCancelDeleteRequest;
+	Controller$2.append();
+	Controller$2.setInfo(pkt);
 	/**
 	* In PACKETVERs < 20180124 that support pincode auth, we're supposed to
 	* show a button that will ask the server to perform it.
@@ -341470,7 +342050,7 @@ function onConnectionRefused$1(pkt) {
 function onMapUnavailable(pkt) {
 	UIManager.showMessageBox(DB.getMessage(1811), "ok", () => {
 		UIManager.getComponent("WinLoading").remove();
-		Controller$2.getUI().append();
+		Controller$2.append();
 	}, true);
 }
 /**
@@ -341478,7 +342058,7 @@ function onMapUnavailable(pkt) {
 */
 function onRequestCharDel(pkt) {
 	if (!pkt) return;
-	Controller$2.getUI().reqdeleteAnswer(pkt);
+	Controller$2.reqdeleteAnswer(pkt);
 }
 /**
 * Char Delete Request Cancel
@@ -341594,7 +342174,7 @@ function onDeleteAnswer(pkt) {
 	let result;
 	if (PacketVerManager_default.value <= 20100803) result = typeof pkt.ErrorCode === "undefined" ? -1 : pkt.ErrorCode;
 	else result = typeof pkt.Result === "undefined" ? -1 : pkt.Result;
-	Controller$2.getUI().deleteAnswer(result);
+	Controller$2.deleteAnswer(result);
 }
 /**
 * Asking from CharSelect to create a character, moving to CharCreate window
@@ -341602,17 +342182,15 @@ function onDeleteAnswer(pkt) {
 * @param {number} index - slot where to create character
 */
 function onCreateRequest(index) {
-	const ChSel = Controller$2.getUI();
-	const ChCre = Controller$1.getUI();
 	_creationSlot = index;
-	ChSel.remove();
-	ChCre.setAccountSex(SessionStorage_default.Sex);
-	ChCre.onCharCreationRequest = onCharCreationRequest;
-	ChCre.onExitRequest = function() {
-		ChCre.remove();
-		ChSel.append();
+	Controller$2.remove();
+	Controller$1.setAccountSex(SessionStorage_default.Sex);
+	Controller$1.onCharCreationRequest = onCharCreationRequest;
+	Controller$1.onExitRequest = function() {
+		Controller$1.remove();
+		Controller$2.append();
 	};
-	ChCre.append();
+	Controller$1.append();
 }
 /**
 * User want to create a character, send data to server
@@ -341656,10 +342234,9 @@ function onCharCreationRequest(name, Str, Agi, Vit, Int, Dex, Luk, hair, color, 
 * @param {object} pkt - PACKET.HC.ACCEPT_MAKECHAR
 */
 function onCreationSuccess(pkt) {
-	Controller$1.getUI().remove();
-	const ChSel = Controller$2.getUI();
-	ChSel.addCharacter(pkt.charinfo);
-	ChSel.append();
+	Controller$1.remove();
+	Controller$2.addCharacter(pkt.charinfo);
+	Controller$2.append();
 }
 /**
 * Fail to create a character
@@ -341753,11 +342330,11 @@ function onPincodeCheckSuccess(pkt) {
 					UIManager.showMessageBox(DB.getMessage(1891), "ok");
 				}
 				PincodeWindow_default.resetUI();
-				Controller$2.getUI().setUIEnabled(true);
+				Controller$2.setUIEnabled(true);
 			}
 			break;
 		case 1:
-			Controller$2.getUI().setUIEnabled(false);
+			Controller$2.setUIEnabled(false);
 			PincodeWindow_default.selectInput(0);
 			if (_pincodeAttempts < 3) {
 				PincodeWindow_default.clearPin();
@@ -341767,7 +342344,7 @@ function onPincodeCheckSuccess(pkt) {
 			break;
 		case 2:
 		case 4:
-			Controller$2.getUI().setUIEnabled(false);
+			Controller$2.setUIEnabled(false);
 			UIManager.showMessageBox(DB.getMessage(1900), "ok");
 			PincodeWindow_default.selectInput(0);
 			PincodeWindow_default.setUserSeed(pkt.Seed);
@@ -341775,7 +342352,7 @@ function onPincodeCheckSuccess(pkt) {
 			PincodeWindow_default.append();
 			break;
 		case 3:
-			Controller$2.getUI().setUIEnabled(false);
+			Controller$2.setUIEnabled(false);
 			if (_pincodeAttempts < 3) {
 				UIManager.showMessageBox(DB.getMessage(2345), "ok");
 				PincodeWindow_default.setUserSeed(pkt.Seed);
@@ -341812,7 +342389,7 @@ function onPincodeCheckSuccess(pkt) {
 */
 function onConnectRequest(entity) {
 	SoundManager.play("¹öÆ°¼Ò¸®.wav");
-	Controller$2.getUI().remove();
+	Controller$2.remove();
 	UIManager.getComponent("WinLoading").append();
 	SessionStorage_default.Entity = new Player(entity);
 	const pkt = new PACKET.CH.SELECT_CHAR();
@@ -341867,6 +342444,7 @@ var init_CharEngine = __esmMin((() => {
 	init_PacketVerManager();
 	init_PacketStructure();
 	init_UIManager();
+	init_UIVersionManager();
 	init_Background();
 	init_PincodeWindow();
 	init_InputBox();
@@ -341905,8 +342483,7 @@ var init_CharEngine = __esmMin((() => {
 					SessionStorage_default.AID = fp.readLong();
 				});
 			});
-			Controller$2.selectUIVersion();
-			Controller$1.selectUIVersion();
+			UIVersionManager.selectAllChar();
 			Network.hookPacket(PACKET.HC.ACCEPT_ENTER_NEO_UNION, onConnectionAccepted$1);
 			Network.hookPacket(PACKET.HC.REFUSE_ENTER, onConnectionRefused$1);
 			Network.hookPacket(PACKET.HC.REFUSE_SELECTCHAR, onSelectionRefused);
@@ -341929,10 +342506,13 @@ var init_CharEngine = __esmMin((() => {
 		}
 		/**
 		* Reload Char-Select
+		*
+		* @param {function} [onBlack] - run once the fade has covered the screen
 		*/
-		static reload() {
+		static reload(onBlack) {
 			Network.close();
 			Background.setLoginBackground(() => {
+				if (onBlack) onBlack();
 				UIManager.removeComponents();
 				CharEngine.init(_server$1);
 			});
@@ -344454,8 +345034,8 @@ var require_rijndael_precalculated = /* @__PURE__ */ __commonJSMin(((exports, mo
 }));
 //#endregion
 //#region node_modules/rijndael-js/lib/utils.js
-var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var root = typeof self === "object" && self.self === self && self || typeof global === "object" && global.global === global && global || exports;
+var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module, this$1) => {
+	var root = typeof self === "object" && self.self === self && self || typeof global === "object" && global.global === global && global || this$1;
 	var has = (type) => typeof root[type] !== "undefined";
 	var is = (value, type) => has(type) && value instanceof root[type];
 	module.exports.toArray = (data) => {
@@ -346184,7 +346764,7 @@ var init_ReplayPlayer = __esmMin((() => {
 			}
 			if (this._efstListBuffer && this._efstListBuffer.length > 0) for (const efstId of this._efstListBuffer) this._sendStateChange(efstId, true);
 			if (this._itemsBuffer) {
-				const inventoryUI = InventoryController?.getUI ? InventoryController.getUI() : null;
+				const inventoryUI = InventoryController?.getUI ? InventoryController : null;
 				if (inventoryUI && typeof inventoryUI.addItem === "function") {
 					if (inventoryUI.list) inventoryUI.list.length = 0;
 					if (inventoryUI.equippedItems) inventoryUI.equippedItems.length = 0;
@@ -346192,7 +346772,7 @@ var init_ReplayPlayer = __esmMin((() => {
 					if (this._itemsBuffer.equipped?.length > 0) for (const item of this._itemsBuffer.equipped) inventoryUI.addItem(item);
 					if (this._itemsBuffer.equippedCostume?.length > 0) for (const item of this._itemsBuffer.equippedCostume) inventoryUI.addItem(item);
 				}
-				const cartUI = CartItems_default?.getUI ? CartItems_default.getUI() : null;
+				const cartUI = CartItems_default?.getUI ? CartItems_default : null;
 				if (cartUI && this._itemsBuffer.cart?.length > 0) {
 					if (typeof cartUI.addItem === "function") {
 						if (cartUI.list) cartUI.list.length = 0;
@@ -346201,29 +346781,29 @@ var init_ReplayPlayer = __esmMin((() => {
 				}
 			}
 			if (SessionStorage_default.Entity) {
-				if (BasicInfoController?.getUI()?.update) {
-					BasicInfoController.getUI().update("blvl", SessionStorage_default.Entity.clevel);
-					BasicInfoController.getUI().update("jlvl", SessionStorage_default.Entity.joblevel);
-					BasicInfoController.getUI().update("zeny", SessionStorage_default.Entity.money);
-					BasicInfoController.getUI().update("name", SessionStorage_default.Entity.display.name);
-					BasicInfoController.getUI().update("job", SessionStorage_default.Entity.job);
-					BasicInfoController.getUI().update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
-					BasicInfoController.getUI().update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
-					BasicInfoController.getUI().update("weight", SessionStorage_default.Entity.weight, SessionStorage_default.Entity.max_weight);
+				if (BasicInfoController.update) {
+					BasicInfoController.update("blvl", SessionStorage_default.Entity.clevel);
+					BasicInfoController.update("jlvl", SessionStorage_default.Entity.joblevel);
+					BasicInfoController.update("zeny", SessionStorage_default.Entity.money);
+					BasicInfoController.update("name", SessionStorage_default.Entity.display.name);
+					BasicInfoController.update("job", SessionStorage_default.Entity.job);
+					BasicInfoController.update("hp", SessionStorage_default.Entity.life.hp, SessionStorage_default.Entity.life.hp_max);
+					BasicInfoController.update("sp", SessionStorage_default.Entity.life.sp, SessionStorage_default.Entity.life.sp_max);
+					BasicInfoController.update("weight", SessionStorage_default.Entity.weight, SessionStorage_default.Entity.max_weight);
 				}
-				if (WinStatsController?.getUI()?.update) {
-					WinStatsController.getUI().update("str", SessionStorage_default.Entity.str);
-					WinStatsController.getUI().update("agi", SessionStorage_default.Entity.agi);
-					WinStatsController.getUI().update("vit", SessionStorage_default.Entity.vit);
-					WinStatsController.getUI().update("int", SessionStorage_default.Entity.int);
-					WinStatsController.getUI().update("dex", SessionStorage_default.Entity.dex);
-					WinStatsController.getUI().update("luk", SessionStorage_default.Entity.luk);
-					WinStatsController.getUI().update("str2", SessionStorage_default.Entity.str_bonus);
-					WinStatsController.getUI().update("agi2", SessionStorage_default.Entity.agi_bonus);
-					WinStatsController.getUI().update("vit2", SessionStorage_default.Entity.vit_bonus);
-					WinStatsController.getUI().update("int2", SessionStorage_default.Entity.int_bonus);
-					WinStatsController.getUI().update("dex2", SessionStorage_default.Entity.dex_bonus);
-					WinStatsController.getUI().update("luk2", SessionStorage_default.Entity.luk_bonus);
+				if (WinStatsController.update) {
+					WinStatsController.update("str", SessionStorage_default.Entity.str);
+					WinStatsController.update("agi", SessionStorage_default.Entity.agi);
+					WinStatsController.update("vit", SessionStorage_default.Entity.vit);
+					WinStatsController.update("int", SessionStorage_default.Entity.int);
+					WinStatsController.update("dex", SessionStorage_default.Entity.dex);
+					WinStatsController.update("luk", SessionStorage_default.Entity.luk);
+					WinStatsController.update("str2", SessionStorage_default.Entity.str_bonus);
+					WinStatsController.update("agi2", SessionStorage_default.Entity.agi_bonus);
+					WinStatsController.update("vit2", SessionStorage_default.Entity.vit_bonus);
+					WinStatsController.update("int2", SessionStorage_default.Entity.int_bonus);
+					WinStatsController.update("dex2", SessionStorage_default.Entity.dex_bonus);
+					WinStatsController.update("luk2", SessionStorage_default.Entity.luk_bonus);
 				}
 			}
 			this._setState(ReplayState.INITIAL_DATA_COMPLETE);
@@ -346490,14 +347070,14 @@ var LoginEngine_exports = /* @__PURE__ */ __exportAll({ default: () => LoginEngi
 */
 function onConnectionRequest(username, password) {
 	SoundManager.play("¹öÆ°¼Ò¸®.wav");
-	Controller.getUI().remove();
+	Controller.remove();
 	WinLoading.append();
 	_loginID = username;
 	Network.connect(_server.address, _server.port, (success) => {
 		if (!success) {
 			UIManager.showMessageBox(DB.getMessage(1), "ok", () => {
 				UIManager.removeComponents();
-				Controller.getUI().append();
+				Controller.append();
 			}, true);
 			return;
 		}
@@ -346620,7 +347200,7 @@ function onConnectionAccepted(pkt) {
 		WinList_default.onExitRequest = () => {
 			Network.close();
 			WinList_default.remove();
-			Controller.getUI().append();
+			Controller.append();
 		};
 		WinList_default.append();
 		WinList_default.setList(list);
@@ -346670,7 +347250,7 @@ function onTarenConnectionRefused(pkt) {
 	}
 	UIManager.showMessageBox(DB.getMessage(msg_id), "ok", () => {
 		UIManager.removeComponents();
-		Controller.getUI().append();
+		Controller.append();
 	}, true);
 	Network.close();
 }
@@ -346718,7 +347298,7 @@ function onTarenConnectionRefused2(pkt) {
 	}
 	UIManager.showMessageBox(DB.getMessage(msg_id).replace("%s", pkt.blockDate), "ok", () => {
 		UIManager.removeComponents();
-		Controller.getUI().append();
+		Controller.append();
 	}, true);
 }
 /**
@@ -346776,7 +347356,7 @@ function onInternationalConnectionRefused(pkt) {
 	}
 	UIManager.showMessageBox(DB.getMessage(msg_id).replace("%d", pkt.blockDate), "ok", () => {
 		UIManager.removeComponents();
-		Controller.getUI().append();
+		Controller.append();
 	}, true);
 	Network.close();
 }
@@ -346976,7 +347556,7 @@ function onConnectionRefused(pkt) {
 	}
 	UIManager.showMessageBox(DB.getMessage(error).replace("%s", pkt.blockDate), "ok", () => {
 		UIManager.removeComponents();
-		Controller.getUI().append();
+		Controller.append();
 	}, true);
 	Network.close();
 }
@@ -347075,6 +347655,7 @@ function onServerClosed(pkt) {
 			break;
 		case 110: msg_id = 1589;
 	}
+	SkillTargetSelection_default.remove();
 	UIManager.showMessageBox(DB.getMessage(msg_id), "ok", () => {
 		Renderer.stop();
 		MapRenderer.cancelLoad();
@@ -347082,7 +347663,7 @@ function onServerClosed(pkt) {
 		BGM.play("01.mp3");
 		UIManager.removeComponents();
 		Background.setLoginBackground();
-		Controller.getUI().append();
+		Controller.append();
 	}, true);
 	Network.close();
 }
@@ -347105,6 +347686,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_UIManager();
 	init_WinList();
 	init_WinPopup();
+	init_SkillTargetSelection();
 	init_Queue();
 	init_Background();
 	init_spark_md5_min();
@@ -347174,19 +347756,19 @@ var init_LoginEngine = __esmMin((() => {
 			Plugins.init();
 			Controller.selectUIVersion();
 			Background.setLoginBackground();
-			Controller.getUI().onConnectionRequest = onConnectionRequest;
-			Controller.getUI().onExitRequest = onExitRequest;
+			Controller.onConnectionRequest = onConnectionRequest;
+			Controller.onExitRequest = onExitRequest;
 			Network.onDisconnect = () => {
 				UIManager.showMessageBox(DB.getMessage(1), "ok", () => {
 					UIManager.removeComponents();
-					Controller.getUI().append();
+					Controller.append();
 				}, true);
 			};
 			if (autoLogin instanceof Array && autoLogin[0] && autoLogin[1]) {
 				onConnectionRequest.apply(null, autoLogin);
 				Configs.set("autoLogin", null);
 			} else q.add(function() {
-				Controller.getUI().append();
+				Controller.append();
 			});
 			if (PacketVerManager_default.value < 20170315) Network.hookPacket(PACKET.AC.ACCEPT_LOGIN, onConnectionAccepted);
 			else Network.hookPacket(PACKET.AC.ACCEPT_LOGIN3, onConnectionAccepted);
@@ -347205,9 +347787,9 @@ var init_LoginEngine = __esmMin((() => {
 		*/
 		static reload() {
 			UIManager.removeComponents();
-			Controller.getUI().onConnectionRequest = onConnectionRequest;
-			Controller.getUI().onExitRequest = onExitRequest;
-			Controller.getUI().append();
+			Controller.onConnectionRequest = onConnectionRequest;
+			Controller.onExitRequest = onExitRequest;
+			Controller.append();
 			Network.close();
 		}
 		/**
@@ -348378,6 +348960,7 @@ var init_UIManager = __esmMin((() => {
 		* @param {string} error message
 		*/
 		static showErrorBox(text) {
+			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
 			let overlay;
 			WinError.init = function Init() {
