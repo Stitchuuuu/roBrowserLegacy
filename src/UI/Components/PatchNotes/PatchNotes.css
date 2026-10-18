@@ -70,55 +70,133 @@
 	right: 0;
 }
 
-/* Text at (30, 22), scrollbar ends at x 596 */
-#PatchNotes .content {
+/* Fixed header, only the notes scroll */
+#PatchNotes .head {
 	position: absolute;
-	top: 5px;
-	left: 30px;
-	width: 566px;
-	height: 350px;
-	overflow-y: auto;
-	font-size: 16px;
-	line-height: 18px;
+	top: 4px;
+	left: 20px;
+	width: 548px;
+	height: 55px;
+	padding: 0 6px;
+	display: flex;
+	align-items: center;
+	border-bottom: 1px solid #c7d2e4;
+}
+#PatchNotes .poring {
+	flex: none;
+	margin-right: 10px;
+	width: 65px;
+	height: 49px;
+	background-repeat: no-repeat;
+}
+#PatchNotes .head .title {
+	font-size: 15px;
+	font-weight: bold;
+	color: #253f73;
+}
+#PatchNotes .head .meta {
+	margin-top: 3px;
+	font-size: 11px;
+	color: #6b7686;
+}
+#PatchNotes .head .count {
+	margin-left: auto;
+	text-align: right;
+	font-size: 11px;
+	line-height: 15px;
+	color: #6b7686;
+}
+#PatchNotes .head .count b {
+	color: #253f73;
 }
 
-#PatchNotes .release .head {
-	font-weight: bold;
-}
-#PatchNotes .release .date {
-	color: #555;
-	font-weight: normal;
-}
-#PatchNotes .release .section {
-	margin-top: 18px;
-	font-weight: bold;
-}
-#PatchNotes .release ul {
-	margin: 0;
-	padding: 0 0 0 16px;
-}
-#PatchNotes .release li {
-	margin: 0 12px 6px 0;
-}
-#PatchNotes .release details summary {
-	color: #555;
+#PatchNotes .content {
+	position: absolute;
+	top: 64px;
+	left: 20px;
+	width: 563px;
+	height: 288px;
+	overflow-y: auto;
 	font-size: 12px;
-	cursor: pointer;
-	list-style: none;
+	line-height: 16px;
 }
-#PatchNotes .release details summary::-webkit-details-marker {
+
+#PatchNotes .section {
+	display: flex;
+	align-items: center;
+	height: 22px;
+	margin: 6px 0 2px;
+	padding: 0 4px;
+	font-size: 13px;
+	font-weight: bold;
+	color: #1d3563;
+}
+#PatchNotes .section::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	margin: 0 8px 0 4px;
+	background: #c7d2e4;
+}
+#PatchNotes .section .icon {
+	flex: none;
+	margin-right: 6px;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+#PatchNotes .section.new .icon {
+	width: 13px;
+	height: 13px;
+}
+#PatchNotes .section.fixed .icon {
+	width: 18px;
+	height: 18px;
+}
+
+#PatchNotes .row {
+	position: relative;
+	padding: 4px 10px 4px 22px;
+}
+#PatchNotes .row.foldable {
+	cursor: pointer;
+}
+#PatchNotes .rows .row:nth-child(even) {
+	background: #f3f6fb;
+}
+#PatchNotes .row:hover {
+	background: #e6edf8;
+}
+#PatchNotes .row .fold {
+	position: absolute;
+	top: 7px;
+	left: 8px;
+	width: 10px;
+	height: 10px;
+	background-repeat: no-repeat;
+}
+#PatchNotes .row .fold.open,
+#PatchNotes .row.open .fold.closed {
 	display: none;
 }
-#PatchNotes .release details summary::before {
-	content: '\25B8  ';
+#PatchNotes .row.open .fold.open {
+	display: block;
 }
-#PatchNotes .release details[open] summary::before {
-	content: '\25BE  ';
+#PatchNotes .row .keyword {
+	font-weight: bold;
+	color: #253f73;
 }
-#PatchNotes .release details div {
+#PatchNotes .row .details {
+	display: none;
+	margin: 4px 0 2px;
+	padding: 3px 7px;
+	font-size: 11px;
+	line-height: 14px;
 	color: #555;
-	font-size: 12px;
-	line-height: 15px;
+	background: #eef2f8;
+	border-left: 2px solid #b6c5de;
+}
+#PatchNotes .row.open .details {
+	display: block;
 }
 
 #PatchNotes .footer {

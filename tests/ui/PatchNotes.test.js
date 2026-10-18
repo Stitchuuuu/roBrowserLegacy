@@ -77,7 +77,11 @@ async function load(sha) {
 }
 
 function shownTitle(PatchNotes) {
-	return PatchNotes.__active ? PatchNotes.getRoot().querySelector('.release .head').textContent : null;
+	if (!PatchNotes.__active) {
+		return null;
+	}
+	const head = PatchNotes.getRoot().querySelector('.head');
+	return `${head.querySelector('.meta').textContent} - ${head.querySelector('.title').textContent}`;
 }
 
 describe('PatchNotes', () => {
@@ -133,10 +137,10 @@ describe('PatchNotes', () => {
 		const PatchNotes = await load('ccccccc3333333');
 		await PatchNotes.onLoginScreen();
 
-		expect(shownTitle(PatchNotes)).toContain('0.3.0 - Third');
+		expect(shownTitle(PatchNotes)).toBe('robrowser 0.3.0 \u00b7 November 20, 2026 - Third');
 		expect(PatchNotes._host.style.zIndex).toBe('100');
 		PatchNotes.getRoot().querySelector('.back').click();
-		expect(shownTitle(PatchNotes)).toContain('0.2.0 - Second');
+		expect(shownTitle(PatchNotes)).toContain('0.2.0 \u00b7 November 2, 2026 - Second');
 		expect(PatchNotes.getRoot().querySelector('.back').style.visibility).toBe('hidden');
 		expect(localStorage.getItem(KEY)).toBe('0.3.0');
 	});
@@ -158,7 +162,7 @@ describe('PatchNotes', () => {
 		expect(localStorage.getItem(KEY)).toBe('0.1.0');
 	});
 
-	it('opens on the running version from the version label, with bold keywords and folded details', async () => {
+	it('opens on the running version from the version label, with keywords and details folded until clicked', async () => {
 		const PatchNotes = await load('aaaaaaa1111111');
 		const el = document.createElement('span');
 		PatchNotes.attachVersion(el);
@@ -166,11 +170,17 @@ describe('PatchNotes', () => {
 		el.click();
 
 		const root = PatchNotes.getRoot();
-		expect(shownTitle(PatchNotes)).toContain('robrowser 0.1.0 - The Plugin Update');
+		expect(shownTitle(PatchNotes)).toBe('robrowser 0.1.0 \u00b7 October 18, 2026 - The Plugin Update');
 		expect([...root.querySelectorAll('.section')].map(s => s.textContent)).toEqual(['New', 'Fixed']);
-		expect(root.querySelector('li b').textContent).toBe('Sell all');
-		expect(root.querySelector('li details').open).toBe(false);
-		expect(root.querySelector('li details div').textContent).toBe('One click.');
+		expect(root.querySelector('.head .count').textContent).toBe('1 new1 fixed');
+		const row = root.querySelector('.row');
+		expect(row.querySelector('.keyword').textContent).toBe('Sell all');
+		expect(row.querySelector('.details').textContent).toBe('One click.');
+		expect(row.classList.contains('open')).toBe(false);
+		row.click();
+		expect(row.classList.contains('open')).toBe(true);
+		row.click();
+		expect(row.classList.contains('open')).toBe(false);
 		expect(root.querySelector('.back').style.visibility).toBe('hidden');
 
 		root.querySelector('.next').click();

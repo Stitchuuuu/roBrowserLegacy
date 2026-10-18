@@ -52,6 +52,32 @@ let _pages = [];
 let _page = 0;
 
 /**
+ * @var {Array} sections of a release, in display order
+ */
+const SECTIONS = [
+	{ type: 'new', label: 'New', icon: 'basic_interface/icon_new.bmp' },
+	{ type: 'fixed', label: 'Fixed', icon: 'item/bs_repairweapon.bmp' }
+];
+
+/**
+ * @var {Array} month names, for the release date
+ */
+const MONTHS = [
+	'January',
+	'February',
+	'March',
+	'April',
+	'May',
+	'June',
+	'July',
+	'August',
+	'September',
+	'October',
+	'November',
+	'December'
+];
+
+/**
  * Initialize UI
  */
 PatchNotes.init = function init() {
@@ -60,6 +86,12 @@ PatchNotes.init = function init() {
 	root.querySelector('.back').addEventListener('click', () => show(_page + 1));
 	root.querySelector('.next').addEventListener('click', () => show(_page - 1));
 	root.querySelector('.ok').addEventListener('click', () => this.remove());
+	root.querySelector('.content').addEventListener('click', event => {
+		const row = event.target.closest('.row.foldable');
+		if (row) {
+			row.classList.toggle('open');
+		}
+	});
 
 	this.draggable(root.querySelector('.titlebar'));
 };
@@ -223,8 +255,26 @@ function show(page) {
 	_page = page;
 
 	const root = PatchNotes.getRoot();
+	const release = _pages[page];
+	const config = getConfig() || {};
+	const notes = release.notes || [];
 	const content = root.querySelector('.content');
-	content.replaceChildren(renderRelease(_pages[page]));
+
+	root.querySelector('.head .title').textContent = release.title || '';
+	root.querySelector('.head .meta').textContent = [
+		`${config.product ? config.product + ' ' : ''}${release.version}`,
+		formatDate(release.date)
+	]
+		.filter(Boolean)
+		.join(' \u00b7 ');
+	root.querySelector('.head .count').replaceChildren(
+		...SECTIONS.flatMap(section => {
+			const count = notes.filter(note => (note.type || 'new') === section.type).length;
+			return count ? [create('b', '', count), ` ${section.type}`, create('br')] : [];
+		})
+	);
+
+	content.replaceChildren(...SECTIONS.flatMap(section => renderSection(section, notes)));
 	content.scrollTop = 0;
 
 	root.querySelector('.back').style.visibility = page < _pages.length - 1 ? '' : 'hidden';
@@ -232,71 +282,88 @@ function show(page) {
 }
 
 /**
- * Build the DOM of a release
- *
- * @param {object} release
- * @return {HTMLElement}
+ * @param {string} date YYYY-MM-DD
+ * @return {string} October 18, 2026
  */
-function renderRelease(release) {
-	const config = getConfig() || {};
-	const div = document.createElement('div');
-	const head = document.createElement('div');
-	const date = document.createElement('span');
-	const sections = {};
-
-	div.className = 'release';
-	head.className = 'head';
-	head.textContent = `${config.product ? config.product + ' ' : ''}${release.version} - ${release.title || ''} `;
-	date.className = 'date';
-	date.textContent = release.date || '';
-	head.appendChild(date);
-	div.appendChild(head);
-
-	(release.notes || []).forEach(note => {
-		const type = note.type || 'new';
-
-		if (!sections[type]) {
-			const title = document.createElement('div');
-			title.className = 'section';
-			title.textContent = type === 'fixed' ? 'Fixed' : 'New';
-			sections[type] = document.createElement('ul');
-			div.appendChild(title);
-			div.appendChild(sections[type]);
-		}
-
-		sections[type].appendChild(renderNote(note));
-	});
-
-	return div;
+function formatDate(date) {
+	const parts = String(date || '').split('-');
+	return parts.length === 3 ? `${MONTHS[parseInt(parts[1], 10) - 1]} ${parseInt(parts[2], 10)}, ${parts[0]}` : '';
 }
 
 /**
- * Build the DOM of a note: bold keyword, text, folded details
+ * @param {string} tag
+ * @param {string} [className]
+ * @param {string|number} [text]
+ * @return {HTMLElement}
+ */
+function create(tag, className, text) {
+	const element = document.createElement(tag);
+	if (className) {
+		element.className = className;
+	}
+	if (text !== undefined) {
+		element.textContent = text;
+	}
+	return element;
+}
+
+/**
+ * @param {string} className
+ * @param {string} src interface image
+ * @return {HTMLElement} element painted with the image
+ */
+function image(className, src) {
+	const element = create('div', className);
+	const img = create('ui-image');
+	img.setAttribute('src', src);
+	element.appendChild(img);
+	return element;
+}
+
+/**
+ * Build a section: title, then a row per note
+ *
+ * @param {object} section of SECTIONS
+ * @param {Array} notes of the release
+ * @return {Array} elements, empty when the section has no note
+ */
+function renderSection(section, notes) {
+	const list = notes.filter(note => (note.type || 'new') === section.type);
+
+	if (!list.length) {
+		return [];
+	}
+
+	const title = create('div', `section ${section.type}`);
+	const rows = create('div', 'rows');
+
+	title.appendChild(image('icon', section.icon));
+	title.appendChild(document.createTextNode(section.label));
+	list.forEach(note => rows.appendChild(renderNote(note)));
+
+	return [title, rows];
+}
+
+/**
+ * Build a note: keyword, text, details folded until the row is clicked
  *
  * @param {object} note
  * @return {HTMLElement}
  */
 function renderNote(note) {
-	const li = document.createElement('li');
-	const keyword = document.createElement('b');
+	const row = create('div', 'row');
 
-	keyword.textContent = note.keyword || '';
-	li.appendChild(keyword);
-	li.appendChild(document.createTextNode(` - ${note.text || ''}`));
+	row.appendChild(create('span', 'keyword', note.keyword || ''));
+	row.appendChild(document.createTextNode(`  ${note.text || ''}`));
 
 	if (note.details) {
-		const details = document.createElement('details');
-		const summary = document.createElement('summary');
-		const text = document.createElement('div');
-
-		summary.textContent = 'Details';
-		text.textContent = note.details;
-		details.appendChild(summary);
-		details.appendChild(text);
-		li.appendChild(details);
+		row.classList.add('foldable');
+		row.appendChild(image('fold closed', 'basic_interface/folder_c.bmp'));
+		row.appendChild(image('fold open', 'basic_interface/folder_o.bmp'));
+		row.appendChild(create('div', 'details', note.details));
 	}
 
-	return li;
+	return row;
 }
 
 /**
