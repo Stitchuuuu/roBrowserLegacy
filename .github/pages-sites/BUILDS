@@ -1,0 +1,10 @@
+# One client build per line: <folder> <source branch> <access>
+#   folder         gh-pages/<folder>/<site>/ for every site folder here (cyro.live/…); "." = the site at the
+#                  root (/cyro.live/), the address players already have
+#   source branch  its build is the one pages.yml published to gh-pages/<safe-branch>/
+#   access         key = Online.js locked by encrypt.mjs, opened by a key of the NPM_ACCESS_KEYS secret;
+#                  open = as built
+native-plugin-manager  feat/native-plugin-manager  key
+upstream               upstream-relay              open
+cyro                   cyro-prod                   open
+.                      feat/native-plugin-manager  key

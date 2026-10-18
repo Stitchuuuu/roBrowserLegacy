@@ -1,20 +1,50 @@
 # Server sites
 
-One folder per server on GitHub Pages: `https://robrowser.suuuper.app/<site>/` (`cyro.live/`…), each
-playable only with the **roBrowser relay** Firefox extension, which holds the client folder
-(`data.grf` + `BGM/`…).
+One folder per client build and server on GitHub Pages: `https://robrowser.suuuper.app/<build>/<site>/`
+(`native-plugin-manager/cyro.live/`, `upstream/cyro.live/`, `cyro/cyro.live/`…), each playable only with the
+[roBrowser relay](https://github.com/meitogi/robrowser-relay) Firefox extension, which holds the client
+folder (`data.grf` + `BGM/`…).
 
-`.github/workflows/pages-sites.yml` runs after every "Deploy to GitHub Pages" of
-`feat/native-plugin-manager`: for every folder here but `shared/`, it copies
-`gh-pages/feat-native-plugin-manager/` to `gh-pages/<site>/` with `assemble.sh`, which adds `plugins/`,
-then `shared/`, then the site's own files. Nothing is rebuilt.
+`.github/workflows/pages-sites.yml` runs after every "Deploy to GitHub Pages" of a source branch in
+[`BUILDS`](BUILDS): for every build there and every folder here but `shared/`, `build-sites.sh` copies
+`gh-pages/<safe-branch>/` to `gh-pages/<build>/<site>/` with `assemble.sh`, which adds the branch's
+`plugins/`, then `shared/`, then the site's own files. Nothing is rebuilt.
+
+| Build | Source branch | Access |
+|---|---|---|
+| `native-plugin-manager/` | `feat/native-plugin-manager` | access key |
+| `upstream/` | `upstream-relay` (`upstream/master` + the login auto-retry) | open |
+| `cyro/` | `cyro-prod` (the client cyro.live serves, rebuilt from source; its worker loaded next to `Online.js`) | open |
+| `.` (the site at the root, `/cyro.live/`) | `feat/native-plugin-manager` | access key, the same keys |
+
+`upstream` is in the workflow's trigger too: that branch's `pages.yml` (upstream's own file, never edited
+here) clears `gh-pages/upstream/` on every push, `upstream/cyro.live/` included, and the next run of this
+workflow puts it back.
 
 | File | Role |
 |---|---|
-| `<site>/Config.local.js` | the server block; `/grf/` and the API root-absolute; the native plugin managers under `/<site>/plugins/`; loads the three shared scripts |
+| `BUILDS` | one line per build: gh-pages folder, source branch, `key` or `open` |
+| `build-sites.sh` | assembles every build × site into a gh-pages tree; locks the `key` builds |
+| `assemble.sh` | one build × one site |
+| `encrypt.mjs` | locks a `key` build: `Online.js` → `Online.js.enc` (AES-GCM, a new content key per deploy) + `keyslots.json`, one slot per access key of the `NPM_ACCESS_KEYS` secret |
+| `access-key.test.mjs` | `node --test .github/pages-sites/access-key.test.mjs`, also run by the workflow before it deploys |
+| `<site>/Config.local.js` | the server block; `/grf/` and the API root-absolute; the native plugin managers under the copy's own folder, on every build but `upstream/` and `cyro/`; loads the shared scripts |
 | `shared/sw.js`, `shared/pwa/` | the page-shell service worker and the relay (`/grf/` from the extension's folder, the API from `https://cyro.live/api`) |
-| `shared/gate.js` | holds `loadApp()` until the relay is on and the service worker controls the page; else a message, and the client is never loaded |
-| `shared/index.html` | `/<site>/` → `api.html?app=ONLINE` |
+| `shared/access-key.js` | browser side of `encrypt.mjs`: opens a slot with the player's key (kept in `localStorage`, shared by every keyed site of the origin), decrypts `Online.js.enc` |
+| `shared/gate.js` | holds `loadApp()` until the relay is on and the service worker controls the page; on a keyed build it also needs the key, then imports the decrypted client from a `blob:` URL, with `import.meta.url` replaced by the URL `Online.js` would have had; else a message, and the client is never loaded |
+| `shared/index.html` | `/<build>/<site>/`: landing page (server name from the site folder, the notice, install link, the access key on a keyed build, live relay state, **Play** → `api.html?app=ONLINE`) |
+
+## Access keys
+
+A key opens the keyed builds and nothing else: the sources are public, so it is a door, not code
+protection. Keys are 32 hex digits; the secret `NPM_ACCESS_KEYS` of this repository holds one
+`<label> <key>` line per key. A new deploy draws a new content key, so a key removed from the secret
+stops working at the next deploy.
+
+- New key: `wtf pages key new <label>` in the dev monorepo, which appends it to its key list and prints
+  the `gh secret set` command, then redeploy: `gh workflow run pages-sites.yml -R Stitchuuuu/roBrowserLegacy`.
+- Revoke: delete its line from that list, run the same `gh secret set`, redeploy.
+- Without the secret, the workflow fails before it deploys anything.
 
 `<site>/Config.local.js` is ignored by the root `.gitignore` (`Config.local.js`): add a new one with
 `git add -f`. Once tracked, its edits show as usual.
@@ -25,8 +55,9 @@ then `shared/`, then the site's own files. Nothing is rebuilt.
 The relay holds one client folder and calls `https://cyro.live/api` only: a second server with another
 GRF or another API needs the relay to do so first.
 
-Run it locally:
+Run it locally, from a folder holding `feat-native-plugin-manager/`, `upstream-relay/` and `cyro-prod/`
+(three `dist/Web` builds) and `<plugins-root>/<safe-branch>/` (each branch's `plugins/`):
 
 ```bash
-bash .github/pages-sites/assemble.sh dist/Web plugins .github/pages-sites/cyro.live /tmp/site/cyro.live
+NPM_ACCESS_KEYS='me 0123-4567-89ab-cdef-0123-4567-89ab-cdef' bash .github/pages-sites/build-sites.sh <plugins-root>
 ```
