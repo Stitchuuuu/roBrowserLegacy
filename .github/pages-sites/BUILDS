@@ -6,4 +6,5 @@
 #                  open = as built
 native-plugin-manager  feat/native-plugin-manager  key
 upstream               upstream-relay              open
+cyro                   cyro-prod                   open
 .                      feat/native-plugin-manager  key

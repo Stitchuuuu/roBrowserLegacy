@@ -13,7 +13,7 @@ on:
   workflow_run:
     workflows: ["Deploy to GitHub Pages"]
     types: [completed]
-    branches: [feat/native-plugin-manager, upstream-relay, upstream]
+    branches: [feat/native-plugin-manager, upstream-relay, cyro-prod, upstream]
   # A change to the sites themselves redeploys them from the current builds.
   push:
     branches: [master]

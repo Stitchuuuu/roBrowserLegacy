@@ -9,8 +9,8 @@
  */
 // This copy's folder, /<build>/cyro.live/ (or /cyro.live/): the plugins are under it.
 const PAGES_SITE = new URL('.', location.href).href;
-// The upstream build has no native plugin manager.
-const PAGES_PLUGIN_MANAGER = !new URL(PAGES_SITE).pathname.startsWith('/upstream/');
+// The upstream and cyro builds have no native plugin manager.
+const PAGES_PLUGIN_MANAGER = !/^\/(upstream|cyro)\//.test(new URL(PAGES_SITE).pathname);
 
 window.ROConfigLocal = {
 	version: 1775350421,

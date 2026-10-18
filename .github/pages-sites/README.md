@@ -1,7 +1,7 @@
 # Server sites
 
 One folder per client build and server on GitHub Pages: `https://robrowser.suuuper.app/<build>/<site>/`
-(`native-plugin-manager/cyro.live/`, `upstream/cyro.live/`…), each playable only with the
+(`native-plugin-manager/cyro.live/`, `upstream/cyro.live/`, `cyro/cyro.live/`…), each playable only with the
 [roBrowser relay](https://github.com/meitogi/robrowser-relay) Firefox extension, which holds the client
 folder (`data.grf` + `BGM/`…).
 
@@ -14,6 +14,7 @@ folder (`data.grf` + `BGM/`…).
 |---|---|---|
 | `native-plugin-manager/` | `feat/native-plugin-manager` | access key |
 | `upstream/` | `upstream-relay` (`upstream/master` + the login auto-retry) | open |
+| `cyro/` | `cyro-prod` (the client cyro.live serves, rebuilt from source; its worker loaded next to `Online.js`) | open |
 | `.` (the site at the root, `/cyro.live/`) | `feat/native-plugin-manager` | access key, the same keys |
 
 `upstream` is in the workflow's trigger too: that branch's `pages.yml` (upstream's own file, never edited
@@ -27,7 +28,7 @@ workflow puts it back.
 | `assemble.sh` | one build × one site |
 | `encrypt.mjs` | locks a `key` build: `Online.js` → `Online.js.enc` (AES-GCM, a new content key per deploy) + `keyslots.json`, one slot per access key of the `NPM_ACCESS_KEYS` secret |
 | `access-key.test.mjs` | `node --test .github/pages-sites/access-key.test.mjs`, also run by the workflow before it deploys |
-| `<site>/Config.local.js` | the server block; `/grf/` and the API root-absolute; the native plugin managers under the copy's own folder, on every build but `upstream/`; loads the shared scripts |
+| `<site>/Config.local.js` | the server block; `/grf/` and the API root-absolute; the native plugin managers under the copy's own folder, on every build but `upstream/` and `cyro/`; loads the shared scripts |
 | `shared/sw.js`, `shared/pwa/` | the page-shell service worker and the relay (`/grf/` from the extension's folder, the API from `https://cyro.live/api`) |
 | `shared/access-key.js` | browser side of `encrypt.mjs`: opens a slot with the player's key (kept in `localStorage`, shared by every keyed site of the origin), decrypts `Online.js.enc` |
 | `shared/gate.js` | holds `loadApp()` until the relay is on and the service worker controls the page; on a keyed build it also needs the key, then imports the decrypted client from a `blob:` URL, with `import.meta.url` replaced by the URL `Online.js` would have had; else a message, and the client is never loaded |
@@ -54,8 +55,8 @@ stops working at the next deploy.
 The relay holds one client folder and calls `https://cyro.live/api` only: a second server with another
 GRF or another API needs the relay to do so first.
 
-Run it locally, from a folder holding `feat-native-plugin-manager/` and `upstream-relay/` (two `dist/Web`
-builds) and `<plugins-root>/<safe-branch>/` (each branch's `plugins/`):
+Run it locally, from a folder holding `feat-native-plugin-manager/`, `upstream-relay/` and `cyro-prod/`
+(three `dist/Web` builds) and `<plugins-root>/<safe-branch>/` (each branch's `plugins/`):
 
 ```bash
 NPM_ACCESS_KEYS='me 0123-4567-89ab-cdef-0123-4567-89ab-cdef' bash .github/pages-sites/build-sites.sh <plugins-root>
