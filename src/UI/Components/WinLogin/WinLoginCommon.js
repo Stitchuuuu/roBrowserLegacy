@@ -109,7 +109,6 @@ export function createWinLogin({ name, htmlText, cssText }) {
 
 		if (PatchNotes.isEnabled()) {
 			PatchNotesVersion.append();
-			PatchNotes.onLoginScreen();
 		}
 	};
 

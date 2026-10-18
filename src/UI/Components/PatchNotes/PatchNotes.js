@@ -222,11 +222,11 @@ PatchNotes.open = function open(releases, release) {
 };
 
 /**
- * Login screen is up: pop the notes of the versions not seen yet
+ * Pop the notes of the versions not seen yet, the running one alone on a first visit
  *
  * @return {Promise}
  */
-PatchNotes.onLoginScreen = function onLoginScreen() {
+PatchNotes.checkUnseen = function checkUnseen() {
 	return PatchNotes.load().then(() => {
 		if (!_current) {
 			return;

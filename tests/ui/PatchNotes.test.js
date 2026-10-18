@@ -100,7 +100,7 @@ describe('PatchNotes', () => {
 		vi.resetModules();
 		const PatchNotes = (await import('UI/Components/PatchNotes/PatchNotes.js')).default;
 
-		await PatchNotes.onLoginScreen();
+		await PatchNotes.checkUnseen();
 
 		expect(PatchNotes.isEnabled()).toBe(false);
 		expect(fetch).not.toHaveBeenCalled();
@@ -138,18 +138,19 @@ describe('PatchNotes', () => {
 		expect(el.style.display).toBe('');
 	});
 
-	it('does not pop on a first visit, and stores the version', async () => {
+	it('pops the running version alone on a first visit, and stores it', async () => {
 		const PatchNotes = await load('ccccccc3333333');
-		await PatchNotes.onLoginScreen();
+		await PatchNotes.checkUnseen();
 
-		expect(PatchNotes.__active).toBe(false);
+		expect(shownTitle(PatchNotes)).toContain('0.3.0');
+		expect(PatchNotes.getRoot().querySelector('.back').style.visibility).toBe('hidden');
 		expect(localStorage.getItem(KEY)).toBe('0.3.0');
 	});
 
 	it('pops every version since the last seen one, newest first', async () => {
 		localStorage.setItem(KEY, '0.1.0');
 		const PatchNotes = await load('ccccccc3333333');
-		await PatchNotes.onLoginScreen();
+		await PatchNotes.checkUnseen();
 
 		expect(shownTitle(PatchNotes)).toBe('robrowser 0.3.0 \u00b7 November 20, 2026 - Third');
 		expect(PatchNotes._host.style.zIndex).toBe('100');
@@ -162,7 +163,7 @@ describe('PatchNotes', () => {
 	it('does not pop on the same version', async () => {
 		localStorage.setItem(KEY, '0.3.0');
 		const PatchNotes = await load('ccccccc3333333');
-		await PatchNotes.onLoginScreen();
+		await PatchNotes.checkUnseen();
 
 		expect(PatchNotes.__active).toBe(false);
 	});
@@ -170,7 +171,7 @@ describe('PatchNotes', () => {
 	it('does not pop on a rollback, and stores the running version', async () => {
 		localStorage.setItem(KEY, '0.3.0');
 		const PatchNotes = await load('aaaaaaa1111111');
-		await PatchNotes.onLoginScreen();
+		await PatchNotes.checkUnseen();
 
 		expect(PatchNotes.__active).toBe(false);
 		expect(localStorage.getItem(KEY)).toBe('0.1.0');

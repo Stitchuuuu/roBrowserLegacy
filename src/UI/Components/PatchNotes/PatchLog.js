@@ -61,7 +61,8 @@ function current(releases, sha) {
 }
 
 /**
- * Releases published after the last seen version, newest first
+ * Releases published after the last seen version, newest first,
+ * the running one alone on a first visit
  *
  * @param {Array} releases
  * @param {string} version running
@@ -70,7 +71,7 @@ function current(releases, sha) {
  */
 function unseen(releases, version, seen) {
 	if (!seen) {
-		return [];
+		return releases.filter(r => compare(r.version, version) === 0);
 	}
 
 	return sorted(releases).filter(r => compare(r.version, seen) > 0 && compare(r.version, version) <= 0);

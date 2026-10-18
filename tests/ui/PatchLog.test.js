@@ -38,8 +38,8 @@ describe('PatchLog.current', () => {
 });
 
 describe('PatchLog.unseen', () => {
-	it('returns nothing on a first visit', () => {
-		expect(PatchLog.unseen(RELEASES, '0.2.1', null)).toEqual([]);
+	it('returns the running release alone on a first visit', () => {
+		expect(PatchLog.unseen(RELEASES, '0.2.0', null).map(r => r.version)).toEqual(['0.2.0']);
 	});
 
 	it('returns every release since the seen one, newest first', () => {
