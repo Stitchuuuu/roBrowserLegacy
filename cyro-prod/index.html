@@ -1,0 +1,74 @@
+<!DOCTYPE html>  
+<html>  
+    <head>  
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>  
+        <meta charset="UTF-8">  
+        <title>roBrowser [1.0.0 - 2026-10-18 08:50:03]</title>  
+        <link rel="icon" type="./icon.png">  
+  
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
+        <meta name="HandheldFriendly" content="true">  
+  
+        <meta name="apple-mobile-web-app-capable" content="yes">  
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">  
+        <meta name="apple-mobile-web-app-title" content="roBrowser">  
+        <meta name="mobile-web-app-capable" content="yes">  
+  
+        <meta name="description" content="roBrowser">  
+        <meta name="keywords" content="roBrowser">  
+        <meta name="author" content="roBrowser">  
+        <meta name="robots" content="index">  
+  
+        <meta name="theme-color" content="#ff8cb5">  
+  
+        <meta property="og:title" content="roBrowser">  
+        <meta property="og:description" content="roBrowser">  
+        <meta property="og:type" content="website">  
+        <meta property="og:locale" content="en_US">  
+  
+        <link rel="apple-touch-icon" href="./icon.png">  
+        <link rel="manifest" href="./manifest.webmanifest">  
+    </head>  
+    <body>  
+        <script src="Config.js"></script>  
+        <script>  
+            // Load optional Config.local.js for overrides (fails silently if not present)  
+            (function() {  
+                var script = document.createElement('script');  
+                script.src = 'Config.local.js';  
+                script.onerror = function() {  
+                    console.log('Config.local.js not found, using defaults from Config.js');  
+                };  
+                document.head.appendChild(script);  
+            })();  
+        </script>  
+        <script>  
+            function deepMerge(target, source) {  
+                for (var key in source) {  
+                    if (source.hasOwnProperty(key)) {  
+                        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {  
+                            target[key] = deepMerge(target[key] || {}, source[key]);  
+                        } else {  
+                            target[key] = source[key];  
+                        }  
+                    }  
+                }  
+                return target;  
+            }  
+  
+            window.addEventListener("load", (event) => {  
+                // Merge Config.js defaults with Config.local.js overrides  
+                var config = deepMerge({}, window.ROConfigBase || {});  
+                if (window.ROConfigLocal) {  
+                    config = deepMerge(config, window.ROConfigLocal);  
+                }  
+                window.ROConfig = config;  
+  
+				var script = document.createElement('script');  
+				script.type = 'module';  
+				script.src = 'Online.js';  
+				document.getElementsByTagName('body')[0].appendChild(script);
+            });  
+        </script>  
+    </body>  
+</html>  
