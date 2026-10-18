@@ -1,6 +1,8 @@
 // Service worker for `wtf robrowser prod --local-grf` (https://cyro.localhost:6988) and its static copy
 // (https://robrowser.suuuper.app/cyro.live/): the page shell (api.html, scripts, workers, plugins)
-// network first, the last good copy when the server is down.
+// network first, the last good copy when the server is down. The network request revalidates with the
+// server (no-cache): GitHub Pages sends max-age=600, and the HTTP cache alone would keep serving a
+// replaced client for up to ten minutes after a deploy.
 // Assets (/grf/) and the cyro API (/userconfig, /emblem, /api) are not cached: left to the network.
 importScripts('pwa/relay-sw.js');
 
@@ -17,7 +19,7 @@ async function network(request) {
 		throw new TypeError('server down');
 	}
 	try {
-		return await fetch(request, { signal: AbortSignal.timeout(NETWORK_TIMEOUT) });
+		return await fetch(request, { cache: 'no-cache', signal: AbortSignal.timeout(NETWORK_TIMEOUT) });
 	} catch (err) {
 		downUntil = Date.now() + DOWN_FOR;
 		throw err;

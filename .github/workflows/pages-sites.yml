@@ -41,6 +41,9 @@ jobs:
       - name: Test the access key
         run: node --test repo/.github/pages-sites/access-key.test.mjs
 
+      - name: Test the update check
+        run: node --test repo/.github/pages-sites/update-check.test.mjs
+
       - name: Plugins of every source branch
         run: |
           set -euo pipefail
