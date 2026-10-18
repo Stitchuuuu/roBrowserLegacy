@@ -20,14 +20,15 @@
  * update badges), else `listInstalled()` (IndexedDB only). Install goes through
  * a registry row, the URL field (registries only) or the upload button
  * (`installFromFile`). Drag-drop install is owned by LPM itself (document
- * capture-phase), not this UI. « Versions » lists a row's published versions
+ * capture-phase), not this UI. Clicking a row's version (▾ when the registry
+ * lists others) opens its published versions
  * and installs one in place (`LPM.update(slug, { sourceUrl })`) ; an older one
  * asks first.
  *
  * Wire it via ROConfig.plugins as `/plugins/plugin-manager-ui/plugin-manager-ui.esm.js`.
  */
 
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 
 const CSS = `
 .pm-panel { width: 380px; background: rgba(20,30,50,0.94); border: 1px solid #4af; border-radius: 4px; color: #fff; font-family: Arial, sans-serif; font-size: 11px; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 10px rgba(0,0,0,0.7); display: flex; flex-direction: column; }
@@ -61,6 +62,8 @@ const CSS = `
 .pm-name { font-weight: bold; }
 .pm-slug { color: #9ab; font-size: 9px; }
 .pm-ver { margin-left: auto; color: #ad6; font-size: 10px; }
+button.pm-ver { background: none; border: 1px solid transparent; border-radius: 2px; padding: 0 3px; font: 10px inherit; text-shadow: inherit; cursor: pointer; }
+button.pm-ver:hover { border-color: #4af; background: rgba(40,60,100,0.9); }
 .pm-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .pm-badge { font-size: 9px; padding: 1px 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); color: #99a; background: rgba(255,255,255,0.05); }
 .pm-badge.on { color: #fff; border-color: #6c6; background: rgba(60,160,60,0.45); }
@@ -124,12 +127,12 @@ function registryRowHtml(p, open) {
 <div class="pm-row is-registry" data-name="${escapeHtml(p.name)}" data-url="${escapeHtml(p.url || '')}">
 	<div class="pm-row-main">
 		<span class="pm-name">${escapeHtml(friendly)}</span>
-		<span class="pm-ver">v${escapeHtml(p.version || '?')}</span>
+		${verHtml(p, open)}
 	</div>
 	<div class="pm-badges">
 		<span class="pm-badge reg">${escapeHtml(p.registry || 'registry')}</span>
 	</div>
-	<div class="pm-actions"><button class="pm-btn" data-action="install" title="Install">Install</button>${hasVersionChoice(p) ? VERSIONS_BTN : ''}</div>
+	<div class="pm-actions"><button class="pm-btn" data-action="install" title="Install">Install</button></div>
 	${open ? versionsHtml(p, null) : ''}
 </div>`.trim();
 }
@@ -160,7 +163,12 @@ function versionsHtml(p, confirm) {
 	return `<div class="pm-versions">${items.join('')}</div>`;
 }
 
-const VERSIONS_BTN = '<button class="pm-btn" data-action="versions" title="Versions"><span class="ro-icon ro-icon-rotate-ccw"></span> Versions</button>';
+/** The row's version: a ▾ button opening the « Versions » list when there is another to pick. */
+function verHtml(p, open) {
+	const v = `v${escapeHtml(p.version || '?')}`;
+	if (!hasVersionChoice(p)) { return `<span class="pm-ver">${v}</span>`; }
+	return `<button class="pm-ver" data-action="versions" title="Versions">${v} ${open ? '▴' : '▾'}</button>`;
+}
 
 /** One installed-plugin row. Buttons dispatch via `data-action` / `.pm-enable`. */
 function rowHtml(p, open, confirm) {
@@ -171,8 +179,8 @@ function rowHtml(p, open, confirm) {
 	const slug = p.pluginName && p.pluginName !== p.name ? `<span class="pm-slug">${escapeHtml(p.name)}</span>` : '';
 
 	const actions = [
-		'<button class="pm-btn pm-btn-icon" data-action="update" title="Update"><span class="ro-icon ro-icon-refresh-cw"></span></button>',
-		hasVersionChoice(p) ? VERSIONS_BTN : '',
+		// Update only once a registry that answered lists the plugin.
+		p.registry ? '<button class="pm-btn pm-btn-icon" data-action="update" title="Update"><span class="ro-icon ro-icon-refresh-cw"></span></button>' : '',
 		'<button class="pm-btn pm-btn-icon" data-action="uninstall" title="Uninstall"><span class="ro-icon ro-icon-trash-2"></span></button>',
 		`<label class="pm-enable-wrap" title="${p.enabled ? 'Disable' : 'Enable'}"><input type="checkbox" class="pm-enable"${p.enabled ? ' checked' : ''}> ${p.enabled ? 'on' : 'off'}</label>`,
 	];
@@ -181,7 +189,7 @@ function rowHtml(p, open, confirm) {
 <div class="pm-row${p.enabled ? '' : ' is-disabled'}${p.status === 'failed' ? ' is-failed' : ''}" data-name="${escapeHtml(p.name)}"${p.updateAvailable && p.url ? ` data-url="${escapeHtml(p.url)}"` : ''}>
 	<div class="pm-row-main">
 		<span class="pm-name">${escapeHtml(friendly)}</span>${slug}
-		<span class="pm-ver">v${escapeHtml(p.version || '?')}</span>
+		${verHtml(p, open)}
 	</div>
 	<div class="pm-badges">
 		${badge(p.installed, 'local')}${badge(p.enabled, 'enabled')}${p.debug ? '<span class="pm-badge dbg">debug</span>' : ''}${p.updateAvailable ? '<span class="pm-badge upd">update</span>' : ''}${p.status === 'failed' ? '<span class="pm-badge fail">failed</span>' : ''}
@@ -203,6 +211,8 @@ const init = (pars, deps) => {
 	let lastRows = [];
 	let query = '';
 	let unsub = null;
+	// Bumped per refresh() : a slow registry listing never overwrites a newer one.
+	let refreshSeq = 0;
 	// Slug whose « Versions » list is open, and the older version awaiting a yes.
 	let openVersions = null;
 	let confirmVersion = null;
@@ -236,16 +246,25 @@ const init = (pars, deps) => {
 
 	// ── data : local-only ⇒ installed (IndexedDB, no network) ; with registries ⇒
 	//    installed merged with the registry listings (installable + update badges) ──
+	//    The installed rows are drawn first, the registries merged in when they answer.
 	async function refresh() {
 		if (!LPM) { setStatus('LocalPluginManager not loaded'); return; }
+		const seq = ++refreshSeq;
+		const hasRegistries = LPM.registries().length > 0;
 		try {
-			const hasRegistries = LPM.registries().length > 0;
-			lastRows = hasRegistries ? await LPM.list() : await LPM.listInstalled();
-			const installed = lastRows.filter((p) => p.installed).length;
-			setStatus(hasRegistries ? `${installed} installed · registry` : `${installed} installed`);
+			const local = await LPM.listInstalled();
+			if (seq !== refreshSeq) { return; }
+			lastRows = local;
+			setStatus(hasRegistries ? `${local.length} installed · loading registry…` : `${local.length} installed`);
+			renderRows();
+			if (!hasRegistries) { return; }
+			const rows = await LPM.list();
+			if (seq !== refreshSeq) { return; }
+			lastRows = rows;
+			setStatus(`${rows.filter((p) => p.installed).length} installed · registry`);
 		} catch (e) {
+			if (seq !== refreshSeq) { return; }
 			setStatus('Error: ' + ((e && e.message) || e));
-			lastRows = [];
 		}
 		renderRows();
 	}

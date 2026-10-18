@@ -142,6 +142,45 @@ describe('plugin-manager-ui Versions', () => {
 	});
 });
 
+describe('plugin-manager-ui version toggle', () => {
+	it('is the row version itself, ▴ while the list is open, ▾ once closed', () => {
+		expect(text('.pm-row-main [data-action="versions"]')).toBe('v1.1.0 ▴');
+		click('[data-action="versions"]');
+		expect(panel.querySelector('.pm-versions')).toBeNull();
+		expect(text('.pm-row-main [data-action="versions"]')).toBe('v1.1.0 ▾');
+	});
+
+	it('stays plain text when the registry lists a single version', async () => {
+		cleanups.forEach(fn => fn());
+		panel.remove();
+		mount([{ ...row('1.0.0'), versions: [{ version: '1.0.0', url: url('1.0.0'), installed: true, older: false }] }]);
+		await flush();
+		expect(panel.querySelector('[data-action="versions"]')).toBeNull();
+		expect(text('.pm-ver')).toBe('v1.0.0');
+	});
+});
+
+describe('plugin-manager-ui loading', () => {
+	it('draws the installed plugins before the registry answers', async () => {
+		cleanups.forEach(fn => fn());
+		panel.remove();
+		const local = { ...row('1.1.0'), available: false, registry: undefined, url: undefined, versions: undefined };
+		let answer;
+		mount([local]);
+		LPM.list = vi.fn(() => new Promise(r => { answer = r; }));
+		click('.pm-refresh');
+		await flush();
+		expect(panel.querySelectorAll('.pm-row')).toHaveLength(1);
+		expect(text('.pm-status')).toBe('1 installed · loading registry…');
+		expect(panel.querySelector('[data-action="update"]')).toBeNull();
+
+		answer([row('1.1.0')]);
+		await flush();
+		expect(text('.pm-status')).toBe('1 installed · registry');
+		expect(panel.querySelector('[data-action="update"]')).not.toBeNull();
+	});
+});
+
 describe('plugin-manager-ui Update', () => {
 	it('fetches the latest listed build, not the pinned installed one', async () => {
 		click('[data-action="update"]');
