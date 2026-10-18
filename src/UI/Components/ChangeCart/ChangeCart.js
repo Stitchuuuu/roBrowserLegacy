@@ -39,6 +39,7 @@ const ChangeCart = new UIComponent('ChangeCart', htmlText, cssText);
 const _carts = {};
 const _layerEntity = new Entity();
 let _mode = 'change';
+let _decorateRetryTimer = null;
 
 /**
  * Initialize UI
@@ -99,14 +100,70 @@ function onCart(num) {
 		if (num < 10 || num > 13) {
 			return;
 		}
-	} else if (num < 1 || num > 9) {
+		startDecorateChange(num);
+	} else {
+		if (num < 1 || num > 9) {
+			return;
+		}
+		sendChangeCartRequest(num);
+	}
+
+	ChangeCart.ui.hide();
+}
+
+function clearDecorateRetry() {
+	if (_decorateRetryTimer) {
+		clearInterval(_decorateRetryTimer);
+		_decorateRetryTimer = null;
+	}
+}
+
+function startDecorateChange(selectedNum) {
+	clearDecorateRetry();
+
+	const entity = Session.Entity;
+	const initialCartNum = entity ? entity.CartNum : -1;
+	const candidates = [];
+
+	[selectedNum, selectedNum - 1, selectedNum - 10, selectedNum - 9].forEach(function (candidate) {
+		if (candidate >= 0 && candidate <= CART_LIMIT && candidates.indexOf(candidate) === -1) {
+			candidates.push(candidate);
+		}
+	});
+
+	if (!candidates.length) {
 		return;
 	}
 
+	const maxAttempts = Math.max(candidates.length * 3, 8);
+	let attempt = 0;
+
+	sendChangeCartRequest(candidates[attempt]);
+	attempt++;
+
+	_decorateRetryTimer = setInterval(function () {
+		const current = Session.Entity;
+		if (!current || current.hasCart == false) {
+			clearDecorateRetry();
+			return;
+		}
+		if (current.CartNum !== initialCartNum) {
+			clearDecorateRetry();
+			return;
+		}
+		if (attempt >= maxAttempts) {
+			clearDecorateRetry();
+			return;
+		}
+		sendChangeCartRequest(candidates[attempt % candidates.length]);
+		attempt++;
+	}, 300);
+}
+
+function sendChangeCartRequest(num) {
 	const pkt = new PACKET.CZ.REQ_CHANGECART();
 	pkt.num = num;
 	Network.sendPacket(pkt);
-	ChangeCart.ui.hide();
 }
 
 /**
@@ -221,6 +278,7 @@ function updateList(blvl) {
  * Stop rendering
  */
 ChangeCart.onRemove = function onRemove() {
+	clearDecorateRetry();
 	Renderer.stop(render);
 };
 

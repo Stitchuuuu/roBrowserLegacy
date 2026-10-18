@@ -46,6 +46,7 @@ NpcMenu.init = function init() {
 	this.draggable();
 
 	const self = this;
+	getScrollHost(this.ui).on('mousewheel DOMMouseScroll', onScroll);
 	this.ui
 		.find('.content')
 
@@ -75,7 +76,7 @@ NpcMenu.onRemove = function onRemove() {
  * Bind KeyDown event
  */
 NpcMenu.onKeyDown = function onKeyDown(event) {
-	let count, top;
+	let count;
 	let content;
 	if (!this.ui.is(':visible')) {
 		return true;
@@ -97,12 +98,8 @@ NpcMenu.onKeyDown = function onKeyDown(event) {
 			this.ui.find('.content div').removeClass('selected');
 			this.ui.find('.content div:eq(' + _index + ')').addClass('selected');
 
-			content = this.ui.find('.content')[0];
-			top = _index * 20;
-
-			if (top < content.scrollTop) {
-				content.scrollTop = top;
-			}
+			content = getScrollHost(this.ui)[0];
+			ensureSelectedVisible(this.ui, content);
 			break;
 
 		case KEYS.DOWN:
@@ -112,12 +109,8 @@ NpcMenu.onKeyDown = function onKeyDown(event) {
 			this.ui.find('.content div').removeClass('selected');
 			this.ui.find('.content div:eq(' + _index + ')').addClass('selected');
 
-			content = this.ui.find('.content')[0];
-			top = _index * 20;
-
-			if (top >= content.scrollTop + 80) {
-				content.scrollTop = top - 60;
-			}
+			content = getScrollHost(this.ui)[0];
+			ensureSelectedVisible(this.ui, content);
 			break;
 
 		default:
@@ -177,6 +170,55 @@ function selectIndex($this) {
 	$this.addClass('selected');
 
 	_index = parseInt($this.data('index'), 10);
+}
+
+/**
+ * Update scroll by block (20px)
+ */
+function onScroll(event) {
+	let delta;
+
+	if (event.originalEvent.wheelDelta) {
+		delta = event.originalEvent.wheelDelta / 120;
+		if (window.opera) {
+			delta = -delta;
+		}
+	} else if (event.originalEvent.detail) {
+		delta = -event.originalEvent.detail;
+	}
+
+	this.scrollTop = Math.floor(this.scrollTop / getRowHeight(this)) * getRowHeight(this) - delta * getRowHeight(this);
+	return false;
+}
+
+function getScrollHost(ui) {
+	const middle = ui.find('.middle');
+	return middle.length ? middle : ui.find('.content');
+}
+
+function getRowHeight(content) {
+	const firstRow = content.querySelector('div');
+	if (!firstRow) {
+		return 20;
+	}
+	const style = window.getComputedStyle(firstRow);
+	const mt = parseFloat(style.marginTop) || 0;
+	const mb = parseFloat(style.marginBottom) || 0;
+	return Math.max(1, Math.round(firstRow.offsetHeight + mt + mb));
+}
+
+function ensureSelectedVisible(ui, host) {
+	const selected = ui.find('.content div.selected')[0];
+	if (!selected || !host) {
+		return;
+	}
+	const rowRect = selected.getBoundingClientRect();
+	const hostRect = host.getBoundingClientRect();
+	if (rowRect.bottom > hostRect.bottom) {
+		host.scrollTop += rowRect.bottom - hostRect.bottom;
+	} else if (rowRect.top < hostRect.top) {
+		host.scrollTop -= hostRect.top - rowRect.top;
+	}
 }
 
 /**
