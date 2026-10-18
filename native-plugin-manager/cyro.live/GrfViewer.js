@@ -10930,6 +10930,34 @@ var init_BinaryReader = __esmMin((() => {
 		type = type || 2;
 		this.offset = type === 1 ? this.offset + index : type === 3 ? this.length + index : index;
 	};
+	/**
+	* Reset BinaryReader in-place to read from a new buffer (or sub-range of one),
+	* avoiding a heap allocation per network message on the hot path.
+	*
+	* Accepts either:
+	*   - An ArrayBuffer / Uint8Array  →  wraps in a new DataView
+	*   - A DataView already sized to the desired range  →  reused directly
+	*
+	* @param {ArrayBuffer|Uint8Array|DataView} buffer
+	* @param {number} [start=0]  byte offset into buffer (ignored when DataView is passed)
+	* @param {number} [end]      exclusive end byte (ignored when DataView is passed)
+	*/
+	BinaryReader.prototype.reset = function reset(buffer, start, end) {
+		if (buffer instanceof DataView) {
+			this.view = buffer;
+			this.length = buffer.byteLength;
+		} else {
+			const u8 = buffer instanceof Uint8Array ? buffer : null;
+			const ab = u8 ? u8.buffer : buffer;
+			const base = u8 ? u8.byteOffset : 0;
+			const s = base + (start || 0);
+			const e = end !== void 0 ? base + end : base + (u8 ? u8.byteLength : ab.byteLength);
+			this.view = new DataView(ab, s, e - s);
+			this.length = e - s;
+		}
+		this.buffer = this.view.buffer;
+		this.offset = 0;
+	};
 	bf_byteBuff = /* @__PURE__ */ new ArrayBuffer(4);
 	bf_wba = new Int8Array(bf_byteBuff);
 	bf_wia = new Int32Array(bf_byteBuff);
@@ -10989,7 +11017,7 @@ var init_BinaryReader = __esmMin((() => {
 function getDate(executable, callback) {
 	const reader = new FileReader();
 	reader.onload = function(event) {
-		_fp = new BinaryReader(event.target.result);
+		_fp$1 = new BinaryReader(event.target.result);
 		callback(getDateSub());
 	};
 	reader.readAsArrayBuffer(executable);
@@ -11000,14 +11028,14 @@ function getDate(executable, callback) {
 * @return {number}
 */
 function getDateSub() {
-	if (!_fp) throw new Error("Executable::getDate() - Executable is not loaded yet, or not specified");
-	_fp.seek(60, SEEK_SET);
-	const offset = _fp.readULong();
-	if (offset > _fp.length) throw new Error("Executable::getDate() - Invalid executable specified.");
-	_fp.seek(offset, SEEK_SET);
-	if (_fp.readString(4) !== "PE") throw new Error("Executable::getDate() - Invalid executable specified.");
-	_fp.seek(4, SEEK_CUR);
-	const date = /* @__PURE__ */ new Date(_fp.readULong() * 1e3);
+	if (!_fp$1) throw new Error("Executable::getDate() - Executable is not loaded yet, or not specified");
+	_fp$1.seek(60, SEEK_SET);
+	const offset = _fp$1.readULong();
+	if (offset > _fp$1.length) throw new Error("Executable::getDate() - Invalid executable specified.");
+	_fp$1.seek(offset, SEEK_SET);
+	if (_fp$1.readString(4) !== "PE") throw new Error("Executable::getDate() - Invalid executable specified.");
+	_fp$1.seek(4, SEEK_CUR);
+	const date = /* @__PURE__ */ new Date(_fp$1.readULong() * 1e3);
 	return date.getFullYear() * 1e4 + (date.getMonth() + 1) * 100 + date.getDate();
 }
 /**
@@ -11021,7 +11049,7 @@ function isROExec(file) {
 	if (file.size < 3145728 || file.size > 7340032) return false;
 	return true;
 }
-var _fp, Executable_default;
+var _fp$1, Executable_default;
 var init_Executable = __esmMin((() => {
 	init_BinaryReader();
 	Executable_default = {
@@ -161339,7 +161367,7 @@ var init_PacketStructure = __esmMin((() => {
 	PACKET.ZC.GUILD_EMBLEM_IMG = function PACKET_ZC_GUILD_EMBLEM_IMG(fp, end) {
 		this.GDID = fp.readLong();
 		this.emblemVersion = fp.readLong();
-		this.img = new Uint8Array(fp.buffer, fp.offset, end - fp.offset);
+		this.img = new Uint8Array(fp.view.buffer, fp.view.byteOffset + fp.offset, end - fp.offset);
 	};
 	PACKET.ZC.GUILD_EMBLEM_IMG.size = -1;
 	PACKET.ZC.MEMBERMGR_INFO = function PACKET_ZC_MEMBERMGR_INFO(fp, end) {
@@ -205804,6 +205832,41 @@ function defaultSocketFactory(host, port) {
 	if (Socket.isSupported()) return new Socket(host, port, proxy);
 	return new Socket$1(host, port, proxy);
 }
+function _scheduleLogCallback(cb) {
+	if (typeof window !== "undefined" && window.requestIdleCallback) requestIdleCallback(cb);
+	else setTimeout(() => cb({
+		timeRemaining: () => 0,
+		didTimeout: true
+	}));
+}
+function _processLogEntry(entry) {
+	if (entry.type === LOG_ENTRY_KNOWN) {
+		if (entry.dumpBytes) console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: %s\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", entry.pktId.toString(16), entry.pktName, entry.pktLen, utilsBufferToHexString(entry.dumpBytes).toUpperCase());
+		console.log("%c[Network] Recv:", "color:#900090", entry.instance, entry.hasCallback ? "" : "(no callback)");
+	} else if (entry.type === LOG_ENTRY_UNKNOWN) {
+		if (entry.dumpBytes) console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: [UNKNOWN]\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", entry.pktId.toString(16), entry.pktLen, utilsBufferToHexString(entry.dumpBytes).toUpperCase());
+		console.error("[Network] Packet \"%c0x%s%c\" not registered, skipping %d bytes.", "font-weight:bold", entry.pktId.toString(16), "font-weight:normal", entry.pktLen);
+	}
+	entry.reset();
+}
+function _runLogDrain(deadline) {
+	while (_logHead !== _logTail && (deadline.timeRemaining() > 0 || deadline.didTimeout)) {
+		const entry = _logPool[_logHead & LOG_QUEUE_MASK];
+		_logHead++;
+		_processLogEntry(entry);
+	}
+	if (_logHead !== _logTail) _scheduleLogCallback(_runLogDrain);
+	else {
+		_logHead = 0;
+		_logTail = 0;
+		_logScheduled = false;
+	}
+}
+function _flushLogs() {
+	if (_logScheduled) return;
+	_logScheduled = true;
+	_scheduleLogCallback(_runLogDrain);
+}
 /**
 * Packets definition
 *
@@ -205836,6 +205899,8 @@ function connect(host, port, callback, isZone) {
 			msg = "Success";
 			color = "green";
 			if (_socket && _socket.ping) clearInterval(_socket.ping);
+			_ring_head = 0;
+			_ring_tail = 0;
 			socket.onMessage = receive;
 			_sockets.push(_socket = socket);
 			if (isZone) PacketCrypt_default.init();
@@ -205899,67 +205964,144 @@ function read$1(callback) {
 	read$1.callback = callback;
 }
 /**
-* Received data from server
+* Grow the ring buffer to at least `minCapacity` bytes, preserving pending data.
+* New capacity is the next power of two >= minCapacity.
 *
-* @param {Uint8Array} buffer
+* @param {number} minCapacity
+*/
+function _ringGrow(minCapacity) {
+	let newCap = _ring.length;
+	while (newCap < minCapacity) newCap *= 2;
+	const pending = _ring_tail - _ring_head;
+	const newRing = new Uint8Array(newCap);
+	if (pending > 0) {
+		const physHead = _ring_head & _ring_mask;
+		const physTail = _ring_tail & _ring_mask;
+		if (physTail > physHead) newRing.set(_ring.subarray(physHead, physTail), 0);
+		else {
+			const firstChunk = _ring.length - physHead;
+			newRing.set(_ring.subarray(physHead), 0);
+			newRing.set(_ring.subarray(0, physTail), firstChunk);
+		}
+	}
+	_ring = newRing;
+	_ring_mask = newCap - 1;
+	_ring_head = 0;
+	_ring_tail = pending;
+}
+/**
+* Return a contiguous Uint8Array view of `len` bytes starting at ring logical
+* position `logicalStart`.  When the slice crosses the ring's physical
+* boundary a minimal temporary copy is made (slow path, very rare).
+*
+* @param {number} logicalStart  logical read position (ring_head-relative)
+* @param {number} len           number of bytes to view
+* @return {Uint8Array}
+*/
+function _ringSlice(logicalStart, len) {
+	const physStart = logicalStart & _ring_mask;
+	const physEnd = physStart + len;
+	if (physEnd <= _ring.length) return _ring.subarray(physStart, physEnd);
+	const tmp = new Uint8Array(len);
+	const firstChunk = _ring.length - physStart;
+	tmp.set(_ring.subarray(physStart), 0);
+	tmp.set(_ring.subarray(0, len - firstChunk), firstChunk);
+	return tmp;
+}
+/**
+* Read a little-endian uint16 from the ring at logical position `logPos`
+* without going through BinaryReader (avoids a DataView when in the fast
+* path — both bytes are within the same physical region).
+*
+* @param {number} logPos
+* @return {number}
+*/
+function _ringReadUShort(logPos) {
+	const p = logPos & _ring_mask;
+	if (p + 2 <= _ring.length) return _ring[p] | _ring[p + 1] << 8;
+	return _ring[p] | _ring[0] << 8;
+}
+/**
+* Received data from server.
+* Appends `buf` into the persistent ring buffer, then parses as many complete
+* packets as available.  Incomplete packet bytes remain in the ring and are
+* consumed on the next call — no allocation needed for the common case.
+*
+* @param {ArrayBuffer|Uint8Array} buf
 */
 function receive(buf) {
+	const incoming = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+	const inLen = incoming.length;
+	const needed = _ring_tail - _ring_head + inLen;
+	if (needed > _ring.length) _ringGrow(needed);
+	const physTail = _ring_tail & _ring_mask;
+	const spaceToEnd = _ring.length - physTail;
+	if (inLen <= spaceToEnd) _ring.set(incoming, physTail);
+	else {
+		_ring.set(incoming.subarray(0, spaceToEnd), physTail);
+		_ring.set(incoming.subarray(spaceToEnd), 0);
+	}
+	_ring_tail += inLen;
+	if (!_fp) _fp = new BinaryReader(/* @__PURE__ */ new ArrayBuffer(0));
+	if (read$1.callback) {
+		const cb = read$1.callback;
+		read$1.callback = null;
+		const start = _ring_head;
+		_fp.reset(_ringSlice(start, _ring_tail - start));
+		cb(_fp);
+		if (_ring_head === start) _ring_head += _fp.tell();
+	}
 	let id, packet;
 	let length = 0;
-	let offset = 0;
-	let buffer;
-	if (_save_buffer) {
-		const _data = new Uint8Array(_save_buffer.length + buf.byteLength);
-		_data.set(_save_buffer, 0);
-		_data.set(new Uint8Array(buf), _save_buffer.length);
-		buffer = _data.buffer;
-	} else buffer = buf;
-	const fp = new BinaryReader(buffer);
-	if (read$1.callback) {
-		read$1.callback(fp);
-		read$1.callback = null;
-	}
-	while (fp.tell() < fp.length) {
-		offset = fp.tell();
-		if (offset + 2 > fp.length) {
-			_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
-			return;
-		}
-		id = fp.readUShort();
+	while (_ring_tail - _ring_head >= 2) {
+		const pktStart = _ring_head;
+		const avail = _ring_tail - pktStart;
+		if (avail < 2) break;
+		id = _ringReadUShort(pktStart);
 		let packet_len = PacketLength_default.getPacketLength(id);
-		packet_len = packet_len ? packet_len : fp.length - offset;
+		packet_len = packet_len ? packet_len : avail;
 		if (packet_len < 0) {
-			if (offset + 4 > fp.length) {
-				_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
-				return;
-			}
-			length = fp.readUShort();
+			if (avail < 4) break;
+			length = _ringReadUShort(pktStart + 2);
 		} else length = packet_len;
-		offset += length;
-		if (offset > fp.length) {
-			offset = fp.tell() - (packet_len < 0 ? 4 : 2);
-			_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
-			return;
-		}
+		if (avail < length) break;
+		const pktBytes = _ringSlice(pktStart, length);
+		_ring_head += length || 2;
 		if (Packets.list[id]) {
 			packet = Packets.list[id];
-			if (packetDump) {
-				const buffer_console = new Uint8Array(buffer, offset - length, length);
-				console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: %s\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", id.toString(16), packet.name, length, utilsBufferToHexString(buffer_console).toUpperCase());
-			}
-			packet.instance = new packet.Struct(fp, offset);
-			console.log("%c[Network] Recv:", "color:#900090", packet.instance, packet.callback ? "" : "(no callback)");
+			_fp.reset(pktBytes);
+			_fp.seek(packet_len < 0 ? 4 : 2, SEEK_SET);
+			packet.instance = new packet.Struct(_fp, length);
+			const entry = _logPool[_logTail & LOG_QUEUE_MASK];
+			_logTail++;
+			if (_logTail - _logHead > LOG_QUEUE_SIZE) _logHead = _logTail - LOG_QUEUE_SIZE;
+			entry.type = LOG_ENTRY_KNOWN;
+			entry.pktId = id;
+			entry.pktName = packet.name;
+			entry.pktLen = length;
+			entry.dumpBytes = packetDump ? pktBytes.slice() : null;
+			entry.instance = packet.instance;
+			entry.hasCallback = !!packet.callback;
+			_flushLogs();
 			if (packet.callback) packet.callback(packet.instance);
 		} else {
-			if (packetDump) {
-				const unknown_buffer = new Uint8Array(buffer, offset - length, length);
-				console.log("%c[Network] Dump Recv:\n%cPacket ID: 0x%s\nPacket Name: [UNKNOWN]\nLength: %d\nContent:\n%s", "color:#900090", "color:inherit", id.toString(16), length, utilsBufferToHexString(unknown_buffer).toUpperCase());
-			}
-			console.error("[Network] Packet \"%c0x%s%c\" not registered, skipping %d bytes.", "font-weight:bold", id.toString(16), "font-weight:normal", length);
+			const entry = _logPool[_logTail & LOG_QUEUE_MASK];
+			_logTail++;
+			if (_logTail - _logHead > LOG_QUEUE_SIZE) _logHead = _logTail - LOG_QUEUE_SIZE;
+			entry.type = LOG_ENTRY_UNKNOWN;
+			entry.pktId = id;
+			entry.pktName = "";
+			entry.pktLen = length;
+			entry.dumpBytes = packetDump ? pktBytes.slice() : null;
+			entry.instance = null;
+			entry.hasCallback = false;
+			_flushLogs();
 		}
-		if (length) fp.seek(offset, SEEK_SET);
 	}
-	_save_buffer = null;
+	if (_ring_head === _ring_tail) {
+		_ring_head = 0;
+		_ring_tail = 0;
+	}
 }
 /**
 * Communication end
@@ -205991,6 +206133,8 @@ function close() {
 		if (s.ping) clearInterval(s.ping);
 		idx = _sockets.indexOf(s);
 		if (idx !== -1) _sockets.splice(idx, 1);
+		_ring_head = 0;
+		_ring_tail = 0;
 	}
 }
 /**
@@ -206039,7 +206183,7 @@ function utilsLongToIP(long) {
 function utilsBufferToHexString(buffer) {
 	return [...new Uint8Array(buffer)].map((x) => x.toString(16).padStart(2, "0") + " ").join("");
 }
-var _sockets, _socketFactory, _socket, _save_buffer, _onDisconnect, packetDump, Network;
+var _sockets, _socketFactory, _socket, LOG_ENTRY_KNOWN, LOG_ENTRY_UNKNOWN, LOG_QUEUE_SIZE, LOG_QUEUE_MASK, LogEntry, _logPool, _logHead, _logTail, _logScheduled, _ring, _ring_mask, _ring_head, _ring_tail, _fp, _onDisconnect, packetDump, Network;
 var init_NetworkManager = __esmMin((() => {
 	init_Configs();
 	init_BinaryReader();
@@ -206054,7 +206198,37 @@ var init_NetworkManager = __esmMin((() => {
 	_sockets = [];
 	_socketFactory = null;
 	_socket = null;
-	_save_buffer = null;
+	LOG_ENTRY_KNOWN = 1;
+	LOG_ENTRY_UNKNOWN = 2;
+	LOG_QUEUE_SIZE = 1024;
+	LOG_QUEUE_MASK = 1023;
+	LogEntry = class {
+		type = 0;
+		pktId = 0;
+		pktName = "";
+		pktLen = 0;
+		dumpBytes = null;
+		instance = null;
+		hasCallback = false;
+		reset() {
+			this.type = 0;
+			this.pktId = 0;
+			this.pktName = "";
+			this.pktLen = 0;
+			this.dumpBytes = null;
+			this.instance = null;
+			this.hasCallback = false;
+		}
+	};
+	_logPool = Array.from({ length: LOG_QUEUE_SIZE }, () => new LogEntry());
+	_logHead = 0;
+	_logTail = 0;
+	_logScheduled = false;
+	_ring = /* @__PURE__ */ new Uint8Array(262144);
+	_ring_mask = _ring.length - 1;
+	_ring_head = 0;
+	_ring_tail = 0;
+	_fp = null;
 	_onDisconnect = null;
 	packetDump = Configs.get("packetDump", false);
 	/**
@@ -208798,6 +208972,11 @@ function add$2(gl, modelData) {
 			totalAnimationLength = Math.max(totalAnimationLength, kf.Frame || 0);
 			kf._vec = vec3$5.fromValues(kf.Scale[0], kf.Scale[1], kf.Scale[2]);
 		}
+		const suffixMat = mat4$20.create();
+		mat4$20.identity(suffixMat);
+		if (!node.is_only) mat4$20.translate(suffixMat, suffixMat, node.offset);
+		mat4$20.multiply(suffixMat, suffixMat, mat3$4.toMat4(node.mat3, _tempMat4Node));
+		node._cachedSuffix = suffixMat;
 		nodes.push(node);
 	}
 	let animLen = modelData.animLen || 0;
@@ -208910,6 +209089,13 @@ function add$2(gl, modelData) {
 		_nodeMap: {},
 		_globalMatrices: new Array(nodes.length)
 	};
+	animModel._boxMat = mat4$20.create();
+	mat4$20.identity(animModel._boxMat);
+	mat4$20.translate(animModel._boxMat, animModel._boxMat, [
+		-animModel.box.center[0],
+		-animModel.box.max[1],
+		-animModel.box.center[2]
+	]);
 	for (let n = 0; n < nodes.length; n++) {
 		animModel._nodeMap[nodes[n].name] = nodes[n];
 		animModel._globalMatrices[n] = mat4$20.create();
@@ -209054,7 +209240,7 @@ function updateModelBuffer(gl, model, frame, force) {
 	if (model.staticModel && model.lastAnimFrame !== -1 && !force) return;
 	model.lastAnimFrame = currentAnimFrame;
 	model.lastFrame = frame;
-	const box = model.box;
+	model.box;
 	const nodeMap = model._nodeMap;
 	const globalMatrices = model._globalMatrices;
 	for (let n = 0; n < model.nodes.length; n++) {
@@ -209077,15 +209263,9 @@ function updateModelBuffer(gl, model, frame, force) {
 			mat4$20.scale(globalMatrix, globalMatrix, animScale || node.scale);
 		}
 		const finalNodeMatrix = node._cache.final;
-		mat4$20.identity(finalNodeMatrix);
-		mat4$20.translate(finalNodeMatrix, finalNodeMatrix, [
-			-box.center[0],
-			-box.max[1],
-			-box.center[2]
-		]);
+		mat4$20.copy(finalNodeMatrix, model._boxMat);
 		mat4$20.multiply(finalNodeMatrix, finalNodeMatrix, globalMatrix);
-		if (!node.is_only) mat4$20.translate(finalNodeMatrix, finalNodeMatrix, node.offset);
-		mat4$20.multiply(finalNodeMatrix, finalNodeMatrix, mat3$4.toMat4(node.mat3));
+		mat4$20.multiply(finalNodeMatrix, finalNodeMatrix, node._cachedSuffix);
 		node.finalMatrix = finalNodeMatrix;
 	}
 	const matrixData = model.matrixData;
@@ -209178,7 +209358,7 @@ function renderFaded(gl, modelView, projection, normalMat, fog, light) {
 function hasAnimatedModels() {
 	return _animatedModels.length > 0;
 }
-var mat3$4, mat4$20, vec3$5, quat$1, _tempVec3, _tempVec3Scale, _tempQuat, _tempMat4, _program$22, _animatedModels, AnimatedModels_default;
+var mat3$4, mat4$20, vec3$5, quat$1, _tempVec3, _tempVec3Scale, _tempQuat, _tempMat4, _tempMat4Node, _program$22, _animatedModels, AnimatedModels_default;
 var init_AnimatedModels = __esmMin((() => {
 	init_Client();
 	init_gl_matrix();
@@ -209195,6 +209375,7 @@ var init_AnimatedModels = __esmMin((() => {
 	_tempVec3Scale = vec3$5.create();
 	_tempQuat = quat$1.create();
 	_tempMat4 = mat4$20.create();
+	_tempMat4Node = mat4$20.create();
 	_program$22 = null;
 	_animatedModels = [];
 	AnimatedModels_default = {
@@ -239279,7 +239460,7 @@ function calculateAnimation(layer, keyIndex, result) {
 	}
 	return true;
 }
-var mat4$18, D3DBLEND, _program$20, _buffer$15, _bufferData, _matrix$6, _lastAngle, PIXEL_TO_WORLD_Z, anim, StrEffect;
+var mat4$18, D3DBLEND, _program$20, _buffer$15, _bufferData, _matrix$6, _spriteOffset, _lastAngle, PIXEL_TO_WORLD_Z, anim, StrEffect;
 var init_StrEffect = __esmMin((() => {
 	init_StrEffect$2();
 	init_StrEffect$1();
@@ -239292,6 +239473,7 @@ var init_StrEffect = __esmMin((() => {
 	_buffer$15 = null;
 	_bufferData = /* @__PURE__ */ new Float32Array(16);
 	_matrix$6 = mat4$18.create();
+	_spriteOffset = /* @__PURE__ */ new Float32Array(2);
 	_lastAngle = -1;
 	PIXEL_TO_WORLD_Z = 1 / 5;
 	anim = {
@@ -239425,18 +239607,17 @@ var init_StrEffect = __esmMin((() => {
 				mat4$18.rotateZ(_matrix$6, _matrix$6, -animat.angle / 180 * Math.PI);
 				_lastAngle = animat.angle;
 			}
-			const spriteOffset = /* @__PURE__ */ new Float32Array(2);
 			let verticalBase = .5;
 			if (this.ownerEntity) {
-				spriteOffset[0] = animat.pos[0] - 320 + (this.xOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
-				spriteOffset[1] = animat.pos[1] - 320 - (this.yOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
+				_spriteOffset[0] = animat.pos[0] - 320 + (this.xOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
+				_spriteOffset[1] = animat.pos[1] - 320 - (this.yOffset || 0) * PIXEL_TO_WORLD_Z * 35 * sizeScale;
 				verticalBase = 0;
 			} else {
-				spriteOffset[0] = animat.pos[0] - 320;
-				spriteOffset[1] = animat.pos[1] - 320;
+				_spriteOffset[0] = animat.pos[0] - 320;
+				_spriteOffset[1] = animat.pos[1] - 320;
 			}
 			gl.uniform4fv(uniform.uSpriteColor, animat.color);
-			gl.uniform2fv(uniform.uSpriteOffset, spriteOffset);
+			gl.uniform2fv(uniform.uSpriteOffset, _spriteOffset);
 			gl.uniform1f(uniform.uVerticalBase, verticalBase);
 			gl.uniform3fv(uniform.uSpritePosition, this.position);
 			gl.uniformMatrix4fv(uniform.uSpriteAngle, false, _matrix$6);
@@ -254235,17 +254416,15 @@ var init_Model = __esmMin((() => {
 * Interpolate between two quaternions using SLERP
 */
 function slerpQuat(q1, q2, t) {
-	const out = quat.create();
-	quat.slerp(out, q1, q2, t);
-	return out;
+	quat.slerp(_scratchQuat, q1, q2, t);
+	return _scratchQuat;
 }
 /**
 * Interpolate between two vec3 using linear interpolation
 */
 function lerpVec3(v1, v2, t) {
-	const out = vec3$3.create();
-	vec3$3.lerp(out, v1, v2, t);
-	return out;
+	vec3$3.lerp(_scratchVec3Scale, v1, v2, t);
+	return _scratchVec3Scale;
 }
 /**
 * Get rotation at a specific frame from keyframes
@@ -254280,11 +254459,12 @@ function getRotationAtFrame(rotKeyframes, frame, animLen) {
 */
 function getPositionAtFrame(posKeyframes, frame, animLen) {
 	if (!posKeyframes || posKeyframes.length === 0) return null;
-	if (posKeyframes.length === 1) return [
-		posKeyframes[0].px,
-		posKeyframes[0].py,
-		posKeyframes[0].pz
-	];
+	if (posKeyframes.length === 1) {
+		_scratchVec3Pos[0] = posKeyframes[0].px;
+		_scratchVec3Pos[1] = posKeyframes[0].py;
+		_scratchVec3Pos[2] = posKeyframes[0].pz;
+		return _scratchVec3Pos;
+	}
 	let prevIdx = 0;
 	let nextIdx = 0;
 	for (let i = 0; i < posKeyframes.length; i++) {
@@ -254300,11 +254480,10 @@ function getPositionAtFrame(posKeyframes, frame, animLen) {
 	}
 	if (prevIdx === nextIdx) {
 		const kf = posKeyframes[prevIdx];
-		return [
-			kf.px,
-			kf.py,
-			kf.pz
-		];
+		_scratchVec3Pos[0] = kf.px;
+		_scratchVec3Pos[1] = kf.py;
+		_scratchVec3Pos[2] = kf.pz;
+		return _scratchVec3Pos;
 	}
 	const prevFrame = posKeyframes[prevIdx].frame;
 	let nextFrame = posKeyframes[nextIdx].frame;
@@ -254314,15 +254493,10 @@ function getPositionAtFrame(posKeyframes, frame, animLen) {
 	t = Math.max(0, Math.min(1, t));
 	const p1 = posKeyframes[prevIdx];
 	const p2 = posKeyframes[nextIdx];
-	return lerpVec3([
-		p1.px,
-		p1.py,
-		p1.pz
-	], [
-		p2.px,
-		p2.py,
-		p2.pz
-	], t);
+	_scratchVec3Pos[0] = p1.px + (p2.px - p1.px) * t;
+	_scratchVec3Pos[1] = p1.py + (p2.py - p1.py) * t;
+	_scratchVec3Pos[2] = p1.pz + (p2.pz - p1.pz) * t;
+	return _scratchVec3Pos;
 }
 /**
 * Get scale at a specific frame from keyframes
@@ -254364,7 +254538,7 @@ function calcNormal_NONE(out) {
 function calcNormal_FLAT(node, out, normalMat, groupUsed) {
 	let i, j, count;
 	let face;
-	const temp_vec = vec3$3.create();
+	const temp_vec = _scratchTempVec;
 	const faces = node.faces;
 	const vertices = node.vertices;
 	for (i = 0, j = 0, count = faces.length; i < count; ++i, j += 3) {
@@ -254484,24 +254658,25 @@ function generate_mesh_SMOOTH(node, vert, shadeGroup, mesh) {
 * Compile a node at a specific animation frame
 */
 function compileNodeAtFrame(node, instanceMatrix, frame, animLen) {
-	const modelViewMat = mat4$15.create();
-	const normalMat = mat4$15.create();
+	const modelViewMat = _scratchModelViewMat;
+	const normalMat = _scratchNormalMat;
 	const textures = node.textures;
 	const faces = node.faces;
 	const vertices = node.vertices;
 	const mesh = {};
 	const mesh_size = [];
-	const shadeGroup = new Array(32);
-	const shadeGroupUsed = new Array(32);
+	for (let g = 0; g < 32; g++) {
+		_shadeGroup[g] = null;
+		_shadeGroupUsed[g] = false;
+	}
 	let i, x, y, z, count;
-	const matrix = mat4$15.create();
+	const matrix = _scratchMatrix;
 	mat4$15.identity(matrix);
-	mat4$15.translate(matrix, matrix, [
-		-node.main.box.center[0],
-		-node.main.box.max[1],
-		-node.main.box.center[2]
-	]);
-	const nodeMatrix = mat4$15.create();
+	_scratchVec3BoxCenter[0] = -node.main.box.center[0];
+	_scratchVec3BoxCenter[1] = -node.main.box.max[1];
+	_scratchVec3BoxCenter[2] = -node.main.box.center[2];
+	mat4$15.translate(matrix, matrix, _scratchVec3BoxCenter);
+	const nodeMatrix = _scratchNodeMatrix;
 	mat4$15.identity(nodeMatrix);
 	const animPos = getPositionAtFrame(node.posKeyframes, frame, animLen);
 	if (animPos) mat4$15.translate(nodeMatrix, nodeMatrix, animPos);
@@ -254515,7 +254690,7 @@ function compileNodeAtFrame(node, instanceMatrix, frame, animLen) {
 	else mat4$15.scale(nodeMatrix, nodeMatrix, node.scale);
 	mat4$15.multiply(matrix, matrix, nodeMatrix);
 	if (!node.is_only) mat4$15.translate(matrix, matrix, node.offset);
-	mat4$15.multiply(matrix, matrix, mat3$1.toMat4(node.mat3));
+	mat4$15.multiply(matrix, matrix, mat3$1.toMat4(node.mat3, _scratchMat4Node));
 	mat4$15.multiply(modelViewMat, instanceMatrix, matrix);
 	mat4$15.extractRotation(normalMat, modelViewMat);
 	count = vertices.length;
@@ -254539,13 +254714,13 @@ function compileNodeAtFrame(node, instanceMatrix, frame, animLen) {
 			generate_mesh_FLAT(node, vert, face_normal, mesh);
 			break;
 		case 1:
-			calcNormal_FLAT(node, face_normal, normalMat, shadeGroupUsed);
+			calcNormal_FLAT(node, face_normal, normalMat, _shadeGroupUsed);
 			generate_mesh_FLAT(node, vert, face_normal, mesh);
 			break;
 		case 2:
-			calcNormal_FLAT(node, face_normal, normalMat, shadeGroupUsed);
-			calcNormal_SMOOTH(node, face_normal, shadeGroupUsed, shadeGroup);
-			generate_mesh_SMOOTH(node, vert, shadeGroup, mesh);
+			calcNormal_FLAT(node, face_normal, normalMat, _shadeGroupUsed);
+			calcNormal_SMOOTH(node, face_normal, _shadeGroupUsed, _shadeGroup);
+			generate_mesh_SMOOTH(node, vert, _shadeGroup, mesh);
 	}
 	return mesh;
 }
@@ -254639,7 +254814,7 @@ function initModel(gl, data) {
 		WebGL_default.texture(gl, data.infos[i].texture, onTextureLoaded, i);
 	}
 }
-var _program$18, _normalMat, mat4$15, mat3$1, quat, vec3$3, _light, RsmEffect;
+var _program$18, _normalMat, mat4$15, mat3$1, quat, vec3$3, _light, _scratchModelViewMat, _scratchNormalMat, _scratchMatrix, _scratchNodeMatrix, _scratchMat4Node, _scratchTempVec, _scratchQuat, _scratchVec3Pos, _scratchVec3Scale, _scratchVec3BoxCenter, _shadeGroup, _shadeGroupUsed, RsmEffect;
 var init_RsmEffect = __esmMin((() => {
 	init_RsmEffect$2();
 	init_RsmEffect$1();
@@ -254671,6 +254846,18 @@ var init_RsmEffect = __esmMin((() => {
 			0
 		])
 	};
+	_scratchModelViewMat = mat4$15.create();
+	_scratchNormalMat = mat4$15.create();
+	_scratchMatrix = mat4$15.create();
+	_scratchNodeMatrix = mat4$15.create();
+	_scratchMat4Node = mat4$15.create();
+	_scratchTempVec = vec3$3.create();
+	_scratchQuat = quat.create();
+	_scratchVec3Pos = vec3$3.create();
+	_scratchVec3Scale = vec3$3.create();
+	_scratchVec3BoxCenter = vec3$3.create();
+	_shadeGroup = new Array(32);
+	_shadeGroupUsed = new Array(32);
 	RsmEffect = class {
 		constructor(params) {
 			this.position = params.Inst.position;
@@ -311313,6 +311500,60 @@ function fastMoveTo(to_x, to_y, speed = 15, onEnd, keepDirection = false) {
 	return true;
 }
 /**
+* Compute segment duration based on diagonal movement
+*/
+function getSegmentDuration(dx, dy, baseSpeed) {
+	let duration = dx && dy ? baseSpeed * Math.SQRT2 : baseSpeed;
+	if (!duration || duration < 1) duration = 1;
+	return duration;
+}
+/**
+* Finish walking sequence for entity
+*/
+function finishWalk(entity, pos, walk, path, total) {
+	const cellHeight = entity.objecttype == entity.constructor.TYPE_FALCON ? Altitude.getCellHeight(path[total - 2], path[total - 1]) + 5 : Altitude.getCellHeight(path[total - 2], path[total - 1]);
+	pos[0] = path[total - 2];
+	pos[1] = path[total - 1];
+	pos[2] = cellHeight;
+	walk.lastPos.set(pos);
+	if (entity.isFastMoving) {
+		entity.isFastMoving = false;
+		entity._fastMoveTrail = false;
+		entity._preserveDirection = false;
+		if (typeof entity._normalSpeed === "number") {
+			entity.walk.speed = entity._normalSpeed;
+			delete entity._normalSpeed;
+		}
+	}
+	if (entity.objecttype == entity.constructor.TYPE_WUG && entity.isAttacking) entity.setAction({
+		action: entity.ACTION.ATTACK,
+		frame: 0,
+		repeat: false,
+		play: true,
+		next: {
+			delay: Date.now() + 432,
+			action: entity.ACTION.IDLE,
+			frame: 0,
+			repeat: false,
+			play: true,
+			next: false
+		}
+	});
+	else if (entity.action !== entity.ACTION.DIE) entity.setAction({
+		action: entity.ACTION.IDLE,
+		frame: 0,
+		play: true,
+		repeat: true
+	});
+	entity.onWalkEnd();
+	if (walk.onEnd) {
+		walk.onEnd();
+		walk.onEnd = null;
+	}
+	entity.resetRoute();
+	entity.isAttacking = false;
+}
+/**
 * Process walking
 */
 function walkProcess() {
@@ -311344,56 +311585,8 @@ function walkProcess() {
 		console.trace("Stack trace of debug:");
 	}
 	if (this.action === this.ACTION.WALK || this.isFastMoving || this.objecttype === this.constructor.TYPE_FALCON || this.objecttype === this.constructor.TYPE_WUG) {
-		const getSegmentDuration = function getSegmentDuration(dx, dy, baseSpeed) {
-			let duration = dx && dy ? baseSpeed * Math.SQRT2 : baseSpeed;
-			if (!duration || duration < 1) duration = 1;
-			return duration;
-		};
-		const finishWalk = () => {
-			const cellHeight = this.objecttype == this.constructor.TYPE_FALCON ? Altitude.getCellHeight(path[total - 2], path[total - 1]) + 5 : Altitude.getCellHeight(path[total - 2], path[total - 1]);
-			pos[0] = path[total - 2];
-			pos[1] = path[total - 1];
-			pos[2] = cellHeight;
-			walk.lastPos.set(pos);
-			if (this.isFastMoving) {
-				this.isFastMoving = false;
-				this._fastMoveTrail = false;
-				this._preserveDirection = false;
-				if (typeof this._normalSpeed === "number") {
-					this.walk.speed = this._normalSpeed;
-					delete this._normalSpeed;
-				}
-			}
-			if (this.objecttype == this.constructor.TYPE_WUG && this.isAttacking) this.setAction({
-				action: this.ACTION.ATTACK,
-				frame: 0,
-				repeat: false,
-				play: true,
-				next: {
-					delay: Date.now() + 432,
-					action: this.ACTION.IDLE,
-					frame: 0,
-					repeat: false,
-					play: true,
-					next: false
-				}
-			});
-			else if (this.action !== this.ACTION.DIE) this.setAction({
-				action: this.ACTION.IDLE,
-				frame: 0,
-				play: true,
-				repeat: true
-			});
-			this.onWalkEnd();
-			if (walk.onEnd) {
-				walk.onEnd();
-				walk.onEnd = null;
-			}
-			this.resetRoute();
-			this.isAttacking = false;
-		};
 		if (index >= total) {
-			finishWalk();
+			finishWalk(this, pos, walk, path, total);
 			return;
 		}
 		let startX = walk.pos[0];
@@ -311465,7 +311658,7 @@ function walkProcess() {
 		walk.tick = segmentStart;
 		walk.prevTick = TICK;
 		if (!(index >= total - 2 && t >= .999 && TICK >= segmentEnd)) return;
-		finishWalk();
+		finishWalk(this, pos, walk, path, total);
 	} else {
 		if (index < total) {
 			this.walk.tick += TICK - this.walk.prevTick;
@@ -311511,7 +311704,7 @@ function resetRoute(keepDistance) {
 	this.walk.tick = 0;
 	this.walk.prevTick = 0;
 	if (!keepDistance) this.walk.dist = 0;
-	this.walk.path = new Int16Array(PathFinding_default.MAX_WALKPATH * 2);
+	this.walk.path.fill(0);
 	if (this.walk.segmentDurations) this.walk.segmentDurations.fill(0);
 	this.walk.lastPos[0] = 0;
 	this.walk.lastPos[1] = 0;
