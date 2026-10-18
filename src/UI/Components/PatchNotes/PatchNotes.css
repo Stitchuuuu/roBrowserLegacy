@@ -1,0 +1,166 @@
+:host {
+	width: 600px;
+	height: 400px;
+}
+
+#PatchNotes {
+	position: relative;
+	width: 600px;
+	height: 400px;
+	color: black;
+}
+
+#PatchNotes .slice,
+#PatchNotes .side {
+	position: absolute;
+	background-repeat: no-repeat;
+}
+
+#PatchNotes .titlebar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 600px;
+	height: 17px;
+}
+#PatchNotes .titlebar .slice {
+	top: 0;
+	width: 12px;
+	height: 17px;
+}
+#PatchNotes .titlebar .left {
+	left: 0;
+}
+#PatchNotes .titlebar .mid {
+	left: 12px;
+	width: 576px;
+	background-repeat: repeat-x;
+}
+#PatchNotes .titlebar .right {
+	right: 0;
+}
+#PatchNotes .titlebar .text {
+	position: absolute;
+	top: 2px;
+	left: 17px;
+	font-size: 12px;
+	font-weight: bold;
+	text-shadow: 1px 1px white;
+	white-space: nowrap;
+}
+
+#PatchNotes .body {
+	position: absolute;
+	top: 17px;
+	left: 0;
+	width: 600px;
+	height: 362px;
+	background-color: white;
+}
+#PatchNotes .side {
+	top: 0;
+	width: 20px;
+	height: 100%;
+	background-repeat: repeat-y;
+}
+#PatchNotes .side.left {
+	left: 0;
+}
+#PatchNotes .side.right {
+	right: 0;
+}
+
+/* Text at (30, 22), scrollbar ends at x 596 */
+#PatchNotes .content {
+	position: absolute;
+	top: 5px;
+	left: 30px;
+	width: 566px;
+	height: 350px;
+	overflow-y: auto;
+	font-size: 16px;
+	line-height: 18px;
+}
+
+#PatchNotes .release .head {
+	font-weight: bold;
+}
+#PatchNotes .release .date {
+	color: #555;
+	font-weight: normal;
+}
+#PatchNotes .release .section {
+	margin-top: 18px;
+	font-weight: bold;
+}
+#PatchNotes .release ul {
+	margin: 0;
+	padding: 0 0 0 16px;
+}
+#PatchNotes .release li {
+	margin: 0 12px 6px 0;
+}
+#PatchNotes .release details summary {
+	color: #555;
+	font-size: 12px;
+	cursor: pointer;
+	list-style: none;
+}
+#PatchNotes .release details summary::-webkit-details-marker {
+	display: none;
+}
+#PatchNotes .release details summary::before {
+	content: '\25B8  ';
+}
+#PatchNotes .release details[open] summary::before {
+	content: '\25BE  ';
+}
+#PatchNotes .release details div {
+	color: #555;
+	font-size: 12px;
+	line-height: 15px;
+}
+
+#PatchNotes .footer {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 600px;
+	height: 29px;
+}
+#PatchNotes .footer .slice {
+	top: 0;
+	width: 21px;
+	height: 29px;
+}
+#PatchNotes .footer .left {
+	left: 0;
+}
+#PatchNotes .footer .mid {
+	left: 21px;
+	width: 558px;
+	background-repeat: repeat-x;
+}
+#PatchNotes .footer .right {
+	right: 0;
+}
+
+/* Buttons at y 376 */
+#PatchNotes .btn {
+	position: absolute;
+	top: 5px;
+	width: 42px;
+	height: 20px;
+	border: none;
+	background-color: transparent;
+	background-repeat: no-repeat;
+}
+#PatchNotes .btn.back {
+	left: 244px;
+}
+#PatchNotes .btn.next {
+	left: 294px;
+}
+#PatchNotes .btn.ok {
+	left: 534px;
+}
