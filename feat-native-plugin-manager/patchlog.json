@@ -1,0 +1,181 @@
+{
+	"releases": [
+		{
+			"version": "0.1.0",
+			"date": "2026-10-18",
+			"title": "The Plugin Update",
+			"sha": "a661820f",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Plugin Manager",
+					"text": "Type /pm, pick a plugin, click Install. That's the whole guide. The Kafra ran out of things to explain.",
+					"details": "Plugins used to need an external loader or userscript. The client now has its own plugin manager (Alt+Shift+P or /pm): install from the server's plugin list or by dropping or uploading a plugin file. Plugins are stored in your browser and loaded at every start.",
+					"commits": [
+						"acbbd3e9",
+						"f8f957aa",
+						"6caea089"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Plugin Manager versions",
+					"text": "New version broke your favourite plugin right before the MVP spawns? Click its version number, pick yesterday's, keep hunting.",
+					"details": "Click a plugin's version to pick any published release, newer or older, with a confirmation before a downgrade. Your settings are kept. Update used to reinstall the same old build and now fetches the latest release, and plugins listed by several registries show the versions of all of them.",
+					"commits": [
+						"0693734c",
+						"4d5a7c56",
+						"e1ac524e",
+						"68dbe47e",
+						"339f00a4"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "/pm backup",
+					"text": "Your client setup now survives a browser wipe. Guard the backup file like your Storage password.",
+					"details": "/pm backup downloads a file holding your settings, installed plugins and plugin data (for example homunculus AI files). /pm restore loads it back, on this browser or another, and asks for a reload.",
+					"commits": [
+						"3c4d4312"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Auto-retry",
+					"text": "\"Server is full\" is now a waiting room instead of a rage-click minigame. Tick Auto-retry under the login window.",
+					"details": "A full server or a \"still recognizes your last log-in\" error meant retyping your password and clicking again. A new checkbox under the login window retries by itself, showing \"Attempt #N\", as fast as the server's flood protection allows. It also retries an unreachable map server and goes straight in with an account's only character. Wrong passwords, bans and \"someone has logged in with this ID\" are never retried, so it never kicks the other session.",
+					"commits": [
+						"b632ceed",
+						"fb1ed5a2",
+						"beeac749",
+						"361049f5"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Smooth map change",
+					"text": "Purists keep the official hard cut, everyone else gets a fade, and nobody has to argue about it in #general.",
+					"details": "The loading image used to appear and disappear with hard cuts. A new \"Smooth\" option in Graphics fades in and out around it. The default stays the official client's behaviour.",
+					"commits": [
+						"864bb5f6"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Sell all",
+					"text": "Sell all is a button now. Your mouse can retire.",
+					"details": "The NPC Sell window has a \"Sell all\" button that adds every sellable item in one click instead of picking them one by one.",
+					"commits": [
+						"277b5ff8"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "/ex /in",
+					"text": "The official whisper-blocking commands are here: /ex, /in, /exall and /inall. Peace is one slash away.",
+					"details": "The official whisper-blocking commands were missing. You can now block or unblock one player (/ex, /in) or everyone (/exall, /inall), and see the result and your block list in chat.",
+					"commits": [
+						"54f32319"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "ChatBox",
+					"text": "Someone shouts \"WTB Old Card Album\"? Double-click their line to whisper them, Shift+click their item link to post it again.",
+					"details": "Double-click a chat line to whisper its sender, Shift+click an item link to post it again, and the mouse wheel now scrolls 3 lines per notch like the official client.",
+					"commits": [
+						"28a992a3"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Server messages",
+					"text": "Your weapon broke and nobody told you? The chat now says so, along with repair results, Upgrade Weapon outcomes and who in your party picked up that card.",
+					"details": "Several messages the server sends were silently ignored. Now shown: equipment damaged, repair results, Upgrade Weapon results, bind on equip, MVP EXP and no-item notices, and party loot pickups.",
+					"commits": [
+						"ff9e419c",
+						"b40cb250"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "ItemSelection",
+					"text": "Picking from an item or craft selection window no longer needs the mouse: Up, Down, Enter. Keyboard warriors, welcome home.",
+					"details": "The chat grabbed every Enter, so item and craft selection windows needed the mouse. Enter now confirms them, and Up / Down move the selection.",
+					"commits": [
+						"22e96df3",
+						"157254d6"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Inventory",
+					"text": "Your +7 Stiletto no longer clones itself after a map change. We know. We were sad too.",
+					"details": "A refined or unequipped item came back with a count of 0, so it got duplicated after each map change and could not be sold until relog. It now keeps its count. A minimised Inventory now comes back minimised, and the Cart remembers its size, position and minimised state.",
+					"commits": [
+						"68ef3741",
+						"09a043e2",
+						"adfcbef3",
+						"17ff0d5a"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Teleport",
+					"text": "Teleporting no longer briefly empties your Inventory. We know it was scary.",
+					"details": "Every teleport closed and reopened all the game windows, which caused a stutter and reset their contents. Windows now stay open, so Inventory, Cart and Equipment are no longer briefly empty, the chat stays on its tab, and skill cooldowns keep running.",
+					"commits": [
+						"06ea8106",
+						"c5a8ec37"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Map name",
+					"text": "The map name banner used to show up late, like a Priest after the tank died. It now appears with the map and leaves after 5 seconds.",
+					"details": "The map name banner faded in late and lingered. It now shows at full opacity as the map appears and fades out after 5 s, like the 2022 and 2026 clients. The fade from black waits for the game to run smoothly before starting, and teleports within the same map fade through black again instead of snapping.",
+					"commits": [
+						"70c4412e",
+						"5741d90a",
+						"298d43a2"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Windows",
+					"text": "Storage search opens again, Equipment shows its Cart button, Rodex opens on the first click, and the Bank answers its NPC. Spring cleaning.",
+					"details": "Storage search and filter windows would not open; they work again and Enter runs the search. Equipment's Cart and remove-option buttons never appeared and now show. Rodex now opens on the first click and its title bar no longer drags several times after reopening. NPCs that open the Bank now open it.",
+					"commits": [
+						"a7fa4954",
+						"75d9d84f",
+						"6803ade8",
+						"f6c62c62",
+						"8cd32184"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Chat",
+					"text": "Colour codes show as colours, multi-line messages keep their lines, and pets tell you their name again.",
+					"details": "Multi-line messages like /help were squashed into one line, and ^RRGGBB colour codes showed as raw text. Line breaks are now kept and the codes removed. Pets show their name when talking again, Tab switches between the whisper name and message fields again, and password managers no longer fill the whisper name field.",
+					"commits": [
+						"5ab0d34b",
+						"178f5b84",
+						"496e229b",
+						"82990432"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Cursor",
+					"text": "On Firefox and Safari, two cursors showed over window buttons: yours and the browser's. The browser's one has been sent back to town.",
+					"details": "On Firefox and Safari the browser's cursor appeared on top of the game cursor over buttons and links in windows. It is now hidden there too. A related leak, where closed message boxes stayed in memory, is fixed.",
+					"commits": [
+						"88faa086",
+						"900b1516"
+					]
+				}
+			]
+		}
+	]
+}

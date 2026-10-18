@@ -1,6 +1,7 @@
 window.ROConfigLocal = {  
     development: true,  
     remoteClient: 'https://grf.robrowser.com/',  
+    patchNotes: { url: 'patchlog.json', product: 'robrowser' },
     servers: [  
         {
             display: 'Your Local Server[PRE]',
