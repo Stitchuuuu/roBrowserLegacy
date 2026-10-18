@@ -8,7 +8,7 @@
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropNames$1 = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esmMin = (fn, res, err) => () => {
@@ -19,7 +19,7 @@ var __esmMin = (fn, res, err) => () => {
 		throw err = [e], e;
 	}
 };
-var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
+var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod, mod.exports), cb = null), mod.exports);
 var __exportAll = (all, no_symbols) => {
 	let target = {};
 	for (var name in all) __defProp(target, name, {
@@ -30,7 +30,7 @@ var __exportAll = (all, no_symbols) => {
 	return target;
 };
 var __copyProps = (to, from, except, desc) => {
-	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
+	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames$1(from), i = 0, n = keys.length, key; i < n; i++) {
 		key = keys[i];
 		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
 			get: ((k) => from[k]).bind(null, key),
@@ -282466,7 +282466,7 @@ var init_liblua5_1 = __esmMin((() => {
 }));
 //#endregion
 //#region node_modules/lodash/lodash.js
-var require_lodash = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var require_lodash = /* @__PURE__ */ __commonJSMin(((exports, module, this$2) => {
 	/**
 	* @license
 	* Lodash <https://lodash.com/>
@@ -297052,7 +297052,7 @@ var require_lodash = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			(freeModule.exports = _)._ = _;
 			freeExports._ = _;
 		} else root._ = _;
-	}).call(exports);
+	}).call(this$2);
 }));
 //#endregion
 //#region src/Vendors/wasmoon-lua5.1.js
@@ -344485,8 +344485,8 @@ var require_rijndael_precalculated = /* @__PURE__ */ __commonJSMin(((exports, mo
 }));
 //#endregion
 //#region node_modules/rijndael-js/lib/utils.js
-var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var root = typeof self === "object" && self.self === self && self || typeof global === "object" && global.global === global && global || exports;
+var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module, this$1) => {
+	var root = typeof self === "object" && self.self === self && self || typeof global === "object" && global.global === global && global || this$1;
 	var has = (type) => typeof root[type] !== "undefined";
 	var is = (value, type) => has(type) && value instanceof root[type];
 	module.exports.toArray = (data) => {
