@@ -42,8 +42,15 @@ class GroundEffect {
 
 	static init(gl) {
 		_program = WebGL.createShaderProgram(gl, _vertexShader, _fragmentShader);
+		const program = _program;
 		Client.loadFile('data/texture/effect/pok2.tga', buffer => {
 			WebGL.texture(gl, buffer, texture => {
+				// Freed or re-initialized while the texture was loading
+				if (program !== _program) {
+					gl.deleteTexture(texture);
+					return;
+				}
+
 				_texture = texture;
 				this.ready = true;
 			});
