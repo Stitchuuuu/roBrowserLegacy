@@ -7,6 +7,8 @@ concurrency:
 on:
   push:
     branches: ["**"]
+  # "Run workflow" in the Actions tab rebuilds a branch without a new push
+  workflow_dispatch:
 
 permissions:
   contents: write
