@@ -155,7 +155,8 @@ export default {
 			async enable(name)  { const r = await store.enable(name);    notifyChange(); return r; },
 			async disable(name) { const r = await store.disable(name);   notifyChange(); return r; },
 			async remove(name)  { const r = await store.uninstall(name); notifyChange(); return r; },
-			async update(name)  { const r = await store.update(name);    notifyChange(); return r; },
+			// `opts` { sourceUrl, version } installs another published version in place.
+			async update(name, opts) { const r = await store.update(name, opts); notifyChange(); return r; },
 			async refreshAll()  { const r = await store.refreshAll();    notifyChange(); return r; },
 			onChange(cb) {
 				if (typeof cb !== 'function') { return () => {}; }

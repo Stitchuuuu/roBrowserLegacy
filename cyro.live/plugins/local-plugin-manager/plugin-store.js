@@ -32,20 +32,37 @@ const STORE = 'plugins'
 // the Plugin Manager renders installed plugins first, then merges these. A long
 // wait here would only delay the merge, never the installed list.
 const REGISTRY_TIMEOUT_MS = 4000
+// Native installs take the DI build (`<slug>.di.esm.js`) only.
+const DI_URL = /\.di\.esm\.js(?:[?#]|$)/i
 
 /**
- * Compare two dotted version strings numerically (`'1.2.0'` vs `'1.10'`).
+ * Compare two version strings (`'1.2.0'` vs `'1.10'`, `'7.21.0-a.17'`).
  * Returns >0 if `a` is newer, <0 if older, 0 if equal / unparseable. A missing
- * segment counts as 0, so `'1.2'` === `'1.2.0'`.
+ * segment counts as 0, so `'1.2'` === `'1.2.0'`. Prereleases follow semver:
+ * `1.0.0-a.2` < `1.0.0-a.10` < `1.0.0`.
  */
 function cmpVersion(a, b) {
-	const pa = String(a || '').split('.')
-	const pb = String(b || '').split('.')
+	const [ca, ...ra] = String(a || '').split('-')
+	const [cb, ...rb] = String(b || '').split('-')
+	const c = cmpDotted(ca, cb, true)
+	if (c !== 0) return c
+	if (!ra.length || !rb.length) return rb.length - ra.length   // release > prerelease
+	return cmpDotted(ra.join('-'), rb.join('-'), false)
+}
+
+/** Dot-wise compare ; `pad` counts a missing segment as 0, else as older. */
+function cmpDotted(a, b, pad) {
+	const pa = a.split('.')
+	const pb = b.split('.')
 	const n = Math.max(pa.length, pb.length)
 	for (let i = 0; i < n; i++) {
-		const na = parseInt(pa[i], 10) || 0
-		const nb = parseInt(pb[i], 10) || 0
-		if (na !== nb) return na - nb
+		if (!pad && (pa[i] === undefined || pb[i] === undefined)) return pa.length - pb.length
+		const sa = pa[i] || '0'
+		const sb = pb[i] || '0'
+		const na = parseInt(sa, 10)
+		const nb = parseInt(sb, 10)
+		if (!isNaN(na) && !isNaN(nb)) { if (na !== nb) return na - nb }
+		else if (sa !== sb) return sa < sb ? -1 : 1
 	}
 	return 0
 }
@@ -165,7 +182,8 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	/**
 	 * Fetch one registry listing — GET `registryUrl` → `{ name, plugins }`.
 	 * The listing declares its own `name` and an array of installable entries
-	 * `{ slug, name, version, url, description? }`. Fails fast (short timeout) and
+	 * `{ slug, name, version, url, description?, latest?, versions? }`, where
+	 * `versions` is `[{ version, url }]`. Fails fast (short timeout) and
 	 * returns `{ name: null, plugins: [] }` on any error so one dead registry never
 	 * blocks the others.
 	 */
@@ -189,6 +207,28 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	}
 
 	/**
+	 * Published versions of a listing entry, newest first, DI builds only. A flat
+	 * entry (no `versions`) yields its own `{ version, url }`.
+	 */
+	function entryVersions(e, latest) {
+		const src = Array.isArray(e.versions) ? e.versions : [{ version: latest, url: e.url }]
+		const out = []
+		for (let i = 0; i < src.length; i++) {
+			const v = src[i]
+			if (v && v.version && DI_URL.test(v.url || '')) out.push({ version: String(v.version), url: v.url })
+		}
+		return out.sort((a, b) => cmpVersion(b.version, a.version))
+	}
+
+	/** Row copy of `versions`, the installed one marked and the older ones flagged. */
+	function markVersions(versions, installed) {
+		return versions.map(v => {
+			const c = installed ? cmpVersion(v.version, installed) : 1
+			return { version: v.version, url: v.url, installed: c === 0, older: c < 0 }
+		})
+	}
+
+	/**
 	 * Fetch ALL configured registries in parallel, tag each plugin entry with its
 	 * resolved registry name (map label ?? listing `name` ?? url host), and merge
 	 * into one array deduped by slug — the FIRST registry (config order) that lists
@@ -207,14 +247,16 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			for (let j = 0; j < entries.length; j++) {
 				const e = entries[j]
 				if (!e || !e.slug || bySlug[e.slug]) continue   // first-wins dedupe
-				if (!/\.di\.esm\.js(?:[?#]|$)/i.test(e.url || '')) continue   // DI builds only, for now
+				if (!DI_URL.test(e.url || '')) continue   // DI builds only, for now
+				const version = e.latest || e.version || null
 				bySlug[e.slug] = {
 					slug: e.slug,
 					name: e.name || null,
-					version: e.version || null,
+					version,
 					url: e.url || null,
 					description: e.description || null,
 					registry: regName,
+					versions: entryVersions(e, version),
 				}
 				order.push(e.slug)
 			}
@@ -328,8 +370,8 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 	/**
 	 * Merge IndexedDB (installed) with the registry listings. Installed rows keep
-	 * their `available:false` shape (same as `listInstalled()`) plus `url`/`registry`
-	 * from the registry and `updateAvailable` (a registry lists a newer version).
+	 * their `available:false` shape (same as `listInstalled()`) plus `url`/`registry`/
+	 * `versions` from the registry and `updateAvailable` (a registry lists a newer version).
 	 * Registry-only entries render as installable rows (`installed:false`,
 	 * `available:true`). In local-only mode this equals `listInstalled()`.
 	 */
@@ -352,6 +394,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 				existing.available = true
 				existing.url = a.url
 				existing.registry = a.registry
+				existing.versions = markVersions(a.versions, existing.version)
 				// Compare against the INSTALLED version before applying the display
 				// fallback below (else a null installed version compares equal to itself).
 				existing.updateAvailable = !!existing.version && cmpVersion(a.version, existing.version) > 0
@@ -367,6 +410,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 					available: true,
 					url: a.url,
 					registry: a.registry,
+					versions: markVersions(a.versions, null),
 					updateAvailable: false,
 				}
 				order.push(a.slug)
@@ -474,15 +518,21 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	 * record fully intact. For an enabled plugin the OLD pluginName is
 	 * unregistered and the NEW one stored. For a disabled plugin only the source
 	 * is refreshed.
+	 *
+	 * `opts.sourceUrl` swaps the code for another published version (stored as the
+	 * new `sourceUrl`) ; `opts.version` labels it while disabled. The record's
+	 * other fields and the plugin's own settings are left as they are.
 	 */
-	async function update(name) {
+	async function update(name, opts = {}) {
 		const rec = await dbGet(W, name)
 		if (!rec) { warn(`[plugin-store] update '${name}': not installed`); return { ok: false, name, error: 'not installed' } }
-		if (!rec.sourceUrl) { warn(`[plugin-store] update '${name}': no sourceUrl`); return { ok: false, name, error: 'no sourceUrl' } }
+		const sourceUrl = opts.sourceUrl || rec.sourceUrl
+		if (!sourceUrl) { warn(`[plugin-store] update '${name}': no sourceUrl`); return { ok: false, name, error: 'no sourceUrl' } }
 
-		log(`[plugin-store] update '${name}' from ${rec.sourceUrl}`)
-		const source = await fetchText(rec.sourceUrl)   // network failure ⇒ throw, old state intact
+		log(`[plugin-store] update '${name}' from ${sourceUrl}`)
+		const source = await fetchText(sourceUrl)   // network failure ⇒ throw, old state intact
 		const oldVersion = rec.version
+		rec.sourceUrl = sourceUrl
 
 		if (rec.enabled) {
 			if (rec.pluginName) await PluginManager.unregister(rec.pluginName)  // tear down OLD
@@ -503,6 +553,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 		// disabled : refresh stored source only ; pluginName/version resync on next enable()
 		rec.source = source
+		if (opts.version) rec.version = opts.version
 		await dbPut(W, rec)
 		log(`[plugin-store ✓] updated '${name}' source (disabled — not exec'd)`)
 		return { ok: true, name, pluginName: rec.pluginName, version: rec.version, oldVersion }

@@ -1,0 +1,594 @@
+// plugin-store.js — LocalPluginManager (LPM) IndexedDB store.
+//
+// Ported near-verbatim from the v3 framework
+// (`robrowser/tools/v3/framework/core/src/plugin-store.js`). Persists plugins in
+// IndexedDB so they reload at boot WITHOUT the network — the bare ESM module is
+// fetched once at install, its source stashed, and re-executed from IndexedDB on
+// every subsequent boot.
+//
+// Execution model (identical at install and at boot):
+//   source string → Blob → import(blobUrl) → PluginManager.register(mod.default)
+// Here `PluginManager` is the native manager's runtime host (`PluginHost`),
+// injected into LocalPluginManager's DI map. Stored plugins are pure-DI native
+// ESM (`export default { name, init }`) — they receive the engine modules via
+// `init(pars, diMap)` and carry NO static `@robrowser/*` imports (the native
+// path has no import-map; DI covers everything).
+//
+// Changes vs the ported source: (1) `fetchText` drops the `__RO_GM.xmlhttpRequest`
+// CORS-bypass fallback (page-context `fetch` only); (2) `exec` awaits the host
+// register and passes the module namespace for dep-fallback exports.
+//
+// Identity note : the store keys everything by SLUG (the install identifier / URL
+// component). That is distinct from the manifest plugin name under which the
+// host registers the plugin (read from `mod.default.name`). The IndexedDB
+// record's `name` field holds the slug ; `pluginName`/`version` hold the
+// manifest data. DB name / store / keyPath / version are kept byte-identical to
+// the source they were ported from, so an export bookmarklet can round-trip the
+// records verbatim.
+
+const DB_NAME = 'roframework-plugins'
+const STORE = 'plugins'
+// Registry fetches (GET a listing url) must fail fast when a registry is down —
+// the Plugin Manager renders installed plugins first, then merges these. A long
+// wait here would only delay the merge, never the installed list.
+const REGISTRY_TIMEOUT_MS = 4000
+// Native installs take the DI build (`<slug>.di.esm.js`) only.
+const DI_URL = /\.di\.esm\.js(?:[?#]|$)/i
+
+/**
+ * Compare two version strings (`'1.2.0'` vs `'1.10'`, `'7.21.0-a.17'`).
+ * Returns >0 if `a` is newer, <0 if older, 0 if equal / unparseable. A missing
+ * segment counts as 0, so `'1.2'` === `'1.2.0'`. Prereleases follow semver:
+ * `1.0.0-a.2` < `1.0.0-a.10` < `1.0.0`.
+ */
+function cmpVersion(a, b) {
+	const [ca, ...ra] = String(a || '').split('-')
+	const [cb, ...rb] = String(b || '').split('-')
+	const c = cmpDotted(ca, cb, true)
+	if (c !== 0) return c
+	if (!ra.length || !rb.length) return rb.length - ra.length   // release > prerelease
+	return cmpDotted(ra.join('-'), rb.join('-'), false)
+}
+
+/** Dot-wise compare ; `pad` counts a missing segment as 0, else as older. */
+function cmpDotted(a, b, pad) {
+	const pa = a.split('.')
+	const pb = b.split('.')
+	const n = Math.max(pa.length, pb.length)
+	for (let i = 0; i < n; i++) {
+		if (!pad && (pa[i] === undefined || pb[i] === undefined)) return pa.length - pb.length
+		const sa = pa[i] || '0'
+		const sb = pb[i] || '0'
+		const na = parseInt(sa, 10)
+		const nb = parseInt(sb, 10)
+		if (!isNaN(na) && !isNaN(nb)) { if (na !== nb) return na - nb }
+		else if (sa !== sb) return sa < sb ? -1 : 1
+	}
+	return 0
+}
+
+/**
+ * Open (and lazily create) the IndexedDB database. Object store `plugins`,
+ * keyPath `name` (= slug). Returns a Promise<IDBDatabase>.
+ */
+function openDb(W) {
+	return new Promise((resolve, reject) => {
+		const idb = W.indexedDB
+		if (!idb) { reject(new Error('[plugin-store] IndexedDB unavailable in this context')); return }
+		const req = idb.open(DB_NAME, 1)
+		req.onupgradeneeded = () => {
+			const db = req.result
+			if (!db.objectStoreNames.contains(STORE)) {
+				db.createObjectStore(STORE, { keyPath: 'name' })
+			}
+		}
+		req.onsuccess = () => resolve(req.result)
+		req.onerror = () => reject(req.error || new Error('[plugin-store] IndexedDB open failed'))
+	})
+}
+
+/** Promisify a single-store transaction. `mode` is 'readonly' | 'readwrite'. */
+async function tx(W, mode, fn) {
+	const db = await openDb(W)
+	return new Promise((resolve, reject) => {
+		const t = db.transaction(STORE, mode)
+		const store = t.objectStore(STORE)
+		let result
+		Promise.resolve(fn(store)).then(r => { result = r }).catch(reject)
+		t.oncomplete = () => { db.close(); resolve(result) }
+		t.onerror = () => { db.close(); reject(t.error || new Error('[plugin-store] transaction failed')) }
+		t.onabort = () => { db.close(); reject(t.error || new Error('[plugin-store] transaction aborted')) }
+	})
+}
+
+/** Wrap an IDBRequest in a Promise. */
+function reqPromise(req) {
+	return new Promise((resolve, reject) => {
+		req.onsuccess = () => resolve(req.result)
+		req.onerror = () => reject(req.error)
+	})
+}
+
+async function dbGet(W, name)     { return tx(W, 'readonly',  s => reqPromise(s.get(name))) }
+async function dbGetAll(W)        { return tx(W, 'readonly',  s => reqPromise(s.getAll())) }
+async function dbPut(W, record)   { return tx(W, 'readwrite', s => reqPromise(s.put(record))) }
+async function dbDelete(W, name)  { return tx(W, 'readwrite', s => reqPromise(s.delete(name))) }
+
+/**
+ * Build the LPM store bound to a window `W` and a `PluginManager` (the native
+ * runtime host `{ register, unregister, list }`). Called once from the
+ * LocalPluginManager plugin's init().
+ *
+ * @param {object}   opts
+ * @param {Window}   opts.W
+ * @param {object}   opts.PluginManager  runtime host { register, unregister, list }
+ * @param {object}   [opts.logger]
+ * @param {Array<{label: string|null, url: string}>} [opts.registries]  normalized
+ *        plugin registries (from `pars.registries`). Empty ⇒ local-only mode.
+ */
+export function createPluginStore({ W, PluginManager, logger, registries = [] }) {
+	const log = (logger && logger.log)  || ((...a) => console.log(...a))
+	const warn = (logger && logger.warn) || ((...a) => console.warn(...a))
+	const err  = (logger && logger.error) || ((...a) => console.error(...a))
+
+	/**
+	 * Fetch a text resource via page-context `fetch()`. `timeoutMs` bounds it
+	 * with an `AbortController` — without it, a down serve (mixed-content stall)
+	 * would hang forever. Discovery uses a short timeout (fail-fast) ;
+	 * install/update keep the long 15 s download window. A CORS / network / HTTP
+	 * failure throws (surfaced to the ChatBox by the caller) — there is no
+	 * GM-XHR CORS-bypass fallback.
+	 */
+	async function fetchText(url, timeoutMs = 15000) {
+		const ctl = typeof W.AbortController === 'function' ? new W.AbortController() : null
+		const timer = ctl ? W.setTimeout(() => ctl.abort(), timeoutMs) : null
+		try {
+			const res = await W.fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+			if (!res.ok) throw new Error(`[plugin-store] HTTP ${res.status} on ${url}`)
+			return await res.text()
+		} finally {
+			if (timer) W.clearTimeout(timer)
+		}
+	}
+
+	/**
+	 * Execute a plugin ESM source string : Blob → import(blobUrl) → register.
+	 * Returns `{ manifest, error }` — `manifest` is `mod.default` so callers can
+	 * read its `name`/`version` ; `error` is the init failure message when the
+	 * host recorded the registration as failed, else `null`. The blob URL is
+	 * revoked once `import()` resolves. The host `register` is awaited (it
+	 * awaits the plugin's init, never rejecting on an init failure) and given
+	 * the module namespace so a stored producer's namespace can be a dep
+	 * fallback. The plugin's init receives its own manifest `pars`, as under TM.
+	 * A bad module (missing/invalid default export) still throws here.
+	 */
+	async function exec(source) {
+		const blob = new Blob([source], { type: 'application/javascript' })
+		const blobUrl = URL.createObjectURL(blob)
+		try {
+			const mod = await import(/* @vite-ignore */ blobUrl)
+			if (!mod || !mod.default || typeof mod.default.name !== 'string') {
+				throw new Error('[plugin-store] module has no valid default export ({ name, init, ... })')
+			}
+			await PluginManager.register(mod.default, mod.default.pars || null, mod)
+			const entry = PluginManager.list().find(p => p.name === mod.default.name)
+			const error = entry && entry.status === 'failed' ? entry.error : null
+			return { manifest: mod.default, error }
+		} finally {
+			URL.revokeObjectURL(blobUrl)
+		}
+	}
+
+	/**
+	 * Fetch one registry listing — GET `registryUrl` → `{ name, plugins }`.
+	 * The listing declares its own `name` and an array of installable entries
+	 * `{ slug, name, version, url, description?, latest?, versions? }`, where
+	 * `versions` is `[{ version, url }]`. Fails fast (short timeout) and
+	 * returns `{ name: null, plugins: [] }` on any error so one dead registry never
+	 * blocks the others.
+	 */
+	async function available(registryUrl) {
+		try {
+			const json = await fetchText(registryUrl, REGISTRY_TIMEOUT_MS)
+			const data = JSON.parse(json)
+			return {
+				name: typeof data.name === 'string' ? data.name : null,
+				plugins: Array.isArray(data.plugins) ? data.plugins : [],
+			}
+		} catch (e) {
+			warn(`[plugin-store] registry fetch failed (${registryUrl}):`, e.message)
+			return { name: null, plugins: [] }
+		}
+	}
+
+	/** Host of a URL (registry-name fallback when neither map key nor JSON name). */
+	function urlHost(url) {
+		try { return new W.URL(url).host } catch (_e) { return String(url) }
+	}
+
+	/**
+	 * Published versions of a listing entry, newest first, DI builds only. A flat
+	 * entry (no `versions`) yields its own `{ version, url }`.
+	 */
+	function entryVersions(e, latest) {
+		const src = Array.isArray(e.versions) ? e.versions : [{ version: latest, url: e.url }]
+		const out = []
+		for (let i = 0; i < src.length; i++) {
+			const v = src[i]
+			if (v && v.version && DI_URL.test(v.url || '')) out.push({ version: String(v.version), url: v.url })
+		}
+		return out.sort((a, b) => cmpVersion(b.version, a.version))
+	}
+
+	/** Row copy of `versions`, the installed one marked and the older ones flagged. */
+	function markVersions(versions, installed) {
+		return versions.map(v => {
+			const c = installed ? cmpVersion(v.version, installed) : 1
+			return { version: v.version, url: v.url, installed: c === 0, older: c < 0 }
+		})
+	}
+
+	/**
+	 * Fetch ALL configured registries in parallel, tag each plugin entry with its
+	 * resolved registry name (map label ?? listing `name` ?? url host), and merge
+	 * into one array deduped by slug — the FIRST registry (config order) that lists
+	 * a slug wins. Yields `[]` in local-only mode (no registries). Private.
+	 */
+	async function fetchRegistries() {
+		if (!registries.length) return []
+		const listings = await Promise.all(registries.map(r => available(r.url)))
+		const bySlug = {}
+		const order = []
+		for (let i = 0; i < registries.length; i++) {
+			const reg = registries[i]
+			const listing = listings[i]
+			const regName = reg.label || listing.name || urlHost(reg.url)
+			const entries = listing.plugins
+			for (let j = 0; j < entries.length; j++) {
+				const e = entries[j]
+				if (!e || !e.slug || bySlug[e.slug]) continue   // first-wins dedupe
+				if (!DI_URL.test(e.url || '')) continue   // DI builds only, for now
+				const version = e.latest || e.version || null
+				bySlug[e.slug] = {
+					slug: e.slug,
+					name: e.name || null,
+					version,
+					url: e.url || null,
+					description: e.description || null,
+					registry: regName,
+					versions: entryVersions(e, version),
+				}
+				order.push(e.slug)
+			}
+		}
+		return order.map(slug => bySlug[slug])
+	}
+
+	/**
+	 * Install a plugin by slug : fetch its bare ESM module, exec + register it
+	 * live, and persist the source in IndexedDB (enabled) so it reloads at boot
+	 * without the network.
+	 *
+	 * @param {string} name  plugin slug — IDB key + URL component.
+	 * @param {object} [opts] { sourceUrl?, debug?, origin? }
+	 */
+	async function install(name, opts = {}) {
+		const debug = !!opts.debug
+		// `installFromUrl` always supplies `sourceUrl`; the `opts.origin` form builds
+		// `<origin>/plugins/<slug>.di.esm.js` for a serve-relative install (no default origin).
+		const sourceUrl = opts.sourceUrl || (opts.origin ? `${opts.origin}/plugins/${name}.di.esm.js` : null)
+		if (!sourceUrl) throw new Error(`[plugin-store] install '${name}': no sourceUrl (and no opts.origin)`)
+
+		log(`[plugin-store] install '${name}' from ${sourceUrl}`)
+		const source = await fetchText(sourceUrl)
+		const { manifest, error } = await exec(source)
+
+		const record = {
+			name,                          // slug — IDB key
+			source,                        // bare ESM module text
+			version: manifest.version || null,
+			pluginName: manifest.name,     // manifest registration name
+			enabled: true,
+			sourceUrl,
+			debug,
+			installedAt: Date.now(),
+		}
+		await dbPut(W, record)
+		if (error) {
+			err(`[plugin-store] install '${name}' stored but init failed (${manifest.name} v${manifest.version || '?'}) — ${error}`)
+		} else {
+			log(`[plugin-store ✓] installed '${name}' (${manifest.name} v${manifest.version || '?'}) — persisted to IndexedDB`)
+		}
+		return error
+			? { ok: false, name, pluginName: manifest.name, version: manifest.version, error }
+			: { ok: true, name, pluginName: manifest.name, version: manifest.version }
+	}
+
+	/**
+	 * Install from a raw source string (e.g. a dropped `.esm.js` read via
+	 * `file.text()`). No network — exec + persist directly. The caller supplies
+	 * the slug (IDB key), typically derived from the dropped filename. The source
+	 * MUST be a bare ESM module with a `default` export ; exec() rejects anything
+	 * else (a Tampermonkey `.user.js` wrapper has no default export).
+	 *
+	 * @param {string} source  raw bare-ESM module text.
+	 * @param {string} name    plugin slug — IDB key.
+	 * @param {object} [opts]   { debug? }
+	 */
+	async function installFromSource(source, name, opts = {}) {
+		if (!source || typeof source !== 'string') throw new Error('[plugin-store] installFromSource: empty source')
+		if (!name) throw new Error('[plugin-store] installFromSource: missing slug')
+
+		log(`[plugin-store] installFromSource '${name}' (${source.length} bytes)`)
+		const { manifest, error } = await exec(source)   // throws on non-ESM / no default export
+
+		const record = {
+			name,                          // slug — IDB key
+			source,                        // bare ESM module text
+			version: manifest.version || null,
+			pluginName: manifest.name,     // manifest registration name
+			enabled: true,
+			sourceUrl: null,               // no network origin — update() warns 'no sourceUrl'
+			debug: !!opts.debug,
+			installedAt: Date.now(),
+		}
+		await dbPut(W, record)
+		if (error) {
+			err(`[plugin-store] installFromSource '${name}' stored but init failed (${manifest.name} v${manifest.version || '?'}) — ${error}`)
+		} else {
+			log(`[plugin-store ✓] installed '${name}' (${manifest.name} v${manifest.version || '?'}) from dropped source — persisted to IndexedDB`)
+		}
+		return error
+			? { ok: false, name, pluginName: manifest.name, version: manifest.version, error }
+			: { ok: true, name, pluginName: manifest.name, version: manifest.version }
+	}
+
+	/**
+	 * Installed plugins only — IndexedDB read, NO network. Same entry shape as
+	 * list() (with `available:false`). `status`/`error` come from the live
+	 * registration (matched on `pluginName`) ; `null` when not registered
+	 * (e.g. disabled).
+	 */
+	async function listInstalled() {
+		const installed = await dbGetAll(W).catch(() => [])
+		const runtime = PluginManager.list()
+		return installed.map(rec => {
+			const entry = rec.pluginName ? runtime.find(p => p.name === rec.pluginName) : null
+			return {
+				name: rec.name,
+				pluginName: rec.pluginName || null,
+				version: rec.version || null,
+				installed: true,
+				enabled: !!rec.enabled,
+				debug: !!rec.debug,
+				available: false,
+				status: entry ? entry.status : null,
+				error: entry ? entry.error || null : null,
+			}
+		})
+	}
+
+	/**
+	 * Merge IndexedDB (installed) with the registry listings. Installed rows keep
+	 * their `available:false` shape (same as `listInstalled()`) plus `url`/`registry`/
+	 * `versions` from the registry and `updateAvailable` (a registry lists a newer version).
+	 * Registry-only entries render as installable rows (`installed:false`,
+	 * `available:true`). In local-only mode this equals `listInstalled()`.
+	 */
+	async function list() {
+		const [installed, registryEntries] = await Promise.all([
+			listInstalled(),
+			fetchRegistries(),
+		])
+		const bySlug = {}
+		const order = []
+		for (let i = 0; i < installed.length; i++) {
+			const entry = installed[i]
+			bySlug[entry.name] = entry
+			order.push(entry.name)
+		}
+		for (let i = 0; i < registryEntries.length; i++) {
+			const a = registryEntries[i]
+			const existing = bySlug[a.slug]
+			if (existing) {
+				existing.available = true
+				existing.url = a.url
+				existing.registry = a.registry
+				existing.versions = markVersions(a.versions, existing.version)
+				// Compare against the INSTALLED version before applying the display
+				// fallback below (else a null installed version compares equal to itself).
+				existing.updateAvailable = !!existing.version && cmpVersion(a.version, existing.version) > 0
+				if (!existing.version) existing.version = a.version
+			} else {
+				bySlug[a.slug] = {
+					name: a.slug,
+					pluginName: a.name || null,
+					version: a.version || null,
+					installed: false,
+					enabled: false,
+					debug: false,
+					available: true,
+					url: a.url,
+					registry: a.registry,
+					versions: markVersions(a.versions, null),
+					updateAvailable: false,
+				}
+				order.push(a.slug)
+			}
+		}
+		return order.map(slug => bySlug[slug])
+	}
+
+	/**
+	 * Boot-load — exec every enabled record straight from IndexedDB. No network.
+	 * Failures are isolated (one broken plugin doesn't block the rest). Returns
+	 * a summary `{ loaded, failed }`.
+	 */
+	async function bootLoad() {
+		let records
+		try { records = await dbGetAll(W) }
+		catch (e) { warn('[plugin-store] bootLoad: IndexedDB read failed:', e.message); return { loaded: 0, failed: 0 } }
+
+		const enabled = records.filter(r => r.enabled && r.source)
+		if (!enabled.length) return { loaded: 0, failed: 0 }
+
+		log(`[plugin-store] boot-load: ${enabled.length} enabled plugin(s) from IndexedDB`)
+		let loaded = 0, failed = 0
+		for (const rec of enabled) {
+			try {
+				const { manifest, error } = await exec(rec.source)
+				if (error) {
+					failed++
+					err(`[plugin-store]   ✗ ${rec.name}: ${error}`)
+				} else {
+					loaded++
+					log(`[plugin-store]   ✓ ${rec.name} (${manifest.name} v${manifest.version || '?'})`)
+				}
+			} catch (e) {
+				failed++
+				err(`[plugin-store]   ✗ ${rec.name}: ${e.message}`)
+			}
+		}
+		log(`[plugin-store] boot-load done — ${loaded} loaded, ${failed} failed`)
+		return { loaded, failed }
+	}
+
+	/**
+	 * Uninstall a plugin by slug : tear down the live registration (if enabled)
+	 * and delete the IndexedDB record. A slug that isn't installed resolves
+	 * `{ ok:false }` rather than throwing.
+	 */
+	async function uninstall(name) {
+		const rec = await dbGet(W, name)
+		if (!rec) { warn(`[plugin-store] uninstall '${name}': not installed`); return { ok: false, name, error: 'not installed' } }
+		if (rec.enabled && rec.pluginName) await PluginManager.unregister(rec.pluginName)
+		await dbDelete(W, name)
+		log(`[plugin-store ✓] uninstalled '${name}' (${rec.pluginName || '?'}) — removed from IndexedDB`)
+		return { ok: true, name, pluginName: rec.pluginName }
+	}
+
+	/**
+	 * Disable a plugin : tear down its live registration and flag the record
+	 * `enabled:false` so it is skipped at boot. Source is retained for a later
+	 * re-enable. No-op (warn) if the slug isn't installed.
+	 */
+	async function disable(name) {
+		const rec = await dbGet(W, name)
+		if (!rec) { warn(`[plugin-store] disable '${name}': not installed`); return { ok: false, name, error: 'not installed' } }
+		if (rec.pluginName) await PluginManager.unregister(rec.pluginName)  // safe noop if already gone
+		rec.enabled = false
+		await dbPut(W, rec)
+		log(`[plugin-store ✓] disabled '${name}' (${rec.pluginName || '?'})`)
+		return { ok: true, name, pluginName: rec.pluginName, version: rec.version }
+	}
+
+	/**
+	 * Enable a plugin : re-exec its stored source live and flag the record
+	 * `enabled:true`. Unregisters first ONLY if already registered (avoids the
+	 * "not registered — noop" warn on the common re-enable path) so re-enabling
+	 * stays idempotent and doesn't leak the prior instance's lifecycle cleanups.
+	 * The `enabled:true` flag is persisted ONLY after exec succeeds.
+	 */
+	async function enable(name) {
+		const rec = await dbGet(W, name)
+		if (!rec) { warn(`[plugin-store] enable '${name}': not installed`); return { ok: false, name, error: 'not installed' } }
+		if (!rec.source) { warn(`[plugin-store] enable '${name}': no stored source`); return { ok: false, name, error: 'no source' } }
+		if (rec.pluginName && PluginManager.list().some(p => p.name === rec.pluginName)) {
+			await PluginManager.unregister(rec.pluginName)
+		}
+		const { manifest, error } = await exec(rec.source)   // throws on bad source — record left enabled:false
+		rec.enabled = true
+		rec.pluginName = manifest.name             // resync in case source changed since install
+		rec.version = manifest.version || rec.version
+		await dbPut(W, rec)
+		if (error) {
+			err(`[plugin-store] enabled '${name}' but init failed (${manifest.name} v${manifest.version || '?'}) — ${error}`)
+		} else {
+			log(`[plugin-store ✓] enabled '${name}' (${manifest.name} v${manifest.version || '?'})`)
+		}
+		return error
+			? { ok: false, name, pluginName: manifest.name, version: manifest.version, error }
+			: { ok: true, name, pluginName: manifest.name, version: manifest.version }
+	}
+
+	/**
+	 * Update (alias: refresh) — re-fetch the plugin's source from its stored
+	 * `sourceUrl`, persist the new source/version, and (if enabled) re-exec it
+	 * live. The fetch happens FIRST : a network failure throws with the old
+	 * record fully intact. For an enabled plugin the OLD pluginName is
+	 * unregistered and the NEW one stored. For a disabled plugin only the source
+	 * is refreshed.
+	 *
+	 * `opts.sourceUrl` swaps the code for another published version (stored as the
+	 * new `sourceUrl`) ; `opts.version` labels it while disabled. The record's
+	 * other fields and the plugin's own settings are left as they are.
+	 */
+	async function update(name, opts = {}) {
+		const rec = await dbGet(W, name)
+		if (!rec) { warn(`[plugin-store] update '${name}': not installed`); return { ok: false, name, error: 'not installed' } }
+		const sourceUrl = opts.sourceUrl || rec.sourceUrl
+		if (!sourceUrl) { warn(`[plugin-store] update '${name}': no sourceUrl`); return { ok: false, name, error: 'no sourceUrl' } }
+
+		log(`[plugin-store] update '${name}' from ${sourceUrl}`)
+		const source = await fetchText(sourceUrl)   // network failure ⇒ throw, old state intact
+		const oldVersion = rec.version
+		rec.sourceUrl = sourceUrl
+
+		if (rec.enabled) {
+			if (rec.pluginName) await PluginManager.unregister(rec.pluginName)  // tear down OLD
+			const { manifest, error } = await exec(source)                      // register NEW
+			rec.source = source
+			rec.version = manifest.version || null
+			rec.pluginName = manifest.name      // NEW manifest name (may differ from old)
+			await dbPut(W, rec)
+			if (error) {
+				err(`[plugin-store] updated '${name}' (${manifest.name}) but init failed — ${error}`)
+			} else {
+				log(`[plugin-store ✓] updated '${name}' (${manifest.name}) ${oldVersion || '?'} → ${manifest.version || '?'} — live`)
+			}
+			return error
+				? { ok: false, name, pluginName: manifest.name, version: manifest.version, oldVersion, error }
+				: { ok: true, name, pluginName: manifest.name, version: manifest.version, oldVersion }
+		}
+
+		// disabled : refresh stored source only ; pluginName/version resync on next enable()
+		rec.source = source
+		if (opts.version) rec.version = opts.version
+		await dbPut(W, rec)
+		log(`[plugin-store ✓] updated '${name}' source (disabled — not exec'd)`)
+		return { ok: true, name, pluginName: rec.pluginName, version: rec.version, oldVersion }
+	}
+
+	/** Alias — `update` reads better for a single plugin, `refresh` for ergonomics. */
+	const refresh = update
+
+	/**
+	 * Refresh every installed plugin via update(). Failures are isolated. Returns
+	 * a summary `{ updated, failed, results }`.
+	 */
+	async function refreshAll() {
+		let records
+		try { records = await dbGetAll(W) }
+		catch (e) { warn('[plugin-store] refreshAll: IndexedDB read failed:', e.message); return { updated: 0, failed: 0, results: [] } }
+		if (!records.length) return { updated: 0, failed: 0, results: [] }
+
+		log(`[plugin-store] refresh-all: ${records.length} installed plugin(s)`)
+		let updated = 0, failed = 0
+		const results = []
+		for (const rec of records) {
+			try {
+				const r = await update(rec.name)
+				if (r.ok) updated++; else failed++
+				results.push(r)
+			} catch (e) {
+				failed++
+				results.push({ ok: false, name: rec.name, error: e.message })
+				err(`[plugin-store]   ✗ ${rec.name}: ${e.message}`)
+			}
+		}
+		log(`[plugin-store] refresh-all done — ${updated} updated, ${failed} failed`)
+		return { updated, failed, results }
+	}
+
+	return { list, listInstalled, install, installFromSource, bootLoad, uninstall, disable, enable, update, refresh, refreshAll }
+}
