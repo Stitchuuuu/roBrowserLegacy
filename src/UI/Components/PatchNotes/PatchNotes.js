@@ -23,6 +23,9 @@ const PatchNotes = new GUIComponent('PatchNotes', cssText);
 
 PatchNotes.render = () => htmlText;
 
+// Keeps its z-index: focus() would put it back under the login window
+PatchNotes.needFocus = false;
+
 /**
  * @var {Promise|null} patch log request
  */
@@ -62,11 +65,12 @@ PatchNotes.init = function init() {
 };
 
 /**
- * Center the window, as the official notice window
+ * Center the window, as the official notice window, above the login window
  */
 PatchNotes.onAppend = function onAppend() {
 	this._host.style.left = `${Math.max(0, (Renderer.width - 640) / 2 + 33)}px`;
 	this._host.style.top = `${Math.max(0, (Renderer.height - 480) / 2 + 40)}px`;
+	this._host.style.zIndex = '100';
 };
 
 /**

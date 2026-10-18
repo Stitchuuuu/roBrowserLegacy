@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-	// Mirrors GUIComponent: the first append() renders and runs init(), every append() runs onAppend()
+	// Mirrors GUIComponent: the first append() renders and runs init(), every append() runs onAppend() then focus()
 	class MockGUIComponent {
 		constructor(name) {
 			this.name = name;
 			this.__active = false;
+			this.needFocus = true;
 		}
 
 		getRoot() {
@@ -21,6 +22,14 @@ const mocks = vi.hoisted(() => {
 			this.__active = true;
 			document.body.appendChild(this._host);
 			this.onAppend?.();
+			this.focus();
+		}
+
+		// Restacks every window that needs focus
+		focus() {
+			if (this.needFocus) {
+				this._host.style.zIndex = '50';
+			}
 		}
 
 		remove() {
@@ -125,6 +134,7 @@ describe('PatchNotes', () => {
 		await PatchNotes.onLoginScreen();
 
 		expect(shownTitle(PatchNotes)).toContain('0.3.0 - Third');
+		expect(PatchNotes._host.style.zIndex).toBe('100');
 		PatchNotes.getRoot().querySelector('.back').click();
 		expect(shownTitle(PatchNotes)).toContain('0.2.0 - Second');
 		expect(PatchNotes.getRoot().querySelector('.back').style.visibility).toBe('hidden');
