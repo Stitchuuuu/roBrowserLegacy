@@ -124,10 +124,12 @@ function Init() {
 			}
 			workerOptions = { type: 'module' };
 		} else {
-			// In production bundle, force the emitted worker file path to avoid
-			// worker inlining as a data URL with unresolved module imports.
-			const path = '/rb2/dist/Web/ThreadEventHandler.js';
-			workerUrl = version ? path + '?v=' + encodeURIComponent(String(version)) : path;
+			// In production bundle, point at the emitted worker file next to Online.js, so it
+			// is not inlined as a data URL with unresolved module imports, whatever folder serves it.
+			workerUrl = new URL(/* @vite-ignore */ 'ThreadEventHandler.js', '' + import.meta.url);
+			if (version) {
+				workerUrl.searchParams.set('v', String(version));
+			}
 			// Built ThreadEventHandler.js is a plain bundled script in production.
 			// Use a classic worker for maximum browser compatibility.
 			workerOptions = {};
