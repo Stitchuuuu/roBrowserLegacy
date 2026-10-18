@@ -52,7 +52,8 @@
 		nogrf: 'The roBrowser relay holds no client folder. Open its popup, choose your client folder, then reload.',
 		worker: 'The service worker does not control this page. Reload normally (a forced reload bypasses it); a private window has none.',
 		key: 'This client needs an access key.',
-		badkey: 'Your access key does not open this client any more.'
+		badkey: 'Your access key does not open this client any more.',
+		stale: 'The client was updated while it loaded. Reload the page.'
 	};
 
 	function block(reason) {
@@ -83,11 +84,20 @@
 			roAccessKey.forget();
 			return { reason: 'badkey' };
 		}
-		const res = await fetch('Online.js.enc');
+		// no-cache like keyslots.json: every deploy locks the client with a new content key, so an
+		// Online.js.enc kept by the HTTP cache does not open with the slots just read.
+		const res = await fetch('Online.js.enc', { cache: 'no-cache' });
 		if (!res.ok) {
 			throw new Error(`Online.js.enc: HTTP ${res.status}`);
 		}
-		const source = (await roAccessKey.decrypt(key, await res.arrayBuffer())).replaceAll(
+		let text;
+		try {
+			text = await roAccessKey.decrypt(key, await res.arrayBuffer());
+		} catch {
+			// A deploy between the two reads, or the service worker's copy for a server that is down.
+			return { reason: 'stale' };
+		}
+		const source = text.replaceAll(
 			'import.meta.url',
 			JSON.stringify(new URL('Online.js', location.href).href)
 		);

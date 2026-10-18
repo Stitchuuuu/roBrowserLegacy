@@ -44,6 +44,9 @@ jobs:
       - name: Test the update check
         run: node --test repo/.github/pages-sites/update-check.test.mjs
 
+      - name: Test the gate
+        run: node --test repo/.github/pages-sites/gate.test.mjs
+
       - name: Plugins of every source branch
         run: |
           set -euo pipefail
