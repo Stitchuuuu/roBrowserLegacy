@@ -313,6 +313,49 @@ describe('registry index shapes', () => {
 	});
 });
 
+describe('several registries', () => {
+	const DEV = 'http://localhost.test/index.json';
+	const DEV_URL = 'http://localhost.test/plugins/tab-target.di.esm.js';
+
+	beforeEach(() => {
+		store = createPluginStore({
+			W,
+			PluginManager,
+			logger: { log() {}, warn() {}, error() {} },
+			registries: [
+				{ label: 'V3Dev', url: DEV },
+				{ label: 'Community', url: REG }
+			]
+		});
+	});
+
+	it('keeps the first registry build and adds the versions only a later one lists', async () => {
+		serve({
+			[DEV]: { plugins: [{ slug: 'tab-target', version: '7.21.0-a.17', url: DEV_URL }] },
+			[REG]: {
+				plugins: [
+					{
+						slug: 'tab-target',
+						latest: '7.21.0-a.17',
+						url: `${CDN}/7.21.0-a.17/tab-target.di.esm.js`,
+						versions: ['7.21.0-a.17', '7.21.0-a.16'].map(v => ({ version: v, url: `${CDN}/${v}/tab-target.di.esm.js` }))
+					},
+					{ slug: 'radio', version: '1.0.0', url: 'http://cdn.test/radio/1.0.0/radio.di.esm.js' }
+				]
+			}
+		});
+		const rows = await store.list();
+		const tab = rows.find(r => r.name === 'tab-target');
+		expect(tab.registry).toBe('V3Dev');
+		expect(tab.url).toBe(DEV_URL);
+		expect(tab.versions.map(v => [v.version, v.url])).toEqual([
+			['7.21.0-a.17', DEV_URL],
+			['7.21.0-a.16', `${CDN}/7.21.0-a.16/tab-target.di.esm.js`]
+		]);
+		expect(rows.find(r => r.name === 'radio').registry).toBe('Community');
+	});
+});
+
 describe('installed version marking', () => {
 	it('marks the installed version and flags the older ones', async () => {
 		store = createPluginStore({

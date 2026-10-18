@@ -231,8 +231,9 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	/**
 	 * Fetch ALL configured registries in parallel, tag each plugin entry with its
 	 * resolved registry name (map label ?? listing `name` ?? url host), and merge
-	 * into one array deduped by slug — the FIRST registry (config order) that lists
-	 * a slug wins. Yields `[]` in local-only mode (no registries). Private.
+	 * into one array by slug — the FIRST registry (config order) that lists a slug
+	 * gives its build, the later ones only add the versions it lacks. Yields `[]`
+	 * in local-only mode (no registries). Private.
 	 */
 	async function fetchRegistries() {
 		if (!registries.length) return []
@@ -246,9 +247,18 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			const entries = listing.plugins
 			for (let j = 0; j < entries.length; j++) {
 				const e = entries[j]
-				if (!e || !e.slug || bySlug[e.slug]) continue   // first-wins dedupe
+				if (!e || !e.slug) continue
 				if (!DI_URL.test(e.url || '')) continue   // DI builds only, for now
 				const version = e.latest || e.version || null
+				const first = bySlug[e.slug]
+				if (first) {
+					const vs = entryVersions(e, version)
+					for (let k = 0; k < vs.length; k++) {
+						if (!first.versions.some(v => v.version === vs[k].version)) first.versions.push(vs[k])
+					}
+					first.versions.sort((a, b) => cmpVersion(b.version, a.version))
+					continue
+				}
 				bySlug[e.slug] = {
 					slug: e.slug,
 					name: e.name || null,
