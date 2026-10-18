@@ -264718,6 +264718,7 @@ var init_LockOnTarget = __esmMin((() => {
 		*/
 		static init(gl) {
 			_program$5 = WebGL_default.createShaderProgram(gl, LockOnTarget_default$1, LockOnTarget_default);
+			const program = _program$5;
 			_buffer$4 = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, _buffer$4);
 			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -264748,6 +264749,7 @@ var init_LockOnTarget = __esmMin((() => {
 			]), gl.STATIC_DRAW);
 			Client.loadFile("data/texture/effect/lockon128.tga", (buffer) => {
 				Texture.load(buffer, function() {
+					if (program !== _program$5) return;
 					const enableMipmap = Configs.get("enableMipmap");
 					const ctx = this.getContext("2d");
 					ctx.save();
@@ -265331,8 +265333,13 @@ var init_MagicTarget = __esmMin((() => {
 		*/
 		static init(gl) {
 			_program$3 = WebGL_default.createShaderProgram(gl, MagicTarget_default$1, MagicTarget_default);
+			const program = _program$3;
 			Client.loadFile("data/texture/effect/magic_target.tga", (buffer) => {
 				WebGL_default.texture(gl, buffer, (texture) => {
+					if (program !== _program$3) {
+						gl.deleteTexture(texture);
+						return;
+					}
 					_texture$2 = texture;
 					this.ready = true;
 				});
@@ -265668,6 +265675,7 @@ var init_SpiritSphere = __esmMin((() => {
 		}
 		static init(gl) {
 			_program$1 = WebGL_default.createShaderProgram(gl, SpiritSphere_default$1, SpiritSphere_default);
+			const program = _program$1;
 			_buffer$1 = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, _buffer$1);
 			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -265698,6 +265706,7 @@ var init_SpiritSphere = __esmMin((() => {
 			]), gl.STATIC_DRAW);
 			Client.loadFile("data/texture/effect/thunder_center.bmp", (buffer) => {
 				Texture.load(buffer, function() {
+					if (program !== _program$1) return;
 					const enableMipmap = Configs.get("enableMipmap");
 					const ctx = this.getContext("2d");
 					ctx.save();
@@ -265919,6 +265928,7 @@ var init_WarlockSphere = __esmMin((() => {
 		}
 		static init(gl) {
 			_program = WebGL_default.createShaderProgram(gl, WarlockSphere_default$1, WarlockSphere_default);
+			const program = _program;
 			_buffer = gl.createBuffer();
 			gl.bindBuffer(gl.ARRAY_BUFFER, _buffer);
 			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -265949,6 +265959,7 @@ var init_WarlockSphere = __esmMin((() => {
 			]), gl.STATIC_DRAW);
 			Client.loadFile("data/texture/effect/thunder_center.bmp", (buffer) => {
 				Texture.load(buffer, function() {
+					if (program !== _program) return;
 					const enableMipmap = Configs.get("enableMipmap");
 					const ctx = this.getContext("2d");
 					ctx.save();
