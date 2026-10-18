@@ -148,11 +148,18 @@ PatchNotes.load = function load() {
 	}
 
 	if (!_loading) {
-		_loading = fetch(config.url, { cache: 'no-cache' })
-			.then(response => response.json())
-			.then(log => {
+		// Without a sha in the config, the build's own build.json ({ sha }) names it
+		const sha = config.sha
+			? Promise.resolve(config.sha)
+			: fetch('build.json', { cache: 'no-cache' })
+					.then(response => (response.ok ? response.json() : null))
+					.then(build => (build && build.sha) || '')
+					.catch(() => '');
+
+		_loading = Promise.all([fetch(config.url, { cache: 'no-cache' }).then(response => response.json()), sha])
+			.then(([log, buildSha]) => {
 				_releases = (log && log.releases) || [];
-				_current = PatchLog.current(_releases, config.sha || '');
+				_current = PatchLog.current(_releases, buildSha);
 			})
 			.catch(() => {
 				_releases = [];

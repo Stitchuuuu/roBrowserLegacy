@@ -114,6 +114,20 @@ describe('PatchNotes', () => {
 		expect(PatchNotes.getVersionText()).toBe('robrowser 0.2.0');
 	});
 
+	it('reads the build sha from build.json when the config has none', async () => {
+		globalThis.fetch = vi.fn(url =>
+			Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve(url === 'build.json' ? { sha: 'bbbbbbb2222222' } : LOG)
+			})
+		);
+		const PatchNotes = await load(undefined);
+		await PatchNotes.load();
+
+		expect(fetch).toHaveBeenCalledWith('build.json', expect.anything());
+		expect(PatchNotes.getVersionText()).toBe('robrowser 0.2.0');
+	});
+
 	it('shows the latest version for a build without a note, never the sha', async () => {
 		const PatchNotes = await load('ddddddd');
 		const el = document.createElement('span');
