@@ -24,4 +24,5 @@ while read -r folder branch access; do
 		fi
 		printf ' %s' "${out#./}"
 	done
-done < <(grep -v '^#' "$HERE/BUILDS" | awk 'NF')
+# BUILDS is checked out CRLF (.gitattributes): without tr, the access field reads "key\r"
+done < <(grep -v '^#' "$HERE/BUILDS" | tr -d '\r' | awk 'NF')
