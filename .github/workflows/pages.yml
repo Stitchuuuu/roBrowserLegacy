@@ -35,12 +35,17 @@ jobs:
       - name: Stamp the build commit
         run: echo "{\"sha\":\"${GITHUB_SHA}\"}" > dist/Web/build.json
 
+      # The patch log ships with the build: the Patch Notes window (ROConfig.patchNotes) reads it.
+      - name: Ship the patch log
+        run: if [ -f patch-notes/patchlog.json ]; then cp patch-notes/patchlog.json dist/Web/; fi
+
       - name: Create demo Config.local.js
         run: |
           cat > dist/Web/Config.local.js << 'EOF'  
           window.ROConfigLocal = {  
               development: true,  
               remoteClient: 'https://grf.robrowser.com/',  
+              patchNotes: { url: 'patchlog.json', product: 'robrowser' },
               servers: [  
                   {
                       display: 'Your Local Server[PRE]',
