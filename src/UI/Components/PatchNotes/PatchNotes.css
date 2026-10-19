@@ -148,7 +148,8 @@
 	width: 13px;
 	height: 13px;
 }
-#PatchNotes .section.fixed .icon {
+#PatchNotes .section.fixed .icon,
+#PatchNotes .section.plugins .icon {
 	width: 18px;
 	height: 18px;
 }

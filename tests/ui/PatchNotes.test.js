@@ -60,7 +60,8 @@ const LOG = {
 			sha: 'aaaaaaa1111111',
 			notes: [
 				{ type: 'new', keyword: 'Sell all', text: 'Your mouse can retire.', details: 'One click.' },
-				{ type: 'fixed', keyword: 'Inventory', text: 'No more clones.', details: 'Count kept.' }
+				{ type: 'fixed', keyword: 'Inventory', text: 'No more clones.', details: 'Count kept.' },
+				{ type: 'plugins', keyword: 'RespawnRadar', text: 'MVP timers.', details: 'Kill tracking.' }
 			]
 		},
 		{ version: '0.2.0', date: '2026-11-02', title: 'Second', sha: 'bbbbbbb2222222', notes: [] },
@@ -186,8 +187,8 @@ describe('PatchNotes', () => {
 
 		const root = PatchNotes.getRoot();
 		expect(shownTitle(PatchNotes)).toBe('robrowser 0.1.0 \u00b7 October 18, 2026 - The Plugin Update');
-		expect([...root.querySelectorAll('.section')].map(s => s.textContent)).toEqual(['New', 'Fixed']);
-		expect(root.querySelector('.head .count').textContent).toBe('1 new1 fixed');
+		expect([...root.querySelectorAll('.section')].map(s => s.textContent)).toEqual(['New', 'Fixed', 'Plugins']);
+		expect(root.querySelector('.head .count').textContent).toBe('1 new1 fixed1 plugins');
 		const row = root.querySelector('.row');
 		expect(row.querySelector('.keyword').textContent).toBe('Sell all');
 		expect(row.querySelector('.details').textContent).toBe('One click.');

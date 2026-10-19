@@ -56,7 +56,8 @@ let _page = 0;
  */
 const SECTIONS = [
 	{ type: 'new', label: 'New', icon: 'basic_interface/icon_new.bmp' },
-	{ type: 'fixed', label: 'Fixed', icon: 'item/bs_repairweapon.bmp' }
+	{ type: 'fixed', label: 'Fixed', icon: 'item/bs_repairweapon.bmp' },
+	{ type: 'plugins', label: 'Plugins', icon: 'item/bs_weaponresearch.bmp' }
 ];
 
 /**
