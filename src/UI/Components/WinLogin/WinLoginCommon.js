@@ -14,6 +14,7 @@ import AutoRetry from 'Engine/AutoRetry.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import PerfProbe from 'Core/PerfProbe.js';
 import 'UI/Elements/Elements.js';
 
 export function createWinLogin({ name, htmlText, cssText }) {
@@ -122,6 +123,10 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		}
 
 		Component.placeOnTop();
+
+		if (PerfProbe.enabled) {
+			PerfProbe.loginShown();
+		}
 	};
 
 	Component.onKeyDown = function onKeyDown(event) {
