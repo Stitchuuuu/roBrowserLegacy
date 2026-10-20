@@ -10,6 +10,7 @@ import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import Preferences from 'Core/Preferences.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -25,6 +26,7 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	let _inputUsername;
 	let _inputPassword;
 	let _buttonSave;
+	let _checkAutoRetry;
 
 	Component.init = function init() {
 		this.draggable();
@@ -58,6 +60,18 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		root.querySelector('.connect').addEventListener('click', connect);
 		root.querySelector('.exit').addEventListener('click', exit);
 
+		// Auto-retry toggle, only present on the UI versions carrying the strip
+		_checkAutoRetry = root.querySelector('.autoretry-check');
+
+		if (_checkAutoRetry) {
+			_checkAutoRetry.addEventListener('change', function () {
+				AutoRetry.setEnabled(this.checked);
+			});
+			_checkAutoRetry.addEventListener('mousedown', event => {
+				event.stopImmediatePropagation();
+			});
+		}
+
 		// Replay Upload, only present on the UI versions supporting replays
 		const replayUpload = root.querySelector('.replay-upload');
 		const replayButton = root.querySelector('.replay');
@@ -89,6 +103,10 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	Component.onAppend = function onAppend() {
 		_inputUsername.value = _preferences.saveID ? _preferences.ID : '';
 		_inputPassword.value = '';
+
+		if (_checkAutoRetry) {
+			_checkAutoRetry.checked = AutoRetry.isEnabled();
+		}
 
 		Client.loadFile(
 			`${DB.INTERFACE_PATH}login_interface/chk_save${_preferences.saveID ? 'on' : 'off'}.bmp`,
