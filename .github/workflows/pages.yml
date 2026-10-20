@@ -7,6 +7,8 @@ concurrency:
 on:
   push:
     branches: ["**"]
+  # "Run workflow" in the Actions tab rebuilds a branch without a new push
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,6 +30,10 @@ jobs:
 
       - name: Build project
         run: npm run build -- --all -H
+
+      # The commit this client was built from: the server sites (pages-sites.yml) put it in version.json.
+      - name: Stamp the build commit
+        run: echo "{\"sha\":\"${GITHUB_SHA}\"}" > dist/Web/build.json
 
       - name: Create demo Config.local.js
         run: |
