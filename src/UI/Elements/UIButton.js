@@ -5,12 +5,19 @@
  *
  * Replaces: <button data-background="btn_ok.bmp" data-hover="btn_ok_a.bmp" data-down="btn_ok_b.bmp">
  *
+ * <ui-button skin="basic_interface/btn">Text</ui-button>
+ *
+ * 3-slice text button: {skin}_{out,over,press,disable}_{left,mid,right}.bmp
+ *
  * @author AoShinHo
  */
 
 import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Targa from 'Loaders/Targa.js';
+
+// Background layer order, matched by ui-button[skin] in Common.css
+const SKIN_PARTS = ['left', 'right', 'mid'];
 
 class UIButton extends HTMLElement {
 	connectedCallback() {
@@ -19,29 +26,31 @@ class UIButton extends HTMLElement {
 		const bg = this.getAttribute('bg');
 		const hover = this.getAttribute('hover');
 		const down = this.getAttribute('down');
+		const skin = this.getAttribute('skin');
 
-		let bgUri = null,
-			hoverUri = null,
-			downUri = null;
+		let bgImage = null,
+			hoverImage = null,
+			downImage = null,
+			disableImage = null;
 		const state = { hover: false, down: false };
 
 		const update = () => {
 			if (this.disabled) {
-				if (bgUri) {
-					this.style.backgroundImage = `url(${bgUri})`;
+				if (disableImage || bgImage) {
+					this.style.backgroundImage = disableImage || bgImage;
 				}
-				this.style.opacity = '0.5';
+				this.style.opacity = disableImage ? '' : '0.5';
 				this.style.cursor = 'default';
 				return;
 			}
 			this.style.opacity = '';
 			this.style.cursor = '';
-			if (state.down && downUri) {
-				this.style.backgroundImage = `url(${downUri})`;
-			} else if (state.hover && hoverUri) {
-				this.style.backgroundImage = `url(${hoverUri})`;
-			} else if (bgUri) {
-				this.style.backgroundImage = `url(${bgUri})`;
+			if (state.down && downImage) {
+				this.style.backgroundImage = downImage;
+			} else if (state.hover && hoverImage) {
+				this.style.backgroundImage = hoverImage;
+			} else if (bgImage) {
+				this.style.backgroundImage = bgImage;
 			} else {
 				this.style.backgroundImage = '';
 			}
@@ -64,16 +73,42 @@ class UIButton extends HTMLElement {
 			});
 		};
 
-		loadBmp(bg, uri => {
-			bgUri = uri;
+		const loadSkin = (skinState, cb) => {
+			const images = [];
+			let pending = SKIN_PARTS.length;
+			SKIN_PARTS.forEach((part, i) => {
+				loadBmp(`${skin}_${skinState}_${part}.bmp`, uri => {
+					images[i] = `url(${uri})`;
+					if (--pending === 0) {
+						cb(images.join(', '));
+					}
+				});
+			});
+		};
+		const loadImage = (path, skinState, cb) => {
+			if (skin) {
+				loadSkin(skinState, cb);
+			} else {
+				loadBmp(path, uri => cb(`url(${uri})`));
+			}
+		};
+
+		loadImage(bg, 'out', image => {
+			bgImage = image;
 			update();
 		});
-		loadBmp(hover, uri => {
-			hoverUri = uri;
+		loadImage(hover, 'over', image => {
+			hoverImage = image;
 		});
-		loadBmp(down, uri => {
-			downUri = uri;
+		loadImage(down, 'press', image => {
+			downImage = image;
 		});
+		if (skin) {
+			loadSkin('disable', image => {
+				disableImage = image;
+				update();
+			});
+		}
 
 		this.addEventListener('mouseover', () => {
 			if (this.disabled) return;
