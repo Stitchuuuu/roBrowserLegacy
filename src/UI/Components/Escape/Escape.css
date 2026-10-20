@@ -46,3 +46,14 @@
 	background-color: transparent;
 	background-repeat: no-repeat;
 }
+
+#Escape .version {
+	padding: 0 30px 6px 30px;
+	text-align: right;
+	font-size: 11px;
+	color: #666;
+	cursor: pointer;
+}
+#Escape .version:hover {
+	text-decoration: underline;
+}

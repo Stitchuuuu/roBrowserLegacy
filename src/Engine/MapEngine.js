@@ -32,6 +32,7 @@ import UIManager from 'UI/UIManager.js';
 import UIVersionManager from 'UI/UIVersionManager.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Escape from 'UI/Components/Escape/Escape.js';
+import PatchNotes from 'UI/Components/PatchNotes/PatchNotes.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
 import StatusConst from 'DB/Status/StatusState.js';
@@ -811,6 +812,9 @@ function onMapChange(pkt) {
 		if (PACKETVER.value >= 20130320) {
 			Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		}
+
+		// Notes of the versions not seen yet, once in game
+		PatchNotes.checkUnseen();
 	};
 
 	// A teleport within the map announces itself before the fade, as the client does

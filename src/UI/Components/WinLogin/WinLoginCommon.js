@@ -14,6 +14,8 @@ import AutoRetry from 'Engine/AutoRetry.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import PatchNotes from 'UI/Components/PatchNotes/PatchNotes.js';
+import PatchNotesVersion from 'UI/Components/PatchNotes/PatchNotesVersion.js';
 import 'UI/Elements/Elements.js';
 
 export function createWinLogin({ name, htmlText, cssText }) {
@@ -122,6 +124,14 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		}
 
 		Component.placeOnTop();
+
+		if (PatchNotes.isEnabled()) {
+			PatchNotesVersion.append();
+		}
+	};
+
+	Component.onRemove = function onRemove() {
+		PatchNotesVersion.remove();
 	};
 
 	Component.onKeyDown = function onKeyDown(event) {
