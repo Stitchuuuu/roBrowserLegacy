@@ -1,8 +1,8 @@
 /**
  * tests/engine/MapEngine.Item.inventory.test.js
  *
- * An equipment put back into the inventory by a refine or an unequip keeps
- * its count, so the NPC sell list still shows it.
+ * An equipment put back into the inventory by a refine, then sent again by the
+ * server after a map transition.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -103,6 +103,17 @@ function pickUp() {
 	Inventory.addItem({ index: 5, ITID: 1201, type: 5, IsIdentified: 1, count: 1, RefiningLevel: 5, slot: {} });
 }
 
+// The weapon as the equipment list sends it, without a count
+function resend() {
+	deliver(PACKET.ZC.EQUIPMENT_ITEMLIST, {
+		itemInfo: [{ index: 5, ITID: 1201, type: 5, IsIdentified: 1, WearState: 0, RefiningLevel: 6, slot: {} }]
+	});
+}
+
+function nodes() {
+	return Inventory.getRoot().querySelectorAll('.item[data-index="5"]');
+}
+
 // The NPC sell list the server sends for that weapon
 function sellList() {
 	NpcStore.append();
@@ -123,6 +134,18 @@ describe('An equipment put back into the inventory', () => {
 		Inventory.remove();
 		Inventory.append();
 		pickUp();
+	});
+
+	it('is replaced, not added, by each resend after a refine', () => {
+		deliver(PACKET.ZC.ACK_ITEMREFINING, { result: 0, itemIndex: 5, RefiningLevel: 6 });
+
+		for (let i = 0; i < 3; ++i) {
+			Inventory.rebuild();
+			resend();
+		}
+
+		expect(Inventory.list).toHaveLength(1);
+		expect(nodes()).toHaveLength(1);
 	});
 
 	it('can still be sold after a refine', () => {
