@@ -1,0 +1,6 @@
+{
+  "name": "Officiel",
+  "plugins": [
+    { "slug": "hello", "name": "Hello", "version": "9.9.9", "url": "/plugins/hello/hello.esm.js", "description": "Smoke: says hi" }
+  ]
+}

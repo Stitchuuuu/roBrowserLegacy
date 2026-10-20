@@ -175,7 +175,8 @@ class UIManager {
 		const keys = Object.keys(this.components);
 		for (let i = 0; i < keys.length; ++i) {
 			const component = this.components[keys[i]];
-			const el = component.ui ? component.ui[0] : null;
+			// The host, not ui[0]: a plugin window's ui[0] is the root inside it
+			const el = component._host || (component.ui ? component.ui[0] : null);
 			if (!el) continue;
 			ClampToViewport(el, WIDTH, HEIGHT, component.magnet);
 			if (component.onResize) {

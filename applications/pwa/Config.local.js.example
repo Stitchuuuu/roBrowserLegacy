@@ -38,4 +38,16 @@ window.ROConfigLocal = {
 
 	// Example: Custom remote client URL
 	// remoteClient: 'https://my-grf-server.com/',
+
+	// Example: plugins. A string value = load the plugin from that path/URL. The
+	// object form `{ path, pars }` passes `pars` to the plugin's init(pars, deps).
+	// LocalPluginManager reads `pars.registries` — plugin registries (a URL serving
+	// a listing of installable plugins). A single URL, or a `{ Name: url }` map for
+	// several. Empty/absent ⇒ local-only (drag&drop + file-picker install).
+	// plugins: {
+	//     LocalPluginManager: {
+	//         path: '/plugins/local-plugin-manager/local-plugin-manager.esm.js',
+	//         pars: { registries: { Official: 'https://example.com/plugins/index.json' } }
+	//     }
+	// },
 };

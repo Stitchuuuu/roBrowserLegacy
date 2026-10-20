@@ -117,5 +117,21 @@ export default [
     rules: sharedRules
   },
 
-  eslintConfigPrettier  
+  {
+    // Custom DI plugins (native-manager rollout) — browser ESM, engine modules
+    // arrive via the injected `deps` map, not imports. Same globals as src/.
+    files: ['plugins/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.es2025,
+        ROConfig: 'readonly'
+      }
+    },
+    rules: sharedRules
+  },
+
+  eslintConfigPrettier
 ];

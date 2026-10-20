@@ -46,6 +46,14 @@ Plugins.list = [];
 let _initialized = false;
 
 /**
+ * Root-absolute and http(s) paths are native-manager entries: prefixed with
+ * './' they never resolve here, so skip them instead of logging a 404.
+ */
+function isNativePath(path) {
+	return path[0] === '/' || path.startsWith('http://') || path.startsWith('https://');
+}
+
+/**
  * Initialize plugins
  */
 Plugins.init = function init(context) {
@@ -61,12 +69,15 @@ Plugins.init = function init(context) {
 
 	for (const [_pluginName, value] of Object.entries(this.list)) {
 		if (typeof value === 'string' || value instanceof String) {
+			if (isNativePath(value)) {
+				continue;
+			}
 			// Only Path is provided as string
 			paths.push('./' + value);
 			params.push(null);
 		} else if (typeof value === 'object' && value !== null) {
 			// Path and parameters are provided as well
-			if (value.path) {
+			if (value.path && !isNativePath(value.path)) {
 				paths.push('./' + value.path);
 
 				if (value.pars) {
