@@ -4,6 +4,7 @@ Background notes for parts of the UI where the code does something specific on
 purpose and the reason is not obvious from reading it.
 
 Each subdirectory, or single note, covers one subsystem:
+Each subdirectory or note covers one subsystem:
 
 | directory / note | subsystem |
 |---|---|
@@ -12,6 +13,7 @@ Each subdirectory, or single note, covers one subsystem:
 | [renderer/](renderer/) | entity rendering: the body palette of a mounted player |
 | [map-transition.md](map-transition.md) | teleport and map change: which windows stay attached, the loading-screen hide, the 255 ms fades, the map name banner's timing |
 | [keyboard-enter.md](keyboard-enter.md) | the Enter key: chat, buttons reached with Tab, and why never the inventory |
+| [cart-window.md](cart-window.md) | the cart window: when its position and size are saved, and its size limits |
 | [pet/](pet/) | pets: the name in front of a pet's talk line |
 
 ## Where the details come from

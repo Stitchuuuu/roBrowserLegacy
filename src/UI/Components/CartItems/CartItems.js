@@ -89,6 +89,7 @@ CartItems.init = function Init() {
 	if (closeBtn) {
 		closeBtn.addEventListener('click', () => {
 			CartItems._host.style.display = 'none';
+			savePreferences();
 		});
 	}
 
@@ -164,10 +165,9 @@ CartItems.onAppend = function OnAppend() {
 	this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - hostRect.height)}px`;
 	this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - hostRect.width)}px`;
 
-	_realSize = _preferences.reduce ? 0 : hostRect.height;
-	const miniBtn = this.getRoot().querySelector('.titlebar .mini');
-	if (miniBtn) {
-		miniBtn.dispatchEvent(new Event('mousedown'));
+	_realSize = 0;
+	if (_preferences.reduce) {
+		onToggleReduction();
 	}
 };
 
@@ -189,15 +189,7 @@ CartItems.onRemove = function OnRemove(rebuild) {
 	// Remove any ItemInfo instances from the document
 	document.querySelectorAll('.ItemInfo').forEach(el => el.remove());
 
-	// Save preferences
-	_preferences.show = this._host.style.display !== 'none';
-	_preferences.reduce = !!_realSize;
-	_preferences.y = parseInt(this._host.style.top, 10);
-	_preferences.x = parseInt(this._host.style.left, 10);
-	const hostRect = this._host.getBoundingClientRect();
-	_preferences.width = Math.floor((hostRect.width - (23 + 16 + 16 - 30)) / 32);
-	_preferences.height = Math.floor((hostRect.height - (31 + 19 - 30)) / 32);
-	_preferences.save();
+	savePreferences();
 };
 
 /**
@@ -537,6 +529,7 @@ function onResize() {
 		if (event.which === 1) {
 			clearInterval(_Interval);
 			window.removeEventListener('mouseup', onMouseUp);
+			savePreferences();
 		}
 	};
 	window.addEventListener('mouseup', onMouseUp);
@@ -556,12 +549,29 @@ function onToggleReduction() {
 		CartItems._host.style.height = `${_realSize}px`;
 		_realSize = 0;
 	} else {
-		_realSize = CartItems._host.getBoundingClientRect().height;
+		_realSize = parseInt(CartItems._host.style.height, 10);
 		CartItems._host.style.height = '17px';
 		if (panel) {
 			panel.style.display = 'none';
 		}
 	}
+}
+
+/**
+ * Save window position, size and state
+ * Size is read from the inline style, a hidden window has no rect
+ *
+ * @see docs/reference/cart-window.md
+ */
+function savePreferences() {
+	const host = CartItems._host;
+	_preferences.show = host.style.display !== 'none';
+	_preferences.reduce = !!_realSize;
+	_preferences.y = parseInt(host.style.top, 10);
+	_preferences.x = parseInt(host.style.left, 10);
+	_preferences.width = Math.floor((parseInt(host.style.width, 10) - (23 + 16 + 16 - 30)) / 32);
+	_preferences.height = Math.floor(((_realSize || parseInt(host.style.height, 10)) - (31 + 19 - 30)) / 32);
+	_preferences.save();
 }
 
 /**
