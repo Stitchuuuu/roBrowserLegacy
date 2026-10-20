@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 		addText: vi.fn(),
 		TYPE: { INFO: 1, BLUE: 2, ERROR: 4 },
 		FILTER: { PUBLIC_LOG: 8 },
-		PrivateMessageStorage: { blockNicks: [] }
+		PrivateMessageStorage: { nick: '', msg: '', blockNicks: [] }
 	},
 	group: { onRequestInvitation: vi.fn(), onRequestLeave: vi.fn(), onRequestCreationEasy: vi.fn() },
 	guild: { createGuild: vi.fn(), requestPlayerInvitationByName: vi.fn(), breakGuild: vi.fn() }
