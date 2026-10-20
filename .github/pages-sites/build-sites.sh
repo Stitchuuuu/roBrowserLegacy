@@ -19,6 +19,10 @@ while read -r folder branch access; do
 		[ "$name" = shared ] && continue
 		out="$folder/$name"
 		bash "$HERE/assemble.sh" "$safe" "$PLUGINS_ROOT/$safe" "$site" "$out" >&2
+		# A branch whose own tree ships no patch log gets the one kept here
+		if [ -f "$HERE/patchlogs/$safe.json" ]; then
+			cp "$HERE/patchlogs/$safe.json" "$out/patchlog.json"
+		fi
 		if [ "$access" = key ]; then
 			node "$HERE/encrypt.mjs" "$out" >&2
 		fi
