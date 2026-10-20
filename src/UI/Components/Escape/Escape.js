@@ -15,6 +15,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import SoundOption from 'UI/Components/SoundOption/SoundOption.js';
 import GraphicsOption from 'UI/Components/GraphicsOption/GraphicsOption.js';
 import ShortCutOption from 'UI/Components/ShortCutOption/ShortCutOption.js';
+import PatchNotes from 'UI/Components/PatchNotes/PatchNotes.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
 
@@ -72,6 +73,8 @@ Escape.init = function init() {
 	root.querySelector('.cancel').addEventListener('click', function () {
 		Escape._host.style.display = 'none';
 	});
+
+	PatchNotes.attachVersion(root.querySelector('.version'));
 
 	// Start hidden
 	this._host.style.display = 'none';

@@ -1,0 +1,245 @@
+:host {
+	width: 600px;
+	height: 400px;
+}
+
+#PatchNotes {
+	position: relative;
+	width: 600px;
+	height: 400px;
+	color: black;
+}
+
+#PatchNotes .slice,
+#PatchNotes .side {
+	position: absolute;
+	background-repeat: no-repeat;
+}
+
+#PatchNotes .titlebar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 600px;
+	height: 17px;
+}
+#PatchNotes .titlebar .slice {
+	top: 0;
+	width: 12px;
+	height: 17px;
+}
+#PatchNotes .titlebar .left {
+	left: 0;
+}
+#PatchNotes .titlebar .mid {
+	left: 12px;
+	width: 576px;
+	background-repeat: repeat-x;
+}
+#PatchNotes .titlebar .right {
+	right: 0;
+}
+#PatchNotes .titlebar .text {
+	position: absolute;
+	top: 2px;
+	left: 17px;
+	font-size: 12px;
+	font-weight: bold;
+	text-shadow: 1px 1px white;
+	white-space: nowrap;
+}
+
+#PatchNotes .body {
+	position: absolute;
+	top: 17px;
+	left: 0;
+	width: 600px;
+	height: 362px;
+	background-color: white;
+}
+#PatchNotes .side {
+	top: 0;
+	width: 20px;
+	height: 100%;
+	background-repeat: repeat-y;
+}
+#PatchNotes .side.left {
+	left: 0;
+}
+#PatchNotes .side.right {
+	right: 0;
+}
+
+/* Fixed header, only the notes scroll */
+#PatchNotes .head {
+	position: absolute;
+	top: 4px;
+	left: 20px;
+	width: 548px;
+	height: 55px;
+	padding: 0 6px;
+	display: flex;
+	align-items: center;
+	border-bottom: 1px solid #c7d2e4;
+}
+#PatchNotes .poring {
+	flex: none;
+	margin-right: 10px;
+	width: 65px;
+	height: 49px;
+	background-repeat: no-repeat;
+}
+#PatchNotes .head .title {
+	font-size: 15px;
+	font-weight: bold;
+	color: #253f73;
+}
+#PatchNotes .head .meta {
+	margin-top: 3px;
+	font-size: 11px;
+	color: #6b7686;
+}
+#PatchNotes .head .count {
+	margin-left: auto;
+	text-align: right;
+	font-size: 11px;
+	line-height: 15px;
+	color: #6b7686;
+}
+#PatchNotes .head .count b {
+	color: #253f73;
+}
+
+#PatchNotes .content {
+	position: absolute;
+	top: 64px;
+	left: 20px;
+	width: 563px;
+	height: 288px;
+	overflow-y: auto;
+	font-size: 12px;
+	line-height: 16px;
+}
+
+#PatchNotes .section {
+	display: flex;
+	align-items: center;
+	height: 22px;
+	margin: 6px 0 2px;
+	padding: 0 4px;
+	font-size: 13px;
+	font-weight: bold;
+	color: #1d3563;
+}
+#PatchNotes .section::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	margin: 0 8px 0 4px;
+	background: #c7d2e4;
+}
+#PatchNotes .section .icon {
+	flex: none;
+	margin-right: 6px;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+#PatchNotes .section.new .icon {
+	width: 13px;
+	height: 13px;
+}
+#PatchNotes .section.fixed .icon,
+#PatchNotes .section.plugins .icon {
+	width: 18px;
+	height: 18px;
+}
+
+#PatchNotes .row {
+	position: relative;
+	padding: 4px 10px 4px 22px;
+}
+#PatchNotes .row.foldable {
+	cursor: pointer;
+}
+#PatchNotes .rows .row:nth-child(even) {
+	background: #f3f6fb;
+}
+#PatchNotes .row:hover {
+	background: #e6edf8;
+}
+#PatchNotes .row .fold {
+	position: absolute;
+	top: 7px;
+	left: 8px;
+	width: 10px;
+	height: 10px;
+	background-repeat: no-repeat;
+}
+#PatchNotes .row .fold.open,
+#PatchNotes .row.open .fold.closed {
+	display: none;
+}
+#PatchNotes .row.open .fold.open {
+	display: block;
+}
+#PatchNotes .row .keyword {
+	font-weight: bold;
+	color: #253f73;
+}
+#PatchNotes .row .details {
+	display: none;
+	margin: 4px 0 2px;
+	padding: 3px 7px;
+	font-size: 11px;
+	line-height: 14px;
+	color: #555;
+	background: #eef2f8;
+	border-left: 2px solid #b6c5de;
+}
+#PatchNotes .row.open .details {
+	display: block;
+}
+
+#PatchNotes .footer {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 600px;
+	height: 29px;
+}
+#PatchNotes .footer .slice {
+	top: 0;
+	width: 21px;
+	height: 29px;
+}
+#PatchNotes .footer .left {
+	left: 0;
+}
+#PatchNotes .footer .mid {
+	left: 21px;
+	width: 558px;
+	background-repeat: repeat-x;
+}
+#PatchNotes .footer .right {
+	right: 0;
+}
+
+/* Buttons at y 376 */
+#PatchNotes .btn {
+	position: absolute;
+	top: 5px;
+	width: 42px;
+	height: 20px;
+	border: none;
+	background-color: transparent;
+	background-repeat: no-repeat;
+}
+#PatchNotes .btn.back {
+	left: 244px;
+}
+#PatchNotes .btn.next {
+	left: 294px;
+}
+#PatchNotes .btn.ok {
+	left: 534px;
+}
