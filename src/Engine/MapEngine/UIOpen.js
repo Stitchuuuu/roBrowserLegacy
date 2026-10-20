@@ -15,6 +15,7 @@ import Configs from 'Core/Configs.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
+import Bank from 'UI/Components/Bank/Bank.js';
 import CheckAttendance from 'UI/Components/CheckAttendance/CheckAttendance.js';
 import EnchantGradeUI from 'UI/Components/EnchantGrade/EnchantGrade.js';
 import EnchantUI from 'UI/Components/Enchant/Enchant.js';
@@ -41,6 +42,11 @@ function onUIOpen(pkt) {
 	//    10 = ENCHANT_UI
 
 	switch (pkt.ui_type) {
+		case 0:
+			if (Configs.get('enableBank')) {
+				Bank.openRequest();
+			}
+			break;
 		case 7:
 			if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
 				CheckAttendance.prepare();
