@@ -11,6 +11,7 @@
 import DB from 'DB/DBManager.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import Client from 'Core/Client.js';
+import KEYS from 'Controls/KeyEventHandler.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -171,6 +172,34 @@ ItemSelection.setIndex = function setIndex(id) {
 ItemSelection.selectIndex = function selectIndex() {
 	this.onIndexSelected(this.index);
 	this.remove();
+};
+
+/**
+ * Enter validates the selection, like the OK button, Up / Down move it
+ */
+ItemSelection.onKeyDown = function onKeyDown(event) {
+	switch (event.which) {
+		case KEYS.ENTER:
+			this.selectIndex();
+			break;
+
+		case KEYS.UP:
+		case KEYS.DOWN: {
+			const current = this.getRoot().querySelector(`.list div[data-index="${this.index}"]`);
+			const row = event.which === KEYS.UP ? current?.previousElementSibling : current?.nextElementSibling;
+			if (row) {
+				this.setIndex(Math.floor(row.getAttribute('data-index')));
+				row.scrollIntoView({ block: 'nearest' });
+			}
+			break;
+		}
+
+		default:
+			return true;
+	}
+
+	event.stopImmediatePropagation();
+	return false;
 };
 
 /**
