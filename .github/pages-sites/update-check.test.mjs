@@ -64,7 +64,24 @@ function page(hashes) {
 	const appended = [];
 	const listeners = {};
 	let tick = null;
-	const element = () => ({ style: {}, append() {}, addEventListener() {} });
+	const element = tag => ({
+		tag,
+		style: {},
+		children: [],
+		attributes: {},
+		append(...nodes) {
+			this.children.push(...nodes);
+		},
+		setAttribute(name, value) {
+			this.attributes[name] = value;
+		},
+		addEventListener(type, fn) {
+			this[`on${type}`] = fn;
+		},
+		remove() {
+			appended.splice(appended.indexOf(this), 1);
+		}
+	});
 	const document = {
 		visibilityState: 'visible',
 		createElement: element,
@@ -79,7 +96,10 @@ function page(hashes) {
 		},
 		setInterval: fn => (tick = fn),
 		document,
-		location: { reload() {} }
+		location: { reload() {} },
+		MutationObserver: class {
+			observe() {}
+		}
 	});
 	return { appended, tick: () => tick(), visible: () => listeners.visibilitychange() };
 }
@@ -104,6 +124,35 @@ test('a banner, once, when a new client is deployed', async () => {
 	visible();
 	await flush();
 	assert.equal(appended.length, 1);
+});
+
+test('the banner stays under the game cursor, with the client restart button', async () => {
+	const { appended, tick } = page(['a', 'b']);
+	await flush();
+	tick();
+	await flush();
+	const box = appended[0];
+	assert.ok(Number(/z-index:(\d+)/.exec(box.style.cssText)[1]) < 9999);
+	const button = box.children.find(node => node.tag === 'ui-button');
+	assert.deepEqual(button.attributes, {
+		bg: 'btn_restart.bmp',
+		hover: 'btn_restart_a.bmp',
+		down: 'btn_restart_b.bmp'
+	});
+});
+
+test('the window-close button takes the banner away, until the next page load', async () => {
+	const { appended, tick, visible } = page(['a', 'b', 'c']);
+	await flush();
+	tick();
+	await flush();
+	const close = appended[0].children.find(node => node.attributes?.bg === 'basic_interface/sys_close_off.bmp');
+	assert.equal(close.attributes.hover, 'basic_interface/sys_close_on.bmp');
+	close.onclick();
+	assert.equal(appended.length, 0);
+	visible();
+	await flush();
+	assert.equal(appended.length, 0);
 });
 
 test('coming back to the tab checks again', async () => {
