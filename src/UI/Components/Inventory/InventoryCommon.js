@@ -1392,19 +1392,7 @@ export function createInventory(config) {
 			}
 
 			item.name = DB.getItemName(item);
-			const link =
-				'<span data-item="' +
-				DB.createItemLink(item) +
-				'" class="item-link" style="color:#A9B95F;">&lt;' +
-				item.name +
-				'&gt;</span>';
-
-			const chatRoot = ChatBox._shadow || ChatBox._host || document;
-			const msgBox = chatRoot.querySelector('.input-chatbox');
-			if (msgBox) {
-				msgBox.innerHTML += link + ' ';
-				msgBox.focus();
-			}
+			ChatBox.insertItemLink(DB.createItemLink(item), item.name);
 
 			event.stopImmediatePropagation();
 		}

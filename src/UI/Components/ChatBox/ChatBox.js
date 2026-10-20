@@ -573,6 +573,19 @@ ChatBox.init = function init() {
 				event.stopPropagation();
 			}
 		});
+
+		// Double-click on a chat line sets its sender as whisper target
+		chatboxEl.addEventListener('dblclick', event => {
+			const line = event.target.closest('.content > div');
+			if (!line || !line.dataset.sender || event.target.closest('.item-link')) {
+				return;
+			}
+
+			if (nickBox) {
+				nickBox.value = line.dataset.sender;
+			}
+			_historyNickName.push(line.dataset.sender);
+		});
 	}
 
 	const bmtoggle = root.querySelector('.battlemode .bmtoggle');
@@ -1347,6 +1360,16 @@ ChatBox.addText = function addText(text, colorType, filterType, color, override)
 	// The client drops ^RRGGBB codes: a chat line has one colour.
 	text = text.replace(/\^[0-9A-Fa-f]{6}/g, '');
 
+	let sender = '';
+
+	// Public, party and guild lines start with "sender : "
+	if (colorType & (ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD)) {
+		const pos = text.indexOf(' : ');
+		if (pos > 0) {
+			sender = text.substr(0, pos);
+		}
+	}
+
 	// An item link turns the line into HTML: the text around it must stay text.
 	if (!override && ITEM_LINK.test(text)) {
 		text = ChatBox.messageToHTML(text);
@@ -1362,7 +1385,8 @@ ChatBox.addText = function addText(text, colorType, filterType, color, override)
 		colorType: colorType,
 		filterType: filterType,
 		color: color,
-		override: override
+		override: override,
+		sender: sender
 	});
 
 	if (!_rafScheduled) {
@@ -1419,6 +1443,9 @@ function flushMessageBuffer() {
 				div.textContent = msg.text;
 			} else {
 				div.innerHTML = msg.text;
+			}
+			if (msg.sender) {
+				div.dataset.sender = msg.sender;
 			}
 			fragment.appendChild(div);
 		});
@@ -1656,7 +1683,7 @@ ChatBox.saveCurrentTabChat = function saveCurrentTabChat() {
 };
 
 /**
- * Update scroll by block (14px)
+ * Scroll by 3 lines per wheel notch
  */
 function onScroll(event) {
 	let delta;
@@ -1673,7 +1700,7 @@ function onScroll(event) {
 	}
 
 	const lineHeight = getScrollLineHeightPx(this);
-	this.scrollTop = Math.floor(this.scrollTop / lineHeight) * lineHeight - (delta || 0) * lineHeight;
+	this.scrollTop = Math.floor(this.scrollTop / lineHeight) * lineHeight - (delta || 0) * lineHeight * 3;
 	event.preventDefault();
 }
 
@@ -1876,8 +1903,16 @@ ChatBox._setupItemLinkHandler = function _setupItemLinkHandler() {
 			return;
 		}
 
-		const item = DB.parseItemLink(link.dataset.item || link.getAttribute('data-item'));
+		const itemData = link.dataset.item || link.getAttribute('data-item');
+		const item = DB.parseItemLink(itemData);
 		if (!item) return;
+
+		// Shift+click: link it in the chat input
+		if (event.shiftKey) {
+			event.stopImmediatePropagation();
+			ChatBox.insertItemLink(itemData, item.name);
+			return;
+		}
 
 		const ItemInfo = UIManager.getComponent('ItemInfo');
 		ItemInfo.append();
@@ -1915,6 +1950,27 @@ ChatBox.insertText = function (text) {
 
 	input.appendChild(document.createTextNode(text));
 	input.focus();
+};
+
+/**
+ * Insert an item link into the chat input
+ *
+ * @param {string} itemData encoded item link
+ * @param {string} name item name
+ */
+ChatBox.insertItemLink = function insertItemLink(itemData, name) {
+	const msgBox = _root().querySelector('.input-chatbox');
+	if (!msgBox) {
+		return;
+	}
+
+	msgBox.innerHTML +=
+		'<span data-item="' +
+		ChatBox.escapeHTML(itemData) +
+		'" class="item-link" style="color:#A9B95F;">&lt;' +
+		ChatBox.escapeHTML(name) +
+		'&gt;</span> ';
+	msgBox.focus();
 };
 
 // Override mouseMode to CROSS since chatbox body is click-through
