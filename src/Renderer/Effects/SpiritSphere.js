@@ -61,6 +61,7 @@ class SpiritSphere {
 
 	static init(gl) {
 		_program = WebGL.createShaderProgram(gl, _vertexShader, _fragmentShader);
+		const program = _program;
 		_buffer = gl.createBuffer();
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, _buffer);
@@ -75,6 +76,11 @@ class SpiritSphere {
 
 		Client.loadFile('data/texture/effect/thunder_center.bmp', buffer => {
 			Texture.load(buffer, function () {
+				// Freed or re-initialized while the texture was loading
+				if (program !== _program) {
+					return;
+				}
+
 				const enableMipmap = Configs.get('enableMipmap');
 				const ctx = this.getContext('2d');
 				ctx.save();
