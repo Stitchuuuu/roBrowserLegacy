@@ -47,7 +47,7 @@ vi.mock('UI/Components/Inventory/Inventory.js', async () => ({
 	default: (await import('UI/Components/Inventory/InventoryV0/InventoryV0.js')).default
 }));
 vi.mock('UI/Components/CartItems/CartItems.js', () => ({ default: {} }));
-vi.mock('UI/Components/InputBox/InputBox.js', () => ({ default: {} }));
+vi.mock('UI/Components/InputBox/InputBox.js', () => ({ default: { remove: vi.fn() } }));
 vi.mock('UI/Components/ItemCompare/ItemCompare.js', () => ({ default: {} }));
 vi.mock('UI/Components/ItemInfo/ItemInfo.js', () => ({ default: {} }));
 vi.mock('UI/Components/ItemObtain/ItemObtain.js', () => ({ default: {} }));
@@ -84,6 +84,7 @@ vi.mock('UI/Components/Rodex/WriteRodex.js', () => ({ default: {} }));
 
 const ItemEngine = (await import('Engine/MapEngine/Item.js')).default;
 const Inventory = (await import('UI/Components/Inventory/InventoryV0/InventoryV0.js')).default;
+const NpcStore = (await import('UI/Components/NpcStore/NpcStore.js')).default;
 const PACKET = (await import('Network/PacketStructure.js')).default;
 const Session = (await import('Engine/SessionStorage.js')).default;
 
@@ -113,6 +114,16 @@ function nodes() {
 	return Inventory.getRoot().querySelectorAll('.item[data-index="5"]');
 }
 
+// The NPC sell list the server sends for that weapon
+function sellList() {
+	NpcStore.append();
+	NpcStore.setType(NpcStore.Type.SELL);
+	NpcStore.setList([{ index: 5, price: 100, overchargeprice: 100 }]);
+	const shown = NpcStore.getRoot().querySelectorAll('.InputWindow .item[data-index="5"]');
+	NpcStore.remove();
+	return shown;
+}
+
 describe('An equipment put back into the inventory', () => {
 	beforeAll(() => {
 		Session.Entity = {};
@@ -135,5 +146,19 @@ describe('An equipment put back into the inventory', () => {
 
 		expect(Inventory.list).toHaveLength(1);
 		expect(nodes()).toHaveLength(1);
+	});
+
+	it('can still be sold after a refine', () => {
+		deliver(PACKET.ZC.ACK_ITEMREFINING, { result: 0, itemIndex: 5, RefiningLevel: 6 });
+
+		expect(Inventory.getItemByIndex(5).RefiningLevel).toBe(6);
+		expect(sellList()).toHaveLength(1);
+	});
+
+	it('can still be sold once taken off', () => {
+		deliver(PACKET.ZC.REQ_WEAR_EQUIP_ACK, { result: 1, index: 5, wearLocation: 2, viewid: 0 });
+		deliver(PACKET.ZC.REQ_TAKEOFF_EQUIP_ACK, { result: 1, index: 5, wearLocation: 2 });
+
+		expect(sellList()).toHaveLength(1);
 	});
 });
