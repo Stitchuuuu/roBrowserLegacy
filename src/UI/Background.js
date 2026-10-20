@@ -59,7 +59,7 @@ Object.assign(_overlay.style, {
 	position: 'absolute',
 	top: '0',
 	left: '0',
-	zIndex: '1000',
+	zIndex: '1010',
 	backgroundColor: 'black',
 	opacity: '0'
 });
@@ -121,6 +121,11 @@ class Background {
 	 * @var {object|null} removal in progress, dropped when a background is set during its fade
 	 */
 	static _removal = null;
+
+	/**
+	 * @var {object|null} the transition that owns the overlay, the last one started
+	 */
+	static _transition = null;
 
 	/**
 	 * Initialize Background component
@@ -324,13 +329,22 @@ class Background {
 	 */
 	static remove(callback) {
 		const fade = _container.parentNode && isSmooth() ? smoothFade(0, SMOOTH_FRAMES) : undefined;
-		const removal = {};
+		const removal = { zIndex: [_container.style.zIndex, _canvas.style.zIndex] };
 		Background._removal = removal;
+
+		// Whatever is put on screen during the fade (the map behind, its
+		// windows, the touch controls at 1000) stays under the image until
+		// the screen is black.
+		_container.style.zIndex = '1008';
+		_canvas.style.zIndex = '1009';
 
 		transition(
 			() => {
-				// A background set during the fade replaces the one this call was removing
-				if (Background._removal === removal) {
+				// A background set during the fade replaces the one this call was removing:
+				// it stays, back at the depth it had before the fade.
+				if (Background._removal !== removal) {
+					[_container.style.zIndex, _canvas.style.zIndex] = removal.zIndex;
+				} else {
 					Background._removal = null;
 					_container.style.zIndex = '0';
 					_canvas.style.zIndex = '0';
@@ -418,11 +432,31 @@ function transition(callback, fadeOut = true, fadeIn = true, fade = {}) {
 		Background._overlayAnim = null;
 	}
 
-	document.body.appendChild(_overlay);
+	const token = {};
+	Background._transition = token;
+
+	// A transition that starts while another is under way carries on from
+	// where the overlay is. When a map loads before the fade to its loading
+	// image is over, Background.remove runs inside that fade's callback, with
+	// the screen already black: there is nothing left to fade.
+	let duration = transitionDuration;
+	if (_overlay.parentNode) {
+		if (parseFloat(_overlay.style.opacity) >= 0.99) {
+			duration = 1;
+		}
+	} else {
+		_overlay.style.opacity = '0.01';
+		document.body.appendChild(_overlay);
+	}
 
 	function onBlack() {
 		_overlay.style.opacity = '1';
 		callback();
+
+		// The callback started a transition of its own, which now owns the overlay
+		if (Background._transition !== token) {
+			return;
+		}
 
 		if (!fadeIn) {
 			_overlay.remove();
@@ -447,8 +481,7 @@ function transition(callback, fadeOut = true, fadeIn = true, fade = {}) {
 	}
 
 	function toBlack() {
-		_overlay.style.opacity = '0.01';
-		Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, () => {
+		Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, duration, () => {
 			// Show black before the work done there, a late fade ends between two frames
 			Background._overlayAnim = nextFrame(onBlack);
 		});

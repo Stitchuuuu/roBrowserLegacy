@@ -15,6 +15,7 @@
 import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Targa from 'Loaders/Targa.js';
+import whenDrawn from 'UI/WhenDrawn.js';
 
 // Background layer order, matched by ui-button[skin] in Common.css
 const SKIN_PARTS = ['left', 'right', 'mid'];
@@ -93,22 +94,25 @@ class UIButton extends HTMLElement {
 			}
 		};
 
-		loadImage(bg, 'out', image => {
-			bgImage = image;
-			update();
-		});
-		loadImage(hover, 'over', image => {
-			hoverImage = image;
-		});
-		loadImage(down, 'press', image => {
-			downImage = image;
-		});
-		if (skin) {
-			loadSkin('disable', image => {
-				disableImage = image;
+		// Fetched when the button is first drawn, not when its window is built
+		whenDrawn(this, () => {
+			loadImage(bg, 'out', image => {
+				bgImage = image;
 				update();
 			});
-		}
+			loadImage(hover, 'over', image => {
+				hoverImage = image;
+			});
+			loadImage(down, 'press', image => {
+				downImage = image;
+			});
+			if (skin) {
+				loadSkin('disable', image => {
+					disableImage = image;
+					update();
+				});
+			}
+		});
 
 		this.addEventListener('mouseover', () => {
 			if (this.disabled) return;
