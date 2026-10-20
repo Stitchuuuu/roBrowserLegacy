@@ -75,7 +75,12 @@ function page(hashes) {
 		setAttribute(name, value) {
 			this.attributes[name] = value;
 		},
-		addEventListener() {}
+		addEventListener(type, fn) {
+			this[`on${type}`] = fn;
+		},
+		remove() {
+			appended.splice(appended.indexOf(this), 1);
+		}
 	});
 	const document = {
 		visibilityState: 'visible',
@@ -134,6 +139,20 @@ test('the banner stays under the game cursor, with the client restart button', a
 		hover: 'btn_restart_a.bmp',
 		down: 'btn_restart_b.bmp'
 	});
+});
+
+test('the window-close button takes the banner away, until the next page load', async () => {
+	const { appended, tick, visible } = page(['a', 'b', 'c']);
+	await flush();
+	tick();
+	await flush();
+	const close = appended[0].children.find(node => node.attributes?.bg === 'basic_interface/sys_close_off.bmp');
+	assert.equal(close.attributes.hover, 'basic_interface/sys_close_on.bmp');
+	close.onclick();
+	assert.equal(appended.length, 0);
+	visible();
+	await flush();
+	assert.equal(appended.length, 0);
 });
 
 test('coming back to the tab checks again', async () => {
