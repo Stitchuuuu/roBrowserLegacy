@@ -883,7 +883,20 @@ export function createSkillList({
 		this.onUpdateSkill(skill.SKID, skill.level);
 	};
 
-	Component.removeSkill = function removeSkill() {};
+	Component.removeSkill = function removeSkill(id) {
+		const skill = getSkillById(id);
+		if (!skill) {
+			return;
+		}
+
+		const root = this.getRoot();
+		root.querySelectorAll(`.skill.id${id}`).forEach(element => element.remove());
+
+		_list.splice(_list.indexOf(skill), 1);
+		delete hasSkills[id];
+
+		this.onUpdateSkill(id, 0);
+	};
 
 	Component.updateSkill = function updateSkill(skill) {
 		let target = getSkillById(skill.SKID);
