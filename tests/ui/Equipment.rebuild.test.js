@@ -43,11 +43,19 @@ vi.mock('UI/Components/ItemInfo/ItemInfo.js', () => ({ default: {} }));
 vi.mock('UI/Components/CartItems/CartItems.js', () => ({ default: {} }));
 vi.mock('UI/Components/SwitchEquip/SwitchEquip.js', () => ({ default: { append: vi.fn() } }));
 vi.mock('UI/Components/WinStats/WinStats.js', () => ({
-	default: { getUI: () => ({ embed: vi.fn(), isEmbedded: () => false, remove: vi.fn() }) }
+	default: {
+		embed: vi.fn(),
+		isEmbedded: () => false,
+		remove: vi.fn(),
+		getUI() {
+			return this;
+		}
+	}
 }));
 vi.mock('UI/Components/Inventory/Inventory.js', () => {
 	const ui = { equippedItems: [] };
-	return { default: { getUI: () => ui } };
+	ui.getUI = () => ui;
+	return { default: ui };
 });
 vi.mock('Preferences/Graphics.js', () => ({ default: {} }));
 

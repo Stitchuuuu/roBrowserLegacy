@@ -15,14 +15,27 @@ vi.mock('Renderer/EntityManager.js', () => ({ default: { setOverEntity: vi.fn() 
 vi.mock('UI/Scrollbar.js', () => ({ default: {} }));
 vi.mock('UI/UIManager.js', () => ({ default: { addComponent: c => c } }));
 vi.mock('UI/Components/ItemInfo/ItemInfo.js', () => ({ default: {} }));
-vi.mock('UI/Components/Inventory/Inventory.js', () => ({ default: { getUI: () => ({}) } }));
+vi.mock('UI/Components/Inventory/Inventory.js', () => ({
+	default: {
+		getUI() {
+			return this;
+		}
+	}
+}));
 vi.mock('UI/Components/SkillListMH/SkillListMH.js', () => ({
 	default: { homunculus: { getSkillById: () => null }, mercenary: { getSkillById: () => null } }
 }));
 vi.mock('UI/Components/SkillDescription/SkillDescription.js', () => ({ default: {} }));
 vi.mock('UI/Components/SkillTargetSelection/SkillTargetSelection.js', () => ({ default: {} }));
 vi.mock('UI/Components/Guild/Guild.js', () => ({ default: { getSkillById: () => null } }));
-vi.mock('UI/Components/SkillList/SkillList.js', () => ({ default: { getUI: () => ({ getSkillById: () => null }) } }));
+vi.mock('UI/Components/SkillList/SkillList.js', () => ({
+	default: {
+		getSkillById: () => null,
+		getUI() {
+			return this;
+		}
+	}
+}));
 
 const ShortCut = (await import('UI/Components/ShortCut/ShortCut.js')).default;
 
