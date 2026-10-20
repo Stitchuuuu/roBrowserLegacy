@@ -15,6 +15,7 @@ import SoundManager from 'Audio/SoundManager.js';
 import BGM from 'Audio/BGM.js';
 import Events from 'Core/Events.js';
 import Session from 'Engine/SessionStorage.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -170,9 +171,28 @@ class MapEngine {
 
 				// Fail to connect...
 				if (!success) {
+					// Auto-retry goes back to char select and picks the same
+					// character again, since showErrorBox's only exit is a full
+					// game reload. Its 'ok' stops there, at char select.
+					if (AutoRetry.armed()) {
+						const box = UIManager.showMessageBox(
+							DB.getMessage(1),
+							'ok',
+							() => {
+								AutoRetry.disarm();
+								onRestart();
+							},
+							true
+						);
+						AutoRetry.schedule(box, () => onRestart(true));
+						return;
+					}
 					UIManager.showErrorBox(DB.getMessage(1));
 					return;
 				}
+
+				// The map server took us: the attempt auto-retry counted is over
+				AutoRetry.disarm();
 
 				// Success, try to login.
 				let pkt;
@@ -1296,15 +1316,17 @@ function onConfigUpdate(type, val) {
 
 /**
  * Go back from map-server to char-server
+ *
+ * @param {boolean} [repick] - pick the same character again
  */
-function onRestart() {
+function onRestart(repick) {
 	// The map stays drawn under the fade and goes once the screen is black
 	import('Engine/CharEngine.js').then(m =>
 		m.default.reload(() => {
 			cleanGameUI();
 			MapRenderer.free();
 			Renderer.stop();
-		})
+		}, repick)
 	);
 }
 
