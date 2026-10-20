@@ -54,6 +54,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import MemoryManager from 'Core/MemoryManager.js';
+import LuaModuleLoader from 'Core/LuaModuleLoader.js';
 
 //Pet
 //MapName
@@ -66,6 +67,18 @@ let HO_AI;
 let MER_AI;
 let default_HO_AI;
 let default_MER_AI;
+
+/**
+ * Whether the archive ships the halter-lead mounts' own palettes; undefined
+ * until it answers.
+ */
+let mountPalettes;
+
+/**
+ * The sentinel request on its way, if any; `stale` once DB.init has loaded
+ * another client, whose archive it was not asked of.
+ */
+let mountPalettesProbe = null;
 
 /**
  * @const {Array} message string
@@ -290,6 +303,18 @@ class DB {
 		DB.isLoaded = false;
 		DB.count = 0;
 		DB.index = 0;
+
+		// The client loaded after a server switch may be another archive: ask
+		// it again, and drop the previous answer the file cache keeps by name.
+		// A request still on its way would land in the file cache under that
+		// name: it is dropped once it lands instead.
+		LuaModuleLoader.clearCache();
+		mountPalettes = undefined;
+		if (mountPalettesProbe) {
+			mountPalettesProbe.stale = true;
+		} else {
+			MemoryManager.remove(null, DB.getBodyPalPath(JobId.PIG_CREATOR, 1, 0));
+		}
 
 		// Callback
 		let index = 0,
@@ -1295,6 +1320,41 @@ class DB {
 			'/\xbf\xee\xbf\xb5\xc0\xda_' +
 			SexTable[sex]
 		);
+	}
+
+	/**
+	 * Whether the archive ships the halter-lead mounts' own palettes, read off
+	 * a file only those archives have: asked once per archive.
+	 *
+	 * @param {function} onAnswer - called once the archive answers, if it has not yet
+	 * @return {boolean|undefined} undefined until the archive answers
+	 */
+	static hasMountPalettes(onAnswer) {
+		if (mountPalettes === undefined) {
+			const sentinel = DB.getBodyPalPath(JobId.PIG_CREATOR, 1, 0);
+			if (!mountPalettesProbe) {
+				mountPalettesProbe = { stale: false };
+			}
+			const probe = mountPalettesProbe;
+			const answer = present => {
+				if (probe === mountPalettesProbe) {
+					mountPalettesProbe = null;
+					if (probe.stale) {
+						// It answered for the previous client: onAnswer asks this one.
+						MemoryManager.remove(null, sentinel);
+					} else {
+						mountPalettes = present;
+					}
+				}
+				onAnswer();
+			};
+			Client.loadFile(
+				sentinel,
+				() => answer(true),
+				() => answer(false)
+			);
+		}
+		return mountPalettes;
 	}
 
 	/**
@@ -4001,6 +4061,7 @@ class DB {
 }
 
 async function startLua() {
+	LuaModuleLoader.clearCache();
 	const wasmUrl = (await import('Vendors/liblua5.1.wasm?url')).default;
 	const CLua = (await import('Vendors/wasmoon-lua5.1.js')).default;
 	const [l, ha, ma, dha, dma] = await Promise.all([
@@ -4010,11 +4071,51 @@ async function startLua() {
 		CLua.Lua.create({ customWasmUri: wasmUrl }),
 		CLua.Lua.create({ customWasmUri: wasmUrl })
 	]);
-	lua = l;
-	HO_AI = ha;
-	MER_AI = ma;
-	default_HO_AI = dha;
-	default_MER_AI = dma;
+	lua = LuaModuleLoader.setup(l);
+	HO_AI = LuaModuleLoader.setup(ha, {
+		searchPaths: [
+			'./?.lua',
+			'./?.lub',
+			'AI/USER_AI/?.lua',
+			'AI/USER_AI/?.lub',
+			'AI/?.lua',
+			'AI/?.lub',
+			...LuaModuleLoader.DEFAULT_SEARCH_PATHS
+		]
+	});
+	MER_AI = LuaModuleLoader.setup(ma, {
+		searchPaths: [
+			'./?.lua',
+			'./?.lub',
+			'AI/USER_AI/?.lua',
+			'AI/USER_AI/?.lub',
+			'AI/?.lua',
+			'AI/?.lub',
+			...LuaModuleLoader.DEFAULT_SEARCH_PATHS
+		]
+	});
+	default_HO_AI = LuaModuleLoader.setup(dha, {
+		searchPaths: [
+			'./?.lua',
+			'./?.lub',
+			'AI/?.lua',
+			'AI/?.lub',
+			'AI/USER_AI/?.lua',
+			'AI/USER_AI/?.lub',
+			...LuaModuleLoader.DEFAULT_SEARCH_PATHS
+		]
+	});
+	default_MER_AI = LuaModuleLoader.setup(dma, {
+		searchPaths: [
+			'./?.lua',
+			'./?.lub',
+			'AI/?.lua',
+			'AI/?.lub',
+			'AI/USER_AI/?.lua',
+			'AI/USER_AI/?.lub',
+			...LuaModuleLoader.DEFAULT_SEARCH_PATHS
+		]
+	});
 }
 
 function loadFontFromClient(fontPath) {
