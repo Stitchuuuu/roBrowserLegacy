@@ -16,7 +16,7 @@ while read -r folder branch access; do
 	fi
 	for site in "$HERE"/*/; do
 		name="$(basename "$site")"
-		[ "$name" = shared ] && continue
+		case "$name" in shared|patchlogs) continue ;; esac
 		out="$folder/$name"
 		bash "$HERE/assemble.sh" "$safe" "$PLUGINS_ROOT/$safe" "$site" "$out" >&2
 		# A branch whose own tree ships no patch log gets the one kept here
