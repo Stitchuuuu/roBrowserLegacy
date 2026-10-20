@@ -34,6 +34,7 @@ import uint32ToRGB from 'Utils/colors.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import WinStats from 'UI/Components/WinStats/WinStats.js';
+import JobId from 'DB/Jobs/JobConst.js';
 import RankingTypes from 'DB/Jobs/RankingTypes.js';
 
 /**
@@ -661,10 +662,22 @@ function onActionFailure(pkt) {
 			ChatBox.addText(DB.getMessage(244), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
 			break;
 
-		case 3: // Ammunition has been equipped.
-			// TODO: check the class - assassin: 1040 | gunslinger: 1175 | default: 245
-			ChatBox.addText(DB.getMessage(245), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
+		case 3: {
+			// Ammunition has been equipped, worded after the job
+			const job = Session.Entity._job;
+			if (job === JobId.NINJA || job === JobId.NINJA_B) {
+				break;
+			}
+
+			let msg = 245; // Arrow has been equipped.
+			if (DB.isAssassin(job)) {
+				msg = 1040; // You have equipped throwing daggers.
+			} else if (job === JobId.GUNSLINGER) {
+				msg = 1175; // Bullets have been equipped.
+			}
+			ChatBox.addText(DB.getMessage(msg), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
 			break;
+		}
 	}
 }
 
@@ -679,6 +692,20 @@ function onMessage(pkt) {
 	} else {
 		ChatBox.addText(DB.getMessage(pkt.msg), ChatBox.TYPE.PUBLIC, ChatBox.FILTER.PUBLIC_LOG);
 	}
+}
+
+/**
+ * Server message using msgstringtable, with a number
+ *
+ * @param {object} pkt - PACKET_ZC_MSG_VALUE
+ */
+function onMessageValue(pkt) {
+	ChatBox.addText(
+		DB.getMessage(pkt.msg).replace('%d', pkt.value),
+		ChatBox.TYPE.PUBLIC,
+		ChatBox.FILTER.PUBLIC_LOG,
+		'#FFFF00'
+	);
 }
 
 /**
@@ -1020,6 +1047,7 @@ export default function MainEngine() {
 	Network.hookPacket(PACKET.ZC.ACTION_FAILURE, onActionFailure);
 	Network.hookPacket(PACKET.ZC.MSG, onMessage);
 	Network.hookPacket(PACKET.ZC.MSG_COLOR, onMessage);
+	Network.hookPacket(PACKET.ZC.MSG_VALUE, onMessageValue);
 	if (PACKETVER.value < 20141022) {
 		Network.hookPacket(PACKET.ZC.RECOVERY, onRecovery);
 	} else {

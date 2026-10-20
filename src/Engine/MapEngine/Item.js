@@ -30,6 +30,14 @@ import MakeItemSelection from 'UI/Components/MakeItemSelection/MakeItemSelection
 import ItemListWindowSelection from 'UI/Components/MakeItemSelection/ItemListWindowSelection.js';
 import EffectManager from 'Renderer/EffectManager.js';
 
+// Upgrade Weapon result: message, type, color
+const WEAPONREFINE_RESULT = [
+	[911, ChatBox.TYPE.BLUE, '#00FFFF'], // Weapons upgraded: %s
+	[912, ChatBox.TYPE.BLUE, '#00CDCD'], // Weapons upgraded: %s
+	[913, ChatBox.TYPE.ERROR, '#FFC8C8'], // You cannot upgrade %s until you level up your Upgrade Weapon skill.
+	[914, ChatBox.TYPE.ERROR, '#FFC8C8'] // You lack a necessary item %s to upgrade this weapon.
+];
+
 /**
  * Spam an item on the map
  *
@@ -695,6 +703,80 @@ function onSwitchEquipRemove(pkt) {
 }
 
 /**
+ * One of our equipped items got damaged
+ *
+ * @param {object} pkt - PACKET.ZC.EQUIPITEM_DAMAGED
+ */
+function onEquipItemDamaged(pkt) {
+	if (!pkt.wearLocation || pkt.accountID !== Session.AID) {
+		return;
+	}
+
+	const item = Equipment.getItemByLocation(pkt.wearLocation);
+	if (!item) {
+		return;
+	}
+
+	ChatBox.addText(
+		DB.getMessage(1300).replace('%s', DB.getItemName(item)), // %s's Equipment has been damaged.
+		ChatBox.TYPE.ERROR,
+		ChatBox.FILTER.EQUIP_DAMAGE,
+		'#FF0000'
+	);
+}
+
+/**
+ * Item repair result
+ *
+ * @param {object} pkt - PACKET.ZC.ACK_ITEMREPAIR
+ */
+function onItemRepairResult(pkt) {
+	switch (pkt.result) {
+		case 0: // Item has been successfully repaired.
+			ChatBox.addText(DB.getMessage(813), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG, '#00FFFF');
+			break;
+		case 1: // You have failed to repair this item.
+			ChatBox.addText(DB.getMessage(814), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG, '#FF0000');
+			break;
+	}
+}
+
+/**
+ * Upgrade Weapon result
+ *
+ * @param {object} pkt - PACKET.ZC.ACK_WEAPONREFINE
+ */
+function onWeaponRefineResult(pkt) {
+	const result = WEAPONREFINE_RESULT[pkt.msg];
+	if (!result) {
+		return;
+	}
+
+	const name = DB.getItemInfo(pkt.ITID).identifiedDisplayName;
+	ChatBox.addText(DB.getMessage(result[0]).replace('%s', name), result[1], ChatBox.FILTER.PUBLIC_LOG, result[2]);
+}
+
+/**
+ * An item just got bound to the character
+ *
+ * @param {object} pkt - PACKET.ZC.NOTIFY_BIND_ON_EQUIP
+ */
+function onBindOnEquip(pkt) {
+	const item = Inventory.getItemByIndex(pkt.index);
+	if (!item) {
+		return;
+	}
+
+	item.bindOnEquipType = 2;
+	ChatBox.addText(
+		DB.getMessage(1328).replace('%s', DB.getItemName(item)), // %s is now permanently bound to this character.
+		ChatBox.TYPE.BLUE,
+		ChatBox.FILTER.ITEM,
+		'#FFFF6E'
+	);
+}
+
+/**
  * Initialize
  */
 export default function ItemEngine() {
@@ -740,6 +822,10 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ITEMCOMPOSITION_LIST, onItemCompositionList);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMCOMPOSITION, onItemCompositionResult);
 	Network.hookPacket(PACKET.ZC.ACK_ITEMREFINING, onRefineResult);
+	Network.hookPacket(PACKET.ZC.ACK_WEAPONREFINE, onWeaponRefineResult);
+	Network.hookPacket(PACKET.ZC.ACK_ITEMREPAIR, onItemRepairResult);
+	Network.hookPacket(PACKET.ZC.EQUIPITEM_DAMAGED, onEquipItemDamaged);
+	Network.hookPacket(PACKET.ZC.NOTIFY_BIND_ON_EQUIP, onBindOnEquip);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART2, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART3, onCartItemAdded);

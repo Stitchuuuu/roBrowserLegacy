@@ -7612,9 +7612,9 @@ PACKET.ZC.NOTIFY_WEAPONITEMLIST.size = -1;
 // 0x223
 PACKET.ZC.ACK_WEAPONREFINE = function PACKET_ZC_ACK_WEAPONREFINE(fp, end) {
 	this.msg = fp.readLong();
-	this.ITID = fp.readUShort();
+	this.ITID = PACKETVER.value >= 20181121 ? fp.readULong() : fp.readUShort();
 };
-PACKET.ZC.ACK_WEAPONREFINE.size = 8;
+PACKET.ZC.ACK_WEAPONREFINE.size = PACKETVER.value >= 20181121 ? 10 : 8;
 
 // 0x224
 PACKET.ZC.TAEKWON_POINT = function PACKET_ZC_TAEKWON_POINT(fp, end) {

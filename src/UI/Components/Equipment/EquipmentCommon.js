@@ -615,6 +615,22 @@ export function createEquipment({
 		}
 	};
 
+	/**
+	 * Get the item equipped at a location
+	 *
+	 * @param {number} location
+	 * @return {object|null}
+	 */
+	Component.getItemByLocation = function getItemByLocation(location) {
+		for (const key in _list) {
+			const item = _list[key];
+			if ((item.equipped || item.WearState) & location) {
+				return item;
+			}
+		}
+		return null;
+	};
+
 	Component.checkEquipLoc = function checkEquipLoc(location) {
 		if (!entityRender) {
 			return 0;
