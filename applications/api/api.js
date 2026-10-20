@@ -324,9 +324,9 @@
 		 * @type {integer} transition duration in milliseconds
 		 * used for fade out and fade in when teleport/change map
 		 * the total will be the double in ms because its used on fade in then on fade out
-		 * eg: if you use 500ms the transition will take 1000ms in total
+		 * eg: if you use 255ms the transition will take 510ms in total
 		 */
-		transitionDuration: 500
+		transitionDuration: 255
 	};
 
 	/**

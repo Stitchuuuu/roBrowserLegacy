@@ -112,6 +112,11 @@ class MapRenderer {
 	static _loadRequest = 0;
 
 	/**
+	 * @var {Array<HTMLElement>} window hosts hidden while the loading screen is up
+	 */
+	static _hiddenUI = [];
+
+	/**
 	 * @var {Float32Array} diffuse Modified diffuse color
 	 */
 	static diffuse = null;
@@ -132,11 +137,14 @@ class MapRenderer {
 	 * Load a map
 	 *
 	 * @param {string} mapname to load
+	 * @param {Array<GUIComponent>} [keep] components left attached across the transition
+	 * @return {boolean} a teleport within the current map, no load
+	 * @see docs/reference/map-transition.md
 	 */
-	static setMap(mapname) {
+	static setMap(mapname, keep = []) {
 		// TODO: stop the map loading, and start to load the new map.
 		if (this.loading) {
-			return;
+			return false;
 		}
 
 		// Support for instance map
@@ -150,7 +158,6 @@ class MapRenderer {
 		// Clean objects
 		SoundManager.stop();
 		Renderer.stop();
-		UIManager.removeComponents();
 		Cursor.setType(Cursor.ACTION.DEFAULT);
 
 		// The server may address the same map with different extensions (.gat/.rsw)
@@ -166,27 +173,40 @@ class MapRenderer {
 			// Parse the filename (ugly RO)
 			const filename = mapname.replace(/\.gat$/i, '.rsw');
 
-			Background.setLoading(function () {
+			// Smooth mode: the load waits for the loading image to come out of black
+			Background.setLoading(function (whenShown = start => start()) {
 				// Cancelled while the loading screen was coming up
 				if (loadId !== MapRenderer._loadId) {
 					return;
 				}
 
-				// Hooking Thread
-				Thread.hook('MAP_PROGRESS', loadEvent(onProgressUpdate));
-				Thread.hook('MAP_WORLD', loadEvent(onWorldComplete));
-				Thread.hook('MAP_GROUND', loadEvent(onGroundComplete));
-				Thread.hook('MAP_ALTITUDE', loadEvent(onAltitudeComplete));
-				Thread.hook('MAP_MODELS', loadEvent(onModelsComplete));
-				Thread.hook('MAP_ANIMATED_MODEL', loadEvent(onAnimatedModelComplete));
+				// The windows faded with the last frame go at black
+				UIManager.removeComponents(keep);
 
-				// Start Loading
-				MapRenderer.free();
-				Renderer.remove();
-				MapRenderer._loadRequest = Thread.send('LOAD_MAP', filename, loadStep(loadId, onMapComplete));
+				// The loading screen shows without the windows
+				hideMapUI();
+
+				whenShown(() => {
+					if (loadId !== MapRenderer._loadId) {
+						return;
+					}
+
+					// Hooking Thread
+					Thread.hook('MAP_PROGRESS', loadEvent(onProgressUpdate));
+					Thread.hook('MAP_WORLD', loadEvent(onWorldComplete));
+					Thread.hook('MAP_GROUND', loadEvent(onGroundComplete));
+					Thread.hook('MAP_ALTITUDE', loadEvent(onAltitudeComplete));
+					Thread.hook('MAP_MODELS', loadEvent(onModelsComplete));
+					Thread.hook('MAP_ANIMATED_MODEL', loadEvent(onAnimatedModelComplete));
+
+					// Start Loading
+					MapRenderer.free();
+					Renderer.remove();
+					MapRenderer._loadRequest = Thread.send('LOAD_MAP', filename, loadStep(loadId, onMapComplete));
+				});
 			});
 
-			return;
+			return false;
 		}
 
 		const gl = Renderer.getContext();
@@ -202,12 +222,15 @@ class MapRenderer {
 				return;
 			}
 
+			UIManager.removeComponents(keep);
 			MapRenderer.onLoad();
 			Sky.setUpCloudData();
 
 			Renderer.render(MapRenderer.onRender);
 			Mouse.intersect = true;
 		});
+
+		return true;
 	}
 
 	/**
@@ -217,6 +240,7 @@ class MapRenderer {
 		this._loadId++;
 		this._loadRequest = 0;
 		this.loading = false;
+		showMapUI();
 	}
 
 	/**
@@ -542,6 +566,37 @@ function registerPostProcessModules(gl) {
 }
 
 /**
+ * Hide the windows still on screen, the loading screen shows without them
+ */
+function hideMapUI() {
+	const components = UIManager.components;
+	const hidden = [];
+
+	for (const name in components) {
+		const host = components[name]._host;
+		if (host && host.isConnected) {
+			host.style.visibility = 'hidden';
+			hidden.push(host);
+		}
+	}
+
+	MapRenderer._hiddenUI = hidden;
+}
+
+/**
+ * Show again the windows hidden by the loading screen
+ */
+function showMapUI() {
+	const hidden = MapRenderer._hiddenUI;
+
+	for (let i = 0; i < hidden.length; ++i) {
+		hidden[i].style.visibility = '';
+	}
+
+	MapRenderer._hiddenUI = [];
+}
+
+/**
  * Once the map finished to load
  */
 function onMapComplete(success, error) {
@@ -551,6 +606,7 @@ function onMapComplete(success, error) {
 
 	// Problem during loading ?
 	if (!success) {
+		showMapUI();
 		UIManager.showErrorBox(error).ui.css('zIndex', 1000);
 		return;
 	}
@@ -586,6 +642,7 @@ function onMapComplete(success, error) {
 		}
 
 		MapRenderer.loading = false;
+		showMapUI();
 
 		MapRenderer.onLoad();
 		Sky.setUpCloudData();

@@ -9,7 +9,11 @@ const mocks = vi.hoisted(() => {
 		measureText: () => ({ width: 0 })
 	});
 
-	return { animations: [] };
+	// The fade from black waits on display frames: queue them, the test runs them
+	const frames = [];
+	globalThis.requestAnimationFrame = callback => frames.push(callback);
+
+	return { animations: [], frames };
 });
 
 vi.mock('DB/DBManager.js', () => ({ default: { INTERFACE_PATH: '' } }));
@@ -24,14 +28,37 @@ vi.mock('Utils/HtmlHelper.js', () => ({
 }));
 
 import Background from 'UI/Background.js';
+import Configs from 'Core/Configs.js';
+import { animateElement } from 'Utils/HtmlHelper.js';
 
 function finishAnimation() {
 	mocks.animations.shift().callback();
 }
 
+/**
+ * Run the next display frames at these timestamps
+ *
+ * @param {...number} times in ms
+ */
+function frames(...times) {
+	for (const time of times) {
+		mocks.frames.shift()?.(time);
+	}
+}
+
+/**
+ * Run display frames on time until no fade from black is left waiting
+ */
+function settle() {
+	for (let time = 0; mocks.frames.length && time < 1000; time += 8) {
+		frames(time);
+	}
+}
+
 describe('Background.remove', () => {
 	beforeEach(() => {
 		mocks.animations.length = 0;
+		mocks.frames.length = 0;
 		document.body.innerHTML = '';
 	});
 
@@ -46,6 +73,7 @@ describe('Background.remove', () => {
 		expect(callback).not.toHaveBeenCalled();
 
 		finishAnimation();
+		settle();
 
 		expect(callback).toHaveBeenCalledOnce();
 		expect(mocks.animations[0].props).toEqual({ opacity: 0.01 });
@@ -56,19 +84,161 @@ describe('Background.remove', () => {
 		expect(overlay.parentNode).toBeNull();
 	});
 
-	it('keeps a background set while its fade is running', () => {
+	it('cuts to black then fades in when a background is displayed', () => {
 		Background.setImage('bgi_temp.bmp');
 		finishAnimation();
+		settle();
 		finishAnimation();
 		const background = [...document.body.children].find(el => el.tagName === 'DIV' && el.style.zIndex !== '1000');
 		expect(background).toBeDefined();
 
 		const callback = vi.fn();
 		Background.remove(callback);
-		Background.setImage('bgi_temp.bmp');
-		finishAnimation();
+		settle();
 
 		expect(callback).toHaveBeenCalledOnce();
-		expect(background.parentNode).toBe(document.body);
+		expect(background.parentNode).toBeNull();
+		expect(mocks.animations).toHaveLength(1);
+		expect(mocks.animations[0].props).toEqual({ opacity: 0.01 });
+		expect(mocks.animations[0].element.style.opacity).toBe('1');
+	});
+});
+
+describe('Background.setLoading', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		document.body.innerHTML = '';
+	});
+
+	it('fades to black then cuts to the loading image', () => {
+		const callback = vi.fn();
+
+		Background.setLoading(callback);
+
+		expect(mocks.animations).toHaveLength(1);
+		expect(mocks.animations[0].props).toEqual({ opacity: 1.0 });
+		const overlay = mocks.animations[0].element;
+
+		finishAnimation();
+		frames(0);
+
+		expect(callback).toHaveBeenCalledOnce();
+		expect(mocks.animations).toHaveLength(0);
+		expect(overlay.parentNode).toBeNull();
+		expect(document.body.querySelector('canvas')).not.toBeNull();
+	});
+});
+
+describe('transition duration', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		mocks.frames.length = 0;
+		document.body.innerHTML = '';
+		animateElement.mockClear();
+	});
+
+	it('defaults to 255 ms each way', () => {
+		Background.remove();
+		finishAnimation();
+		settle();
+
+		expect(animateElement.mock.calls.map(call => call[2])).toEqual([255, 255]);
+	});
+
+	it('follows the transitionDuration config', () => {
+		Configs.get.mockImplementation(key => (key === 'transitionDuration' ? 400 : undefined));
+
+		Background.remove();
+
+		expect(animateElement.mock.calls[0][2]).toBe(400);
+		Configs.get.mockReset();
+	});
+});
+
+/**
+ * The work done at black (the map UI restarting, the first frames of a new map)
+ * landed in the fade from black and showed as a stutter.
+ */
+describe('the fade from black', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		mocks.frames.length = 0;
+		document.body.innerHTML = '';
+	});
+
+	it('waits for the display frames to stay on time for a while', () => {
+		Background.remove();
+		finishAnimation();
+		frames(0);
+
+		// A few frames on time between two long ones are not enough
+		frames(0, 120, 128, 136, 144, 200);
+		for (let time = 208; time < 350; time += 8) {
+			frames(time);
+		}
+		expect(mocks.animations).toHaveLength(0);
+
+		frames(352);
+		expect(mocks.animations).toHaveLength(1);
+		expect(mocks.animations[0].props).toEqual({ opacity: 0.01 });
+	});
+
+	it('starts anyway after a second of long frames', () => {
+		Background.remove();
+		finishAnimation();
+		frames(0);
+
+		frames(0, 300, 600, 900);
+		expect(mocks.animations).toHaveLength(0);
+
+		frames(1200);
+		expect(mocks.animations).toHaveLength(1);
+	});
+
+	it('is dropped by the next transition', () => {
+		Background.remove();
+		finishAnimation();
+		frames(0, 0);
+
+		Background.setLoading(vi.fn());
+		const pending = mocks.animations.length;
+		settle();
+
+		expect(mocks.animations).toHaveLength(pending);
+	});
+});
+
+/**
+ * A fade-out slowed by long frames reached its end between two frames, and the
+ * work done at black ran before black was ever shown: the screen stayed frozen
+ * half dark for as long as that work took.
+ */
+describe('the fade to black', () => {
+	beforeEach(() => {
+		mocks.animations.length = 0;
+		mocks.frames.length = 0;
+		document.body.innerHTML = '';
+	});
+
+	it('shows black before the work done at black', () => {
+		const callback = vi.fn();
+		Background.remove(callback);
+
+		finishAnimation();
+		expect(callback).not.toHaveBeenCalled();
+
+		frames(0);
+		expect(callback).toHaveBeenCalledOnce();
+	});
+
+	it('drops that work when the next transition starts first', () => {
+		const callback = vi.fn();
+		Background.remove(callback);
+		finishAnimation();
+
+		Background.setLoading(vi.fn());
+		frames(0);
+
+		expect(callback).not.toHaveBeenCalled();
 	});
 });

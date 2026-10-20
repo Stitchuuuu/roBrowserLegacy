@@ -289,8 +289,10 @@ class GUIComponent {
 	 * Equivalent to UIComponent.prototype.append().
 	 *
 	 * @param {HTMLElement|string} [target] - Target element. Defaults to document.body.
+	 * @param {boolean} [rebuild] - restarting in place, passed on to onAppend
+	 * @see docs/reference/map-transition.md
 	 */
-	append(target) {
+	append(target, rebuild = false) {
 		this.__active = true;
 
 		if (!this.__loaded) {
@@ -307,7 +309,10 @@ class GUIComponent {
 			return;
 		}
 
-		parent.appendChild(this._host);
+		// Re-appending an attached host would detach and re-attach it
+		if (this._host.parentNode !== parent) {
+			parent.appendChild(this._host);
+		}
 		if (this._noCursorStyle) {
 			_trackNoCursorStyle(this._noCursorStyle);
 		}
@@ -327,7 +332,7 @@ class GUIComponent {
 
 		// Hook
 		if (this.onAppend) {
-			this.onAppend();
+			this.onAppend(rebuild);
 		}
 
 		// Scrollbars
@@ -365,39 +370,66 @@ class GUIComponent {
 		this.__active = false;
 
 		if (this.__loaded && this._host && this._host.parentNode) {
-			// Hook
-			if (this.onRemove) {
-				this.onRemove();
-			}
+			this._release(true);
+		}
+	}
 
-			// Unbind keydown
-			this._unbindKeyDown();
+	/**
+	 * Run the remove and append lifecycle without detaching the host,
+	 * so the component restarts in place.
+	 *
+	 * @see docs/reference/map-transition.md
+	 */
+	rebuild() {
+		const parent = this._host && this._host.parentNode;
+		const restart = !!(this.__active && this.__loaded && parent);
 
-			// Fire x_remove event (used by mouse intersection cleanup)
+		if (restart) {
+			this.__active = false;
+			this._release(false);
+		}
+
+		this.append(parent || undefined, restart);
+	}
+
+	/**
+	 * Remove lifecycle of an attached component
+	 *
+	 * @param {boolean} detach - also take the host out of the DOM
+	 */
+	_release(detach) {
+		// Hook
+		if (this.onRemove) {
+			this.onRemove(!detach);
+		}
+
+		// Unbind keydown
+		this._unbindKeyDown();
+
+		// Detach from DOM, firing x_remove first (used by mouse intersection cleanup)
+		if (detach) {
 			this._host.dispatchEvent(new Event('x_remove'));
 			if (this._shadow) {
 				this._shadow.querySelectorAll('*').forEach(node => {
 					node.dispatchEvent(new Event('x_remove'));
 				});
 			}
-
-			// Detach from DOM
 			this._host.remove();
-			if (this._noCursorStyle) {
-				_untrackNoCursorStyle(this._noCursorStyle);
-			}
+		}
+		if (this._noCursorStyle) {
+			_untrackNoCursorStyle(this._noCursorStyle);
+		}
 
-			// Freeze mode cleanup
-			if (this.mouseMode === MouseMode.FREEZE) {
-				Mouse.intersect = true;
-				Session.FreezeUI = false;
-			}
+		// Freeze mode cleanup
+		if (this.mouseMode === MouseMode.FREEZE) {
+			Mouse.intersect = true;
+			Session.FreezeUI = false;
+		}
 
-			// Scrollbar observer cleanup
-			if (this.__scrollbarObserver) {
-				this.__scrollbarObserver.disconnect();
-				this.__scrollbarObserver = null;
-			}
+		// Scrollbar observer cleanup, kept by a host that stays attached
+		if (detach && this.__scrollbarObserver) {
+			this.__scrollbarObserver.disconnect();
+			this.__scrollbarObserver = null;
 		}
 	}
 
@@ -931,7 +963,7 @@ class GUIComponent {
 			let _intersect;
 			let _enter = 0;
 
-			element.addEventListener('mouseenter', () => {
+			const onEnter = () => {
 				if (_enter === 0) {
 					_intersect = Mouse.intersect;
 					_enter++;
@@ -941,7 +973,12 @@ class GUIComponent {
 						_EntityManager?.setOverEntity(null);
 					}
 				}
-			});
+			};
+
+			element.addEventListener('mouseenter', onEnter);
+			// mouseover fires before mouseenter: a pointer landing straight on a
+			// clickable must find the scene cursor already dropped.
+			element.addEventListener('mouseover', onEnter, true);
 
 			element.addEventListener('mouseleave', () => {
 				if (_enter > 0) {
@@ -1001,7 +1038,8 @@ class GUIComponent {
 		const observeTarget = this._shadow || this._host;
 
 		setTimeout(() => {
-			if (!this._host || !this._host.parentNode) return;
+			// An attached host already watching its scrollbars keeps its observer
+			if (!this._host || !this._host.parentNode || this.__scrollbarObserver) return;
 
 			const checkScrollbars = el => {
 				// Check the element itself and all descendants

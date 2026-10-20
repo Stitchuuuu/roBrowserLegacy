@@ -15,7 +15,41 @@ import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import PACKETVER from 'Network/PacketVerManager.js';
+import GraphicsSettings from 'Preferences/Graphics.js';
 import { animateElement } from 'Utils/HtmlHelper.js';
+
+/**
+ * @var {number} default duration of each half of a transition, in ms
+ */
+const TRANSITION_DURATION = 255;
+
+/**
+ * @var {number} a display frame shorter than this is on time, in ms
+ */
+const SETTLE_FRAME = 25;
+
+/**
+ * @var {number} how long the frames stay on time before fading from black, in ms
+ */
+const SETTLE_TIME = 150;
+
+/**
+ * @var {number} longest wait at black, in ms
+ */
+const SETTLE_LIMIT = 1000;
+
+/**
+ * @var {number} each of the four fades of the smooth map change, in ms;
+ * the client has two fades of 255 ms around cuts to and from the loading image
+ */
+const SMOOTH_DURATION = 125;
+
+/**
+ * @var {number} frames on time in a row before a smooth fade around the loading
+ * image starts: the work just done (windows hidden, a load ending) can hold the
+ * frames, and the image waits it out still rather than stutter mid-fade
+ */
+const SMOOTH_FRAMES = 3;
 
 /**
  * @var {HTMLElement} Background overlay (used for transition)
@@ -132,8 +166,10 @@ class Background {
 	 *
 	 * @param {string|Array<string>} filename
 	 * @param {function} callback once the image is loaded (optional)
+	 * @param {boolean} [fadeIn=true] fade from black onto the image, else cut to it
+	 * @param {object} [fade] duration, frames to wait and end callback of the fades
 	 */
-	static setImage(filename, callback) {
+	static setImage(filename, callback, fadeIn = true, fade = undefined) {
 		const exist = !!_container.parentNode;
 		Background._progress = -1;
 		Background._removal = null;
@@ -201,13 +237,18 @@ class Background {
 
 		// Add transition only if the background isn't here
 		if (!exist) {
-			transition(() => {
-				document.body.appendChild(_container);
-				document.body.appendChild(_canvas);
-				if (callback) {
-					callback();
-				}
-			});
+			transition(
+				() => {
+					document.body.appendChild(_container);
+					document.body.appendChild(_canvas);
+					if (callback) {
+						callback();
+					}
+				},
+				true,
+				fadeIn,
+				fade
+			);
 		}
 	}
 
@@ -247,48 +288,66 @@ class Background {
 	}
 
 	/**
-	 * Add loading background
+	 * Add loading background: fade to black, then cut to the loading image
+	 * (smooth mode: fade to it, the callback gets a function to run once it is shown)
 	 *
 	 * @param {function} callback once the loading is display (optional)
+	 * @see docs/reference/map-transition.md
 	 */
 	static setLoading(callback) {
 		const index = Math.floor(Math.random() * Background._loading.length);
 
-		Background.setImage(Background._loading[index] || 'loading01.jpg', () => {
-			_canvas.style.zIndex = '999';
-			Background.setPercent(0.0);
+		// Smooth mode, from the map: the image comes out of black
+		const fade = !_container.parentNode && isSmooth() ? smoothFade(SMOOTH_FRAMES) : undefined;
 
-			if (callback) {
-				callback();
-			}
-		});
+		Background.setImage(
+			Background._loading[index] || 'loading01.jpg',
+			() => {
+				_canvas.style.zIndex = '999';
+				Background.setPercent(0.0);
+
+				if (callback) {
+					callback(fade ? run => (fade.onShown = run) : undefined);
+				}
+			},
+			!!fade,
+			fade
+		);
 	}
 
 	/**
-	 * Remove background
+	 * Remove background: cut to black from a background image (smooth mode:
+	 * fade to black), fade to black from the map, then fade from black
 	 *
 	 * @param {function} callback once the overlay hide the window (optional)
+	 * @see docs/reference/map-transition.md
 	 */
 	static remove(callback) {
+		const fade = _container.parentNode && isSmooth() ? smoothFade(0, SMOOTH_FRAMES) : undefined;
 		const removal = {};
 		Background._removal = removal;
 
-		transition(() => {
-			// A background set during the fade replaces the one this call was removing
-			if (Background._removal === removal) {
-				Background._removal = null;
-				_container.style.zIndex = '0';
-				_canvas.style.zIndex = '0';
-				if (_container.parentNode) _container.parentNode.removeChild(_container);
-				if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
-				_container.innerHTML = '';
-				_container.style.backgroundImage = 'none';
-			}
+		transition(
+			() => {
+				// A background set during the fade replaces the one this call was removing
+				if (Background._removal === removal) {
+					Background._removal = null;
+					_container.style.zIndex = '0';
+					_canvas.style.zIndex = '0';
+					if (_container.parentNode) _container.parentNode.removeChild(_container);
+					if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
+					_container.innerHTML = '';
+					_container.style.backgroundImage = 'none';
+				}
 
-			if (callback) {
-				callback();
-			}
-		});
+				if (callback) {
+					callback();
+				}
+			},
+			!_container.parentNode || !!fade,
+			true,
+			fade
+		);
 	}
 
 	/**
@@ -323,29 +382,155 @@ class Background {
 }
 
 /**
+ * Is the map change set to fade around the loading image? The player's choice, else the server's default
+ *
+ * @return {boolean}
+ */
+function isSmooth() {
+	return (GraphicsSettings.mapTransition || Configs.get('mapTransition')) === 'smooth';
+}
+
+/**
+ * Fades of the smooth mode: four where the client has two
+ *
+ * @param {number} calmFrames frames on time in a row before the fade from black, 0 for the calm stretch
+ * @param {number} [calmBefore] frames on time in a row before the fade to black
+ * @return {{duration: number, calmFrames: number, calmBefore: number, onShown: function|null}}
+ */
+function smoothFade(calmFrames, calmBefore = 0) {
+	return { duration: SMOOTH_DURATION, calmFrames, calmBefore, onShown: null };
+}
+
+/**
  * Play with the overlay
  *
  * @param {function} callback once the overlay hide the window
+ * @param {boolean} [fadeOut=true] fade to black, else cut to black
+ * @param {boolean} [fadeIn=true] fade from black, else cut from black
+ * @param {object} [fade] duration, frames to wait before each fade, callback once the last one ends
+ * @see docs/reference/map-transition.md
  */
-function transition(callback) {
-	const transitionDuration = Configs.get('transitionDuration') ? Configs.get('transitionDuration') : 500;
+function transition(callback, fadeOut = true, fadeIn = true, fade = {}) {
+	const transitionDuration = fade.duration || Configs.get('transitionDuration') || TRANSITION_DURATION;
 
 	if (Background._overlayAnim) {
 		Background._overlayAnim.stop();
+		Background._overlayAnim = null;
 	}
 
-	_overlay.style.opacity = '0.01';
 	document.body.appendChild(_overlay);
 
-	Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, () => {
+	function onBlack() {
+		_overlay.style.opacity = '1';
 		callback();
 
-		Background._overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
-			if (_overlay.parentNode) {
-				_overlay.parentNode.removeChild(_overlay);
-			}
+		if (!fadeIn) {
+			_overlay.remove();
+			return;
+		}
+
+		Background._overlayAnim = whenSettled(() => {
+			Background._overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
+				Background._overlayAnim = null;
+				_overlay.remove();
+
+				if (fade.onShown) {
+					fade.onShown();
+				}
+			});
+		}, fade.calmFrames);
+	}
+
+	if (!fadeOut) {
+		onBlack();
+		return;
+	}
+
+	function toBlack() {
+		_overlay.style.opacity = '0.01';
+		Background._overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, () => {
+			// Show black before the work done there, a late fade ends between two frames
+			Background._overlayAnim = nextFrame(onBlack);
 		});
+	}
+
+	// Smooth mode, after a load: the renderer just set up holds the frames for a
+	// while, the image stays still until they are on time again
+	if (fade.calmBefore) {
+		Background._overlayAnim = whenSettled(toBlack, fade.calmBefore);
+		return;
+	}
+
+	toBlack();
+}
+
+/**
+ * Run on the next display frame, once the current one is shown
+ *
+ * @param {function} callback
+ * @return {{stop: function}}
+ */
+function nextFrame(callback) {
+	let cancelled = false;
+
+	requestAnimationFrame(() => {
+		if (!cancelled) {
+			callback();
+		}
 	});
+
+	return {
+		stop() {
+			cancelled = true;
+		}
+	};
+}
+
+/**
+ * Wait at black for the display frames to come back on time, so the work done
+ * there does not stutter the fade
+ *
+ * @param {function} callback
+ * @param {number} [calmFrames] frames on time in a row, instead of a calm stretch
+ * @return {{stop: function}}
+ */
+function whenSettled(callback, calmFrames = 0) {
+	let cancelled = false;
+	let start = -1;
+	let last = 0;
+	let calmSince = 0;
+	let onTime = 0;
+
+	function frame(now) {
+		if (cancelled) {
+			return;
+		}
+		if (start < 0) {
+			start = now;
+			calmSince = now;
+		} else if (now - last >= SETTLE_FRAME) {
+			calmSince = now;
+			onTime = 0;
+		} else {
+			onTime++;
+		}
+		last = now;
+
+		const calm = calmFrames ? onTime >= calmFrames : now - calmSince >= SETTLE_TIME;
+		if (calm || now - start >= SETTLE_LIMIT) {
+			callback();
+			return;
+		}
+		requestAnimationFrame(frame);
+	}
+
+	requestAnimationFrame(frame);
+
+	return {
+		stop() {
+			cancelled = true;
+		}
+	};
 }
 
 /**

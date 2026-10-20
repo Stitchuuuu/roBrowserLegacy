@@ -114,6 +114,168 @@ describe('MapRenderer joystick restoration', () => {
 	});
 });
 
+describe('MapRenderer kept UI', () => {
+	let originalOnLoad;
+	let originalFree;
+	let keep;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		originalOnLoad = MapRenderer.onLoad;
+		originalFree = MapRenderer.free;
+		MapRenderer.loading = false;
+		MapRenderer.currentMap = 'prontera.gat';
+		MapRenderer.onLoad = vi.fn();
+		MapRenderer.free = vi.fn();
+		keep = [{ _host: document.createElement('div') }, { _host: null }];
+		document.body.appendChild(keep[0]._host);
+		mocks.uiManager.components = { Kept: keep[0], Unloaded: keep[1] };
+	});
+
+	afterEach(() => {
+		MapRenderer.onLoad = originalOnLoad;
+		MapRenderer.free = originalFree;
+		MapRenderer.cancelLoad();
+	});
+
+	it('removes everything but the kept components at black on a same-map teleport', () => {
+		let atBlack;
+		mocks.background.remove.mockImplementationOnce(callback => {
+			atBlack = callback;
+		});
+
+		MapRenderer.setMap('prontera.gat', keep);
+		expect(mocks.uiManager.removeComponents).not.toHaveBeenCalled();
+
+		atBlack();
+		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(mocks.uiManager.removeComponents.mock.invocationCallOrder[0]).toBeLessThan(
+			MapRenderer.onLoad.mock.invocationCallOrder[0]
+		);
+		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('removes everything but the kept components at black on a change of map', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		expect(mocks.uiManager.removeComponents).not.toHaveBeenCalled();
+
+		showLoading();
+		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(keep[0]._host.style.visibility).toBe('hidden');
+	});
+
+	it('starts the load once the loading image is shown, when the background asks to wait', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+		let shown;
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading(start => {
+			shown = start;
+		});
+		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
+		expect(keep[0]._host.style.visibility).toBe('hidden');
+		expect(mocks.thread.send).not.toHaveBeenCalled();
+
+		shown();
+		expect(mocks.thread.send).toHaveBeenCalledWith('LOAD_MAP', 'geffen.rsw', expect.any(Function));
+	});
+
+	it('does not start a load cancelled while the loading image came out of black', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+		let shown;
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading(start => {
+			shown = start;
+		});
+		MapRenderer.cancelLoad();
+		shown();
+		expect(mocks.thread.send).not.toHaveBeenCalled();
+	});
+
+	it('leaves the windows to the engine that cancelled the load', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		MapRenderer.cancelLoad();
+		showLoading();
+		expect(mocks.uiManager.removeComponents).not.toHaveBeenCalled();
+	});
+
+	it('tells a teleport within the map from a change of map', () => {
+		expect(MapRenderer.setMap('prontera.rsw', keep)).toBe(true);
+		MapRenderer.cancelLoad();
+		expect(MapRenderer.setMap('geffen.gat', keep)).toBe(false);
+	});
+
+	it('hides the kept components once the loading screen is up, and shows them on cancel', () => {
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		expect(keep[0]._host.style.visibility).toBe('');
+
+		showLoading();
+		expect(keep[0]._host.style.visibility).toBe('hidden');
+
+		MapRenderer.cancelLoad();
+		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('shows the kept components again when the map fails to load', async () => {
+		const DB = (await import('DB/DBManager.js')).default;
+		DB.getMap = vi.fn(() => null);
+		mocks.uiManager.showErrorBox = vi.fn(() => ({ ui: { css: vi.fn() } }));
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading();
+		const loaded = mocks.thread.send.mock.calls[0][2];
+		loaded(false, 'broken map');
+
+		expect(mocks.uiManager.showErrorBox).toHaveBeenCalledWith('broken map');
+		expect(keep[0]._host.style.visibility).toBe('');
+	});
+
+	it('hides the other windows still on screen with them, and leaves the closed ones alone', () => {
+		const plugin = { _host: document.createElement('div') };
+		const closed = { _host: document.createElement('div') };
+		document.body.appendChild(plugin._host);
+		Object.assign(mocks.uiManager.components, { Plugin: plugin, Closed: closed });
+		let showLoading;
+		mocks.background.setLoading.mockImplementationOnce(callback => {
+			showLoading = callback;
+		});
+
+		MapRenderer.setMap('geffen.gat', keep);
+		showLoading();
+		expect(plugin._host.style.visibility).toBe('hidden');
+		expect(closed._host.style.visibility).toBe('');
+
+		MapRenderer.cancelLoad();
+		expect(plugin._host.style.visibility).toBe('');
+	});
+});
+
 describe('MapRenderer.cancelLoad', () => {
 	let originalOnLoad;
 	let originalFree;

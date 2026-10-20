@@ -35,6 +35,7 @@ vi.mock('Renderer/EntityManager.js', () => ({ default: mocks.entityManager }));
 vi.mock('UI/Scrollbar.js', () => ({ default: {} }));
 
 const GUIComponent = (await import('UI/GUIComponent.js')).default;
+const Mouse = (await import('Controls/MouseEventHandler.js')).default;
 
 let seq = 0;
 
@@ -186,6 +187,65 @@ describe('the cursor over a clickable a component has marked refused', () => {
 });
 
 /**
+ * A fast pointer lands on a clickable in the same move that enters the window,
+ * and the browser fires mouseover before mouseenter: the arrow replaced the
+ * click shape, and leaving the clickable brought back the NPC bubble of the
+ * entity hidden under the window.
+ */
+describe('the pointer entering a window straight onto a clickable', () => {
+	const TALK = 3;
+	let type;
+
+	beforeEach(() => {
+		type = TALK;
+		mocks.cursor.getActualType.mockImplementation(() => type);
+		mocks.cursor.setType.mockImplementation(value => {
+			type = value;
+		});
+		Mouse.intersect = true;
+	});
+
+	afterEach(() => {
+		mocks.cursor.getActualType.mockImplementation(() => 0);
+		mocks.cursor.setType.mockImplementation(() => undefined);
+		Mouse.intersect = false;
+	});
+
+	const enterOnButton = async (className = 'go') => {
+		const component = mount(`<button class="${className}">OK</button><div class="plain"></div>`);
+		await new Promise(resolve => setTimeout(resolve, 0));
+		component._container
+			.querySelector(`.${className}`)
+			.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, composed: true }));
+		component._host.dispatchEvent(new MouseEvent('mouseenter'));
+		return component;
+	};
+
+	it('takes the click shape', async () => {
+		await enterOnButton();
+
+		expect(type).toBe(mocks.cursor.ACTION.CLICK);
+	});
+
+	it('takes the refusal shape on a clickable marked refused', async () => {
+		await enterOnButton('denied');
+
+		expect(type).toBe(mocks.cursor.ACTION.NOWALK);
+	});
+
+	it('goes back to the arrow, not the NPC bubble, when leaving the clickable', async () => {
+		const component = await enterOnButton();
+		const plain = component._container.querySelector('.plain');
+
+		component._container
+			.querySelector('.go')
+			.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, composed: true, relatedTarget: plain }));
+
+		expect(type).toBe(mocks.cursor.ACTION.DEFAULT);
+	});
+});
+
+/**
  * jsdom has no style queries, so these cases run the fallback style. Its
  * state is shared per module, so each case loads GUIComponent afresh.
  */
@@ -258,5 +318,111 @@ describe('the native cursor inside a window', () => {
 		const component = await freshMount();
 
 		expect(fallback(component)).toBeNull();
+	});
+});
+
+describe('appending a window that is already attached', () => {
+	it('leaves its host in place and still runs onAppend', () => {
+		const component = mount('<div></div>');
+		component.onAppend = vi.fn();
+		const after = document.createElement('div');
+		document.body.appendChild(after);
+
+		const records = [];
+		const observer = new MutationObserver(list => records.push(...list));
+		observer.observe(document.body, { childList: true });
+		component.append();
+		records.push(...observer.takeRecords());
+		observer.disconnect();
+
+		expect(records).toHaveLength(0);
+		expect(component._host.nextSibling).toBe(after);
+		expect(component.onAppend).toHaveBeenCalledOnce();
+	});
+});
+
+describe('rebuilding a window in place', () => {
+	it('runs onRemove then onAppend without detaching the host', () => {
+		const component = mount('<div></div>');
+		const calls = [];
+		component.onRemove = vi.fn(() => calls.push('remove'));
+		component.onAppend = vi.fn(() => calls.push('append'));
+		const host = component._host;
+
+		const records = [];
+		const observer = new MutationObserver(list => records.push(...list));
+		observer.observe(document.body, { childList: true });
+		component.rebuild();
+		records.push(...observer.takeRecords());
+		observer.disconnect();
+
+		expect(calls).toEqual(['remove', 'append']);
+		expect(records).toHaveLength(0);
+		expect(component._host).toBe(host);
+		expect(component.__active).toBe(true);
+	});
+
+	it('appends a window that is not attached', () => {
+		const component = mount('<div></div>');
+		component.remove();
+		component.onRemove = vi.fn();
+		component.onAppend = vi.fn();
+
+		component.rebuild();
+
+		expect(component.onRemove).not.toHaveBeenCalled();
+		expect(component.onAppend.mock.calls.map(([rebuild]) => !!rebuild)).toEqual([false]);
+		expect(component._host.parentNode).toBe(document.body);
+	});
+
+	it('tells both hooks it is a rebuild, unlike a plain remove and append', () => {
+		const component = mount('<div></div>');
+		component.onRemove = vi.fn();
+		component.onAppend = vi.fn();
+
+		component.rebuild();
+		component.remove();
+		component.append();
+
+		expect(component.onRemove.mock.calls.map(([rebuild]) => !!rebuild)).toEqual([true, false]);
+		expect(component.onAppend.mock.calls.map(([rebuild]) => !!rebuild)).toEqual([true, false]);
+	});
+
+	it('does not send the detach event to the nodes it keeps', () => {
+		const component = mount('<div class="tab"></div>');
+		const removed = vi.fn();
+		component._shadow.querySelector('.tab').addEventListener('x_remove', removed);
+
+		component.rebuild();
+
+		expect(removed).not.toHaveBeenCalled();
+	});
+
+	it('keeps watching its scrollbars with the observer it had', async () => {
+		const component = mount('<div></div>');
+		await new Promise(resolve => setTimeout(resolve, 0));
+		const observer = component.__scrollbarObserver;
+
+		component.rebuild();
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		expect(observer).toBeTruthy();
+		expect(component.__scrollbarObserver).toBe(observer);
+	});
+});
+
+describe('appending a window that is already attached, again', () => {
+	it('does not start a second scrollbar observer', async () => {
+		const observe = vi.spyOn(MutationObserver.prototype, 'observe');
+		const component = mount('<div></div>');
+		await new Promise(resolve => setTimeout(resolve, 0));
+		const before = observe.mock.calls.filter(([target]) => target === component._shadow).length;
+
+		component.append();
+		component.append();
+		await new Promise(resolve => setTimeout(resolve, 0));
+
+		expect(observe.mock.calls.filter(([target]) => target === component._shadow)).toHaveLength(before);
+		observe.mockRestore();
 	});
 });

@@ -173,14 +173,18 @@ CartItems.onAppend = function OnAppend() {
 
 /**
  * Remove Inventory from window (and so clean up items)
+ *
+ * @param {boolean} rebuild - restarting in place, the server sends the items again
  */
-CartItems.onRemove = function OnRemove() {
+CartItems.onRemove = function OnRemove(rebuild) {
 	const root = this.getRoot();
 	const content = root.querySelector('.container .content');
-	if (content) {
-		content.innerHTML = '';
+	if (!rebuild) {
+		if (content) {
+			content.innerHTML = '';
+		}
+		this.list.length = 0;
 	}
-	this.list.length = 0;
 
 	// Remove any ItemInfo instances from the document
 	document.querySelectorAll('.ItemInfo').forEach(el => el.remove());
