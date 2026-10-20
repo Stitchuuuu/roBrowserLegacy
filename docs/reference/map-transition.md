@@ -27,7 +27,11 @@ The three builds agree on all of this.
 - **The kept set is the map UI list**, `getMapUI()` in `MapEngine`. The same
   array is passed to `MapRenderer.setMap`, where `UIManager.removeComponents`
   skips it, and `onLoad` then calls `rebuild()` on each entry. Because one list
-  drives both sides, they cannot drift apart.
+  drives both sides, they cannot drift apart. After a map change, `onLoad` runs
+  behind the loading image, before the fade to black: the kept set restarts and
+  the first frames of the new map, with their set-up costs, are drawn before
+  anyone can see them. A map the server asks for while that image is still
+  fading out waits for the image to be gone, with its kept set.
 - **Everything else goes at black**, not when the move starts. The fade to
   black runs over a frozen canvas with the windows as they were, as the
   client fades a frozen copy of its last frame: no DOM change happens during
@@ -62,7 +66,8 @@ The three builds agree on all of this.
   view when it is opened, not on every append while hidden.
 - **Loading screen:** every window on screen gets `visibility: hidden` at
   black, at the cut to the loading image, right after the removal. They get it
-  back at black after the load, and also on
+  back once the map is loaded, under the loading image, which stays over the
+  map and its windows until the screen is black; and also on
   `MapRenderer.cancelLoad` and a failed load. A same-map teleport hides
   nothing.
 - **Fades** (`Background`): `transitionDuration` defaults to 255 ms per half.
@@ -71,16 +76,21 @@ The three builds agree on all of this.
   background image is up (after a map load) and fades when it is not
   (same-map teleport). It always fades from black, once the display frames
   stay on time: 150 ms of frames under 25 ms each, waiting at most a second.
-  The work done at black (the windows restarting, the first frames of a new
-  map) then lands before the fade, not in it.
+  The work done at black (the windows restarting on a same-map teleport)
+  then lands before the fade, not in it. A background set during the fade to
+  black replaces the one being removed and goes back to its own depth. A
+  transition started while another is under way carries on from where the
+  overlay is: at black there is nothing left to fade, and the outer
+  transition leaves the overlay to the new one.
 - **Smooth, an option** (`mapTransition: 'smooth'`; the default `'client'` is
   everything above). A map change fades where the client cuts: the map fades
   to black, the loading image comes out of black, and after the load the image
   fades to black before the new map comes out of black. The work done at black
   is the same, at the same moments. Each of the four fades lasts 125 ms
   (`SMOOTH_DURATION` in `Background`), about the client's two of 255 ms. The image comes out of black once three frames in a row
-  are on time, and the load starts only once it is shown: a load running under
-  the fade made it stutter. After the load, the image stays still until three
+  are on time. The worker is asked for the map as soon as the fade starts, but
+  what it sends back is taken only once the image is shown: the main-thread
+  work of a load running under the fade made it stutter. After the load, the image stays still until three
   frames in a row are on time again: the renderer set up at the end of a load
   holds the frames for about 100 ms with no page script running, and a fade
   started there stuttered. A same-map teleport keeps the client's two fades. The
@@ -91,7 +101,8 @@ The three builds agree on all of this.
 - **`CZ_NOTIFY_ACTORINIT`**: a same-map teleport sends it before the fade, as
   the client does; the inventory and equipment the server sends back in the
   meantime survive the restart at black. A map change sends it from `onLoad`,
-  at black, after the kept set has restarted.
+  behind the loading image, after the kept set has restarted: the server's
+  actors arrive while the image fades to black.
 
 ## Deviations
 
@@ -105,6 +116,10 @@ The three builds agree on all of this.
 - **Rebuilt in place, not reconstructed.** The client builds new window
   objects. Here the same component runs its `onRemove` / `onAppend` pair.
   Anything a component keeps outside those hooks survives the transition.
+- **The reset of a map change runs behind the loading image, not at black.**
+  The client loads, cuts to black, resets, then fades in. Here the windows
+  restart and the map draws its first frames under the image while it fades
+  to black, which hides the set-up cost; what the player sees is the same.
 - **Black lasts longer when the page is busy.** The client starts its fade
   from black right after the reset. Here it waits for the display frames to
   come back on time, up to a second, so the fade itself never stutters.
