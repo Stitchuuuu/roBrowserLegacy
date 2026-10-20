@@ -64,7 +64,19 @@ function page(hashes) {
 	const appended = [];
 	const listeners = {};
 	let tick = null;
-	const element = () => ({ style: {}, append() {}, addEventListener() {} });
+	const element = tag => ({
+		tag,
+		style: {},
+		children: [],
+		attributes: {},
+		append(...nodes) {
+			this.children.push(...nodes);
+		},
+		setAttribute(name, value) {
+			this.attributes[name] = value;
+		},
+		addEventListener() {}
+	});
 	const document = {
 		visibilityState: 'visible',
 		createElement: element,
@@ -79,7 +91,10 @@ function page(hashes) {
 		},
 		setInterval: fn => (tick = fn),
 		document,
-		location: { reload() {} }
+		location: { reload() {} },
+		MutationObserver: class {
+			observe() {}
+		}
 	});
 	return { appended, tick: () => tick(), visible: () => listeners.visibilitychange() };
 }
@@ -104,6 +119,21 @@ test('a banner, once, when a new client is deployed', async () => {
 	visible();
 	await flush();
 	assert.equal(appended.length, 1);
+});
+
+test('the banner stays under the game cursor, with the client restart button', async () => {
+	const { appended, tick } = page(['a', 'b']);
+	await flush();
+	tick();
+	await flush();
+	const box = appended[0];
+	assert.ok(Number(/z-index:(\d+)/.exec(box.style.cssText)[1]) < 9999);
+	const button = box.children.find(node => node.tag === 'ui-button');
+	assert.deepEqual(button.attributes, {
+		bg: 'btn_restart.bmp',
+		hover: 'btn_restart_a.bmp',
+		down: 'btn_restart_b.bmp'
+	});
 });
 
 test('coming back to the tab checks again', async () => {

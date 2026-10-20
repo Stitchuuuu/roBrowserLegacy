@@ -17,15 +17,45 @@
 		}
 	}
 
+	// Over every game window, under the game cursor (.cursor, z-index 9999).
+	const Z_INDEX = 9998;
+
+	// The client's restart button, drawn in CSS until the client's <ui-button> loads its sprites.
+	const LOOK_ALIKE =
+		'#ro-update .look{box-sizing:border-box;border:1px solid #a9a9a9;border-radius:4px;color:#222;' +
+		'font:11px/18px Arial,sans-serif;text-align:center;background:linear-gradient(#e0e0e0,#f7f7f7 80%,#cdcdcd)}' +
+		'#ro-update .look:hover{background:linear-gradient(#b7c3db,#acbee0 30%,#ccdaf3 85%,#b7becb)}' +
+		'#ro-update .look:active{padding-top:1px}';
+
+	function reloadButton() {
+		const button = document.createElement('ui-button');
+		button.className = 'look';
+		button.textContent = 'restart';
+		button.setAttribute('bg', 'btn_restart.bmp');
+		button.setAttribute('hover', 'btn_restart_a.bmp');
+		button.setAttribute('down', 'btn_restart_b.bmp');
+		button.style.cssText = 'display:block;width:42px;height:20px;background-repeat:no-repeat';
+		// The client's UI is up: its <ui-button> has set a sprite, the look-alike goes.
+		new MutationObserver((records, observer) => {
+			if (button.style.backgroundImage) {
+				button.className = '';
+				button.textContent = '';
+				observer.disconnect();
+			}
+		}).observe(button, { attributeFilter: ['style'] });
+		button.addEventListener('click', () => location.reload());
+		return button;
+	}
+
 	function banner() {
+		const style = document.createElement('style');
+		style.textContent = LOOK_ALIKE;
 		const box = document.createElement('div');
 		box.id = 'ro-update';
 		box.style.cssText =
-			'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:2147483647;padding:6px 12px;' +
+			`position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:${Z_INDEX};padding:6px 12px;` +
 			'background:#222c;color:#eee;font:14px/1.4 system-ui,sans-serif;border-radius:4px;display:flex;gap:10px;align-items:center';
-		const reload = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Reload' });
-		reload.addEventListener('click', () => location.reload());
-		box.append('A new version of the client is out.', reload);
+		box.append(style, 'A new version of the client is out.', reloadButton());
 		document.body.append(box);
 	}
 
