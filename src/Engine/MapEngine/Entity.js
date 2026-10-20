@@ -2692,6 +2692,40 @@ function onEntityMvpRewardItemMessage(pkt) {
 }
 
 /**
+ * Show MvP EXP reward message
+ *
+ * @param {object} pkt - PACKET.ZC.MVP_GETTING_SPECIAL_EXP
+ */
+function onEntityMvpRewardExpMessage(pkt) {
+	ChatBox.addText(DB.getMessage(145), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
+	ChatBox.addText(String(pkt.exp), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
+}
+
+/**
+ * Show MvP item lost to overweight message
+ */
+function onEntityMvpNoItemMessage() {
+	ChatBox.addText(DB.getMessage(147), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
+}
+
+/**
+ * Announce a party member's item pickup
+ *
+ * @param {object} pkt - PACKET.ZC.ITEM_PICKUP_PARTY or PACKET.ZC.ITEM_PICKUP_PARTY2
+ */
+function onPartyItemPickup(pkt) {
+	const entity = EntityManager.get(pkt.AID ?? pkt.accountID);
+	const name = entity ? entity.display.name : '';
+	const itemName = DB.getItemName({ ...pkt, enchantgrade: pkt.grade }, { showItemOptions: false });
+
+	ChatBox.addText(
+		DB.getMessage(1276).replace('%s', name).replace('%s', itemName),
+		ChatBox.TYPE.BLUE,
+		ChatBox.FILTER.PARTY_ITEM
+	);
+}
+
+/**
  * Entity will be hit, handle getting hit and after actions
  *
  * @param pkt - packet PACKET.ZC.NOTIFY_ACT or PACKET.ZC.NOTIFY_SKILL
@@ -2964,6 +2998,10 @@ export default function EntityEngine() {
 	Network.hookPacket(PACKET.ZC.BOSS_INFO, onMarkMvp);
 	Network.hookPacket(PACKET.ZC.MVP, onEntityMvpReward);
 	Network.hookPacket(PACKET.ZC.MVP_GETTING_ITEM, onEntityMvpRewardItemMessage);
+	Network.hookPacket(PACKET.ZC.MVP_GETTING_SPECIAL_EXP, onEntityMvpRewardExpMessage);
+	Network.hookPacket(PACKET.ZC.THROW_MVPITEM, onEntityMvpNoItemMessage);
+	Network.hookPacket(PACKET.ZC.ITEM_PICKUP_PARTY, onPartyItemPickup);
+	Network.hookPacket(PACKET.ZC.ITEM_PICKUP_PARTY2, onPartyItemPickup);
 	Network.hookPacket(PACKET.ZC.ACK_CHANGE_TITLE, onTitleChangeAck);
 	Network.hookPacket(PACKET.ZC.HAT_EFFECT, onHatEffects);
 }
