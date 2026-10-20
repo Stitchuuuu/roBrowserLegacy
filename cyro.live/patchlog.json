@@ -949,13 +949,6 @@
 					"text": "You opened the Cooking list, clicked OK, and the game tried to cook nothing. CookingFix selects a recipe properly and ignores OK with nothing picked.",
 					"details": "Fixes the Cooking list auto-select and stops the OK button from doing anything when no recipe is selected.",
 					"commits": []
-				},
-				{
-					"type": "plugins",
-					"keyword": "ChatLogger",
-					"text": "For the curious: every chat line, logged with its type and channel.",
-					"details": "Diagnostic tool: logs every chat line to the local dev-log server.",
-					"commits": []
 				}
 			]
 		}

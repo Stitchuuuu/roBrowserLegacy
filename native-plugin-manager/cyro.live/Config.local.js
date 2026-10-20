@@ -39,6 +39,8 @@ window.ROConfigLocal = {
 	skipIntro: true,
 	// Rocache refuses to init without it.
 	fetchIntercept: true,
+	// The Patch Notes window reads the patch log of its own build (none on cyro/).
+	patchNotes: { url: `${PAGES_SITE}patchlog.json`, product: PAGES_PLUGIN_MANAGER ? 'robrowser' : 'robrowser upstream' },
 	// Native entries must start with '/' or 'http'; full URLs, since a keyed build runs the client from
 	// a blob: URL, which resolves no path. Community = the public v3 plugin registry.
 	plugins: PAGES_PLUGIN_MANAGER

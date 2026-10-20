@@ -3,7 +3,8 @@
 //
 // - /grf/: when the roBrowser relay extension is on, read from the client folder it holds (a GRF File
 //   plus loose files such as BGM/), the way grf-serve.mjs does: loose files first, then the archive,
-//   then the data/resnametable.txt alias.
+//   then the data/resnametable.txt alias. Those answers carry `X-RO-Source: relay`, so a cache in
+//   the page (the Rocache plugin) can tell them from a server's and leave them on the player's disk.
 // - /userconfig, /emblem, /api: straight to cyro.live while the relay is on (the extension adds the
 //   CORS headers cyro does not send).
 //
@@ -17,6 +18,7 @@ const MIME = {
 	bmp: 'image/bmp', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
 };
 const OCTET = 'application/octet-stream';
+const SOURCE = { 'X-RO-Source': 'relay' };
 
 // undefined: not known yet (ask the pages); null: no relay; else { grf, root, alias }.
 let relay;
@@ -197,9 +199,9 @@ async function fromRelay(request, url) {
 	}
 	if (hit.loose) {
 		const ext = segs[segs.length - 1].split('.').pop().toLowerCase();
-		return new Response(hit.loose, { headers: { 'Content-Type': MIME[ext] || OCTET } });
+		return new Response(hit.loose, { headers: { ...SOURCE, 'Content-Type': MIME[ext] || OCTET } });
 	}
-	return new Response(await readEntry(r.grf, hit.entry), { headers: { 'Content-Type': OCTET } });
+	return new Response(await readEntry(r.grf, hit.entry), { headers: { ...SOURCE, 'Content-Type': OCTET } });
 }
 
 // With the relay on, cyro.live first: the extension adds the CORS headers cyro does not send. Without
