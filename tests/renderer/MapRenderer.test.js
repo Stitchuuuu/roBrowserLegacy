@@ -279,7 +279,9 @@ describe('MapRenderer kept UI', () => {
 		expect(keep[0]._host.style.visibility).toBe('hidden');
 	});
 
-	it('starts the load once the loading image is shown, when the background asks to wait', () => {
+	it('takes the worker results once the loading image is shown, when the background asks to wait', () => {
+		const free = vi.spyOn(MapRenderer, 'free').mockImplementation(() => {});
+		mocks.thread.send.mockImplementation(name => (name === 'LOAD_MAP' ? 7 : undefined));
 		let showLoading;
 		mocks.background.setLoading.mockImplementationOnce(callback => {
 			showLoading = callback;
@@ -287,31 +289,43 @@ describe('MapRenderer kept UI', () => {
 		let shown;
 
 		MapRenderer.setMap('geffen.gat', keep);
+		// The worker is asked for the map under the fade...
+		expect(mocks.thread.send).toHaveBeenCalledWith('LOAD_MAP', 'geffen.rsw', expect.any(Function));
+		const hooks = Object.fromEntries(mocks.thread.hook.mock.calls);
+		hooks.MAP_PROGRESS(50, 7);
+
 		showLoading(start => {
 			shown = start;
 		});
 		expect(mocks.uiManager.removeComponents).toHaveBeenCalledWith(keep);
 		expect(keep[0]._host.style.visibility).toBe('hidden');
-		expect(mocks.thread.send).not.toHaveBeenCalled();
+		// ...but what it sent back waits for the image to come out of black
+		expect(free).not.toHaveBeenCalled();
+		expect(mocks.background.setPercent).not.toHaveBeenCalled();
 
 		shown();
-		expect(mocks.thread.send).toHaveBeenCalledWith('LOAD_MAP', 'geffen.rsw', expect.any(Function));
+		expect(free).toHaveBeenCalledOnce();
+		expect(mocks.background.setPercent).toHaveBeenCalledWith(50);
+		MapRenderer.free.mockRestore();
 	});
 
-	it('does not start a load cancelled while the loading image came out of black', () => {
+	it('drops a load cancelled while the loading image came out of black', () => {
 		let showLoading;
 		mocks.background.setLoading.mockImplementationOnce(callback => {
 			showLoading = callback;
 		});
 		let shown;
 
+		const free = vi.spyOn(MapRenderer, 'free').mockImplementation(() => {});
 		MapRenderer.setMap('geffen.gat', keep);
 		showLoading(start => {
 			shown = start;
 		});
 		MapRenderer.cancelLoad();
 		shown();
-		expect(mocks.thread.send).not.toHaveBeenCalled();
+		expect(free).not.toHaveBeenCalled();
+		expect(MapRenderer._fadeQueue).toHaveLength(0);
+		MapRenderer.free.mockRestore();
 	});
 
 	it('leaves the windows to the engine that cancelled the load', () => {
