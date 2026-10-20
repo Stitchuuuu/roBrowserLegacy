@@ -17,6 +17,14 @@ import Client from 'Core/Client.js';
 import Events from 'Core/Events.js';
 
 /**
+ * Banner hold time and fade-out length, in ms
+ *
+ * @see docs/reference/map-transition.md
+ */
+const _fadeOutDelay = 5000;
+const _fadeOutDuration = 255;
+
+/**
  * Create Component
  */
 const MapName = new GUIComponent('MapName', cssText);
@@ -67,21 +75,18 @@ MapName.onAppend = function onAppend() {
 	_removeTimeoutId = null;
 
 	if (_mapinfo && _mapinfo.notifyEnter && _newMap) {
-		// Force browser to acknowledge opacity:0 from :host before transitioning
-		// eslint-disable-next-line no-unused-expressions
-		this._host.offsetHeight;
-
+		// Fully visible at once, no fade-in
+		this._host.style.transition = 'none';
 		this._host.style.opacity = '1';
 
-		// After 5s, start fade-out (CSS transition handles the animation)
 		_fadeTimeoutId = Events.setTimeout(() => {
+			this._host.style.transition = `opacity ${_fadeOutDuration}ms linear`;
 			this._host.style.opacity = '0';
-		}, 5000);
+		}, _fadeOutDelay);
 
-		// After 6s (5s wait + 1s CSS transition), remove
 		_removeTimeoutId = Events.setTimeout(() => {
 			MapName.remove();
-		}, 6000);
+		}, _fadeOutDelay + _fadeOutDuration);
 	} else {
 		MapName.remove();
 	}
