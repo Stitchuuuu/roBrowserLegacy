@@ -334,7 +334,9 @@ class DB {
 			};
 		}
 
-		loadFontFromClient('System/Font/');
+		if (Configs.get('enableSCDreamFont', false)) {
+			loadFontFromClient('System/Font/');
+		}
 
 		// Loading TXT Tables
 		loadTable(
