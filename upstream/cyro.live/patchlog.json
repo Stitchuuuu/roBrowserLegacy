@@ -796,6 +796,95 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.8.0",
+			"date": "2026-10-20",
+			"title": "Full Speed Ahead",
+			"sha": "32d680ee3",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Crowded maps",
+					"text": "Prontera at 7 pm, two hundred players around the fountain, and your frame counter sulking. Entity sprites are now drawn in batches by the graphics card: crowds cost a fraction of what they did.",
+					"details": "Entity sprites are now drawn in batches by the graphics card, sharing one sprite atlas and one palette atlas across sprite files: towns, WoE and MVP crowds take far fewer draw calls. The batches rebuild themselves after a graphics context loss.",
+					"commits": [
+						"06a7d6cd",
+						"10212c01",
+						"38358fd8",
+						"3a9aeefa",
+						"7f3b8d11"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "FPS limit",
+					"text": "The FPS limit now matches your display. It used to argue with it. The FPS window also remembers the worst it saw.",
+					"details": "The FPS limit now defaults to \"Match display\" and is paced to whole display refreshes, so a 60 Hz screen gets an even 60 and a 144 Hz one an even 144, without the beat between the limit and the refresh. The FPS window also shows the lowest FPS registered.",
+					"commits": [
+						"16c19f93",
+						"9864ec9e",
+						"e94ef11f",
+						"5bbe39cc",
+						"bdef5ec3"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Map changes",
+					"text": "Warp, loading screen, a second of black, then the map arrives while you watch it build itself. The next map now loads while the screen is still fading out, and draws its first frames behind the loading image.",
+					"details": "A map change now asks for the next map as soon as the screen starts fading to the loading image, requests the ground, models and textures as soon as their names are known, and starts the new map behind the closing fade: a shorter loading screen, and the first frames are drawn before you see them.",
+					"commits": [
+						"1d4902fa",
+						"4242b32e",
+						"d76660cf",
+						"f3dbd9a2",
+						"1a6184e0"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Window art",
+					"text": "You logged in and the client fetched the art of thirty windows you had not opened. A window now fetches its images the first time it is drawn.",
+					"details": "Entering the map no longer downloads the art of every window at once: a window fetches its images the first time it is drawn, so arriving on a map starts with hundreds fewer requests.",
+					"commits": [
+						"bd22ae48",
+						"0682c3a8",
+						"5eb338fd",
+						"0d9d4caf",
+						"dd09fc2c"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Sprite loading",
+					"text": "A new mob type walks in and stays invisible for a beat while its sprite is prepared. Sprite frames and palettes are now compiled by WebAssembly, and that beat is shorter.",
+					"details": "Sprite frames and palettes are compiled by WebAssembly: characters, monsters and effects appear faster when they first load.",
+					"commits": [
+						"531aa7c8",
+						"a76426b5",
+						"3d1d1893"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "World map party marks",
+					"text": "Your friend left the party two hours ago and the world map still showed them in Geffen. Members who leave now leave the map too.",
+					"details": "A party member who leaves, or the whole party when you leave it, no longer stays marked on the world map.",
+					"commits": [
+						"0d9d4caf"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Loading screen on mobile",
+					"text": "On a phone, the joystick floated over the loading screen like it had somewhere to be. The loading image now covers the touch controls.",
+					"details": "On a phone, the touch controls no longer sit over the loading image while a map loads.",
+					"commits": [
+						"fc3e0fc7"
+					]
+				}
+			]
 		}
 	]
 }
