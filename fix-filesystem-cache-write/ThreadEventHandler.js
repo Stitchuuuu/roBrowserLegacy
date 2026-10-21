@@ -18794,7 +18794,16 @@ var _save = false;
 * Chromium's FileSystem may refuse a name outside printable ASCII
 * (SecurityError), as the client's Korean folders: those characters and `%`
 * are stored percent-encoded. A surrogate pair is encoded as one character.
+* Encoded files live under their own folder, apart from the files an older
+* client stored under raw names, which an encoded name could match.
 */
+var _storeDir = "cache-v2/";
+/**
+* A file is written here first, then moved over its name: a failed write
+* never leaves an empty or half-replaced file under that name.
+*/
+var _writeDir = "cache-write/";
+var _writeCount = 0;
 var _unsafeChars = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\x20-\x7e]|%/g;
 /**
 * @param {string} char
@@ -18813,18 +18822,21 @@ function encodeChar(char) {
 * @returns {string} the name it is stored under
 */
 function toStoredPath(path) {
-	return path.replace(_unsafeChars, encodeChar);
+	return _storeDir + path.replace(_unsafeChars, encodeChar);
 }
 /**
 * @param {string} name
 * @returns {string} the name it was stored for
 */
 function fromStoredName(name) {
-	try {
-		return decodeURIComponent(name);
-	} catch (_e) {
-		return name;
-	}
+	return name.replace(/%u([0-9a-f]{4})|(?:%[0-9A-F]{2})+/gi, (match, unit) => {
+		if (unit) return String.fromCharCode(parseInt(unit, 16));
+		try {
+			return decodeURIComponent(match);
+		} catch (_e) {
+			return match;
+		}
+	});
 }
 /**
 * Normalize file path
@@ -18954,6 +18966,7 @@ function buildHierarchy() {
 	const keys = Object.keys(cache);
 	keys.sort();
 	_fs_sync.root.getDirectory("/__tmp_upload/", { create: true });
+	_fs_sync.root.getDirectory("/__tmp_upload/cache-v2/", { create: true });
 	for (i = 0, count = keys.length; i < count; ++i) _fs_sync.root.getDirectory("/__tmp_upload/" + toStoredPath(keys[i]), { create: true });
 }
 /**
@@ -19032,20 +19045,25 @@ var FileSystem = class FileSystem {
 	static saveFile(filePath, buffer) {
 		if (!_save || !_available) return;
 		const filename = toStoredPath(filePath.replace(/\\/g, "/"));
-		const directories = filename.split("/").slice(0, -1);
+		const directories = filename.split("/");
+		const name = directories.pop();
 		let path = "";
-		let fileEntry = null;
+		let dir = _fs_sync.root;
+		let tmpEntry = null;
 		try {
 			while (directories.length) {
 				path += directories.shift() + "/";
-				_fs_sync.root.getDirectory(path, { create: true });
+				dir = _fs_sync.root.getDirectory(path, { create: true });
 			}
-			fileEntry = _fs_sync.root.getFile(filename, { create: true });
-			fileEntry.createWriter().write(new Blob([buffer]));
+			tmpEntry = _fs_sync.root.getDirectory(_writeDir, { create: true }).getFile(String(_writeCount++), { create: true });
+			const writer = tmpEntry.createWriter();
+			writer.truncate(0);
+			writer.write(new Blob([buffer]));
+			tmpEntry.moveTo(dir, name);
 		} catch (e) {
 			console.warn(`[FileSystem] cannot cache ${filename}: ${e.name}`);
-			if (fileEntry) try {
-				fileEntry.remove();
+			if (tmpEntry) try {
+				tmpEntry.remove();
 			} catch (_e) {}
 		}
 	}
@@ -19062,7 +19080,12 @@ var FileSystem = class FileSystem {
 			for (i = 0, count = _files.length; i < count; ++i) if (_files[i].name.match(regex)) list.push(_files[i]);
 			return list;
 		}
-		const entries = _fs_sync.root.createReader().readEntries();
+		let entries;
+		try {
+			entries = _fs_sync.root.getDirectory(_storeDir, {}).createReader().readEntries();
+		} catch (_e) {
+			return list;
+		}
 		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && fromStoredName(entries[i].name).match(regex)) list.push(entries[i].file());
 		return list;
 	}
