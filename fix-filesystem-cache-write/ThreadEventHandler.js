@@ -18795,7 +18795,8 @@ var _save = false;
 * (SecurityError), as the client's Korean folders: those characters and `%`
 * are stored percent-encoded. A surrogate pair is encoded as one character.
 * Encoded files live under their own folder, apart from the files an older
-* client stored under raw names, which an encoded name could match.
+* client stored under raw names at the root, which an encoded name could
+* match: those are still read, under their raw name.
 */
 var _storeDir = "cache-v2/";
 /**
@@ -19002,13 +19003,16 @@ var FileSystem = class FileSystem {
 			for (i = 0; i < count; ++i) if (_files[i]._path.toLowerCase() === filename.toLowerCase()) return _files[i];
 			return null;
 		}
-		let fileEntry;
-		try {
-			fileEntry = _fs_sync.root.getFile(toStoredPath(filename), { create: false });
-		} catch (_e) {
-			return null;
+		const paths = [toStoredPath(filename), filename];
+		for (let i = 0; i < paths.length; ++i) {
+			let fileEntry;
+			try {
+				fileEntry = _fs_sync.root.getFile(paths[i], { create: false });
+			} catch (_e) {
+				continue;
+			}
+			if (fileEntry.isFile) return fileEntry.file();
 		}
-		if (fileEntry.isFile) return fileEntry.file();
 		return null;
 	}
 	/**
@@ -19030,10 +19034,23 @@ var FileSystem = class FileSystem {
 			onerror();
 			return;
 		}
-		_fs.root.getFile(toStoredPath(filename), { create: false }, (fileEntry) => {
-			if (fileEntry.isFile) fileEntry.file(onload);
-			else onerror();
-		}, onerror);
+		const paths = [toStoredPath(filename), filename];
+		function tryPath(i) {
+			if (i >= paths.length) {
+				onerror();
+				return;
+			}
+			const next = () => tryPath(i + 1);
+			try {
+				_fs.root.getFile(paths[i], { create: false }, (fileEntry) => {
+					if (fileEntry.isFile) fileEntry.file(onload);
+					else next();
+				}, next);
+			} catch (_e) {
+				next();
+			}
+		}
+		tryPath(0);
 	}
 	/**
 	* Save the content of a files in file system
@@ -19084,9 +19101,18 @@ var FileSystem = class FileSystem {
 		try {
 			entries = _fs_sync.root.getDirectory(_storeDir, {}).createReader().readEntries();
 		} catch (_e) {
-			return list;
+			entries = [];
 		}
-		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && fromStoredName(entries[i].name).match(regex)) list.push(entries[i].file());
+		const found = {};
+		for (i = 0, count = entries.length; i < count; ++i) {
+			const name = fromStoredName(entries[i].name);
+			if (entries[i].isFile && name.match(regex)) {
+				found[name] = true;
+				list.push(entries[i].file());
+			}
+		}
+		entries = _fs_sync.root.createReader().readEntries();
+		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && !found[entries[i].name] && entries[i].name.match(regex)) list.push(entries[i].file());
 		return list;
 	}
 	/**
