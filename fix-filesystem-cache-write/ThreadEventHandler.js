@@ -19103,7 +19103,7 @@ var FileSystem = class FileSystem {
 		} catch (_e) {
 			entries = [];
 		}
-		const found = {};
+		const found = Object.create(null);
 		for (i = 0, count = entries.length; i < count; ++i) {
 			const name = fromStoredName(entries[i].name);
 			if (entries[i].isFile && name.match(regex)) {
