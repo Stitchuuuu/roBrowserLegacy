@@ -18793,15 +18793,27 @@ var _save = false;
 /**
 * Chromium's FileSystem may refuse a name outside printable ASCII
 * (SecurityError), as the client's Korean folders: those characters and `%`
-* are stored percent-encoded.
+* are stored percent-encoded. A surrogate pair is encoded as one character.
 */
-var _unsafeChars = /[^\x20-\x7e]|%/g;
+var _unsafeChars = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\x20-\x7e]|%/g;
+/**
+* @param {string} char
+* @returns {string} its encoding; `%uXXXX` for a lone surrogate, which
+* encodeURIComponent refuses
+*/
+function encodeChar(char) {
+	try {
+		return encodeURIComponent(char);
+	} catch (_e) {
+		return `%u${char.charCodeAt(0).toString(16)}`;
+	}
+}
 /**
 * @param {string} path
 * @returns {string} the name it is stored under
 */
 function toStoredPath(path) {
-	return path.replace(_unsafeChars, encodeURIComponent);
+	return path.replace(_unsafeChars, encodeChar);
 }
 /**
 * @param {string} name
@@ -19022,14 +19034,19 @@ var FileSystem = class FileSystem {
 		const filename = toStoredPath(filePath.replace(/\\/g, "/"));
 		const directories = filename.split("/").slice(0, -1);
 		let path = "";
+		let fileEntry = null;
 		try {
 			while (directories.length) {
 				path += directories.shift() + "/";
 				_fs_sync.root.getDirectory(path, { create: true });
 			}
-			_fs_sync.root.getFile(filename, { create: true }).createWriter().write(new Blob([buffer]));
+			fileEntry = _fs_sync.root.getFile(filename, { create: true });
+			fileEntry.createWriter().write(new Blob([buffer]));
 		} catch (e) {
 			console.warn(`[FileSystem] cannot cache ${filename}: ${e.name}`);
+			if (fileEntry) try {
+				fileEntry.remove();
+			} catch (_e) {}
 		}
 	}
 	/**
