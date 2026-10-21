@@ -18791,6 +18791,30 @@ var _available = !!(self.requestFileSystemSync || self.webkitRequestFileSystemSy
 */
 var _save = false;
 /**
+* Chromium's FileSystem may refuse a name outside printable ASCII
+* (SecurityError), as the client's Korean folders: those characters and `%`
+* are stored percent-encoded.
+*/
+var _unsafeChars = /[^\x20-\x7e]|%/g;
+/**
+* @param {string} path
+* @returns {string} the name it is stored under
+*/
+function toStoredPath(path) {
+	return path.replace(_unsafeChars, encodeURIComponent);
+}
+/**
+* @param {string} name
+* @returns {string} the name it was stored for
+*/
+function fromStoredName(name) {
+	try {
+		return decodeURIComponent(name);
+	} catch (_e) {
+		return name;
+	}
+}
+/**
 * Normalize file path
 *
 * @param {array} FileList
@@ -18869,7 +18893,7 @@ function processUpload(index) {
 		processUpload(index);
 		return;
 	}
-	_fs.root.getFile("/__tmp_upload/" + file._path, { create: true }, function(fileEntry) {
+	_fs.root.getFile("/__tmp_upload/" + toStoredPath(file._path), { create: true }, function(fileEntry) {
 		fileEntry.createWriter(function(writer) {
 			writer.onerror = errorHandler;
 			writer.onwriteend = function() {
@@ -18918,7 +18942,7 @@ function buildHierarchy() {
 	const keys = Object.keys(cache);
 	keys.sort();
 	_fs_sync.root.getDirectory("/__tmp_upload/", { create: true });
-	for (i = 0, count = keys.length; i < count; ++i) _fs_sync.root.getDirectory("/__tmp_upload/" + keys[i], { create: true });
+	for (i = 0, count = keys.length; i < count; ++i) _fs_sync.root.getDirectory("/__tmp_upload/" + toStoredPath(keys[i]), { create: true });
 }
 /**
 * Trigger an event
@@ -18955,7 +18979,7 @@ var FileSystem = class FileSystem {
 		}
 		let fileEntry;
 		try {
-			fileEntry = _fs_sync.root.getFile(filename, { create: false });
+			fileEntry = _fs_sync.root.getFile(toStoredPath(filename), { create: false });
 		} catch (_e) {
 			return null;
 		}
@@ -18981,7 +19005,7 @@ var FileSystem = class FileSystem {
 			onerror();
 			return;
 		}
-		_fs.root.getFile(filename, { create: false }, (fileEntry) => {
+		_fs.root.getFile(toStoredPath(filename), { create: false }, (fileEntry) => {
 			if (fileEntry.isFile) fileEntry.file(onload);
 			else onerror();
 		}, onerror);
@@ -18995,7 +19019,7 @@ var FileSystem = class FileSystem {
 	*/
 	static saveFile(filePath, buffer) {
 		if (!_save || !_available) return;
-		const filename = filePath.replace(/\\/g, "/");
+		const filename = toStoredPath(filePath.replace(/\\/g, "/"));
 		const directories = filename.split("/").slice(0, -1);
 		let path = "";
 		try {
@@ -19022,7 +19046,7 @@ var FileSystem = class FileSystem {
 			return list;
 		}
 		const entries = _fs_sync.root.createReader().readEntries();
-		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && entries[i].name.match(regex)) list.push(entries[i].file());
+		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && fromStoredName(entries[i].name).match(regex)) list.push(entries[i].file());
 		return list;
 	}
 	/**
