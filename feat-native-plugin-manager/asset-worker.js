@@ -1,5 +1,5 @@
 (function() {
-	//#region src/Plugins/native-manager/asset-worker-core.js
+	// src/Plugins/native-manager/asset-worker-core.js
 	/**
 	* Plugins/native-manager/asset-worker-core.js
 	*
@@ -152,8 +152,7 @@
 		}
 		_masked = null;
 	}
-	//#endregion
-	//#region src/Plugins/native-manager/asset-worker-shim.js
+	// src/Plugins/native-manager/asset-worker-shim.js
 	/**
 	* Plugins/native-manager/asset-worker-shim.js
 	*
@@ -161,8 +160,7 @@
 	*/
 	installShim(self);
 	if (isNoFs(self.name)) maskFileSystem(self);
-	//#endregion
-	//#region src/Loaders/GameFileDecrypt.js
+	// src/Loaders/GameFileDecrypt.js
 	/**
 	* Loaders/GameFileDecrypt.js
 	*
@@ -810,8 +808,7 @@
 		}
 		return out;
 	})();
-	//#endregion
-	//#region src/Utils/Struct.js
+	// src/Utils/Struct.js
 	/**
 	* Utils/Struct.js
 	*
@@ -889,8 +886,7 @@
 		this._list = out;
 		this.size = total;
 	}
-	//#endregion
-	//#region src/Vendors/iconv-lite.js
+	// src/Vendors/iconv-lite.js
 	var iconv = (() => {
 		var __getOwnPropNames = Object.getOwnPropertyNames;
 		var __commonJS = (cb, mod) => function __require() {
@@ -11265,8 +11261,7 @@
 	safe-buffer/index.js:
 	(*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 	*/
-	//#endregion
-	//#region src/Utils/CodepageManager.js
+	// src/Utils/CodepageManager.js
 	/**
 	* Smart decode helper.
 	*
@@ -11672,8 +11667,7 @@
 			f & 15
 		];
 	};
-	//#endregion
-	//#region src/Utils/Inflate.js
+	// src/Utils/Inflate.js
 	/**
 	* Utils/Inflate.js
 	*
@@ -12512,8 +12506,7 @@
 			for (let k = 0; k < len; ++k, ++pos) buffer[pos] = buffer[pos - dist];
 		}
 	};
-	//#endregion
-	//#region src/Loaders/GameFile.js
+	// src/Loaders/GameFile.js
 	/**
 	* Loaders/GameFile.js
 	*
@@ -12732,8 +12725,7 @@
 		}
 		return entries;
 	}
-	//#endregion
-	//#region src/Vendors/gl-matrix.js
+	// src/Vendors/gl-matrix.js
 	/**
 	* @fileoverview gl-matrix - High performance matrix and vector operations
 	* @author Brandon Jones
@@ -15936,8 +15928,7 @@
 		return "quat(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
 	};
 	if (typeof exports$1 !== "undefined") exports$1.quat = quat;
-	//#endregion
-	//#region src/Utils/gl-matrix.js
+	// src/Utils/gl-matrix.js
 	/**
 	* Utils/gl-matrix.js
 	*
@@ -16272,8 +16263,7 @@
 		return dest;
 	};
 	var gl_matrix_default = exports$1;
-	//#endregion
-	//#region src/Loaders/World.js
+	// src/Loaders/World.js
 	/**
 	* Loaders/World.js
 	*
@@ -16513,8 +16503,7 @@
 			};
 		}
 	};
-	//#endregion
-	//#region src/Loaders/Ground.js
+	// src/Loaders/Ground.js
 	/**
 	* Loaders/Ground.js
 	*
@@ -16925,8 +16914,7 @@
 			};
 		}
 	};
-	//#endregion
-	//#region src/Loaders/Altitude.js
+	// src/Loaders/Altitude.js
 	/**
 	* Loaders/Altitude.js
 	*
@@ -17015,8 +17003,7 @@
 			};
 		}
 	};
-	//#endregion
-	//#region src/Loaders/Model.js
+	// src/Loaders/Model.js
 	/**
 	* Loaders/Model.js
 	*
@@ -18139,8 +18126,7 @@
 			prev.Scale[2] + (next.Scale[2] - prev.Scale[2]) * t
 		];
 	}
-	//#endregion
-	//#region src/Loaders/wasm/paletteConvert.js
+	// src/Loaders/wasm/paletteConvert.js
 	/**
 	* Loaders/wasm/paletteConvert.js
 	*
@@ -18185,8 +18171,7 @@
 			return null;
 		}
 	};
-	//#endregion
-	//#region src/Loaders/wasm/spriteCompile.js
+	// src/Loaders/wasm/spriteCompile.js
 	/**
 	* Loaders/wasm/spriteCompile.js
 	*
@@ -18232,8 +18217,7 @@
 			return null;
 		}
 	};
-	//#endregion
-	//#region src/Loaders/Sprite.js
+	// src/Loaders/Sprite.js
 	/**
 	* Loaders/Sprite.js
 	*
@@ -18655,8 +18639,7 @@
 			};
 		}
 	};
-	//#endregion
-	//#region src/Loaders/Action.js
+	// src/Loaders/Action.js
 	/**
 	* Loaders/Action.js
 	*
@@ -18798,8 +18781,7 @@
 			};
 		}
 	};
-	//#endregion
-	//#region src/Loaders/Str.js
+	// src/Loaders/Str.js
 	/**
 	* Loaders/Str.js
 	*
@@ -18904,8 +18886,7 @@
 			for (i = 0; i < this.layernum; ++i) this.layers[i] = new STRLayer(fp, this.texturePath);
 		}
 	};
-	//#endregion
-	//#region src/Core/FileSystem.js
+	// src/Core/FileSystem.js
 	/**
 	* Core/FileSystem.js
 	*
@@ -19238,8 +19219,7 @@
 			}, errorHandler);
 		}
 	};
-	//#endregion
-	//#region src/Core/FileManager.js
+	// src/Core/FileManager.js
 	/**
 	* Core/FileManager.js
 	*
@@ -19565,8 +19545,7 @@
 			});
 		}
 	};
-	//#endregion
-	//#region src/Loaders/MapLoader.js
+	// src/Loaders/MapLoader.js
 	/**
 	* Loaders/MapLoader.js
 	*
@@ -20067,8 +20046,7 @@
 		if (a.texture > b.texture) return 1;
 		return 0;
 	}
-	//#endregion
-	//#region src/Core/ThreadEventHandler.js
+	// src/Core/ThreadEventHandler.js
 	/**
 	* Core/ThreadEventHandler.js
 	*
@@ -20216,13 +20194,11 @@
 	* Once the thread is ready
 	*/
 	postMessage({ type: "THREAD_READY" });
-	//#endregion
-	//#region src/Plugins/native-manager/asset-worker-restore.js
+	// src/Plugins/native-manager/asset-worker-restore.js
 	/**
 	* Plugins/native-manager/asset-worker-restore.js
 	*
 	* Last import of the asset worker: lifts the FileSystem mask once Core/FileSystem.js has read it
 	*/
 	if (isNoFs(self.name)) unmaskFileSystem(self);
-	//#endregion
 })();
