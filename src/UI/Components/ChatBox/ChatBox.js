@@ -619,6 +619,14 @@ ChatBox.init = function init() {
 				}
 			}
 		});
+
+		// Renaming the active tab (delegated, so tabs added later are covered)
+		chatboxEl.addEventListener('keyup', event => {
+			const input = event.target.closest('table.header tr td div.on input');
+			if (input) {
+				ChatBoxSettings.updateTab(ChatBox.activeTab, input.value);
+			}
+		});
 	}
 
 	const wndminib = root.querySelector('.chat-function .wndminib');
@@ -953,13 +961,6 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 	const root = _root();
 	const messageBox = root.querySelector('.input-chatbox');
 	const nickBox = root.querySelector('.input .username');
-
-	const onInput = root.querySelector('.header tr td div.on input');
-	if (onInput) {
-		onInput.addEventListener('keyup', function () {
-			ChatBoxSettings.updateTab(ChatBox.activeTab, this.value);
-		});
-	}
 
 	const activeElement = KEYS.getDeepActiveElement();
 	const isChatInputFocused = activeElement === messageBox || activeElement === nickBox;
