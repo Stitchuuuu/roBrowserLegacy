@@ -924,6 +924,7 @@ function onCharListNotify(charListInfo) {
  */
 let retryCount = 0;
 function onReceiveMapInfo(pkt) {
+	Network.expectClose();
 	if (!DB.isLoaded) {
 		if (!DB.startedLazyInit) {
 			DB.lazyInit();

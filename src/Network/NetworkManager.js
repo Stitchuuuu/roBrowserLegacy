@@ -580,7 +580,7 @@ function receive(buf) {
 function onClose() {
 	const idx = _sockets.indexOf(this);
 
-	if (this === _socket) {
+	if (this === _socket && !this.closeExpected) {
 		console.warn('[Network] Disconnect from server');
 
 		if (_socket.ping) {
@@ -598,6 +598,16 @@ function onClose() {
 
 	if (idx !== -1) {
 		_sockets.splice(idx, 1);
+	}
+}
+
+/**
+ * The current server has sent us to another one: its socket closing from
+ * now on is expected, not a disconnection.
+ */
+function expectClose() {
+	if (_socket) {
+		_socket.closeExpected = true;
 	}
 }
 
@@ -717,6 +727,7 @@ const Network = (function network() {
 		connect: connect,
 		hookPacket: hookPacket,
 		close: close,
+		expectClose: expectClose,
 		read: read,
 		set onDisconnect(callback) {
 			_onDisconnect = callback;
