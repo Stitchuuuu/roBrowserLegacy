@@ -1049,6 +1049,33 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.8.1",
+			"date": "2026-10-22",
+			"title": "Let It Go",
+			"sha": "",
+			"notes": [
+				{
+					"type": "fixed",
+					"keyword": "Chat tab freeze",
+					"text": "You double-click a chat tab to rename it after an evening of play, type one letter, and the game stops answering. Every key you had pressed since login was replaying behind that letter. Now a letter is just a letter.",
+					"details": "Typing while a chat tab's name had the focus (renaming the tab, or landing on it with the Tab key) replayed the tab update once for every key pressed since the game loaded. After a while of play each key froze the game longer, until it stopped answering. Each key now updates the tab once.",
+					"commits": [
+						"82635bb9"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "False disconnection",
+					"text": "You pick your character, the map loads, you are standing in town, and a « Disconnected from Server » box tells you otherwise. You click OK and it makes it true. The box now waits for a real disconnection.",
+					"details": "When the client moved to a map server (picking a character, or a warp to a map on another server), the server it left could close first and show « Disconnected from Server. » while the game went on behind the box; OK then reloaded the game and dropped the player. That close no longer shows the box; a real failure of the new connection still does.",
+					"commits": [
+						"3a4aec7f",
+						"4a520838"
+					]
+				}
+			]
 		}
 	]
 }
