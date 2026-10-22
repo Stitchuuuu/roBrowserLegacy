@@ -4,7 +4,7 @@
  * Once the char server has sent us to a map server (or a map server to
  * another one), its socket is done. If it closes while the next socket is
  * still opening, that is no disconnection: the next socket connects a moment
- * later and the game goes on, behind a « Disconnected from Server. » box that
+ * later and the game goes on, behind a "Disconnected from Server." box that
  * sends the player back to the login screen.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,7 +31,7 @@ function fakeSocket() {
 function open(host, opened) {
 	let socket;
 	Network.setSocketFactory(() => (socket = fakeSocket()));
-	Network.connect(host, 1, () => {}, host === 'map');
+	Network.connect(host, 1, () => {});
 	if (opened) {
 		socket.onComplete(true);
 	}
@@ -69,6 +69,20 @@ describe('a socket closing after the server sent us elsewhere', () => {
 		map.onClose();
 		await settle();
 		expect(mocks.uiManager.showErrorBox).toHaveBeenCalledOnce();
+	});
+
+	it('stops the ping of the socket we left once it closes', () => {
+		vi.useFakeTimers();
+		const ping = vi.fn();
+		const char = open('char', true);
+		Network.setPing(ping);
+		Network.expectClose();
+
+		char.onClose();
+		vi.advanceTimersByTime(30000);
+		vi.useRealTimers();
+
+		expect(ping).not.toHaveBeenCalled();
 	});
 
 	it('shows no error box when the char socket closes before the map one is asked for', async () => {
