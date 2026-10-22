@@ -580,19 +580,21 @@ function receive(buf) {
 function onClose() {
 	const idx = _sockets.indexOf(this);
 
-	if (this === _socket && !this.closeExpected) {
-		console.warn('[Network] Disconnect from server');
-
+	if (this === _socket) {
 		if (_socket.ping) {
 			clearInterval(_socket.ping);
 		}
 
-		if (_onDisconnect) {
-			_onDisconnect();
-		} else {
-			import('UI/UIManager.js').then(UIManager => {
-				UIManager.default.showErrorBox('Disconnected from Server.');
-			});
+		if (!this.closeExpected) {
+			console.warn('[Network] Disconnect from server');
+
+			if (_onDisconnect) {
+				_onDisconnect();
+			} else {
+				import('UI/UIManager.js').then(UIManager => {
+					UIManager.default.showErrorBox('Disconnected from Server.');
+				});
+			}
 		}
 	}
 
