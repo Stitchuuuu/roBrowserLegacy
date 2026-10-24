@@ -354996,6 +354996,435 @@ var fetchIntercept = Object.freeze({
 	stats,
 	enabled
 });
+/** Emperium mob class (rAthena `MOBID_EMPERIUM`). */
+var EMPERIUM_CLASS = 1288;
+/**
+* Castle defenders spawned by the `guardian` script command : the WoE 1
+* guardians (1285-1287), the WoE 2 guardian soldier (1899), barricades
+* (1905, 1906) and guardian stones (1907, 1908). Like the Emperium they carry
+* the castle owner's guild id in their spawn packet (`status_get_guild_id` →
+* `guardian_data->guild_id`).
+*/
+var GUARDIAN_CLASSES = /* @__PURE__ */ new Set([
+	1285,
+	1286,
+	1287,
+	1899,
+	1905,
+	1906,
+	1907,
+	1908
+]);
+/**
+* The fields read off a roBrowser `Entity`.
+* @typedef {object} EntityLike
+* @property {number} GID account id for a player, unit id otherwise
+* @property {number} objecttype `Entity.TYPE_*`
+* @property {number} [GUID] guild id, 0 = none ; a guardian / Emperium carries its castle owner's
+* @property {number} [job] class id (mob class for a mob)
+* @property {number} [action] current action id
+* @property {{ DIE: number }} [ACTION] the entity's action table
+* @property {number} [remove_tick] set while the entity fades out
+* @property {number[]} [position] cell `[x, y, z]`
+*/
+/**
+* Everything the predicates need besides the entity.
+* @typedef {object} HostilityContext
+* @property {EntityLike | null} self the controlled character
+* @property {boolean} isGVG `Session.mapState.isGVG`
+* @property {boolean} isPVP `Session.mapState.isPVP`
+* @property {number} myGuild our guild id, 0 = none
+* @property {(aid: number) => boolean} isPartyMember
+* @property {(gdid: number) => boolean} isAlly
+* @property {number} [ownHomunId] our homunculus' GID (`Session.homunId`), 0 = none
+*/
+/**
+* @typedef {object} TargetOptions
+* @property {boolean} [pvp=true] outside GvG, on a PvP map, count every player outside the party as hostile
+* @property {boolean} [includeGuardians=true] GvG : add the hostile castle defenders
+* @property {boolean} [includeEmperium=true] GvG : add a hostile Emperium (never when we have no guild)
+* @property {boolean} [includeHomunculi=false] GvG : add the homunculi whose owner's guild is hostile
+*/
+/**
+* @typedef {'player' | 'homunculus' | 'guardian' | 'emperium'} TargetKind
+*/
+/**
+* @typedef {object} HostileTarget
+* @property {number} gid
+* @property {TargetKind} kind
+* @property {EntityLike} entity
+* @property {number} distance cells from us (Chebyshev), Infinity when a position is missing
+*/
+/**
+* Dead, fading out, or a placeholder (GID ≤ 0, left by the engine during a
+* death fade).
+* @param {EntityLike} e
+* @returns {boolean}
+*/
+function isGone(e) {
+	if (!e || !(e.GID > 0) || e.remove_tick) return true;
+	return !!e.ACTION && e.action === e.ACTION.DIE;
+}
+/**
+* Our guild or an allied one.
+* @param {number} gdid
+* @param {HostilityContext} ctx
+* @returns {boolean}
+*/
+function isFriendlyGuild(gdid, ctx) {
+	return ctx.myGuild > 0 && gdid > 0 && (gdid === ctx.myGuild || ctx.isAlly(gdid));
+}
+/**
+* Is this player one the server lets us attack ?
+* - GvG map : not in our party, not in our guild nor an allied one ;
+* - PvP map (when `pvp` is on) : not in our party ;
+* - anywhere else : never.
+* @param {EntityLike} e
+* @param {HostilityContext} ctx
+* @param {boolean} [pvp=true]
+* @returns {boolean}
+*/
+function isHostilePlayer(e, ctx, pvp = true) {
+	if (!e || e.objecttype !== 0 || isGone(e)) return false;
+	if (e === ctx.self || ctx.self && e.GID === ctx.self.GID) return false;
+	if (!ctx.isGVG && !(pvp && ctx.isPVP)) return false;
+	if (ctx.isPartyMember(e.GID)) return false;
+	return !ctx.isGVG || !isFriendlyGuild(e.GUID || 0, ctx);
+}
+/**
+* What kind of WoE target this entity is, or `null` when it is not one we may
+* hit. A guardian / Emperium of our guild or an allied one is never a target ;
+* the Emperium is never a target when we have no guild, as on the server.
+*
+* A homunculus carries its owner's guild id in its spawn packet
+* (`status_get_guild_id` → `master->status.guild_id`) and the server judges it
+* by its owner (`battle_check_target` swaps a homunculus for its master), so it
+* is hostile when that guild is neither ours nor an ally. The owner's party is
+* not sent : a party member's homunculus from another guild still shows here.
+* @param {EntityLike} e
+* @param {HostilityContext} ctx
+* @param {TargetOptions} [opts]
+* @returns {TargetKind | null}
+*/
+function targetKind(e, ctx, opts = {}) {
+	const { pvp = true, includeGuardians = true, includeEmperium = true, includeHomunculi = false } = opts;
+	if (isHostilePlayer(e, ctx, pvp)) return "player";
+	if (!ctx.isGVG || !e || isGone(e)) return null;
+	if (isFriendlyGuild(e.GUID || 0, ctx)) return null;
+	if (e.objecttype === 8) return includeHomunculi && e.GID !== ctx.ownHomunId ? "homunculus" : null;
+	if (e.objecttype !== 5) return null;
+	if (e.job === 1288) return includeEmperium && ctx.myGuild > 0 ? "emperium" : null;
+	if (GUARDIAN_CLASSES.has(e.job)) return includeGuardians ? "guardian" : null;
+	return null;
+}
+var KIND_ORDER = {
+	player: 0,
+	homunculus: 1,
+	guardian: 2,
+	emperium: 3
+};
+/**
+* Cell distance between two entities, Infinity when one has no position.
+* @param {EntityLike | null} a
+* @param {EntityLike} b
+* @returns {number}
+*/
+function cellDistance(a, b) {
+	const p = a && a.position;
+	const q = b.position;
+	if (!p || !q) return Infinity;
+	return Math.max(Math.abs(p[0] - q[0]), Math.abs(p[1] - q[1]));
+}
+/**
+* Every hostile target among `entities` : players first, then homunculi (when
+* asked for), then guardians, then the Emperium, each group nearest first.
+* @param {Iterable<EntityLike>} entities
+* @param {HostilityContext} ctx
+* @param {TargetOptions} [opts]
+* @returns {HostileTarget[]}
+*/
+function collectTargets(entities, ctx, opts) {
+	const out = [];
+	for (const entity of entities) {
+		const kind = targetKind(entity, ctx, opts);
+		if (kind) out.push({
+			gid: entity.GID,
+			kind,
+			entity,
+			distance: cellDistance(ctx.self, entity)
+		});
+	}
+	return out.sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.distance - b.distance);
+}
+/**
+* Allied guild ids, from ZC_MYGUILD_BASIC_INFO (the whole list) and
+* ZC_ADD_RELATED_GUILD / ZC_DELETE_RELATED_GUILD (one change).
+*/
+function createAllyStore() {
+	/** @type {Set<number>} */
+	const allies = /* @__PURE__ */ new Set();
+	/** Whether a full list arrived since the last clear. */
+	let known = false;
+	return {
+		/** @param {{ relatedGuildList?: Array<{ relation: number, GDID: number }> }} pkt ZC_MYGUILD_BASIC_INFO */
+		onList(pkt) {
+			allies.clear();
+			for (const g of pkt && pkt.relatedGuildList || []) if (g.relation === 0 && g.GDID > 0) allies.add(g.GDID);
+			known = true;
+		},
+		/** @param {{ Info?: { relation: number, GDID: number } }} pkt ZC_ADD_RELATED_GUILD */
+		onAdd(pkt) {
+			const g = pkt && pkt.Info;
+			if (g && g.relation === 0 && g.GDID > 0) allies.add(g.GDID);
+		},
+		/** @param {{ OpponentGDID: number, Relation: number }} pkt ZC_DELETE_RELATED_GUILD */
+		onDelete(pkt) {
+			if (pkt && pkt.Relation === 0) allies.delete(pkt.OpponentGDID);
+		},
+		/** @param {number} gdid */
+		has(gdid) {
+			return allies.has(gdid);
+		},
+		/** @returns {number[]} */
+		list() {
+			return [...allies];
+		},
+		/** A full list arrived since the last clear. */
+		get known() {
+			return known;
+		},
+		clear() {
+			allies.clear();
+			known = false;
+		}
+	};
+}
+/**
+* Party member account ids, from ZC_GROUP_LIST* (the whole roster),
+* ZC_ADD_MEMBER_TO_GROUP* and ZC_DELETE_MEMBER_FROM_GROUP. A player entity's
+* GID is its account id, so the roster answers « is this entity in my party ».
+*/
+function createPartyRoster() {
+	/** @type {Set<number>} */
+	const members = /* @__PURE__ */ new Set();
+	return {
+		/** @param {{ groupInfo?: Array<{ AID: number }> }} pkt ZC_GROUP_LIST* */
+		onList(pkt) {
+			members.clear();
+			for (const m of pkt && pkt.groupInfo || []) if (m && m.AID) members.add(m.AID);
+		},
+		/** @param {{ AID: number }} pkt ZC_ADD_MEMBER_TO_GROUP* */
+		onAdd(pkt) {
+			if (pkt && pkt.AID) members.add(pkt.AID);
+		},
+		/**
+		* Our own removal (left, expelled, party broken) empties the roster.
+		* @param {{ AID: number }} pkt ZC_DELETE_MEMBER_FROM_GROUP
+		* @param {number} selfAid
+		*/
+		onDelete(pkt, selfAid) {
+			if (!pkt) return;
+			if (pkt.AID === selfAid) members.clear();
+			else members.delete(pkt.AID);
+		},
+		/** @param {number} aid */
+		has(aid) {
+			return members.has(aid);
+		},
+		/** @returns {number[]} */
+		list() {
+			return [...members];
+		},
+		clear() {
+			members.clear();
+		}
+	};
+}
+// src/Plugins/native-manager/libs/woe-hostility/index.js
+/**
+* woe-hostility — « may I hit this player ? » for WoE (and PvP),
+* shared by every plugin that picks targets among players.
+*
+* The native client answers it for the attack cursor only
+* (`EntityControl.canAttackEntity`), with no export and without alliances. This
+* lib answers it from the live state : `Session.mapState`, our guild id, plus two
+* rosters the engine only keeps as UI and that are mirrored here from their
+* packets — the party (ZC_GROUP_LIST*) and the allied guilds
+* (ZC_MYGUILD_BASIC_INFO, ZC_ADD_RELATED_GUILD, ZC_DELETE_RELATED_GUILD). The
+* rule itself lives in rules.js.
+*
+* The server sends the alliance list only when the guild window's first tab is
+* asked for (CZ_REQ_GUILD_MENU type 0) or when an alliance changes. So once we
+* know our guild (ZC_UPDATE_GDID), the lib asks for it itself, once per guild
+* per login — the same request the guild window sends when it opens.
+*/
+var woe_hostility_exports = /* @__PURE__ */ __exportAll({
+	EMPERIUM_CLASS: () => EMPERIUM_CLASS,
+	GUARDIAN_CLASSES: () => GUARDIAN_CLASSES,
+	allyGuilds: () => allyGuilds,
+	hostileGids: () => hostileGids,
+	hostileTargets: () => hostileTargets,
+	isAlly: () => isAlly,
+	isHostile: () => isHostile,
+	refreshAllies: () => refreshAllies,
+	woeHostilityStatus: () => woeHostilityStatus
+});
+/** @typedef {import('./rules.js').EntityLike} EntityLike */
+/** @typedef {import('./rules.js').TargetOptions} TargetOptions */
+/** @typedef {import('./rules.js').HostileTarget} HostileTarget */
+/** @typedef {import('./rules.js').HostilityContext} HostilityContext */
+var allies = createAllyStore();
+var party = createPartyRoster();
+/** Our guild id from the last ZC_UPDATE_GDID, 0 = none seen. */
+var myGdid = 0;
+/** Guild id the alliance list was last asked for. */
+var requestedGdid = 0;
+var hooked = false;
+/** @returns {HostilityContext} */
+function context() {
+	const self = SessionStorage_default.Entity || null;
+	const mapState = SessionStorage_default.mapState || {};
+	return {
+		self,
+		isGVG: !!mapState.isGVG,
+		isPVP: !!mapState.isPVP,
+		myGuild: self && self.GUID || (SessionStorage_default.hasGuild ? myGdid : 0),
+		isPartyMember: (aid) => !!SessionStorage_default.hasParty && party.has(aid),
+		isAlly: (gdid) => allies.has(gdid),
+		ownHomunId: SessionStorage_default.homunId || 0
+	};
+}
+/** @returns {EntityLike[]} */
+function entities() {
+	const out = [];
+	EntityManager.forEach((e) => {
+		out.push(e);
+	});
+	return out;
+}
+/**
+* Is this entity a player we may attack right now ? A player, not us, alive,
+* on a GvG map : outside our party, our guild and its allies. On a PvP map
+* (no GvG flag) : outside our party — turn that off with `{ pvp: false }`.
+* Guardians and the Emperium are not players : see `hostileTargets`.
+* @param {EntityLike} entity
+* @param {{ pvp?: boolean }} [opts]
+* @returns {boolean}
+*/
+function isHostile(entity, opts = {}) {
+	return isHostilePlayer(entity, context(), opts.pvp !== false);
+}
+/**
+* GIDs (account ids) of the hostile players in sight, nearest first.
+* @param {{ pvp?: boolean }} [opts]
+* @returns {number[]}
+*/
+function hostileGids(opts = {}) {
+	return collectTargets(entities(), context(), {
+		pvp: opts.pvp !== false,
+		includeGuardians: false,
+		includeEmperium: false
+	}).map((t) => t.gid);
+}
+/**
+* Every hostile target in sight : players, then (GvG only) homunculi when
+* `includeHomunculi` is set, guardians, then the Emperium, each group nearest
+* first. Our guild's and our allies' homunculi, guardians and Emperium are left
+* out, so is our own homunculus, and so is any Emperium while we have no guild.
+* @param {TargetOptions} [opts]
+* @returns {HostileTarget[]}
+*/
+function hostileTargets(opts) {
+	return collectTargets(entities(), context(), opts);
+}
+/**
+* Is this guild allied to ours ?
+* @param {number} gdid
+* @returns {boolean}
+*/
+function isAlly(gdid) {
+	return allies.has(gdid);
+}
+/** @returns {number[]} allied guild ids */
+function allyGuilds() {
+	return allies.list();
+}
+/**
+* Ask the server for our alliance list now (CZ_REQ_GUILD_MENU type 0). The lib
+* already does it once per guild per login ; call it after a doubt.
+* @returns {boolean} false when there is no guild or no network yet
+*/
+function refreshAllies() {
+	const gdid = myGdid || SessionStorage_default.Entity && SessionStorage_default.Entity.GUID || 0;
+	if (!gdid || !PACKET.CZ || !PACKET.CZ.REQ_GUILD_MENU) return false;
+	try {
+		const pkt = new PACKET.CZ.REQ_GUILD_MENU();
+		pkt.Type = 0;
+		Network.sendPacket(pkt);
+	} catch (e) {
+		console.error("[RO][woe-hostility] alliance list request failed:", e);
+		return false;
+	}
+	requestedGdid = gdid;
+	return true;
+}
+/** Diagnostic snapshot. */
+function woeHostilityStatus() {
+	const ctx = context();
+	return {
+		hooked,
+		isGVG: ctx.isGVG,
+		isPVP: ctx.isPVP,
+		myGuild: ctx.myGuild,
+		alliesKnown: allies.known,
+		allies: allies.list(),
+		party: party.list()
+	};
+}
+/** @param {{ GDID?: number }} pkt ZC_UPDATE_GDID* */
+function onGuildId(pkt) {
+	const gdid = pkt && pkt.GDID || 0;
+	if (gdid !== myGdid) {
+		allies.clear();
+		myGdid = gdid;
+	}
+	if (gdid && requestedGdid !== gdid && !allies.known) refreshAllies();
+}
+function reset() {
+	allies.clear();
+	party.clear();
+	myGdid = 0;
+	requestedGdid = 0;
+}
+function hookPackets() {
+	if (hooked) return;
+	hooked = true;
+	const Z = PACKET.ZC;
+	const sub = (cls, cb) => {
+		if (cls) observePacket(cls, cb);
+	};
+	sub(Z.MYGUILD_BASIC_INFO, allies.onList);
+	sub(Z.ADD_RELATED_GUILD, allies.onAdd);
+	sub(Z.DELETE_RELATED_GUILD, allies.onDelete);
+	sub(Z.UPDATE_GDID, onGuildId);
+	sub(Z.UPDATE_GDID2, onGuildId);
+	for (const n of [
+		"GROUP_LIST",
+		"GROUP_LIST2",
+		"GROUP_LIST3"
+	]) sub(Z[n], party.onList);
+	for (const n of [
+		"ADD_MEMBER_TO_GROUP",
+		"ADD_MEMBER_TO_GROUP2",
+		"ADD_MEMBER_TO_GROUP3",
+		"ADD_MEMBER_TO_GROUP4"
+	]) sub(Z[n], party.onAdd);
+	sub(Z.DELETE_MEMBER_FROM_GROUP, (pkt) => party.onDelete(pkt, SessionStorage_default.AID));
+}
+if (PACKET && PACKET.ZC && PACKET.ZC.MYGUILD_BASIC_INFO) hookPackets();
+else once(EVENTS.WIRE_COMPLETE, hookPackets);
+on$1(EVENTS.CHAR_SELECT, reset);
+on$1(EVENTS.LOGOUT, reset);
 // src/Plugins/native-manager/di.js
 /**
 * Native Plugin Manager — DI map assembly.
@@ -355024,7 +355453,8 @@ var LIBS = Object.freeze({
 	"packet-observer": packet_observer_exports,
 	"socket-observer": socket_observer_exports,
 	"dev-log": dev_log_exports,
-	"fetch-intercept": fetchIntercept
+	"fetch-intercept": fetchIntercept,
+	"woe-hostility": woe_hostility_exports
 });
 /**
 * Build the DI map for a plugin's `init(pars, diMap)`.
