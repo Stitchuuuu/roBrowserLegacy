@@ -210,7 +210,6 @@ type SocketObserver = typeof import('../src/Plugins/native-manager/libs/socket-o
 type DevLogLib = typeof import('../src/Plugins/native-manager/libs/dev-log.js');
 type PluginApi = typeof import('../src/Plugins/native-manager/libs/plugin-api.js');
 type FetchInterceptLib = typeof import('../src/Plugins/native-manager/libs/fetch-intercept.js')['fetchIntercept'];
-type WoeHostility = typeof import('../src/Plugins/native-manager/libs/woe-hostility/index.js');
 
 /** Every native lib namespace, keyed by its plain lib name (`deps.libs`). */
 export interface Libs {
@@ -224,7 +223,6 @@ export interface Libs {
 	'dev-log': DevLogLib;
 	/** Fetch middleware, page + asset worker. `register` throws unless `ROConfigOptions.fetchIntercept` is on. */
 	'fetch-intercept': FetchInterceptLib;
-	'woe-hostility': WoeHostility;
 }
 
 /** `ROConfig` options for the native plugin manager. */
