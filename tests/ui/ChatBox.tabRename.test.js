@@ -223,3 +223,13 @@ describe('ChatBox - clicking a tab', () => {
 		expect(input.value).toBe(before);
 	});
 });
+
+describe('ChatBox - the + button', () => {
+	it('adds a tab with every filter off', () => {
+		const before = ChatBox.tabCount;
+		host.querySelector('.chat-function .battleopt2').click();
+
+		expect(ChatBox.tabCount).toBe(before + 1);
+		expect(ChatBoxSettings.tabOption[ChatBox.activeTab]).toEqual([]);
+	});
+});
