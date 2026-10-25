@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -163,7 +163,7 @@ test('coming back to the tab checks again', async () => {
 	assert.equal(appended.length, 1);
 });
 
-test('assemble.sh stamps the client hash and the build commit in version.json', () => {
+test('assemble.sh stamps the client hash, the build commit, its date and its upstream base in version.json', () => {
 	const root = mkdtempSync(join(tmpdir(), 'pages-'));
 	const dir = name => {
 		mkdirSync(join(root, name));
@@ -177,7 +177,28 @@ test('assemble.sh stamps the client hash and the build commit in version.json', 
 	writeFileSync(join(built, 'build.json'), '{"sha":"6e2c73ef"}');
 	writeFileSync(join(site, 'Config.local.js'), '');
 	const out = join(root, 'out');
-	execFileSync('bash', [new URL('assemble.sh', HERE).pathname, built, plugins, site, out]);
+	const assemble = env =>
+		execFileSync('bash', [new URL('assemble.sh', HERE).pathname, built, plugins, site, out], {
+			env: { ...process.env, ...env }
+		});
+	const stamp = () => JSON.parse(readFileSync(join(out, 'version.json'), 'utf8'));
 	const hash = createHash('sha256').update('console.log(1);').digest('hex');
-	assert.deepEqual(JSON.parse(readFileSync(join(out, 'version.json'), 'utf8')), { hash, sha: '6e2c73ef' });
+	assemble({ BUILD_DATE: '2026-10-24T01:15:41+00:00' });
+	assert.deepEqual(stamp(), { hash, sha: '6e2c73ef', date: '2026-10-24T01:15:41+00:00', base: null });
+	assemble({ BUILD_SHA: '', BUILD_DATE: '' });
+	assert.deepEqual(stamp(), { hash, sha: '6e2c73ef', date: null, base: null });
+	// A build without build.json takes the commit build-sites.sh gives
+	rmSync(join(built, 'build.json'));
+	assemble({
+		BUILD_SHA: '8ea1f332',
+		BUILD_DATE: '2026-10-18T08:49:08+00:00',
+		BASE_SHA: '8cb52eae',
+		BASE_DATE: '2026-10-21T00:14:37+02:00'
+	});
+	assert.deepEqual(stamp(), {
+		hash,
+		sha: '8ea1f332',
+		date: '2026-10-18T08:49:08+00:00',
+		base: { sha: '8cb52eae', date: '2026-10-21T00:14:37+02:00' }
+	});
 });

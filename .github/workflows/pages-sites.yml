@@ -51,10 +51,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir plugins
+          # Commits only (no trees) of upstream's master and of every source branch: each build's merge base
+          git init --quiet --bare history
+          git -C history fetch --quiet --filter=tree:0 https://github.com/MrAntares/roBrowserLegacy.git master:refs/upstream
           grep -v '^#' repo/.github/pages-sites/BUILDS | awk 'NF { print $2 }' | sort -u | while read -r branch; do
             safe="$(printf '%s' "$branch" | tr '/' '-' | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
             mkdir "plugins/$safe"
             git -C repo fetch --quiet --depth 1 origin "$branch"
+            # The commit its build was made from and its date, shown by the build switch (build-switch.js)
+            git -C repo log -1 --format='%H %cI' FETCH_HEAD > "plugins/$safe.commit"
+            # The upstream commit it is based on, and its date (the switch's "Based on upstream")
+            git -C history fetch --quiet --filter=tree:0 "https://github.com/${GITHUB_REPOSITORY}.git" "${branch}:refs/b/${safe}"
+            if base="$(git -C history merge-base refs/upstream "refs/b/$safe")"; then
+              git -C history log -1 --format='%H %cI' "$base" > "plugins/$safe.base"
+            fi
             # upstream's tree has no plugins/
             if git -C repo cat-file -e FETCH_HEAD:plugins 2>/dev/null; then
               git -C repo archive FETCH_HEAD plugins | tar -x --strip-components=1 -C "plugins/$safe"

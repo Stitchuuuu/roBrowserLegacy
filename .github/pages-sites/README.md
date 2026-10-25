@@ -34,6 +34,7 @@ workflow puts it back.
 | `shared/access-key.js` | browser side of `encrypt.mjs`: opens a slot with the player's key (kept in `localStorage`, shared by every keyed site of the origin), decrypts `Online.js.enc` |
 | `shared/gate.js` | holds `loadApp()` until the relay is on and the service worker controls the page; on a keyed build it also needs the key, then imports the decrypted client from a `blob:` URL, with `import.meta.url` replaced by the URL `Online.js` would have had; else a message, and the client is never loaded |
 | `shared/index.html` | `/<build>/<site>/`: landing page (server name from the site folder, the notice, install link, the access key on a keyed build, live relay state, **Play** → `api.html?app=ONLINE`) |
+| `shared/build-switch.js` | on the login screen of `upstream/`, `cyro/` and `native-plugin-manager/`, top right: a switch to the same site's client on the other builds, with each build's date and, on hover, its update and the upstream commit it is based on, linked (its `version.json`); NPM is in it on its own build, and on the others once an access key is kept; `cyro/` also shows the build date of the client cyro.live serves (`version` of the site's `Config.local.js`) |
 
 ## Access keys
 
@@ -57,7 +58,8 @@ The relay holds one client folder and calls `https://cyro.live/api` only: a seco
 GRF or another API needs the relay to do so first.
 
 Run it locally, from a folder holding `feat-native-plugin-manager/`, `upstream-relay/` and `cyro-prod/`
-(three `dist/Web` builds) and `<plugins-root>/<safe-branch>/` (each branch's `plugins/`):
+(three `dist/Web` builds), `<plugins-root>/<safe-branch>/` (each branch's `plugins/`) and, optionally,
+`<plugins-root>/<safe-branch>.commit` (`<sha> <date>` of the built commit) and `<plugins-root>/<safe-branch>.base` (the same of its upstream merge base), which `version.json` carries:
 
 ```bash
 NPM_ACCESS_KEYS='me 0123-4567-89ab-cdef-0123-4567-89ab-cdef' bash .github/pages-sites/build-sites.sh <plugins-root>
