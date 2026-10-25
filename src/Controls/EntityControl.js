@@ -243,8 +243,9 @@ class EntityControl {
 			case Entity.TYPE_PC: {
 				if (Session.captchaGetIdOnEntityClick) {
 					CaptchaSelector.addPlayer(this.GID);
+					return true;
 				}
-				return true;
+				break;
 			}
 		}
 
