@@ -2,7 +2,9 @@
 # Assembles every build of BUILDS into a gh-pages tree: for each <folder> <branch> <access> line and each
 # site folder here but shared/, <folder>/<site>/ from gh-pages/<safe-branch>/ (assemble.sh), locked by
 # encrypt.mjs when access = key. Prints the deployed paths. Run from the gh-pages tree:
-#   build-sites.sh <plugins-root>    # <plugins-root>/<safe-branch>/ = that branch's plugins/
+#   build-sites.sh <plugins-root>    # <plugins-root>/<safe-branch>/ = that branch's plugins/,
+#                                    # <plugins-root>/<safe-branch>.commit = "<sha> <date>" (optional),
+#                                    # <plugins-root>/<safe-branch>.base = the same of its upstream base
 set -euo pipefail
 
 PLUGINS_ROOT="${1:?plugins root}"
@@ -18,7 +20,10 @@ while read -r folder branch access; do
 		name="$(basename "$site")"
 		case "$name" in shared|patchlogs) continue ;; esac
 		out="$folder/$name"
-		bash "$HERE/assemble.sh" "$safe" "$PLUGINS_ROOT/$safe" "$site" "$out" >&2
+		commit="$(cat "$PLUGINS_ROOT/$safe.commit" 2>/dev/null || true)"
+		base="$(cat "$PLUGINS_ROOT/$safe.base" 2>/dev/null || true)"
+		BUILD_SHA="${commit%% *}" BUILD_DATE="${commit#* }" BASE_SHA="${base%% *}" BASE_DATE="${base#* }" \
+			bash "$HERE/assemble.sh" "$safe" "$PLUGINS_ROOT/$safe" "$site" "$out" >&2
 		# A branch whose own tree ships no patch log gets the one kept here
 		if [ -f "$HERE/patchlogs/$safe.json" ]; then
 			cp "$HERE/patchlogs/$safe.json" "$out/patchlog.json"
