@@ -223848,10 +223848,6 @@ var init_ChatBox = __esmMin((() => {
 		const root = _root$19();
 		const messageBox = root.querySelector(".input-chatbox");
 		const nickBox = root.querySelector(".input .username");
-		const onInput = root.querySelector(".header tr td div.on input");
-		if (onInput) onInput.addEventListener("keyup", function() {
-			ChatBoxSettings_default.updateTab(ChatBox.activeTab, this.value);
-		});
 		const activeElement = KEYS.getDeepActiveElement();
 		const isChatInputFocused = activeElement === messageBox || activeElement === nickBox;
 		if (activeElement && !isChatInputFocused && (activeElement.tagName && activeElement.tagName.match(/input|select|textarea/i) || activeElement.isContentEditable)) return true;
