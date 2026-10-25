@@ -905,10 +905,8 @@ ChatBox.onAppend = function OnAppend() {
 
 /**
  * Stop custom scroll
- *
- * @param {boolean} rebuild - restarting in place, the tabs stay as they are
  */
-ChatBox.onRemove = function OnRemove(rebuild) {
+ChatBox.onRemove = function OnRemove() {
 	_preferences.y = (parseInt(this._host.style.top, 10) || 0) + (this._host.offsetHeight || 0);
 	_preferences.x = parseInt(this._host.style.left, 10) || 0;
 	_preferences.height = _heightIndex;
@@ -922,11 +920,6 @@ ChatBox.onRemove = function OnRemove(rebuild) {
 	_preferences.activeTab = this.activeTab;
 
 	_preferences.save();
-
-	if (!rebuild) {
-		this.lastTabID = -1;
-		this.activeTab = 0;
-	}
 };
 
 /**

@@ -59,7 +59,7 @@ vi.mock('UI/Components/ContextMenu/ContextMenu.js', () => ({
 	default: { remove: vi.fn(), append: vi.fn(), addElement: vi.fn() }
 }));
 vi.mock('UI/Components/ChatBoxSettings/ChatBoxSettings.js', () => ({
-	default: { updateTab: vi.fn(), getTabs: () => [] }
+	default: { updateTab: vi.fn(), getTabs: () => [], tabOption: [] }
 }));
 
 const ChatBox = (await import('UI/Components/ChatBox/ChatBox.js')).default;
@@ -87,10 +87,60 @@ describe('ChatBox rebuilt in place by a map transition', () => {
 		expect(ChatBox.lastTabID).toBe(3);
 	});
 
-	it('still resets them when it is removed', () => {
+	it('keeps them when it is removed too', () => {
 		ChatBox.onRemove();
 
-		expect(ChatBox.activeTab).toBe(0);
-		expect(ChatBox.lastTabID).toBe(-1);
+		expect(ChatBox.activeTab).toBe(2);
+		expect(ChatBox.lastTabID).toBe(3);
+	});
+});
+
+/**
+ * The tabs are built once and stay in the window across a remove: a counter
+ * reset there gave the next new tab the id of an existing one.
+ */
+describe('ChatBox tabs after the window is removed and shown again', () => {
+	const tabIds = () => [...ChatBox._host.querySelectorAll('td.tab')].map(td => td.dataset.tab);
+
+	beforeEach(() => {
+		document.body.innerHTML = '';
+		const host = document.createElement('div');
+		host.innerHTML = ChatBox.render();
+		document.body.appendChild(host);
+		ChatBox._host = host;
+		ChatBox.magnet = {};
+		ChatBox.tabs = [];
+		ChatBox.tabCount = 0;
+		ChatBox.lastTabID = -1;
+		ChatBox.activeTab = 0;
+
+		ChatBox.addNewTab('Public Log');
+		ChatBox.addNewTab('Battle Log');
+		ChatBox.switchTab('1');
+		ChatBox.onRemove();
+	});
+
+	it('gives a new tab an id of its own', () => {
+		const id = ChatBox.addNewTab();
+
+		expect(tabIds()).toEqual(['0', '1', '2']);
+		expect(ChatBox.tabs[0].name).toBe('Public Log');
+		expect(ChatBox.tabs[id].name).toBe('New Tab');
+	});
+
+	it('shows chat in a new tab', async () => {
+		const id = ChatBox.addNewTab();
+		ChatBox.addText('hello', ChatBox.TYPE.PUBLIC, ChatBox.FILTER.PUBLIC_CHAT);
+		await new Promise(requestAnimationFrame);
+
+		const content = [...ChatBox._host.querySelectorAll('.body .content')].pop();
+		expect(content.dataset.content).toBe(String(id));
+		expect(content.textContent).toBe('hello');
+	});
+
+	it('closes the tab on screen, not the first one', () => {
+		ChatBox.removeTab();
+
+		expect(tabIds()).toEqual(['0']);
 	});
 });
