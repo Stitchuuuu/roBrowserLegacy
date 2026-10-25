@@ -9,7 +9,7 @@ Each subdirectory or note covers one subsystem:
 | directory / note | subsystem |
 |---|---|
 | [guild/](guild/) | the guild window, its six tabs, and the create / disband dialogs |
-| [chat/](chat/) | the chat window: what a received line keeps, drops and breaks on |
+| [chat/](chat/) | the chat window: what a received line keeps, drops and breaks on, and its tabs |
 | [renderer/](renderer/) | entity rendering: the body palette of a mounted player |
 | [map-transition.md](map-transition.md) | teleport and map change: which windows stay attached, the loading-screen hide, the 255 ms fades, the map name banner's timing |
 | [keyboard-enter.md](keyboard-enter.md) | the Enter key: chat, buttons reached with Tab, and why never the inventory |

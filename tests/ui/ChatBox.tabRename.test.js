@@ -130,3 +130,96 @@ describe('ChatBox - renaming the active tab', () => {
 		expect(ChatBoxSettings.updateTab).toHaveBeenCalledWith(ChatBox.activeTab, 'Drops');
 	});
 });
+
+describe('ChatBox - clicking a tab', () => {
+	const tabInput = () => host.querySelector('.header tr td div.on input');
+	const mouse = (type, target) => {
+		const event = new MouseEvent(type, { bubbles: true, cancelable: true, which: 1 });
+		target.dispatchEvent(event);
+		return event;
+	};
+	const key = (input, name) => {
+		const onWindowKey = vi.fn();
+		window.addEventListener('keydown', onWindowKey);
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+		window.removeEventListener('keydown', onWindowKey);
+		return onWindowKey;
+	};
+	const savedName = () => ChatBox.tabs[ChatBox.activeTab].name;
+
+	it('does not put the name in edit mode on a single click', () => {
+		const input = tabInput();
+
+		expect(input.readOnly).toBe(true);
+		expect(mouse('mousedown', input).defaultPrevented).toBe(true);
+	});
+
+	it('edits the name on a double-click, focused and selected', () => {
+		const input = tabInput();
+		mouse('dblclick', input);
+
+		expect(input.readOnly).toBe(false);
+		expect(document.activeElement).toBe(input);
+		expect([input.selectionStart, input.selectionEnd]).toEqual([0, input.value.length]);
+		expect(mouse('mousedown', input).defaultPrevented).toBe(false);
+		input.blur();
+	});
+
+	it('keeps the new name on Enter, without passing the key on to the game', () => {
+		const input = tabInput();
+		mouse('dblclick', input);
+		input.value = 'Trade';
+
+		expect(key(input, 'Enter')).not.toHaveBeenCalled();
+		expect(document.activeElement).not.toBe(input);
+		expect(input.readOnly).toBe(true);
+		expect(input.value).toBe('Trade');
+		expect(savedName()).toBe('Trade');
+	});
+
+	it('stays in edit mode on Enter with an empty name', () => {
+		const input = tabInput();
+		mouse('dblclick', input);
+		input.value = '  ';
+		key(input, 'Enter');
+
+		expect(document.activeElement).toBe(input);
+		expect(input.readOnly).toBe(false);
+		input.blur();
+	});
+
+	it('drops the new name on Escape', () => {
+		const input = tabInput();
+		const before = savedName();
+		mouse('dblclick', input);
+		input.value = 'Loot';
+
+		expect(key(input, 'Escape')).not.toHaveBeenCalled();
+		expect(input.readOnly).toBe(true);
+		expect(input.value).toBe(before);
+		expect(savedName()).toBe(before);
+	});
+
+	it('drops the new name when the focus leaves it', () => {
+		const input = tabInput();
+		const before = savedName();
+		mouse('dblclick', input);
+		input.value = 'Loot';
+		input.blur();
+
+		expect(input.readOnly).toBe(true);
+		expect(input.value).toBe(before);
+	});
+
+	it('drops the new name when another tab is clicked', () => {
+		const input = tabInput();
+		const before = savedName();
+		mouse('dblclick', input);
+		input.value = 'Loot';
+		const other = [...host.querySelectorAll('.header td.tab input')].find(el => el !== input);
+		mouse('mousedown', other);
+
+		expect(document.activeElement).not.toBe(input);
+		expect(input.value).toBe(before);
+	});
+});
