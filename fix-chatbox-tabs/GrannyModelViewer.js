@@ -223748,7 +223748,7 @@ var init_ChatBox = __esmMin((() => {
 		if (opttab) opttab.insertAdjacentHTML("beforebegin", `
 			<td class="tab" data-tab="${tabID}">
 				<div class="on">
-					<input type="text" value="${tabName}" readonly/>
+					<input type="text" value="${ChatBox.escapeHTML(tabName)}" readonly/>
 				</div>
 			</td>
 		`);
@@ -224133,7 +224133,8 @@ var init_ChatBox = __esmMin((() => {
 		data += contentEl ? contentEl.outerHTML : "";
 		data += "</body></html>";
 		const url = window.URL.createObjectURL(new Blob([data], { type: "text/plain" }));
-		ChatBox.addText(`Chat History [${ChatBox.tabs[ChatBox.activeTab].name}] ${date} can be saved by <a style="color:#F88" download="ChatHistory [${ChatBox.tabs[ChatBox.activeTab].name}] (${date.replace("/", "-")}).html" href="${url}" target="_blank">clicking here</a>.`, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.PUBLIC_LOG, null, true);
+		const name = ChatBox.escapeHTML(ChatBox.tabs[ChatBox.activeTab].name);
+		ChatBox.addText(`Chat History [${name}] ${date} can be saved by <a style="color:#F88" download="ChatHistory [${name}] (${date.replace("/", "-")}).html" href="${url}" target="_blank">clicking here</a>.`, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.PUBLIC_LOG, null, true);
 	};
 	ChatBox.applyFontScale = function applyFontScale() {
 		const root = _root$19();
