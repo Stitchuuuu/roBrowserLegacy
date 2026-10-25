@@ -13,6 +13,7 @@ const PAGES_SITE = new URL('.', location.href).href;
 const PAGES_PLUGIN_MANAGER = !/^\/(upstream|cyro)\//.test(new URL(PAGES_SITE).pathname);
 
 window.ROConfigLocal = {
+	// cyro.live's own: the build time of the client it serves (Unix seconds), which build-switch.js shows
 	version: 1775350421,
 	development: false,
 	enableConsole: true,
@@ -58,6 +59,6 @@ window.ROConfigLocal = {
 // The tab says which server it plays.
 document.title = `${window.ROConfigLocal.servers[0].display} — ${document.title}`;
 
-for (const src of ['pwa/pwa-client.js', 'pwa/relay-client.js', 'access-key.js', 'gate.js', 'update-check.js']) {
+for (const src of ['pwa/pwa-client.js', 'pwa/relay-client.js', 'access-key.js', 'gate.js', 'update-check.js', 'build-switch.js']) {
 	document.head.appendChild(Object.assign(document.createElement('script'), { src, async: false }));
 }
