@@ -88,49 +88,6 @@ ChatBox._host = host;
 ChatBox._shadow = null;
 ChatBox.init();
 
-function keyDown(which, key) {
-	return ChatBox.onKeyDown({
-		which,
-		key,
-		target: document.body,
-		preventDefault: vi.fn(),
-		stopImmediatePropagation: vi.fn(),
-		getModifierState: () => false
-	});
-}
-
-describe('ChatBox - renaming the active tab', () => {
-	// Every key pressed in game used to add one more keyup listener to the
-	// active tab's name, so once the focus landed there (Tab), each key ran the
-	// tab update as many times as keys had been pressed so far: the page froze.
-	it('updates the tab once per key, however many keys came before', () => {
-		document.body.focus();
-		for (let i = 0; i < 20; i++) {
-			keyDown(65, 'a');
-		}
-		ChatBoxSettings.updateTab.mockClear();
-
-		const tabInput = host.querySelector('.header tr td div.on input');
-		tabInput.value = 'Trade';
-		tabInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'e', bubbles: true }));
-
-		expect(ChatBoxSettings.updateTab).toHaveBeenCalledTimes(1);
-		expect(ChatBoxSettings.updateTab).toHaveBeenCalledWith(ChatBox.activeTab, 'Trade');
-	});
-
-	it('updates a tab added after the chat opened', () => {
-		ChatBox.addNewTab('Loot');
-		ChatBoxSettings.updateTab.mockClear();
-
-		const tabInput = host.querySelector('.header tr td div.on input');
-		tabInput.value = 'Drops';
-		tabInput.dispatchEvent(new KeyboardEvent('keyup', { key: 's', bubbles: true }));
-
-		expect(ChatBoxSettings.updateTab).toHaveBeenCalledTimes(1);
-		expect(ChatBoxSettings.updateTab).toHaveBeenCalledWith(ChatBox.activeTab, 'Drops');
-	});
-});
-
 describe('ChatBox - clicking a tab', () => {
 	const tabInput = () => host.querySelector('.header tr td div.on input');
 	const mouse = (type, target) => {
@@ -209,6 +166,21 @@ describe('ChatBox - clicking a tab', () => {
 
 		expect(input.readOnly).toBe(true);
 		expect(input.value).toBe(before);
+	});
+
+	it('leaves the filter window alone while the name is typed', () => {
+		const input = tabInput();
+		mouse('dblclick', input);
+		ChatBoxSettings.updateTab.mockClear();
+		for (const letter of 'Loot') {
+			const event = new KeyboardEvent('keydown', { key: letter, bubbles: true });
+			input.dispatchEvent(event);
+			ChatBox.onKeyDown(event);
+			input.dispatchEvent(new KeyboardEvent('keyup', { key: letter, bubbles: true }));
+		}
+
+		expect(ChatBoxSettings.updateTab).not.toHaveBeenCalled();
+		input.blur();
 	});
 
 	it('drops the new name when another tab is clicked', () => {

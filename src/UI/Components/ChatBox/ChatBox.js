@@ -659,14 +659,6 @@ ChatBox.init = function init() {
 				}
 			}
 		});
-
-		// Renaming the active tab (delegated, so tabs added later are covered)
-		chatboxEl.addEventListener('keyup', event => {
-			const input = event.target.closest('table.header tr td div.on input');
-			if (input) {
-				ChatBoxSettings.updateTab(ChatBox.activeTab, input.value);
-			}
-		});
 	}
 
 	const wndminib = root.querySelector('.chat-function .wndminib');
