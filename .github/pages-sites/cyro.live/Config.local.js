@@ -43,13 +43,20 @@ window.ROConfigLocal = {
 	// The Patch Notes window reads the patch log of its own build (none on cyro/).
 	patchNotes: { url: `${PAGES_SITE}patchlog.json`, product: PAGES_PLUGIN_MANAGER ? 'robrowser' : 'robrowser upstream' },
 	// Native entries must start with '/' or 'http'; full URLs, since a keyed build runs the client from
-	// a blob: URL, which resolves no path. Community = the public v3 plugin registry.
+	// a blob: URL, which resolves no path. Community = the public v3 plugin registry; Dev server = the
+	// v3 builds a developer serves on this machine (`wtf dev`, :6980), private plugins included. With no
+	// such server the plugin manager logs one failed fetch and lists Community alone.
 	plugins: PAGES_PLUGIN_MANAGER
 		? {
 				ItemDb: `${PAGES_SITE}plugins/item-db/item-db.esm.js`,
 				LocalPluginManager: {
 					path: `${PAGES_SITE}plugins/local-plugin-manager/local-plugin-manager.esm.js`,
-					pars: { registries: { Community: 'https://cdn.jsdelivr.net/gh/meitogi/ro-plugins@main/index.json' } }
+					pars: {
+						registries: {
+							Community: 'https://cdn.jsdelivr.net/gh/meitogi/ro-plugins@main/index.json',
+							'Dev server': 'http://localhost:6980/index.json'
+						}
+					}
 				},
 				PluginManagerUI: `${PAGES_SITE}plugins/plugin-manager-ui/plugin-manager-ui.esm.js`
 			}
