@@ -21,8 +21,8 @@
 // Identity note : the store keys everything by SLUG (the install identifier / URL
 // component). That is distinct from the manifest plugin name under which the
 // host registers the plugin (read from `mod.default.name`). The IndexedDB
-// record's `name` field holds the slug ; `pluginName`/`version` hold the
-// manifest data. DB name / store / keyPath / version are kept byte-identical to
+// record's `name` field holds the slug ; `pluginName`/`version`/`nosync` hold the
+// manifest data (`nosync`: the plugin's databases a sync never reads). DB name / store / keyPath / version are kept byte-identical to
 // the source they were ported from, so an export bookmarklet can round-trip the
 // records verbatim.
 
@@ -298,6 +298,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			source,                        // bare ESM module text
 			version: manifest.version || null,
 			pluginName: manifest.name,     // manifest registration name
+			nosync: manifest.nosync || null,
 			enabled: true,
 			sourceUrl,
 			debug,
@@ -337,6 +338,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			source,                        // bare ESM module text
 			version: manifest.version || null,
 			pluginName: manifest.name,     // manifest registration name
+			nosync: manifest.nosync || null,
 			enabled: true,
 			sourceUrl: null,               // no network origin — update() warns 'no sourceUrl'
 			debug: !!opts.debug,
@@ -509,6 +511,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 		const { manifest, error } = await exec(rec.source)   // throws on bad source — record left enabled:false
 		rec.enabled = true
 		rec.pluginName = manifest.name             // resync in case source changed since install
+		rec.nosync = manifest.nosync || null
 		rec.version = manifest.version || rec.version
 		await dbPut(W, rec)
 		if (error) {
@@ -550,6 +553,7 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			rec.source = source
 			rec.version = manifest.version || null
 			rec.pluginName = manifest.name      // NEW manifest name (may differ from old)
+			rec.nosync = manifest.nosync || null
 			await dbPut(W, rec)
 			if (error) {
 				err(`[plugin-store] updated '${name}' (${manifest.name}) but init failed — ${error}`)
