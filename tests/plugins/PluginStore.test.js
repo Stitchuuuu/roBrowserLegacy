@@ -14,6 +14,7 @@ import { createPluginStore } from '../../plugins/local-plugin-manager/plugin-sto
 function createFakeIndexedDB() {
 	const rows = new Map();
 	return {
+		rows,
 		open() {
 			const openReq = { result: null, onupgradeneeded: null, onsuccess: null, onerror: null };
 			queueMicrotask(() => {
@@ -182,6 +183,23 @@ describe('installFromSource', () => {
 		);
 		const rows = await store.listInstalled();
 		expect(rows.find(x => x.name === 'bad-slug')).toBeUndefined();
+	});
+});
+
+describe('nosync', () => {
+	it('keeps the manifest nosync list on the record through disable and enable', async () => {
+		const src = "export default { name: 'Rec', version: '1.0.0', nosync: ['rec-log'], init() { return true } }";
+		await store.installFromSource(src, 'rec');
+		expect(W.indexedDB.rows.get('rec').nosync).toEqual(['rec-log']);
+		await store.disable('rec');
+		expect(W.indexedDB.rows.get('rec').nosync).toEqual(['rec-log']);
+		await store.enable('rec');
+		expect(W.indexedDB.rows.get('rec').nosync).toEqual(['rec-log']);
+	});
+
+	it('stores null for a plugin that declares none', async () => {
+		await store.installFromSource(sourceFor('Plain'), 'plain');
+		expect(W.indexedDB.rows.get('plain').nosync).toBeNull();
 	});
 });
 
