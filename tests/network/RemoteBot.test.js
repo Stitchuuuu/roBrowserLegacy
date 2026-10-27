@@ -267,3 +267,45 @@ describe('remote mode', () => {
 		expect(RemoteBot.failure()).toBe(null);
 	});
 });
+
+describe('remote mode from the bot list', () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		mocks.rooms.length = 0;
+		mocks.joinRoom.mockReset();
+		mocks.joinRoom.mockImplementation(() => {
+			const room = fakeRoom();
+			mocks.rooms.push(room);
+			return room;
+		});
+	});
+
+	it('joins the room the bot opened, keeps nothing for a reload, writes nothing in the address bar', async () => {
+		await load('');
+		sessionStorage.setItem('remoteBot', JSON.stringify({ relay: RELAY, room: 'old', secret: SECRET }));
+		const ok = RemoteBot.useRoom({ relay: RELAY, relayKey: 'k1', room: 'fresh', secret: SECRET });
+
+		expect(ok).toBe(true);
+		expect(RemoteBot.isActive()).toBe(true);
+		expect(mocks.joinRoom).toHaveBeenCalledWith({ relay: RELAY, relayKey: 'k1', room: 'fresh', secret: SECRET, max: 2 });
+		expect(sessionStorage.getItem('remoteBot')).toBe(null);
+		expect(location.hash).toBe('');
+	});
+
+	it('leaves the room before for another one', async () => {
+		await load('');
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET });
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'b', secret: SECRET });
+
+		expect(mocks.rooms[0].leave).toHaveBeenCalled();
+		expect(mocks.joinRoom.mock.calls[1][0].relayKey).toBe(undefined);
+	});
+
+	it('changes nothing once in game', async () => {
+		await load('');
+		RemoteBot.setLoginScreen(null);
+
+		expect(RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET })).toBe(false);
+		expect(mocks.joinRoom).not.toHaveBeenCalled();
+	});
+});

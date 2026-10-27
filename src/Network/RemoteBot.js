@@ -95,6 +95,26 @@ RemoteBot.setLink = function setLink(text) {
 };
 
 /**
+ * Use a room a bot opened for this window (the bot list): nothing kept, a reload goes back to the list
+ *
+ * @param {{relay: string, relayKey: string, room: string, secret: string}} room
+ * @return {boolean} false once the login is over
+ */
+RemoteBot.useRoom = function useRoom(room) {
+	if (_inGame) {
+		return false;
+	}
+
+	join({ relay: room.relay, relayKey: room.relayKey || undefined, room: room.room, secret: room.secret });
+	try {
+		sessionStorage.removeItem(STORAGE_KEY);
+	} catch (_e) {
+		// Nothing kept
+	}
+	return true;
+};
+
+/**
  * The login screen is shown (with its paste box), or left for good
  *
  * @param {?function(boolean)} ask - opens the paste box, told whether the last link was bad; null once logged in
