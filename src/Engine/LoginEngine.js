@@ -20,6 +20,8 @@ import Session from 'Engine/SessionStorage.js';
 import AutoRetry from 'Engine/AutoRetry.js';
 import CharEngine from 'Engine/CharEngine.js';
 import Network from 'Network/NetworkManager.js';
+import RemoteBot from 'Network/RemoteBot.js';
+import BotHall from 'Network/BotHall.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PluginManager from 'Plugins/PluginManager.js';
@@ -28,6 +30,10 @@ import MapRenderer from 'Renderer/MapRenderer.js';
 import UIManager from 'UI/UIManager.js';
 import WinList from 'UI/Components/WinList/WinList.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
+import InputBox from 'UI/Components/InputBox/InputBox.js';
+import RemoteCharacters from 'UI/Components/RemoteCharacters/RemoteCharacters.js';
+import RemoteSettings from 'UI/Components/RemoteSettings/RemoteSettings.js';
+import RemoteEntry from 'UI/Components/RemoteEntry/RemoteEntry.js';
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Queue from 'Utils/Queue.js';
 import Background from 'UI/Background.js';
@@ -167,6 +173,15 @@ class LoginEngine {
 
 		WinLogin.onConnectionRequest = onConnectionRequest;
 		WinLogin.onExitRequest = onExitRequest;
+		RemoteCharacters.onSettingsRequest = () => RemoteSettings.append();
+		RemoteCharacters.onLoginRequest = showWinLogin;
+		RemoteCharacters.onRoomOpened = attachRemote;
+		RemoteEntry.onRequest = () => (BotHall.loadSettings() ? showLoginScreenFresh() : RemoteSettings.append());
+		RemoteSettings.onClose = () => {
+			RemoteSettings.remove();
+			RemoteCharacters.remove();
+			showLoginScreenFresh();
+		};
 
 		// Handle unexpected disconnects during login phase
 		Network.onDisconnect = () => {
@@ -191,7 +206,8 @@ class LoginEngine {
 			Configs.set('autoLogin', null);
 		} else {
 			q.add(function () {
-				WinLogin.append();
+				showLoginScreen();
+				RemoteBot.setLoginScreen(askRemoteLink);
 			});
 		}
 
@@ -229,7 +245,9 @@ class LoginEngine {
 		UIManager.removeComponents();
 		WinLogin.onConnectionRequest = onConnectionRequest;
 		WinLogin.onExitRequest = onExitRequest;
-		WinLogin.append();
+		showLoginScreen();
+		// Back on the login screen: the remote mode takes a new room or link again
+		RemoteBot.setLoginScreen(askRemoteLink);
 
 		Network.close();
 	}
@@ -253,14 +271,63 @@ class LoginEngine {
 function backToLogin() {
 	AutoRetry.disarm();
 	UIManager.removeComponents();
+	showLoginScreen();
+}
+
+/**
+ * The account's bots when a hall is set, else the login window and the way to them
+ *
+ * @see docs/reference/network/remote-bot.md
+ */
+function showLoginScreen() {
+	if (BotHall.loadSettings()) {
+		RemoteCharacters.append();
+	} else {
+		// No hall: a room the list opened before is no use for the login window
+		RemoteBot.leave();
+		WinLogin.append();
+		RemoteEntry.append();
+	}
+}
+
+/**
+ * From the login window to the account's bots
+ */
+function showLoginScreenFresh() {
+	WinLogin.remove();
+	RemoteEntry.remove();
+	showLoginScreen();
+}
+
+/**
+ * The usual login window, and the way back to the bots
+ */
+function showWinLogin() {
+	BotHall.leave();
+	RemoteBot.leave();
+	RemoteCharacters.remove();
 	WinLogin.append();
+	RemoteEntry.append();
+}
+
+/**
+ * A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
+ *
+ * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+ * @see docs/reference/network/remote-bot.md
+ */
+function attachRemote(room) {
+	if (RemoteBot.useRoom(room)) {
+		RemoteCharacters.remove();
+		onConnectionRequest('remote', 'remote');
+	}
 }
 
 /**
  * Report a failed login attempt.
  *
  * @param {string} text - message to display
- * @param {string} kind - 'network', 'refuse' or 'ban', for the retry policy
+ * @param {string} kind - 'network', 'refuse', 'ban' or 'remote' (never retried), for the retry policy
  * @param {number} [code] - server error code, unused for 'network'
  * @param {function} [onOk=backToLogin] - 'ok' callback, which must disarm auto-retry
  */
@@ -270,6 +337,29 @@ function failLogin(text, kind, code, onOk = backToLogin) {
 	if (AutoRetry.canRetry(kind, code)) {
 		AutoRetry.schedule(box);
 	}
+}
+
+/**
+ * Ask for a remote bot link (#remote alone, or Alt+Shift+R)
+ *
+ * @param {boolean} badLink - the last link was no bot link
+ * @see docs/reference/network/remote-bot.md
+ */
+function askRemoteLink(badLink) {
+	if (badLink) {
+		UIManager.showMessageBox('This is not a remote client link.', 'ok', () => askRemoteLink(false), true);
+		return;
+	}
+
+	InputBox.append();
+	InputBox.setType('text', false);
+	InputBox.getRoot().querySelector('.text').textContent = 'Paste the remote client link';
+	InputBox.onSubmitRequest = function onSubmitRequest(text) {
+		InputBox.remove();
+		if (!RemoteBot.setLink(text)) {
+			askRemoteLink(true);
+		}
+	};
 }
 
 /**
@@ -289,6 +379,7 @@ function onConnectionRequest(username, password) {
 	// Add the loading screen
 	// Store the ID to use for the ping
 	WinLogin.remove();
+	RemoteEntry.remove();
 	WinLoading.append();
 	_loginID = username;
 
@@ -296,7 +387,8 @@ function onConnectionRequest(username, password) {
 	Network.connect(_server.address, _server.port, success => {
 		// Fail to connect...
 		if (!success) {
-			failLogin(DB.getMessage(1), 'network');
+			const remote = RemoteBot.failure();
+			failLogin(remote ? remote.text : DB.getMessage(1), remote && remote.permanent ? 'remote' : 'network');
 			return;
 		}
 
@@ -428,6 +520,8 @@ function onCharServerSelected(index) {
  */
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
+	RemoteBot.setLoginScreen(null);
+	BotHall.leave();
 
 	Session.AuthCode = pkt.AuthCode;
 	Session.AID = pkt.AID;
@@ -452,8 +546,8 @@ function onConnectionAccepted(pkt) {
 			: ' ' + DB.getMessage(483).replace('%d', _charServers[i].usercount);
 	}
 
-	// No choice, connect directly to the server
-	if (count === 1 && Configs.get('skipServerList')) {
+	// No choice, connect directly to the server (a bot answers with the one it plays on)
+	if (count === 1 && (Configs.get('skipServerList') || RemoteBot.isActive())) {
 		WinLoading.append();
 		Session.ServerName = _charServers[0].name; // Save server name
 		Network.onDisconnect = null; // Let CharEngine handle its own disconnects

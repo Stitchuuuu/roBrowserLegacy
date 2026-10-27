@@ -1,0 +1,2 @@
+@meitogi/signal v0.1.2 (github.com/meitogi/signal, tag v0.1.2, commit 6b7bd6a32578411952bdc8c3ee8abb7d37d2e773)
+Browser entry and its relative imports only (src/index.js closure), copied unchanged. MIT, see LICENSE.

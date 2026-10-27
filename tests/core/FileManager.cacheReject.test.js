@@ -2,27 +2,22 @@
  * tests/core/FileManager.cacheReject.test.js
  *
  * A downloaded file whose cache write throws must still reach its caller,
- * once. Chromium's sync FileSystem API refuses some EUC-KR-as-latin1 folder
- * names (SecurityError), which used to turn every ground texture into null.
+ * once. A throw there used to call back a second time with null, which turned
+ * every ground texture into nothing.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('FileManager.getHTTP with a cache that rejects the path', () => {
+describe('FileManager.getHTTP with a cache that rejects every write', () => {
 	beforeEach(() => {
-		const rejectNonAscii = path => {
-			if (/[^\x00-\x7f]/.test(path)) {
-				const err = new Error('certain files are unsafe for access');
-				err.name = 'SecurityError';
-				throw err;
-			}
+		const reject = () => {
+			const err = new Error('certain files are unsafe for access');
+			err.name = 'SecurityError';
+			throw err;
 		};
 		const fsSync = {
 			root: {
-				getDirectory: rejectNonAscii,
-				getFile: path => {
-					rejectNonAscii(path);
-					return { createWriter: () => ({ write() {} }) };
-				}
+				getDirectory: reject,
+				getFile: reject
 			}
 		};
 		self.TEMPORARY = 0;
@@ -55,7 +50,9 @@ describe('FileManager.getHTTP with a cache that rejects the path', () => {
 
 		const callback = vi.fn();
 		FileManager.getHTTP('data\\texture\\\xc7\xca\xb5\xe5\\prt_01.bmp', callback);
-		await new Promise(r => setTimeout(r, 0));
+		// Under a loaded run the fetch chain may need more than one tick
+		await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+		await new Promise(r => setTimeout(r, 10));
 
 		expect(callback).toHaveBeenCalledOnce();
 		expect(callback).toHaveBeenCalledWith(body);

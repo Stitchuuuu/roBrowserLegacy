@@ -19,6 +19,7 @@ import PacketCrypt from './PacketCrypt.js';
 import PacketLength from './PacketLength.js';
 import WebSocket from './SocketHelpers/WebSocket.js';
 import NodeSocket from './SocketHelpers/NodeSocket.js';
+import RemoteBot from './RemoteBot.js';
 
 /**
  * Sockets list
@@ -33,14 +34,19 @@ const _sockets = [];
 let _socketFactory = null;
 
 /**
- * Default socket factory - creates NodeSocket or WebSocket based on environment.
+ * Default socket factory - the remote bot's socket in remote mode, else NodeSocket or WebSocket.
  * Custom factories can call this as a fallback.
  *
  * @param {string} host
  * @param {number} port
  * @return {Socket}
+ * @see docs/reference/network/remote-bot.md
  */
 function defaultSocketFactory(host, port) {
+	if (RemoteBot.isActive()) {
+		return RemoteBot.socket();
+	}
+
 	const proxy = Configs.get('socketProxy', null);
 
 	if (NodeSocket.isSupported()) {
@@ -240,8 +246,9 @@ function connect(host, port, callback, isZone) {
 			socket.onMessage = receive;
 			_sockets.push((_socket = socket));
 
-			// Map server encryption
-			if (isZone) {
+			// Map server encryption, done by the bot in remote mode
+			// See docs/reference/network/remote-bot.md
+			if (isZone && !RemoteBot.isActive()) {
 				PacketCrypt.init();
 			}
 		}

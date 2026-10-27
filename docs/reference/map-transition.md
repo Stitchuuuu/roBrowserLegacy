@@ -56,8 +56,8 @@ The three builds agree on all of this.
   first append, or a plain `remove()` / `append()`, passes nothing):
   - the inventory, the cart and the equipment keep their items, which the
     server sends again after the load and which replace them by index;
-  - the chat keeps its active tab, the shortcut bar its running cooldowns,
-    the minimap its party, guild and NPC marks until the map changes;
+  - the shortcut bar keeps its running cooldowns, the minimap its party,
+    guild and NPC marks until the map changes;
   - the attendance window prints its "no event" notice once, not on every
     teleport.
 

@@ -1,0 +1,166 @@
+:host {
+	width: 280px;
+	height: 200px;
+}
+
+#RemoteCharacters {
+	position: relative;
+	width: 280px;
+	height: 200px;
+	background-color: white;
+	box-shadow: 0 0 0 1px #8c97a6;
+	color: black;
+	font-size: 12px;
+}
+
+#RemoteCharacters .slice {
+	position: absolute;
+	top: 0;
+	background-repeat: no-repeat;
+}
+
+#RemoteCharacters .titlebar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 280px;
+	height: 17px;
+}
+#RemoteCharacters .titlebar .slice {
+	width: 12px;
+	height: 17px;
+}
+#RemoteCharacters .titlebar .left {
+	left: 0;
+}
+#RemoteCharacters .titlebar .mid {
+	left: 12px;
+	width: 256px;
+	background-repeat: repeat-x;
+}
+#RemoteCharacters .titlebar .right {
+	right: 0;
+}
+#RemoteCharacters .titlebar .text {
+	position: absolute;
+	top: 2px;
+	left: 17px;
+	font-weight: bold;
+	text-shadow: 1px 1px white;
+	white-space: nowrap;
+}
+
+#RemoteCharacters .list {
+	position: absolute;
+	top: 22px;
+	left: 6px;
+	width: 266px;
+	height: 140px;
+	overflow-y: auto;
+	background-color: #f7f7f7;
+	border: 1px solid #d4d9e0;
+}
+#RemoteCharacters .bot {
+	position: relative;
+	height: 31px;
+	padding: 3px 6px 0 20px;
+	border-bottom: 1px solid #e3e7ec;
+}
+#RemoteCharacters .bot.selected {
+	background-color: #cfdcf0;
+}
+#RemoteCharacters .bot .dot {
+	position: absolute;
+	top: 8px;
+	left: 7px;
+	font-size: 10px;
+	color: #3b7d3b;
+}
+#RemoteCharacters .bot .name {
+	font-weight: bold;
+}
+#RemoteCharacters .bot .job {
+	margin-left: 6px;
+	color: #4a5f7f;
+}
+#RemoteCharacters .bot .map {
+	position: absolute;
+	top: 3px;
+	right: 6px;
+	color: #666666;
+}
+#RemoteCharacters .bot .sub {
+	margin-top: 2px;
+	font-size: 11px;
+	color: #888888;
+}
+#RemoteCharacters .bot .state {
+	position: absolute;
+	top: 18px;
+	right: 6px;
+	font-size: 11px;
+	color: #2a5db0;
+}
+#RemoteCharacters .message {
+	padding: 26px 14px 0;
+	text-align: center;
+	line-height: 16px;
+	color: #666666;
+}
+#RemoteCharacters .message.error {
+	color: #aa3333;
+}
+
+#RemoteCharacters .footer {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 280px;
+	height: 29px;
+}
+#RemoteCharacters .footer .slice {
+	width: 21px;
+	height: 29px;
+}
+#RemoteCharacters .footer .left {
+	left: 0;
+}
+#RemoteCharacters .footer .mid {
+	left: 21px;
+	width: 238px;
+	background-repeat: repeat-x;
+}
+#RemoteCharacters .footer .right {
+	right: 0;
+}
+#RemoteCharacters .txt {
+	position: absolute;
+	bottom: 5px;
+	height: 20px;
+	padding: 0;
+	border: 0;
+	background-color: transparent;
+	background-size: 100% 20px;
+	font-size: 11px;
+	color: #333333;
+}
+#RemoteCharacters .settings {
+	left: 6px;
+	width: 62px;
+}
+#RemoteCharacters .login {
+	left: 72px;
+	width: 84px;
+}
+#RemoteCharacters .btn {
+	position: absolute;
+	right: 5px;
+	bottom: 5px;
+	width: 42px;
+	height: 20px;
+	border: 0;
+	background-color: transparent;
+}
+#RemoteCharacters .btn:disabled {
+	opacity: 0.5;
+}

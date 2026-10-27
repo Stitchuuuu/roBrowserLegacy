@@ -21,6 +21,9 @@ const mocks = vi.hoisted(() => {
 		bgm: { play: vi.fn(), setAvailableExtensions: vi.fn() },
 		winLogin: { append: record('WinLogin.append') },
 		skillTarget: { remove: vi.fn() },
+		remoteBot: { isActive: vi.fn(() => false), setLoginScreen: vi.fn(), leave: vi.fn(), failure: vi.fn() },
+		charEngine: { init: vi.fn() },
+		winList: { append: vi.fn(), setList: vi.fn() },
 		uiManager: {
 			removeComponents: record('UIManager.removeComponents'),
 			showErrorBox: vi.fn(),
@@ -30,14 +33,17 @@ const mocks = vi.hoisted(() => {
 	};
 });
 
-const packet = name => ({ name });
+// Constructible (onConnectionAccepted builds its ping packet) and named for the hook map
+const packet = name => Object.defineProperty(function Packet() {}, 'name', { value: name });
 
 vi.mock('Network/NetworkManager.js', () => ({
 	default: {
 		hookPacket: (struct, fn) => {
 			mocks.hooks[struct.name] = fn;
 		},
-		close: vi.fn()
+		close: vi.fn(),
+		setPing: vi.fn(),
+		sendPacket: vi.fn()
 	}
 }));
 vi.mock('Network/PacketStructure.js', () => ({
@@ -54,17 +60,22 @@ vi.mock('Utils/CodepageManager.js', () => ({ default: { detectEncodingByLangtype
 vi.mock('Audio/BGM.js', () => ({ default: mocks.bgm }));
 vi.mock('Audio/SoundManager.js', () => ({ default: { play: vi.fn() } }));
 vi.mock('Engine/SessionStorage.js', () => ({ default: {} }));
-vi.mock('Engine/CharEngine.js', () => ({ default: { init: vi.fn() } }));
+vi.mock('Engine/CharEngine.js', () => ({ default: mocks.charEngine }));
+vi.mock('Network/RemoteBot.js', () => ({ default: mocks.remoteBot }));
 vi.mock('Plugins/PluginManager.js', () => ({ default: { init: vi.fn() } }));
 vi.mock('Renderer/Renderer.js', () => ({ default: mocks.renderer }));
 vi.mock('Renderer/MapRenderer.js', () => ({ default: mocks.mapRenderer }));
 vi.mock('UI/UIManager.js', () => ({ default: mocks.uiManager }));
 vi.mock('UI/Background.js', () => ({ default: mocks.background }));
-vi.mock('UI/Components/WinList/WinList.js', () => ({ default: {} }));
-vi.mock('UI/Components/WinPopup/WinPopup.js', () => ({ default: { clone: () => ({}) } }));
+vi.mock('UI/Components/WinList/WinList.js', () => ({ default: mocks.winList }));
+vi.mock('UI/Components/WinPopup/WinPopup.js', () => ({ default: { clone: () => ({ append: vi.fn(), remove: vi.fn() }) } }));
 vi.mock('UI/Components/WinLogin/WinLogin.js', () => ({
 	default: Object.assign(mocks.winLogin, { selectUIVersion: vi.fn() })
 }));
+vi.mock('UI/Components/RemoteCharacters/RemoteCharacters.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('UI/Components/RemoteSettings/RemoteSettings.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('UI/Components/RemoteEntry/RemoteEntry.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('Network/BotHall.js', () => ({ default: { loadSettings: () => null, leave: vi.fn() } }));
 vi.mock('UI/Components/SkillTargetSelection/SkillTargetSelection.js', () => ({ default: mocks.skillTarget }));
 vi.mock('Vendors/spark-md5.min.js', () => ({ default: {} }));
 vi.mock('Utils/Rijndael.js', () => ({ default: {} }));
@@ -108,5 +119,43 @@ describe('LoginEngine SC.NOTIFY_BAN', () => {
 			'WinLogin.append'
 		]);
 		expect(mocks.bgm.play).toHaveBeenCalledWith('01.mp3');
+	});
+});
+
+describe('LoginEngine login accepted', () => {
+	const SERVER = { name: 'rAthena', state: 0, usercount: 0, property: 0 };
+
+	beforeEach(() => {
+		LoginEngine.init({ address: '127.0.0.1', port: 6900 });
+		mocks.charEngine.init.mockClear();
+	});
+
+	it('enters the one char server without its list in the remote mode', () => {
+		mocks.remoteBot.isActive.mockReturnValue(true);
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+		mocks.remoteBot.isActive.mockReturnValue(false);
+
+		expect(mocks.charEngine.init).toHaveBeenCalledWith(SERVER);
+	});
+
+	it('shows the server list otherwise', () => {
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+
+		expect(mocks.charEngine.init).not.toHaveBeenCalled();
+		expect(mocks.winList.append).toHaveBeenCalled();
+	});
+
+	it('back on the login screen, the remote mode takes a room or a link again', () => {
+		mocks.remoteBot.setLoginScreen.mockClear();
+		LoginEngine.reload();
+
+		expect(mocks.remoteBot.setLoginScreen).toHaveBeenCalledWith(expect.any(Function));
+	});
+
+	it('without hall settings, a room the list opened is left before the login window', () => {
+		mocks.remoteBot.leave.mockClear();
+		LoginEngine.reload();
+
+		expect(mocks.remoteBot.leave).toHaveBeenCalledOnce();
 	});
 });
