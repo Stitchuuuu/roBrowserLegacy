@@ -290,6 +290,28 @@ describe('bot hall', () => {
 		}
 	});
 
+	it('a bot that leaves while asked rejects its open at once', async () => {
+		const room = await joined();
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		b1.say(HELLO);
+		const opened = BotHall.open('b1');
+		room.emit('leave', b1, 'closed');
+
+		await expect(opened).rejects.toMatchObject({ code: 'gone' });
+	});
+
+	it('a hall closed while a bot is asked rejects its open at once', async () => {
+		const room = await joined();
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		b1.say(HELLO);
+		const opened = BotHall.open('b1');
+		room.emit('close', Object.assign(new Error('relay'), { code: 'relay' }));
+
+		await expect(opened).rejects.toMatchObject({ code: 'gone' });
+	});
+
 	it('an open on a bot not listed rejects at once', async () => {
 		await joined();
 

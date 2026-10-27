@@ -49,9 +49,10 @@ RemoteSettings.init = function init() {
 	this._host.style.left = `${(Renderer.width - 320) / 2}px`;
 	this.draggable(root.querySelector('.titlebar'));
 
-	root.querySelectorAll('input').forEach(input => {
-		input.addEventListener('mousedown', event => event.stopImmediatePropagation());
-	});
+	const inputs = root.querySelectorAll('input');
+	for (let i = 0; i < inputs.length; ++i) {
+		inputs[i].addEventListener('mousedown', event => event.stopImmediatePropagation());
+	}
 	root.querySelector('.new').addEventListener('click', () => {
 		root.querySelector('.secret').value = newSecret();
 		say('A new secret: copy it to your remote clients.');
@@ -99,7 +100,9 @@ RemoteSettings.onKeyDown = function onKeyDown(event) {
 /**
  * Callback to define: the window is done (saved, forgotten or cancelled)
  */
-RemoteSettings.onClose = function onClose() {};
+RemoteSettings.onClose = function onClose() {
+	// Set by LoginEngine
+};
 
 /**
  * @return {{relay: string, relayKey: string, room: string, secret: string}}
@@ -127,21 +130,31 @@ function say(text, error) {
 }
 
 /**
+ * @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+ * @return {?string} what is wrong, null when nothing is
+ */
+function check(settings) {
+	if (!/^wss?:\/\/./.test(settings.relay)) {
+		return 'The relay is a wss:// address.';
+	}
+	if (!settings.room || settings.room.length > 64) {
+		return 'Name the hall (64 characters at most).';
+	}
+	if (!/^[\w-]{43}$/.test(settings.secret)) {
+		return 'The secret is not valid: press New for one.';
+	}
+	return null;
+}
+
+/**
  * Save and close, or say what is wrong
  */
 function validate() {
 	const settings = read();
+	const wrong = check(settings);
 
-	if (!/^wss?:\/\/./.test(settings.relay)) {
-		say('The relay is a wss:// address.', true);
-		return;
-	}
-	if (!settings.room || settings.room.length > 64) {
-		say('Name the hall (64 characters at most).', true);
-		return;
-	}
-	if (!/^[\w-]{43}$/.test(settings.secret)) {
-		say('The secret is not valid: press New for one.', true);
+	if (wrong) {
+		say(wrong, true);
 		return;
 	}
 
@@ -152,17 +165,22 @@ function validate() {
 }
 
 /**
- * The `spectate` block each bot of this hall needs in its config
+ * The `spectate` block each remote client of this hall needs in its config
+ * @see docs/reference/network/remote-bot.md
  */
 function copy() {
-	const s = read();
-	const block = `"spectate": ${JSON.stringify({ relay: s.relay, relayKey: s.relayKey, room: s.room, secret: s.secret }, null, '\t')}`;
+	const settings = read();
+	const wrong = check(settings);
 
+	if (wrong) {
+		say(wrong, true);
+		return;
+	}
 	if (!navigator.clipboard) {
 		say('This browser cannot copy here.', true);
 		return;
 	}
-	navigator.clipboard.writeText(block).then(
+	navigator.clipboard.writeText(`"spectate": ${JSON.stringify(settings, null, '\t')}`).then(
 		() => say('Copied: paste it into each remote client config.'),
 		() => say('This browser refused to copy.', true)
 	);

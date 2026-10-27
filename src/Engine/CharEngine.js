@@ -234,6 +234,7 @@ function pickOnlyCharacter(charInfo, last) {
  *
  * @param {Array} [charInfo] - characters just received
  * @param {boolean} last - no more characters to come
+ * @see docs/reference/network/remote-bot.md
  */
 function pickNamedCharacter(charInfo, last) {
 	if (!_pickName) {

@@ -58,9 +58,14 @@ let _selected = null;
 let _opening = null;
 
 /**
- * @var {?string} _error - last open failure, shown until the list changes hands
+ * @var {?{id: string, text: string}} _failure - the last open that failed, shown on its row
  */
-let _error = null;
+let _failure = null;
+
+/**
+ * @var {number} _shown - counts the times the list was removed: an answer for an older list is dropped
+ */
+let _shown = 0;
 
 /**
  * Initialize UI
@@ -75,6 +80,12 @@ RemoteCharacters.init = function init() {
 	root.querySelector('.settings').addEventListener('click', () => RemoteCharacters.onSettingsRequest());
 	root.querySelector('.login').addEventListener('click', () => RemoteCharacters.onLoginRequest());
 	root.querySelector('.connect').addEventListener('click', () => open());
+	// On the list, not the rows: a row is rebuilt when the hall changes
+	root.querySelector('.list').addEventListener('dblclick', event => {
+		if (event.target.closest('.bot')) {
+			open();
+		}
+	});
 };
 
 /**
@@ -85,7 +96,7 @@ RemoteCharacters.onAppend = function onAppend() {
 
 	_selected = null;
 	_opening = null;
-	_error = null;
+	_failure = null;
 	BotHall.onChange(update);
 	if (settings && BotHall.state() === 'off') {
 		BotHall.join(settings);
@@ -98,6 +109,7 @@ RemoteCharacters.onAppend = function onAppend() {
  */
 RemoteCharacters.onRemove = function onRemove() {
 	BotHall.onChange(null);
+	_shown++;
 };
 
 /**
@@ -130,9 +142,15 @@ RemoteCharacters.onKeyDown = function onKeyDown(event) {
 /**
  * Callbacks to define
  */
-RemoteCharacters.onSettingsRequest = function onSettingsRequest() {};
-RemoteCharacters.onLoginRequest = function onLoginRequest() {};
-RemoteCharacters.onRoomOpened = function onRoomOpened() {};
+RemoteCharacters.onSettingsRequest = function onSettingsRequest() {
+	// Set by LoginEngine
+};
+RemoteCharacters.onLoginRequest = function onLoginRequest() {
+	// Set by LoginEngine
+};
+RemoteCharacters.onRoomOpened = function onRoomOpened() {
+	// Set by LoginEngine
+};
 
 /**
  * @param {?object} bot
@@ -140,40 +158,60 @@ RemoteCharacters.onRoomOpened = function onRoomOpened() {};
 function select(bot) {
 	if (bot && !_opening) {
 		_selected = bot.id;
-		update();
+		mark();
 	}
 }
 
 /**
+ * Show the selection without rebuilding the rows (a rebuilt row would lose a double click)
+ */
+function mark() {
+	const root = RemoteCharacters.getRoot();
+	const rows = root.querySelectorAll('.bot');
+
+	for (let i = 0; i < rows.length; ++i) {
+		rows[i].classList.toggle('selected', rows[i].dataset.id === _selected);
+	}
+	root.querySelector('.connect').disabled = !_selected || !!_opening;
+}
+
+/**
  * Ask the selected bot for a room of its own
+ * @see docs/reference/network/remote-bot.md
  */
 function open() {
 	const settings = BotHall.loadSettings();
-	const id = _selected;
-	const bot = BotHall.bots().find(b => b.id === id);
+	const bot = BotHall.bots().find(b => b.id === _selected);
+	const shown = _shown;
 
-	if (!id || _opening || !settings) {
+	if (!bot || _opening || !settings) {
 		return;
 	}
 
-	_opening = id;
-	_error = null;
+	_opening = bot.id;
+	_failure = null;
 	update();
 
-	BotHall.open(id).then(
+	BotHall.open(bot.id).then(
 		answer => {
+			if (shown !== _shown) {
+				return;
+			}
 			_opening = null;
 			RemoteCharacters.onRoomOpened({
 				relay: settings.relay,
 				relayKey: settings.relayKey,
 				room: answer.room,
 				secret: answer.secret,
-				character: bot && bot.playing ? bot.playing.name : null
+				character: bot.playing ? bot.playing.name : null
 			});
 		},
 		err => {
+			if (shown !== _shown) {
+				return;
+			}
 			_opening = null;
-			_error = OPEN_FAILURES[err.code] || 'This remote client could not open a room.';
+			_failure = { id: bot.id, text: OPEN_FAILURES[err.code] || 'This remote client could not open a room.' };
 			update();
 		}
 	);
@@ -207,6 +245,7 @@ function row(bot) {
 	];
 
 	node.className = bot.id === _selected ? 'bot selected' : 'bot';
+	node.dataset.id = bot.id;
 	for (let i = 0; i < parts.length; ++i) {
 		const span = document.createElement('span');
 		span.className = parts[i][0];
@@ -223,8 +262,8 @@ function row(bot) {
 	state.className = 'state';
 	if (bot.id === _opening) {
 		state.textContent = 'Opening…';
-	} else if (bot.id === _selected && _error) {
-		state.textContent = _error;
+	} else if (_failure && _failure.id === bot.id) {
+		state.textContent = _failure.text;
 	} else if (bot.windows) {
 		state.textContent = `${bot.windows} window${bot.windows === 1 ? '' : 's'} open`;
 	}
@@ -234,7 +273,6 @@ function row(bot) {
 		select(bot);
 		event.stopImmediatePropagation();
 	});
-	node.addEventListener('dblclick', () => open());
 	return node;
 }
 
@@ -277,7 +315,7 @@ function update() {
 		}
 	}
 
-	root.querySelector('.connect').disabled = !_selected || !!_opening;
+	mark();
 }
 
 /**

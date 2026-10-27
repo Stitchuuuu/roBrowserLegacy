@@ -19,13 +19,13 @@ const SETTINGS_KEY = 'botHall';
  * Members a hall holds: the page and the bots of the account (the relay caps it too)
  * @const {number}
  */
-export const HALL_MAX = 40;
+const HALL_MAX = 40;
 
 /**
  * How long a bot has to answer an open
  * @const {number}
  */
-export const OPEN_WAIT_MS = 15000;
+const OPEN_WAIT_MS = 15000;
 
 /**
  * @var {?object} _room - the hall, once joined
@@ -86,15 +86,7 @@ BotHall.loadSettings = function loadSettings() {
  */
 BotHall.saveSettings = function saveSettings(settings) {
 	try {
-		localStorage.setItem(
-			SETTINGS_KEY,
-			JSON.stringify({
-				relay: settings.relay,
-				relayKey: settings.relayKey,
-				room: settings.room,
-				secret: settings.secret
-			})
-		);
+		localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 	} catch (_e) {
 		// Private mode: asked again next time
 	}
@@ -149,6 +141,7 @@ BotHall.waiting = function waiting() {
  * Join the hall, leaving the one before
  *
  * @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+ * @see docs/reference/network/remote-bot.md
  */
 BotHall.join = function join(settings) {
 	BotHall.leave();
@@ -185,6 +178,11 @@ BotHall.join = function join(settings) {
 			return;
 		}
 		delete _bots[peer.id];
+		for (const n in _opens) {
+			if (_opens[n].peer === peer.id) {
+				settle(Number(n), null, 'gone');
+			}
+		}
 		changed();
 		// A cut link does not come back by itself
 		if (room.members.indexOf(peer.id) >= 0) {
@@ -200,6 +198,9 @@ BotHall.join = function join(settings) {
 		}
 		_state = err ? err.code : 'off';
 		_bots = Object.create(null);
+		for (const n in _opens) {
+			settle(Number(n), null, 'gone');
+		}
 		changed();
 	});
 	room.ready.then(
@@ -239,6 +240,7 @@ BotHall.leave = function leave() {
  *
  * @param {string} id - the bot's peer id
  * @return {Promise<{room: string, secret: string}>} rejected with an Error whose code is the bot's refusal, gone or no-answer
+ * @see docs/reference/network/remote-bot.md
  */
 BotHall.open = function open(id) {
 	const bot = _bots[id];
@@ -310,16 +312,7 @@ function link(room, peer) {
 		}
 
 		if (m.t === 'hello') {
-			_bots[peer.id] = {
-				id: peer.id,
-				via: peer.via,
-				peer: peer,
-				kind: m.kind,
-				account: m.account,
-				chars: m.chars,
-				playing: m.playing,
-				windows: m.windows
-			};
+			_bots[peer.id] = Object.assign(m, { id: peer.id, via: peer.via, peer: peer });
 			changed();
 		} else if ((m.t === 'room' || m.t === 'no') && _opens[m.id] && _opens[m.id].peer === peer.id) {
 			settle(m.id, m.t === 'room' ? { room: m.room, secret: m.secret } : null, m.why);
@@ -359,6 +352,9 @@ function settle(n, answer, code) {
 	}
 }
 
+/**
+ * Tell the list
+ */
 function changed() {
 	if (_onChange) {
 		_onChange();

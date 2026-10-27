@@ -80,7 +80,10 @@ in roBrowserLegacy-Node:
   ids up to 2³¹-1, 8 KiB per message). An unknown `t` is ignored, so a newer
   side can add requests; anything else that does not fit cuts that peer only.
 - An answer settles an `open` only from the bot it was asked of; none within
-  15 s rejects it.
+  15 s rejects it, and so does the bot leaving the hall or the hall closing.
+- The page calls every member on each change of the member list; a link that
+  fails is tried again on the next change, a cut link is called again while
+  its bot is still a member, and every new link is asked `who`.
 - One vector pins the format on both sides: `tests/fixtures/hall-vector.json`
   here, `tests/node/fixtures/hall-vector.json` there.
 
@@ -92,16 +95,36 @@ with the hall's relay and key; the secret never goes through the address bar
 and nothing is kept for a reload (the room is the bot's to leave: when its
 window goes, or after a minute with nobody). A second window on the same bot
 gets its own room. The login then runs by itself with dummy credentials (the
-bot answers with its own), the one char server is entered without its list,
-and the character the bot plays is picked by name (`RemoteBot.character()`,
-`CharEngine`).
+bot answers with its own), the one char server is entered without its list
+(in the remote mode a bot always answers with the one it plays on, from a link
+too), and the character the bot plays is picked by name
+(`RemoteBot.character()`, `CharEngine`). An answer that comes once the list is
+gone (the player opened Settings meanwhile) is dropped.
 
-« Normal login » leaves a room the list opened, so a real login reaches the
-real server; a pasted link stays.
+What the list says when it cannot show remote clients, or one does not open:
+
+| what the player reads | when |
+|---|---|
+| Entering the hall… | the hall is being joined |
+| Calling the remote clients of the hall… | members are there, none has said `hello` yet |
+| No remote client in this hall… | nobody else in the room: no bot runs, or the hall or secret differ (a wrong secret leads to another room) |
+| The relay refused the key / The hall secret is not valid / These settings are not valid | `key` / `secret` / `options` closed the hall |
+| The hall is full / The relay cut this window | `room-full` / `rate` |
+| Cannot reach the relay (code) | any other code that closed the hall |
+| This remote client has too many windows open | `no`, `busy` (four windows per bot) |
+| This remote client left the hall | `gone`: it left, or the hall closed, while asked |
+| This remote client did not answer | no answer within 15 s |
+| This remote client could not open a room | `no`, `error`: its fresh room failed |
+
+« Normal login », or a login screen without hall settings, leaves a room the
+list opened, so a real login reaches the real server; a pasted link stays.
+Back from the character select to the login screen, the mode takes a new room
+or link again.
 
 ## The sockets
 
-`Network/RemoteBot.js` joins the room with `max: 2` (the bot and this window), from a link or from the list.
+`Network/RemoteBot.js` joins the room with `max: 2` (the bot and this
+window), from a link or from the list.
 `NetworkManager.defaultSocketFactory` returns a remote socket while the mode
 is on. Both ways of building a socket reach it: `connect()` calls the module's
 own default, and the native plugin manager's socket observer, which installs

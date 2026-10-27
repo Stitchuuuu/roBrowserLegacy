@@ -89,8 +89,9 @@ function char(c, what) {
  *
  * @param {*} m
  * @return {?object} null for an unknown type
+ * @see docs/reference/network/remote-bot.md
  */
-export function normalize(m) {
+function normalize(m) {
 	if (!m || typeof m !== 'object' || Array.isArray(m)) {
 		fail('not an object');
 	}

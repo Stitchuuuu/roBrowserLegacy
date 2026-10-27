@@ -31,7 +31,9 @@ RemoteEntry.init = function init() {
 /**
  * Callback to define
  */
-RemoteEntry.onRequest = function onRequest() {};
+RemoteEntry.onRequest = function onRequest() {
+	// Set by LoginEngine
+};
 
 /**
  * Stored component and return it

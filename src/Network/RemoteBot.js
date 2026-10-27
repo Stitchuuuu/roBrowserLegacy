@@ -111,6 +111,7 @@ RemoteBot.setLink = function setLink(text) {
  *
  * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room - character: the one the bot plays
  * @return {boolean} false once the login is over
+ * @see docs/reference/network/remote-bot.md
  */
 RemoteBot.useRoom = function useRoom(room) {
 	if (_inGame) {

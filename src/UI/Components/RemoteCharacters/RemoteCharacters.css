@@ -65,7 +65,6 @@
 	height: 31px;
 	padding: 3px 6px 0 20px;
 	border-bottom: 1px solid #e3e7ec;
-	cursor: pointer;
 }
 #RemoteCharacters .bot.selected {
 	background-color: #cfdcf0;

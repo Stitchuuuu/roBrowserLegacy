@@ -173,10 +173,15 @@ class LoginEngine {
 
 		WinLogin.onConnectionRequest = onConnectionRequest;
 		WinLogin.onExitRequest = onExitRequest;
-		RemoteCharacters.onSettingsRequest = showRemoteSettings;
+		RemoteCharacters.onSettingsRequest = () => RemoteSettings.append();
 		RemoteCharacters.onLoginRequest = showWinLogin;
 		RemoteCharacters.onRoomOpened = attachRemote;
-		RemoteEntry.onRequest = () => (BotHall.loadSettings() ? showLoginScreenFresh() : showRemoteSettings());
+		RemoteEntry.onRequest = () => (BotHall.loadSettings() ? showLoginScreenFresh() : RemoteSettings.append());
+		RemoteSettings.onClose = () => {
+			RemoteSettings.remove();
+			RemoteCharacters.remove();
+			showLoginScreenFresh();
+		};
 
 		// Handle unexpected disconnects during login phase
 		Network.onDisconnect = () => {
@@ -241,6 +246,8 @@ class LoginEngine {
 		WinLogin.onConnectionRequest = onConnectionRequest;
 		WinLogin.onExitRequest = onExitRequest;
 		showLoginScreen();
+		// Back on the login screen: the remote mode takes a new room or link again
+		RemoteBot.setLoginScreen(askRemoteLink);
 
 		Network.close();
 	}
@@ -276,6 +283,8 @@ function showLoginScreen() {
 	if (BotHall.loadSettings()) {
 		RemoteCharacters.append();
 	} else {
+		// No hall: a room the list opened before is no use for the login window
+		RemoteBot.leave();
 		WinLogin.append();
 		RemoteEntry.append();
 	}
@@ -302,21 +311,10 @@ function showWinLogin() {
 }
 
 /**
- * The hall settings, then the screen they lead to
- */
-function showRemoteSettings() {
-	RemoteSettings.onClose = () => {
-		RemoteSettings.remove();
-		RemoteCharacters.remove();
-		showLoginScreenFresh();
-	};
-	RemoteSettings.append();
-}
-
-/**
  * A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
  *
  * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+ * @see docs/reference/network/remote-bot.md
  */
 function attachRemote(room) {
 	if (RemoteBot.useRoom(room)) {
