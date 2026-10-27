@@ -3,7 +3,8 @@
  *
  * After a map server it could not reach, auto-retry reloads char select and
  * picks the same character again as soon as the list holds it. Straight from
- * an auto-retry login, it picks an account's only character.
+ * an auto-retry login, it picks an account's only character. Attached to a
+ * remote bot from its list, it picks the character the bot plays.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,7 +22,8 @@ const mocks = vi.hoisted(() => {
 			setInfo: vi.fn(),
 			addCharacter: vi.fn()
 		},
-		winLoading: { append: vi.fn(), remove: vi.fn() }
+		winLoading: { append: vi.fn(), remove: vi.fn() },
+		botCharacter: null
 	};
 });
 
@@ -52,6 +54,7 @@ vi.mock('Network/NetworkManager.js', () => ({
 		utils: { longToIP: () => '127.0.0.1' }
 	}
 }));
+vi.mock('Network/RemoteBot.js', () => ({ default: { character: () => mocks.botCharacter } }));
 vi.mock('Network/PacketVerManager.js', () => ({ default: { value: 20211103 } }));
 vi.mock('DB/DBManager.js', () => ({ default: { getMessage: id => 'MSG ' + id } }));
 vi.mock('Core/Configs.js', () => ({ default: { get: (_k, d) => d, getServer: () => ({}) } }));
@@ -218,6 +221,62 @@ describe('CharEngine pick of the only character', () => {
 	it('does not pick when coming back from the game', () => {
 		CharEngine.reload(null);
 		deliver('ACCEPT_ENTER_NEO_UNION', { charInfo: [{ CharNum: 4 }] });
+
+		expect(picked()).toEqual([]);
+	});
+});
+
+describe('CharEngine pick of a remote bot\'s character', () => {
+	beforeEach(() => {
+		AutoRetry.disarm();
+		mocks.sent.length = 0;
+	});
+
+	afterEach(() => {
+		mocks.botCharacter = null;
+	});
+
+	it('picks the character the bot plays, by name', () => {
+		mocks.botCharacter = 'Second';
+		CharEngine.init(SERVER);
+		deliver('ACCEPT_ENTER_NEO_UNION', {
+			charInfo: [
+				{ CharNum: 0, name: 'First' },
+				{ CharNum: 3, name: 'Second' }
+			]
+		});
+
+		expect(picked()).toEqual([3]);
+	});
+
+	it('picks it from a later page of the list', () => {
+		mocks.botCharacter = 'Second';
+		CharEngine.init(SERVER);
+		deliver('ACCEPT_ENTER_NEO_UNION_HEADER', {});
+		deliver('ACCEPT_ENTER_NEO_UNION_LIST', {
+			charInfo: [
+				{ CharNum: 0, name: 'First' },
+				{ CharNum: 1, name: 'Third' },
+				{ CharNum: 2, name: 'Fourth' }
+			]
+		});
+		expect(picked()).toEqual([]);
+
+		deliver('ACCEPT_ENTER_NEO_UNION_LIST', { charInfo: [{ CharNum: 5, name: 'Second' }] });
+		expect(picked()).toEqual([5]);
+	});
+
+	it('leaves the pick to the player when the bot plays none of them', () => {
+		mocks.botCharacter = 'Gone';
+		CharEngine.init(SERVER);
+		deliver('ACCEPT_ENTER_NEO_UNION', { charInfo: [{ CharNum: 0, name: 'First' }] });
+
+		expect(picked()).toEqual([]);
+	});
+
+	it('picks nothing outside the remote mode', () => {
+		CharEngine.init(SERVER);
+		deliver('ACCEPT_ENTER_NEO_UNION', { charInfo: [{ CharNum: 0, name: 'First' }] });
 
 		expect(picked()).toEqual([]);
 	});

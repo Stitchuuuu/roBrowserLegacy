@@ -20,12 +20,12 @@ const STORAGE_KEY = 'remoteBot';
  * @const {object}
  */
 const FAILURES = {
-	'no-bot': 'Remote bot: no bot answered. Is it running, and is this link its current one?',
-	secret: 'Remote bot: the secret in this link is not valid.',
-	key: 'Remote bot: the relay refused the key.',
-	'room-full': 'Remote bot: another window is already attached to this bot.',
-	rate: 'Remote bot: the relay cut this window (too many messages).',
-	options: 'Remote bot: the link is not valid.'
+	'no-bot': 'Remote client: no remote client answered. Is it running, and is this link its current one?',
+	secret: 'Remote client: the secret in this link is not valid.',
+	key: 'Remote client: the relay refused the key.',
+	'room-full': 'Remote client: another window is already attached to this remote client.',
+	rate: 'Remote client: the relay cut this window (too many messages).',
+	options: 'Remote client: the link is not valid.'
 };
 
 /**
@@ -47,6 +47,16 @@ let _asking = false;
  * @var {boolean} _badLink - the page link was no bot link
  */
 let _badLink = false;
+
+/**
+ * @var {?string} _character - the character the bot plays, picked once listed
+ */
+let _character = null;
+
+/**
+ * @var {boolean} _listRoom - the room is one the bot list opened, not a link
+ */
+let _listRoom = false;
 
 /**
  * @var {boolean} _inGame - the login is over: the mode no longer changes
@@ -85,6 +95,8 @@ RemoteBot.setLink = function setLink(text) {
 		return false;
 	}
 
+	_character = null;
+	_listRoom = false;
 	join(link);
 	try {
 		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(link));
@@ -92,6 +104,52 @@ RemoteBot.setLink = function setLink(text) {
 		// Private mode: a reload asks again
 	}
 	return true;
+};
+
+/**
+ * Use a room a bot opened for this window (the bot list): nothing kept, a reload goes back to the list
+ *
+ * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room - character: the one the bot plays
+ * @return {boolean} false once the login is over
+ * @see docs/reference/network/remote-bot.md
+ */
+RemoteBot.useRoom = function useRoom(room) {
+	if (_inGame) {
+		return false;
+	}
+
+	_character = room.character || null;
+	_listRoom = true;
+	join({ relay: room.relay, relayKey: room.relayKey || undefined, room: room.room, secret: room.secret });
+	try {
+		sessionStorage.removeItem(STORAGE_KEY);
+	} catch (_e) {
+		// Nothing kept
+	}
+	return true;
+};
+
+/**
+ * @return {?string} the character to pick once listed, the one the bot plays
+ */
+RemoteBot.character = function character() {
+	return _sockets ? _character : null;
+};
+
+/**
+ * Back to the server from a room the bot list opened; a link stays
+ */
+RemoteBot.leave = function leave() {
+	if (_inGame || !_listRoom) {
+		return;
+	}
+	_listRoom = false;
+
+	if (_sockets) {
+		_sockets.leave();
+		_sockets = null;
+	}
+	_character = null;
 };
 
 /**
@@ -133,7 +191,7 @@ RemoteBot.failure = function failure() {
 	}
 
 	return {
-		text: FAILURES[code] || `Remote bot: cannot reach the relay (${code}).`,
+		text: FAILURES[code] || `Remote client: cannot reach the relay (${code}).`,
 		permanent: permanent
 	};
 };

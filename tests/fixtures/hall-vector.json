@@ -1,0 +1,221 @@
+{
+	"version": 1,
+	"maxText": 8192,
+	"maxChars": 15,
+	"encode": [
+		{
+			"name": "who",
+			"msg": {
+				"t": "who",
+				"v": 1
+			},
+			"text": "{\"t\":\"who\",\"v\":1}"
+		},
+		{
+			"name": "hello",
+			"msg": {
+				"t": "hello",
+				"v": 1,
+				"kind": "node",
+				"account": "node_spectate",
+				"chars": [
+					{
+						"name": "NodeSpectate",
+						"job": 7,
+						"lv": 40
+					},
+					{
+						"name": "Alt",
+						"job": 0,
+						"lv": 1
+					}
+				],
+				"playing": {
+					"name": "NodeSpectate",
+					"job": 7,
+					"lv": 40,
+					"map": "pay_fild02"
+				},
+				"windows": 1
+			},
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"node_spectate\",\"chars\":[{\"name\":\"NodeSpectate\",\"job\":7,\"lv\":40},{\"name\":\"Alt\",\"job\":0,\"lv\":1}],\"playing\":{\"name\":\"NodeSpectate\",\"job\":7,\"lv\":40,\"map\":\"pay_fild02\"},\"windows\":1}"
+		},
+		{
+			"name": "hello, not in game",
+			"msg": {
+				"t": "hello",
+				"v": 1,
+				"kind": "node",
+				"account": "a",
+				"chars": [],
+				"playing": null,
+				"windows": 0
+			},
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":null,\"windows\":0}"
+		},
+		{
+			"name": "open",
+			"msg": {
+				"t": "open",
+				"v": 1,
+				"id": 7
+			},
+			"text": "{\"t\":\"open\",\"v\":1,\"id\":7}"
+		},
+		{
+			"name": "room",
+			"msg": {
+				"t": "room",
+				"v": 1,
+				"id": 7,
+				"room": "Zk3pQ0aB1cD2eF3gH4iJ5k",
+				"secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			},
+			"text": "{\"t\":\"room\",\"v\":1,\"id\":7,\"room\":\"Zk3pQ0aB1cD2eF3gH4iJ5k\",\"secret\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}"
+		},
+		{
+			"name": "no",
+			"msg": {
+				"t": "no",
+				"v": 1,
+				"id": 2147483647,
+				"why": "busy"
+			},
+			"text": "{\"t\":\"no\",\"v\":1,\"id\":2147483647,\"why\":\"busy\"}"
+		}
+	],
+	"parse": [
+		{
+			"name": "keys in another order",
+			"text": "{\"v\":1,\"id\":3,\"t\":\"open\"}",
+			"msg": {
+				"t": "open",
+				"v": 1,
+				"id": 3
+			}
+		},
+		{
+			"name": "unknown fields dropped",
+			"text": "{\"t\":\"who\",\"v\":1,\"extra\":true}",
+			"msg": {
+				"t": "who",
+				"v": 1
+			}
+		},
+		{
+			"name": "a newer version of a known type",
+			"text": "{\"t\":\"open\",\"v\":2,\"id\":1}",
+			"msg": {
+				"t": "open",
+				"v": 2,
+				"id": 1
+			}
+		},
+		{
+			"name": "playing without extra fields",
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":{\"name\":\"P\",\"job\":1,\"lv\":2,\"map\":\"m\",\"x\":5},\"windows\":0}",
+			"msg": {
+				"t": "hello",
+				"v": 1,
+				"kind": "node",
+				"account": "a",
+				"chars": [],
+				"playing": {
+					"name": "P",
+					"job": 1,
+					"lv": 2,
+					"map": "m"
+				},
+				"windows": 0
+			}
+		}
+	],
+	"ignored": [
+		{
+			"name": "an unknown type",
+			"text": "{\"t\":\"dm\",\"v\":1,\"to\":\"x\"}"
+		}
+	],
+	"bad": [
+		{
+			"name": "not JSON",
+			"text": "{nope"
+		},
+		{
+			"name": "an array",
+			"text": "[1]"
+		},
+		{
+			"name": "null",
+			"text": "null"
+		},
+		{
+			"name": "no t",
+			"text": "{\"v\":1}"
+		},
+		{
+			"name": "no v",
+			"text": "{\"t\":\"who\"}"
+		},
+		{
+			"name": "v 0",
+			"text": "{\"t\":\"who\",\"v\":0}"
+		},
+		{
+			"name": "v a string",
+			"text": "{\"t\":\"who\",\"v\":\"1\"}"
+		},
+		{
+			"name": "t too long",
+			"text": "{\"t\":\"aaaaaaaaaaaaaaaaa\",\"v\":1}"
+		},
+		{
+			"name": "id negative",
+			"text": "{\"t\":\"open\",\"v\":1,\"id\":-1}"
+		},
+		{
+			"name": "id not an integer",
+			"text": "{\"t\":\"open\",\"v\":1,\"id\":1.5}"
+		},
+		{
+			"name": "id over 2^31-1",
+			"text": "{\"t\":\"open\",\"v\":1,\"id\":2147483648}"
+		},
+		{
+			"name": "room too long",
+			"text": "{\"t\":\"room\",\"v\":1,\"id\":1,\"room\":\"rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\",\"secret\":\"s\"}"
+		},
+		{
+			"name": "room empty",
+			"text": "{\"t\":\"room\",\"v\":1,\"id\":1,\"room\":\"\",\"secret\":\"s\"}"
+		},
+		{
+			"name": "why missing",
+			"text": "{\"t\":\"no\",\"v\":1,\"id\":1}"
+		},
+		{
+			"name": "16 characters",
+			"text": "{\"t\": \"hello\", \"v\": 1, \"kind\": \"node\", \"account\": \"a\", \"chars\": [{\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}, {\"name\": \"c\", \"job\": 0, \"lv\": 1}], \"playing\": null, \"windows\": 0}"
+		},
+		{
+			"name": "a name of 33",
+			"text": "{\"t\": \"hello\", \"v\": 1, \"kind\": \"node\", \"account\": \"a\", \"chars\": [{\"name\": \"nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn\", \"job\": 0, \"lv\": 1}], \"playing\": null, \"windows\": 0}"
+		},
+		{
+			"name": "playing missing",
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"windows\":0}"
+		},
+		{
+			"name": "playing without map",
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":{\"name\":\"P\",\"job\":1,\"lv\":2},\"windows\":0}"
+		},
+		{
+			"name": "windows 100",
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":null,\"windows\":100}"
+		},
+		{
+			"name": "longer than 8192",
+			"text": "{\"t\":\"who\",\"v\":1,\"pad\":\"pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp\"}"
+		}
+	]
+}

@@ -15,7 +15,7 @@ Each subdirectory or note covers one subsystem:
 | [keyboard-enter.md](keyboard-enter.md) | the Enter key: chat, buttons reached with Tab, and why never the inventory |
 | [cart-window.md](cart-window.md) | the cart window: when its position and size are saved, and its size limits |
 | [pet/](pet/) | pets: the name in front of a pet's talk line |
-| [network/remote-bot.md](network/remote-bot.md) | the remote mode: the game window on a running bot's session over WebRTC |
+| [network/remote-bot.md](network/remote-bot.md) | the remote mode: the game window on a running bot's session over WebRTC; Remote characters, the account's hall |
 
 ## Where the details come from
 

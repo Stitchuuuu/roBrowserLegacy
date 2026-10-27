@@ -16,6 +16,7 @@ import Sound from 'Audio/SoundManager.js';
 import BGM from 'Audio/BGM.js';
 import Session from 'Engine/SessionStorage.js';
 import AutoRetry from 'Engine/AutoRetry.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import MapEngine from 'Engine/MapEngine.js';
 import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -76,6 +77,11 @@ let _repickSlot = -1;
  * @type {boolean} pick the character once the list is complete, if it is the only one
  */
 let _pickOnly = false;
+
+/**
+ * @type {?string} character to pick by name once listed: the one a remote bot plays
+ */
+let _pickName = null;
 
 /**
  * @type {Array} characters listed since the char server accepted us
@@ -195,6 +201,7 @@ function onCharacterListChunk(pkt) {
 	// A page short of 3 characters ends the list
 	repickCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
 	pickOnlyCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+	pickNamedCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
 }
 
 /**
@@ -218,6 +225,28 @@ function pickOnlyCharacter(charInfo, last) {
 		if (_listed.length === 1) {
 			onConnectRequest(_listed[0]);
 		}
+	}
+}
+
+/**
+ * Go on with the character a remote bot plays, as soon as the list holds it.
+ * Without it in the list, the player picks by hand.
+ *
+ * @param {Array} [charInfo] - characters just received
+ * @param {boolean} last - no more characters to come
+ * @see docs/reference/network/remote-bot.md
+ */
+function pickNamedCharacter(charInfo, last) {
+	if (!_pickName) {
+		return;
+	}
+
+	const character = charInfo && charInfo.find(info => info.name === _pickName);
+	if (character || last) {
+		_pickName = null;
+	}
+	if (character) {
+		onConnectRequest(character);
 	}
 }
 
@@ -285,6 +314,7 @@ function onConnectionAccepted(pkt) {
 
 	// Straight from an auto-retry login, a single character needs no click.
 	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
+	_pickName = _repickSlot < 0 ? RemoteBot.character() : null;
 	_listed = [];
 
 	// We are on the char server — what auto-retry was waiting for, unless it
@@ -306,6 +336,7 @@ function onConnectionAccepted(pkt) {
 	// The header variant carries no list, a later packet does
 	repickCharacter(pkt.charInfo, !!pkt.charInfo);
 	pickOnlyCharacter(pkt.charInfo, !!pkt.charInfo);
+	pickNamedCharacter(pkt.charInfo, !!pkt.charInfo);
 
 	/**
 	 * In PACKETVERs < 20180124 that support pincode auth, we're supposed to

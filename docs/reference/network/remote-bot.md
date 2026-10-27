@@ -39,9 +39,92 @@ nor send the next map server's socket to a bot. Back on the login screen after
 a failure, a new link is taken again. Once given, the mode holds for every
 server entry of the list until the tab is closed.
 
+## Remote characters: the account's hall
+
+Instead of a link per bot, the login screen can list every remote client of
+the account and attach to the one picked. Each bot started with
+`--spectate-rtc` sits in the account's **hall**: one room named by the
+`spectate` block of its config (relay, relay key, room, secret — the same
+block in every bot of the account).
+
+| screen | when |
+|---|---|
+| **Remote connections** (`UI/Components/RemoteSettings`) | relay, relay key, hall, secret, kept in `localStorage` (`botHall`) until « Forget ». « New » draws a secret, « Copy for clients » copies the bots' `spectate` block |
+| **Remote characters** (`UI/Components/RemoteCharacters`) | the login screen once settings are saved: one row per remote client, « Normal login » for the usual window |
+| « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window: the list, or the settings the first time |
+
+`Network/BotHall.js` joins the hall when the list shows (never at load) and
+leaves it once the login is accepted. Everyone joins with `connect: 'manual'`
+and `max: 40`: the page calls each member, bots call nobody, so no two bots
+are linked (a library room is otherwise a full mesh). `max` counts every
+member, linked or not, and the relay caps it (`RELAY_ROOM_MAX`); each bot
+holds one relay connection, so a machine with N bots and W open windows uses
+N + W of the relay's per-address connections (`RELAY_IP_CONN`).
+
+What the hall secret gives away: whoever has it lists the account's remote
+clients **and opens any of them**. Every build served from one origin reads
+the same `localStorage`.
+
+### The hall's messages
+
+JSON text, `Network/HallMessages.js` here and `src/Node/spectate/hall-messages.js`
+in roBrowserLegacy-Node:
+
+| page → bot | bot → page |
+|---|---|
+| `{t:'who', v:1}` | `{t:'hello', v:1, kind:'node', account, chars:[{name, job, lv}], playing:{name, job, lv, map} \| null, windows}` |
+| `{t:'open', v:1, id}` | `{t:'room', v:1, id, room, secret}` or `{t:'no', v:1, id, why}` (`busy`, `error`) |
+
+- The bot sends `hello` again, unasked, when its map or character changes.
+- Every field is bounded (names 32 characters, 15 characters per account,
+  ids up to 2³¹-1, 8 KiB per message). An unknown `t` is ignored, so a newer
+  side can add requests; anything else that does not fit cuts that peer only.
+- An answer settles an `open` only from the bot it was asked of; none within
+  15 s rejects it, and so does the bot leaving the hall or the hall closing.
+- The page calls every member on each change of the member list; a link that
+  fails is tried again on the next change, a cut link is called again while
+  its bot is still a member, and every new link is asked `who`.
+- One vector pins the format on both sides: `tests/fixtures/hall-vector.json`
+  here, `tests/node/fixtures/hall-vector.json` there.
+
+### Opening one
+
+`open` makes the bot join a **fresh** room (a new name, a new secret,
+`max: 2`) and answer once it is in it. `RemoteBot.useRoom()` joins that room
+with the hall's relay and key; the secret never goes through the address bar
+and nothing is kept for a reload (the room is the bot's to leave: when its
+window goes, or after a minute with nobody). A second window on the same bot
+gets its own room. The login then runs by itself with dummy credentials (the
+bot answers with its own), the one char server is entered without its list
+(in the remote mode a bot always answers with the one it plays on, from a link
+too), and the character the bot plays is picked by name
+(`RemoteBot.character()`, `CharEngine`). An answer that comes once the list is
+gone (the player opened Settings meanwhile) is dropped.
+
+What the list says when it cannot show remote clients, or one does not open:
+
+| what the player reads | when |
+|---|---|
+| Entering the hall… | the hall is being joined |
+| Calling the remote clients of the hall… | members are there, none has said `hello` yet |
+| No remote client in this hall… | nobody else in the room: no bot runs, or the hall or secret differ (a wrong secret leads to another room) |
+| The relay refused the key / The hall secret is not valid / These settings are not valid | `key` / `secret` / `options` closed the hall |
+| The hall is full / The relay cut this window | `room-full` / `rate` |
+| Cannot reach the relay (code) | any other code that closed the hall |
+| This remote client has too many windows open | `no`, `busy` (four windows per bot) |
+| This remote client left the hall | `gone`: it left, or the hall closed, while asked |
+| This remote client did not answer | no answer within 15 s |
+| This remote client could not open a room | `no`, `error`: its fresh room failed |
+
+« Normal login », or a login screen without hall settings, leaves a room the
+list opened, so a real login reaches the real server; a pasted link stays.
+Back from the character select to the login screen, the mode takes a new room
+or link again.
+
 ## The sockets
 
-`Network/RemoteBot.js` joins the room with `max: 2` (the bot and this window).
+`Network/RemoteBot.js` joins the room with `max: 2` (the bot and this
+window), from a link or from the list.
 `NetworkManager.defaultSocketFactory` returns a remote socket while the mode
 is on. Both ways of building a socket reach it: `connect()` calls the module's
 own default, and the native plugin manager's socket observer, which installs
