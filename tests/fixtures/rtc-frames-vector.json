@@ -1,0 +1,171 @@
+{
+	"note": "Remote-bot records shared by roBrowserLegacy (Network/SocketHelpers/RtcFrames.js) and roBrowserLegacy-Node (src/Node/spectate/rtc-frames.js). Payload byte i of a record = (i * 7 + seed) & 0xff. Compare the parsed JSON across repos, not the file bytes (CRLF).",
+	"types": {
+		"OPEN": 1,
+		"DATA": 2,
+		"CLOSE": 3
+	},
+	"maxMessage": 1048576,
+	"encode": [
+		{
+			"name": "one OPEN",
+			"records": [
+				{
+					"type": 1,
+					"sid": 1
+				}
+			],
+			"hex": "01010000000000"
+		},
+		{
+			"name": "an empty CLOSE on the last sid",
+			"records": [
+				{
+					"type": 3,
+					"sid": 65535
+				}
+			],
+			"hex": "03ffff00000000"
+		},
+		{
+			"name": "a coalesced run",
+			"records": [
+				{
+					"type": 1,
+					"sid": 1
+				},
+				{
+					"type": 2,
+					"sid": 1,
+					"len": 19,
+					"seed": 3
+				},
+				{
+					"type": 2,
+					"sid": 2,
+					"len": 3,
+					"seed": 9
+				},
+				{
+					"type": 3,
+					"sid": 1
+				}
+			],
+			"hex": "0101000000000002010013000000030a11181f262d343b424950575e656c737a810202000300000009101703010000000000"
+		}
+	],
+	"outbox": [
+		{
+			"name": "the writes of one turn leave as one message",
+			"writes": [
+				{
+					"type": 1,
+					"sid": 1
+				},
+				{
+					"type": 2,
+					"sid": 1,
+					"len": 19,
+					"seed": 3
+				},
+				{
+					"type": 2,
+					"sid": 2,
+					"len": 3,
+					"seed": 9
+				},
+				{
+					"type": 3,
+					"sid": 1
+				}
+			],
+			"messages": [
+				{
+					"size": 50,
+					"sha256": "583aa7c4be0d9417caa34c4a1583b7b2a4c7a5a66d96fc5a0e63be9f41267735",
+					"records": [
+						[
+							1,
+							1,
+							0
+						],
+						[
+							2,
+							1,
+							19
+						],
+						[
+							2,
+							2,
+							3
+						],
+						[
+							3,
+							1,
+							0
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "a payload that fills a message exactly",
+			"writes": [
+				{
+					"type": 2,
+					"sid": 3,
+					"len": 1048569,
+					"seed": 5
+				}
+			],
+			"messages": [
+				{
+					"size": 1048576,
+					"sha256": "05425488ef58c996eaa4760c946a6d2b873a6533d30cc09b6594cfdff858a484",
+					"records": [
+						[
+							2,
+							3,
+							1048569
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "one byte more splits it in two records, two messages",
+			"writes": [
+				{
+					"type": 2,
+					"sid": 3,
+					"len": 1048570,
+					"seed": 5
+				}
+			],
+			"messages": [
+				{
+					"size": 1048576,
+					"sha256": "05425488ef58c996eaa4760c946a6d2b873a6533d30cc09b6594cfdff858a484",
+					"records": [
+						[
+							2,
+							3,
+							1048569
+						]
+					]
+				},
+				{
+					"size": 8,
+					"sha256": "94d1066bb1bbf87b163c7bb4bfe03c1a78b293b564adc447c26ddd0f88cbf6af",
+					"records": [
+						[
+							2,
+							3,
+							1
+						]
+					]
+				}
+			]
+		}
+	]
+}
