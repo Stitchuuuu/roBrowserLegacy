@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,7 @@ const startTime = Date.now();
 const args = getArgs();
 
 const buildDate = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+const buildSha = getBuildSha();
 const dist = './dist/';
 const platform = 'Web';
 
@@ -113,6 +115,9 @@ async function compile(appName, isMinify) {
 			root: projectRoot,
 			base: './',
 			logLevel: 'warn',
+			define: {
+				__BUILD_SHA__: JSON.stringify(buildSha)
+			},
 			resolve: {
 				alias: aliases
 			},
@@ -666,6 +671,18 @@ function copyFolder(src, dest) {
 	const start = Date.now();
 	fs.cpSync(src, dest, { recursive: true });
 	console.log(src.replace('./', '') + ' folder and files has been created in', Date.now() - start, 'ms.');
+}
+
+// The commit the client is built from: CI gives it, a local build asks git, else none.
+function getBuildSha() {
+	if (process.env.GITHUB_SHA) {
+		return process.env.GITHUB_SHA;
+	}
+	try {
+		return execSync('git rev-parse HEAD', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+	} catch (e) {
+		return '';
+	}
 }
 
 function getArgs() {
