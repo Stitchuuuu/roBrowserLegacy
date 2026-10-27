@@ -311659,9 +311659,10 @@ var init_EntityControl = __esmMin((() => {
 					Network.sendPacket(pkt);
 					return true;
 				}
-				case Entity.TYPE_PC:
-					if (SessionStorage_default.captchaGetIdOnEntityClick) CaptchaSelector_default.addPlayer(this.GID);
+				case Entity.TYPE_PC: if (SessionStorage_default.captchaGetIdOnEntityClick) {
+					CaptchaSelector_default.addPlayer(this.GID);
 					return true;
+				}
 			}
 			return false;
 		}
