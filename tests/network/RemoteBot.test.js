@@ -5,7 +5,7 @@
  * bot's room whatever path asks for them, the window sends in clear, the link
  * leaves the address bar, and the paste box exists on the login screen only.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
 	uiManager: { showErrorBox: vi.fn() },
@@ -66,6 +66,9 @@ function shortcut() {
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe('remote mode', () => {
+	// The first import of the engine is slow under a full parallel run: done once, out of the first test's 5 s
+	beforeAll(() => load(''), 30000);
+
 	beforeEach(() => {
 		sessionStorage.clear();
 		mocks.rooms.length = 0;
