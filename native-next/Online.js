@@ -145465,7 +145465,7 @@ var init_xmlparse = __esmMin((() => {
 	};
 }));
 // src/Utils/Base62.js
-function encode$1(number) {
+function encode$2(number) {
 	let result = "";
 	while (number > 0) {
 		result = base62_alphabet[number % 62] + result;
@@ -145482,7 +145482,7 @@ var base62_alphabet, Base62_default;
 var init_Base62 = __esmMin((() => {
 	base62_alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	Base62_default = {
-		encode: encode$1,
+		encode: encode$2,
 		decode: decode$1,
 		base62_alphabet
 	};
@@ -146647,7 +146647,7 @@ function serializeDocument(doc, options) {
 		return outDoc.toExtendedJSON(options);
 	} else throw new BSONError("_bsontype must be a string, but was: " + typeof bsontype);
 }
-function parse(text, options) {
+function parse$1(text, options) {
 	const ejsonOptions = {
 		useBigInt64: options?.useBigInt64 ?? false,
 		relaxed: options?.relaxed ?? true,
@@ -146682,7 +146682,7 @@ function EJSONserialize(value, options) {
 }
 function EJSONdeserialize(ejson, options) {
 	options = options || {};
-	return parse(JSON.stringify(ejson), options);
+	return parse$1(JSON.stringify(ejson), options);
 }
 function getSize$1(source, offset) {
 	try {
@@ -149385,7 +149385,7 @@ var init_bson = __esmMin((() => {
 		Timestamp: (o) => Timestamp.fromBits(o.low, o.high)
 	};
 	EJSON = Object.create(null);
-	EJSON.parse = parse;
+	EJSON.parse = parse$1;
 	EJSON.stringify = stringify;
 	EJSON.serialize = EJSONserialize;
 	EJSON.deserialize = EJSONdeserialize;
@@ -206158,7 +206158,7 @@ async function verifyMac(auth, text, value) {
 	}
 	return subtle.verify("HMAC", auth, bytes, utf8$2.encode(text));
 }
-var subtle, utf8$2, SECRET_RE, b64u, randomBytes, isSecret, newId;
+var subtle, utf8$2, SECRET_RE, b64u, randomBytes, newSecret, isSecret, newId;
 var init_crypto = __esmMin((() => {
 	subtle = globalThis.crypto.subtle;
 	utf8$2 = new TextEncoder();
@@ -206182,6 +206182,7 @@ var init_crypto = __esmMin((() => {
 		}
 	};
 	randomBytes = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n));
+	newSecret = () => b64u.encode(randomBytes(32));
 	isSecret = (secret) => typeof secret === "string" && SECRET_RE.test(secret) && b64u.decode(secret).length === 32;
 	newId = () => b64u.encode(randomBytes(16));
 }));
@@ -206777,7 +206778,7 @@ var init_sdp = __esmMin((() => {
 	MAX_MESSAGE_SIZE = 65536;
 }));
 // src/Vendors/signal/room.js
-function validate$2(o) {
+function validate$3(o) {
 	if (o === null || typeof o !== "object") return new SignalError("options", "joinRoom() takes an options object");
 	let url = null;
 	try {
@@ -206791,6 +206792,7 @@ function validate$2(o) {
 	if (!Number.isInteger(max) || max < 2) return new SignalError("options", "`max` must be an integer ≥ 2");
 	if (o.relayKey !== void 0 && typeof o.relayKey !== "string") return new SignalError("options", "`relayKey` must be a string");
 	if (o.iceServers !== void 0 && !Array.isArray(o.iceServers)) return new SignalError("options", "`iceServers` must be an array");
+	if (o.connect !== void 0 && o.connect !== "auto" && o.connect !== "manual") return new SignalError("options", "`connect` must be 'auto' or 'manual'");
 	for (const name of [
 		"connectMs",
 		"handshakeMs",
@@ -206829,6 +206831,10 @@ function createClient(platform) {
 		const relayJoins = Object.create(null);
 		/** target id → timestamps of our offers */
 		const offers = Object.create(null);
+		/** id → {list: [{resolve, reject}], timer} : `room.connect(id)` calls waiting for that peer */
+		const waiters = Object.create(null);
+		/** the other ids in the room, as the relay last listed them */
+		let members = [];
 		let inbound = 0;
 		let session = null;
 		let ended = false;
@@ -206842,13 +206848,30 @@ function createClient(platform) {
 			get: peerList,
 			enumerable: true
 		});
-		const incident = (code, message) => room.emit("error", new SignalError(code, message, false));
-		const bad = validate$2(options);
+		Object.defineProperty(room, "members", {
+			get: () => members.slice(),
+			enumerable: true
+		});
+		/** Settles the `connect(id)` calls waiting for `id` : with `peer`, or rejected with `error`. */
+		function settle(id, peer, error) {
+			const w = waiters[id];
+			if (w === void 0) return;
+			delete waiters[id];
+			clearTimeout(w.timer);
+			for (const { resolve, reject } of w.list) peer !== null ? resolve(peer) : reject(error);
+		}
+		/** A non-fatal incident ; with `id`, the `connect(id)` calls waiting for that peer fail with it. */
+		const incident = (code, message, id) => {
+			const error = new SignalError(code, message, false);
+			if (id !== void 0) settle(id, null, error);
+			room.emit("error", error);
+		};
+		const bad = validate$3(options);
 		if (bad !== null) {
 			setTimeout(() => end(bad), 0);
 			return room;
 		}
-		const { relay, room: roomName, secret, relayKey, iceServers = STUN, fallback = true, connectMs = 2e4, handshakeMs = 1e4, maxMessageBytes = 1048576, sendRate, sendBurst, limits } = options;
+		const { relay, room: roomName, secret, relayKey, iceServers = STUN, fallback = true, connect = "auto", connectMs = 2e4, handshakeMs = 1e4, maxMessageBytes = 1048576, sendRate, sendBurst, limits } = options;
 		const max = options.max ?? 8;
 		let roomId = null;
 		let keys = null;
@@ -206861,6 +206884,7 @@ function createClient(platform) {
 				room.emit("leave", peer, reason);
 			});
 			room.emit("peer", peer);
+			settle(peer.id, peer, null);
 		}
 		function relayPeer(id) {
 			const peer = createPeer({
@@ -206907,9 +206931,9 @@ function createClient(platform) {
 			if (code === null) return;
 			const direct = code === "ice";
 			if (direct && h.role === "offerer" && fallback) return joinViaRelay(h.id);
-			if (direct && !fallback) return incident("ice", message);
+			if (direct && !fallback) return incident("ice", message, h.id);
 			if (direct) return;
-			incident(code, message);
+			incident(code, message, h.id);
 		}
 		function gate(h, channel, expect) {
 			h.channel = channel;
@@ -207004,7 +207028,7 @@ function createClient(platform) {
 			return true;
 		}
 		async function offerTo(id) {
-			if (!allowOffer(id)) return incident("timeout", `not offering to ${id} again : ${OFFERS_PER_MIN} offers in the last minute`);
+			if (!allowOffer(id)) return incident("timeout", `not offering to ${id} again : ${OFFERS_PER_MIN} offers in the last minute`, id);
 			const h = newHandshake(id, "offerer");
 			const pc = h.pc;
 			try {
@@ -207031,10 +207055,14 @@ function createClient(platform) {
 			}
 		}
 		async function onOffer(from, inner) {
-			if (handshakes[from] !== void 0) return;
+			const ours = handshakes[from];
+			if (ours !== void 0) {
+				if (ours.role !== "offerer" || from > session.id) return;
+				fail(ours, null);
+			}
 			if (peers[from] !== void 0) return;
-			if (inbound >= INBOUND_MAX) return incident("timeout", `offer from ${from} dropped : ${INBOUND_MAX} handshakes already in flight`);
-			if (!roomHasRoom()) return incident("room-full", `offer from ${from} dropped : room at max ${room.max}`);
+			if (inbound >= INBOUND_MAX) return incident("timeout", `offer from ${from} dropped : ${INBOUND_MAX} handshakes already in flight`, from);
+			if (!roomHasRoom()) return incident("room-full", `offer from ${from} dropped : room at max ${room.max}`, from);
 			if (typeof inner.sdp !== "string" || typeof inner.nonce !== "string") return incident("proof", `malformed offer from ${from} : dropped`);
 			const h = newHandshake(from, "answerer");
 			const pc = h.pc;
@@ -207109,7 +207137,7 @@ function createClient(platform) {
 			if (relayJoins[id] !== void 0 || peers[id] !== void 0) return;
 			relayJoins[id] = setTimeout(() => {
 				delete relayJoins[id];
-				incident("timeout", `peer ${id} did not accept the relay fallback within ${handshakeMs} ms`);
+				incident("timeout", `peer ${id} did not accept the relay fallback within ${handshakeMs} ms`, id);
 			}, handshakeMs);
 			session.data(id, new Uint8Array([TAG.join]));
 		}
@@ -207131,7 +207159,7 @@ function createClient(platform) {
 					clearTimeout(timer);
 					delete relayJoins[from];
 				}
-				if (!roomHasRoom()) return incident("room-full", `relay join from ${from} dropped : room at max ${room.max}`);
+				if (!roomHasRoom()) return incident("room-full", `relay join from ${from} dropped : room at max ${room.max}`, from);
 				session.data(from, new Uint8Array([TAG.ok]));
 				relayPeer(from);
 			} else if (tag === TAG.ok) {
@@ -207151,14 +207179,23 @@ function createClient(platform) {
 				delete relayJoins[id];
 			}
 		}
+		/** `members` from a relay list ; `members` is emitted when it changed. */
+		function setMembers(list) {
+			const self = session.id;
+			const ids = [];
+			for (const { id } of list) if (typeof id === "string" && id !== self) ids.push(id);
+			const changed = ids.join() !== members.join();
+			members = ids;
+			if (changed) room.emit("members", ids.slice());
+		}
 		function onWelcome({ peers: list, max: roomMax, creator, first }) {
 			room.id = session.id;
 			room.isCreator = creator;
 			room.max = roomMax;
 			if (!first) dropRelayPeers("relay");
-			const self = session.id;
-			for (const { id } of list) {
-				if (typeof id !== "string" || id === self || peers[id] !== void 0 || handshakes[id] !== void 0) continue;
+			setMembers(list);
+			if (connect === "auto") for (const id of members) {
+				if (peers[id] !== void 0 || handshakes[id] !== void 0) continue;
 				offerTo(id);
 			}
 			if (!entered) {
@@ -207174,6 +207211,8 @@ function createClient(platform) {
 				clearTimeout(relayJoins[id]);
 				delete relayJoins[id];
 			}
+			for (const id in waiters) if (!present[id]) settle(id, null, new SignalError("closed", `peer ${id} left the room`, false));
+			setMembers(list);
 		}
 		function end(error) {
 			if (ended) return;
@@ -207181,11 +207220,37 @@ function createClient(platform) {
 			for (const id in handshakes) fail(handshakes[id], null);
 			for (const id in relayJoins) clearTimeout(relayJoins[id]);
 			for (const id in peers) peers[id].end("closed");
+			for (const id in waiters) settle(id, null, new SignalError("closed", "the room is closed", false));
 			if (session !== null) session.stop();
 			if (!entered) rejectReady(error ?? new SignalError("closed", "left before entering the room"));
 			room.emit("close", error);
 		}
 		room.leave = () => end(null);
+		room.connect = (id) => room.ready.then(() => {
+			const peer = peers[id];
+			if (peer !== void 0) return peer;
+			if (ended) throw new SignalError("closed", "the room is closed", false);
+			if (!members.includes(id)) throw new SignalError("closed", `${id} is not in the room`, false);
+			return new Promise((resolve, reject) => {
+				let w = waiters[id];
+				if (w === void 0) {
+					const ms = connectMs + 2 * handshakeMs;
+					w = waiters[id] = {
+						list: [{
+							resolve,
+							reject
+						}],
+						timer: setTimeout(() => settle(id, null, new SignalError("timeout", `no link to ${id} within ${ms} ms`, false)), ms)
+					};
+					if (handshakes[id] === void 0 && relayJoins[id] === void 0) offerTo(id);
+					return;
+				}
+				w.list.push({
+					resolve,
+					reject
+				});
+			});
+		});
 		room.broadcast = (data) => {
 			const list = peerList();
 			return Promise.all(list.map((p) => p.send(data).catch((e) => {
@@ -207311,7 +207376,7 @@ var init_signal = __esmMin((() => {
 * @param {Array<{type: number, sid: number, bytes: ?Uint8Array}>} records
 * @return {Uint8Array}
 */
-function encode(records) {
+function encode$1(records) {
 	let size = 0;
 	for (let i = 0, count = records.length; i < count; ++i) size += HEAD + (records[i].bytes || EMPTY).length;
 	const out = new Uint8Array(size);
@@ -207406,7 +207471,7 @@ var init_RtcFrames = __esmMin((() => {
 				size += next;
 				++n;
 			}
-			this.send(encode(queue.splice(0, n))).then(() => this.flush(), () => this.close());
+			this.send(encode$1(queue.splice(0, n))).then(() => this.flush(), () => this.close());
 		}
 		/**
 		* The peer is gone: drop what waits, accept nothing more
@@ -207639,23 +207704,25 @@ function init$15() {
 	if (stored) join(stored);
 	else _asking = true;
 }
-var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _inGame, RemoteBot;
+var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, RemoteBot;
 var init_RemoteBot = __esmMin((() => {
 	init_signal();
 	init_RtcSockets();
 	STORAGE_KEY = "remoteBot";
 	FAILURES = {
-		"no-bot": "Remote bot: no bot answered. Is it running, and is this link its current one?",
-		secret: "Remote bot: the secret in this link is not valid.",
-		key: "Remote bot: the relay refused the key.",
-		"room-full": "Remote bot: another window is already attached to this bot.",
-		rate: "Remote bot: the relay cut this window (too many messages).",
-		options: "Remote bot: the link is not valid."
+		"no-bot": "Remote client: no remote client answered. Is it running, and is this link its current one?",
+		secret: "Remote client: the secret in this link is not valid.",
+		key: "Remote client: the relay refused the key.",
+		"room-full": "Remote client: another window is already attached to this remote client.",
+		rate: "Remote client: the relay cut this window (too many messages).",
+		options: "Remote client: the link is not valid."
 	};
 	_sockets$1 = null;
 	_ask = null;
 	_asking = false;
 	_badLink = false;
+	_character = null;
+	_listRoom = false;
 	_inGame = false;
 	RemoteBot = {};
 	/**
@@ -207682,11 +207749,53 @@ var init_RemoteBot = __esmMin((() => {
 	RemoteBot.setLink = function setLink(text) {
 		const link = parseLink(text.trim());
 		if (_inGame || !link || !link.relay) return false;
+		_character = null;
+		_listRoom = false;
 		join(link);
 		try {
 			sessionStorage.setItem(STORAGE_KEY, JSON.stringify(link));
 		} catch (_e) {}
 		return true;
+	};
+	/**
+	* Use a room a bot opened for this window (the bot list): nothing kept, a reload goes back to the list
+	*
+	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room - character: the one the bot plays
+	* @return {boolean} false once the login is over
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteBot.useRoom = function useRoom(room) {
+		if (_inGame) return false;
+		_character = room.character || null;
+		_listRoom = true;
+		join({
+			relay: room.relay,
+			relayKey: room.relayKey || void 0,
+			room: room.room,
+			secret: room.secret
+		});
+		try {
+			sessionStorage.removeItem(STORAGE_KEY);
+		} catch (_e) {}
+		return true;
+	};
+	/**
+	* @return {?string} the character to pick once listed, the one the bot plays
+	*/
+	RemoteBot.character = function character() {
+		return _sockets$1 ? _character : null;
+	};
+	/**
+	* Back to the server from a room the bot list opened; a link stays
+	*/
+	RemoteBot.leave = function leave() {
+		if (_inGame || !_listRoom) return;
+		_listRoom = false;
+		if (_sockets$1) {
+			_sockets$1.leave();
+			_sockets$1 = null;
+		}
+		_character = null;
 	};
 	/**
 	* The login screen is shown (with its paste box), or left for good
@@ -207716,7 +207825,7 @@ var init_RemoteBot = __esmMin((() => {
 			sessionStorage.removeItem(STORAGE_KEY);
 		} catch (_e) {}
 		return {
-			text: FAILURES[code] || `Remote bot: cannot reach the relay (${code}).`,
+			text: FAILURES[code] || `Remote client: cannot reach the relay (${code}).`,
 			permanent
 		};
 	};
@@ -207829,14 +207938,14 @@ function sendPacket(Packet) {
 	}
 	console.log("%c[Network] Send:", "color:#007070", Packet);
 	if (_socket && _socket.isZone) PacketCrypt_default.process(pkt.view);
-	send(pkt.buffer);
+	send$1(pkt.buffer);
 }
 /**
 * Send buffer to the server
 *
 * @param {ArrayBuffer} buffer
 */
-function send(buffer) {
+function send$1(buffer) {
 	if (_socket) _socket.send(buffer);
 }
 /**
@@ -207867,8 +207976,8 @@ function hookPacket(packet, callback) {
 *
 * @param callback
 */
-function read$1(callback) {
-	read$1.callback = callback;
+function read$2(callback) {
+	read$2.callback = callback;
 }
 /**
 * Grow the ring buffer to at least `minCapacity` bytes, preserving pending data.
@@ -207950,9 +208059,9 @@ function receive(buf) {
 	}
 	_ring_tail += inLen;
 	if (!_fp) _fp = new BinaryReader(/* @__PURE__ */ new ArrayBuffer(0));
-	if (read$1.callback) {
-		const cb = read$1.callback;
-		read$1.callback = null;
+	if (read$2.callback) {
+		const cb = read$2.callback;
+		read$2.callback = null;
 		const start = _ring_head;
 		_fp.reset(_ringSlice(start, _ring_tail - start));
 		cb(_fp);
@@ -208157,7 +208266,7 @@ var init_NetworkManager = __esmMin((() => {
 	* Callback used for reading the data for the next buffer received from server
 	* @type {function}
 	*/
-	read$1.callback = null;
+	read$2.callback = null;
 	Network = (function network() {
 		let keys;
 		let i, count;
@@ -208169,13 +208278,13 @@ var init_NetworkManager = __esmMin((() => {
 		for (i = 0; i < count; ++i) registerPacket(keys[i], PacketRegister_default[keys[i]]);
 		return {
 			sendPacket,
-			send,
+			send: send$1,
 			setPing,
 			connect,
 			hookPacket,
 			close,
 			expectClose,
-			read: read$1,
+			read: read$2,
 			set onDisconnect(callback) {
 				_onDisconnect = callback;
 			},
@@ -226954,7 +227063,7 @@ var init_InputBox$1 = __esmMin((() => {
 /**
 * Validate input
 */
-function validate$1() {
+function validate$2() {
 	const root = InputBox.getRoot();
 	const input = root.querySelector("input");
 	let text = input ? input.value : "";
@@ -226993,7 +227102,7 @@ var init_InputBox = __esmMin((() => {
 		this._host.style.left = `${(Renderer.width - 280) / 2 + 1}px`;
 		const root = InputBox.getRoot();
 		const btn = root.querySelector("ui-button");
-		if (btn) btn.addEventListener("click", () => validate$1());
+		if (btn) btn.addEventListener("click", () => validate$2());
 		const input = root.querySelector("input");
 		if (input) input.addEventListener("mousedown", (e) => e.stopImmediatePropagation());
 		this._overlay = document.createElement("div");
@@ -227040,7 +227149,7 @@ var init_InputBox = __esmMin((() => {
 	*/
 	InputBox.onKeyDown = function onKeyDown(event) {
 		if (event.which === KEYS.ENTER) {
-			validate$1();
+			validate$2();
 			event.stopImmediatePropagation();
 			return false;
 		}
@@ -229782,7 +229891,7 @@ function _escapeHTML$4(text) {
 /**
 * Submit an index
 */
-function validate() {
+function validate$1() {
 	NpcMenu.onSelectMenu(_ownerID, _index + 1);
 }
 /**
@@ -229824,7 +229933,7 @@ var init_NpcMenu = __esmMin((() => {
 	NpcMenu.init = function init() {
 		const root = NpcMenu.getRoot();
 		const okBtn = root.querySelector(".ok");
-		if (okBtn) okBtn.addEventListener("click", () => validate());
+		if (okBtn) okBtn.addEventListener("click", () => validate$1());
 		const cancelBtn = root.querySelector(".cancel");
 		if (cancelBtn) cancelBtn.addEventListener("click", () => cancel$1());
 		this._host.style.top = `${Math.max(376, Renderer.height / 2 + 76)}px`;
@@ -229839,7 +229948,7 @@ var init_NpcMenu = __esmMin((() => {
 			});
 			content.addEventListener("dblclick", (e) => {
 				const div = e.target.closest("div");
-				if (div && content.contains(div)) validate();
+				if (div && content.contains(div)) validate$1();
 			});
 		}
 	};
@@ -229860,7 +229969,7 @@ var init_NpcMenu = __esmMin((() => {
 		switch (event.which) {
 			case KEYS.SPACE:
 			case KEYS.ENTER:
-				validate();
+				validate$1();
 				break;
 			case KEYS.ESCAPE:
 				cancel$1();
@@ -233830,7 +233939,7 @@ var init_GuildCompanion$1 = __esmMin((() => {
 function _root$14() {
 	return GuildCompanion.getRoot();
 }
-function open(mode) {
+function open$1(mode) {
 	_mode = mode;
 	if (!GuildCompanion.__active) GuildCompanion.append();
 	const root = _root$14();
@@ -233945,10 +234054,10 @@ var init_GuildCompanion = __esmMin((() => {
 		});
 	};
 	GuildCompanion.openCreate = function openCreate() {
-		open("create");
+		open$1("create");
 	};
 	GuildCompanion.openDisband = function openDisband() {
-		open("disband");
+		open$1("disband");
 	};
 	GuildCompanion.closeDisband = function closeDisband() {
 		if (_mode === "disband" && GuildCompanion.__active) GuildCompanion.remove();
@@ -348375,6 +348484,7 @@ function onCharacterListChunk(pkt) {
 	});
 	repickCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
 	pickOnlyCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
+	pickNamedCharacter(pkt.charInfo, pkt.charInfo.length !== 3);
 }
 /**
 * Go on to the map server with the account's only character, once the list is
@@ -348390,6 +348500,20 @@ function pickOnlyCharacter(charInfo, last) {
 		_pickOnly = false;
 		if (_listed.length === 1) onConnectRequest(_listed[0]);
 	}
+}
+/**
+* Go on with the character a remote bot plays, as soon as the list holds it.
+* Without it in the list, the player picks by hand.
+*
+* @param {Array} [charInfo] - characters just received
+* @param {boolean} last - no more characters to come
+* @see docs/reference/network/remote-bot.md
+*/
+function pickNamedCharacter(charInfo, last) {
+	if (!_pickName) return;
+	const character = charInfo && charInfo.find((info) => info.name === _pickName);
+	if (character || last) _pickName = null;
+	if (character) onConnectRequest(character);
 }
 /**
 * Pick again the character whose map server could not be reached, as soon as
@@ -348436,6 +348560,7 @@ function onConnectionAccepted$1(pkt) {
 	}
 	UIManager.getComponent("WinLoading").remove();
 	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
+	_pickName = _repickSlot < 0 ? RemoteBot.character() : null;
 	_listed = [];
 	if (_repickSlot < 0) AutoRetry.disarm();
 	Controller$2.onExitRequest = onExitRequest$1;
@@ -348448,6 +348573,7 @@ function onConnectionAccepted$1(pkt) {
 	Controller$2.setInfo(pkt);
 	repickCharacter(pkt.charInfo, !!pkt.charInfo);
 	pickOnlyCharacter(pkt.charInfo, !!pkt.charInfo);
+	pickNamedCharacter(pkt.charInfo, !!pkt.charInfo);
 	/**
 	* In PACKETVERs < 20180124 that support pincode auth, we're supposed to
 	* show a button that will ask the server to perform it.
@@ -348908,7 +349034,7 @@ function onReceiveMapInfo(pkt) {
 	SessionStorage_default.GID = pkt.GID;
 	MapEngine.init(pkt.addr.ip, pkt.addr.port, pkt.mapName);
 }
-var _server$1, _creationSlot, _pincodeAttempts, _inAuthPincodeReset, _resettingPincode, _creatingPincode, _pickedSlot, _repickSlot, _pickOnly, _listed, CharEngine, retryCount;
+var _server$1, _creationSlot, _pincodeAttempts, _inAuthPincodeReset, _resettingPincode, _creatingPincode, _pickedSlot, _repickSlot, _pickOnly, _pickName, _listed, CharEngine, retryCount;
 var init_CharEngine = __esmMin((() => {
 	init_DBManager();
 	init_Configs();
@@ -348917,6 +349043,7 @@ var init_CharEngine = __esmMin((() => {
 	init_BGM();
 	init_SessionStorage();
 	init_AutoRetry();
+	init_RemoteBot();
 	init_MapEngine();
 	init_NetworkManager();
 	init_PacketVerManager();
@@ -348940,6 +349067,7 @@ var init_CharEngine = __esmMin((() => {
 	_pickedSlot = -1;
 	_repickSlot = -1;
 	_pickOnly = false;
+	_pickName = null;
 	_listed = [];
 	CharEngine = class CharEngine {
 		static init(server, repick) {
@@ -349008,6 +349136,383 @@ var init_CharEngine = __esmMin((() => {
 		}
 	};
 	retryCount = 0;
+}));
+// src/Network/HallMessages.js
+/**
+* @param {string} what
+*/
+function fail(what) {
+	throw new Error(`hall message: ${what}`);
+}
+/**
+* @param {*} value
+* @param {number} max
+* @param {string} what
+* @return {number}
+*/
+function int(value, max, what) {
+	if (!Number.isInteger(value) || value < 0 || value > max) fail(`${what} is not an integer in 0..${max}`);
+	return value;
+}
+/**
+* @param {*} value
+* @param {number} max
+* @param {string} what
+* @return {string}
+*/
+function str(value, max, what) {
+	if (typeof value !== "string" || value.length < 1 || value.length > max) fail(`${what} is not a string of 1 to ${max} characters`);
+	return value;
+}
+/**
+* @param {*} c
+* @param {string} what
+* @return {{name: string, job: number, lv: number}}
+*/
+function char(c, what) {
+	if (!c || typeof c !== "object") fail(`${what} is not an object`);
+	return {
+		name: str(c.name, MAX_NAME, `${what}.name`),
+		job: int(c.job, 9999, `${what}.job`),
+		lv: int(c.lv, 999, `${what}.lv`)
+	};
+}
+/**
+* The message with only its known fields, in a fixed order
+*
+* @param {*} m
+* @return {?object} null for an unknown type
+* @see docs/reference/network/remote-bot.md
+*/
+function normalize(m) {
+	if (!m || typeof m !== "object" || Array.isArray(m)) fail("not an object");
+	const t = str(m.t, MAX_KIND, "t");
+	const v = int(m.v, 999, "v");
+	if (v < 1) fail("v is below 1");
+	switch (t) {
+		case "who": return {
+			t,
+			v
+		};
+		case "hello": {
+			if (!Array.isArray(m.chars) || m.chars.length > 15) fail(`chars is not an array of at most 15`);
+			const chars = m.chars.map((c, i) => char(c, `chars[${i}]`));
+			let playing = null;
+			if (m.playing !== null) {
+				playing = char(m.playing, "playing");
+				playing.map = str(m.playing.map, MAX_NAME, "playing.map");
+			}
+			return {
+				t,
+				v,
+				kind: str(m.kind, MAX_KIND, "kind"),
+				account: str(m.account, MAX_NAME, "account"),
+				chars,
+				playing,
+				windows: int(m.windows, 99, "windows")
+			};
+		}
+		case "open": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id")
+		};
+		case "room": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id"),
+			room: str(m.room, MAX_ROOM, "room"),
+			secret: str(m.secret, MAX_SECRET, "secret")
+		};
+		case "no": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id"),
+			why: str(m.why, MAX_KIND, "why")
+		};
+		default: return null;
+	}
+}
+/**
+* @param {object} m
+* @return {string}
+*/
+function encode(m) {
+	const n = normalize(m);
+	if (!n) fail(`unknown t ${m.t}`);
+	return JSON.stringify(n);
+}
+/**
+* @param {*} data - what a peer sent
+* @return {?object} null for an unknown type; throws on anything else that is no hall message
+*/
+function parse(data) {
+	let m;
+	if (typeof data !== "string") fail("not text");
+	if (data.length > 8192) fail(`longer than ${MAX_TEXT}`);
+	try {
+		m = JSON.parse(data);
+	} catch (_e) {
+		fail("not JSON");
+	}
+	return normalize(m);
+}
+var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID;
+var init_HallMessages = __esmMin((() => {
+	MAX_TEXT = 8192;
+	MAX_NAME = 32;
+	MAX_KIND = 16;
+	MAX_ROOM = 64;
+	MAX_SECRET = 128;
+	MAX_ID = 2147483647;
+}));
+// src/Network/BotHall.js
+/**
+* @param {object} bot
+* @return {string}
+*/
+function label(bot) {
+	return `${bot.account}\u0000${bot.playing ? bot.playing.name : ""}`;
+}
+/**
+* Link to a member; a link that fails is tried again on the next members change
+*
+* @param {object} room
+* @param {string} id
+*/
+function call(room, id) {
+	room.connect(id).catch((err) => {
+		console.warn(`[BotHall] ${id}: ${err.code}`);
+	});
+}
+/**
+* A linked member: asked who it is, its answers read
+*
+* @param {object} room
+* @param {object} peer
+*/
+function link(room, peer) {
+	if (room !== _room) return;
+	peer.on("message", (data) => {
+		let m;
+		if (room !== _room) return;
+		try {
+			m = parse(data);
+		} catch (err) {
+			console.warn(`[BotHall] ${err.message}, ${peer.id} cut`);
+			delete _bots[peer.id];
+			peer.close();
+			changed();
+			return;
+		}
+		if (!m) return;
+		if (m.t === "hello") {
+			_bots[peer.id] = Object.assign(m, {
+				id: peer.id,
+				via: peer.via,
+				peer
+			});
+			changed();
+		} else if ((m.t === "room" || m.t === "no") && _opens[m.id] && _opens[m.id].peer === peer.id) settle(m.id, m.t === "room" ? {
+			room: m.room,
+			secret: m.secret
+		} : null, m.why);
+	});
+	send(peer, {
+		t: "who",
+		v: 1
+	});
+}
+/**
+* @param {object} peer
+* @param {object} m
+*/
+function send(peer, m) {
+	peer.send(encode(m)).catch(() => {});
+}
+/**
+* @param {number} n - open id
+* @param {?object} answer
+* @param {?string} code - why it failed
+*/
+function settle(n, answer, code) {
+	const pending = _opens[n];
+	if (!pending) return;
+	delete _opens[n];
+	clearTimeout(pending.timer);
+	if (answer) pending.resolve(answer);
+	else pending.reject(Object.assign(/* @__PURE__ */ new Error(`open refused: ${code}`), { code }));
+}
+/**
+* Tell the list
+*/
+function changed() {
+	if (_onChange) _onChange();
+}
+var SETTINGS_KEY, HALL_MAX, OPEN_WAIT_MS, _room, _state, _bots, _opens, _nextOpen, _onChange, BotHall;
+var init_BotHall = __esmMin((() => {
+	init_signal();
+	init_HallMessages();
+	SETTINGS_KEY = "botHall";
+	HALL_MAX = 40;
+	OPEN_WAIT_MS = 15e3;
+	_room = null;
+	_state = "off";
+	_bots = Object.create(null);
+	_opens = Object.create(null);
+	_nextOpen = 1;
+	_onChange = null;
+	BotHall = {};
+	/**
+	* @return {?{relay: string, relayKey: string, room: string, secret: string}} the saved settings
+	*/
+	BotHall.loadSettings = function loadSettings() {
+		let s = null;
+		try {
+			s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+		} catch (_e) {
+			return null;
+		}
+		if (!s || typeof s.relay !== "string" || typeof s.room !== "string" || typeof s.secret !== "string") return null;
+		return {
+			relay: s.relay,
+			relayKey: typeof s.relayKey === "string" ? s.relayKey : "",
+			room: s.room,
+			secret: s.secret
+		};
+	};
+	/**
+	* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+	*/
+	BotHall.saveSettings = function saveSettings(settings) {
+		try {
+			localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+		} catch (_e) {}
+	};
+	/**
+	* Forget the settings and leave the hall
+	*/
+	BotHall.forgetSettings = function forgetSettings() {
+		try {
+			localStorage.removeItem(SETTINGS_KEY);
+		} catch (_e) {}
+		BotHall.leave();
+	};
+	/**
+	* @param {?function} fn - called when the list or the state changes; null to stop
+	*/
+	BotHall.onChange = function onChange(fn) {
+		_onChange = fn;
+	};
+	/**
+	* @return {string} off, joining, in, or the library code that closed the hall
+	*/
+	BotHall.state = function state() {
+		return _state;
+	};
+	/**
+	* @return {Array<object>} the bots that said hello, by account then character
+	*/
+	BotHall.bots = function bots() {
+		const list = [];
+		for (const id in _bots) list.push(_bots[id]);
+		return list.sort((a, b) => label(a).localeCompare(label(b)));
+	};
+	/**
+	* @return {number} members of the hall that have not said who they are yet
+	*/
+	BotHall.waiting = function waiting() {
+		return _room ? _room.members.filter((id) => !_bots[id]).length : 0;
+	};
+	/**
+	* Join the hall, leaving the one before
+	*
+	* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+	* @see docs/reference/network/remote-bot.md
+	*/
+	BotHall.join = function join(settings) {
+		BotHall.leave();
+		const room = joinRoom({
+			relay: settings.relay,
+			relayKey: settings.relayKey || void 0,
+			room: settings.room,
+			secret: settings.secret,
+			max: HALL_MAX,
+			connect: "manual"
+		});
+		_room = room;
+		_state = "joining";
+		room.on("members", (ids) => {
+			if (room !== _room) return;
+			for (const id in _bots) if (ids.indexOf(id) < 0) delete _bots[id];
+			for (let i = 0, count = ids.length; i < count; ++i) call(room, ids[i]);
+			changed();
+		});
+		room.on("peer", (peer) => link(room, peer));
+		room.on("leave", (peer) => {
+			if (room !== _room) return;
+			delete _bots[peer.id];
+			for (const n in _opens) if (_opens[n].peer === peer.id) settle(Number(n), null, "gone");
+			changed();
+			if (room.members.indexOf(peer.id) >= 0) call(room, peer.id);
+		});
+		room.on("error", (err) => {
+			console.warn(`[BotHall] ${err.code}: ${err.message}`);
+		});
+		room.on("close", (err) => {
+			if (room !== _room) return;
+			_state = err ? err.code : "off";
+			_bots = Object.create(null);
+			for (const n in _opens) settle(Number(n), null, "gone");
+			changed();
+		});
+		room.ready.then(() => {
+			if (room === _room) {
+				_state = "in";
+				changed();
+			}
+		}, () => {});
+		changed();
+	};
+	/**
+	* Leave the hall: once in game, or for other settings
+	*/
+	BotHall.leave = function leave() {
+		const room = _room;
+		_room = null;
+		_state = "off";
+		_bots = Object.create(null);
+		for (const id in _opens) settle(Number(id), null, "gone");
+		if (room) {
+			room.leave();
+			changed();
+		}
+	};
+	/**
+	* Ask a bot for a room of its own
+	*
+	* @param {string} id - the bot's peer id
+	* @return {Promise<{room: string, secret: string}>} rejected with an Error whose code is the bot's refusal, gone or no-answer
+	* @see docs/reference/network/remote-bot.md
+	*/
+	BotHall.open = function open(id) {
+		const bot = _bots[id];
+		const n = _nextOpen++;
+		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
+		return new Promise((resolve, reject) => {
+			_opens[n] = {
+				peer: id,
+				resolve,
+				reject,
+				timer: setTimeout(() => settle(n, null, "no-answer"), OPEN_WAIT_MS)
+			};
+			send(bot.peer, {
+				t: "open",
+				v: 1,
+				id: n
+			});
+		});
+	};
 }));
 // src/UI/Components/WinList/WinList.html?raw
 var WinList_default$2;
@@ -349131,6 +349636,415 @@ var init_WinList = __esmMin((() => {
 	};
 	WinList.mouseMode = GUIComponent$1.MouseMode.STOP;
 	WinList_default = UIManager.addComponent(WinList);
+}));
+// src/UI/Components/RemoteCharacters/RemoteCharacters.html?raw
+var RemoteCharacters_default$2;
+var init_RemoteCharacters$2 = __esmMin((() => {
+	RemoteCharacters_default$2 = "<div id=\"RemoteCharacters\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/titlebar_left.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/titlebar_mid.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/titlebar_right.bmp\"></ui-image></div>\r\n		<span class=\"text\">Remote characters</span>\r\n	</div>\r\n	<div class=\"list\"></div>\r\n	<div class=\"footer\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/btnbar_left2.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/btnbar_mid2.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/btnbar_right2.bmp\"></ui-image></div>\r\n		<button\r\n			class=\"txt settings\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Settings\r\n		</button>\r\n		<button\r\n			class=\"txt login\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Normal login\r\n		</button>\r\n		<button\r\n			class=\"btn connect\"\r\n			type=\"button\"\r\n			data-background=\"login_interface/btn_connect.bmp\"\r\n			data-hover=\"login_interface/btn_connect_a.bmp\"\r\n			data-down=\"login_interface/btn_connect_b.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
+}));
+// src/UI/Components/RemoteCharacters/RemoteCharacters.css?raw
+var RemoteCharacters_default$1;
+var init_RemoteCharacters$1 = __esmMin((() => {
+	RemoteCharacters_default$1 = ":host {\r\n	width: 280px;\r\n	height: 200px;\r\n}\r\n\r\n#RemoteCharacters {\r\n	position: relative;\r\n	width: 280px;\r\n	height: 200px;\r\n	background-color: white;\r\n	box-shadow: 0 0 0 1px #8c97a6;\r\n	color: black;\r\n	font-size: 12px;\r\n}\r\n\r\n#RemoteCharacters .slice {\r\n	position: absolute;\r\n	top: 0;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#RemoteCharacters .titlebar {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 280px;\r\n	height: 17px;\r\n}\r\n#RemoteCharacters .titlebar .slice {\r\n	width: 12px;\r\n	height: 17px;\r\n}\r\n#RemoteCharacters .titlebar .left {\r\n	left: 0;\r\n}\r\n#RemoteCharacters .titlebar .mid {\r\n	left: 12px;\r\n	width: 256px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteCharacters .titlebar .right {\r\n	right: 0;\r\n}\r\n#RemoteCharacters .titlebar .text {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 17px;\r\n	font-weight: bold;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#RemoteCharacters .list {\r\n	position: absolute;\r\n	top: 22px;\r\n	left: 6px;\r\n	width: 266px;\r\n	height: 140px;\r\n	overflow-y: auto;\r\n	background-color: #f7f7f7;\r\n	border: 1px solid #d4d9e0;\r\n}\r\n#RemoteCharacters .bot {\r\n	position: relative;\r\n	height: 31px;\r\n	padding: 3px 6px 0 20px;\r\n	border-bottom: 1px solid #e3e7ec;\r\n}\r\n#RemoteCharacters .bot.selected {\r\n	background-color: #cfdcf0;\r\n}\r\n#RemoteCharacters .bot .dot {\r\n	position: absolute;\r\n	top: 8px;\r\n	left: 7px;\r\n	font-size: 10px;\r\n	color: #3b7d3b;\r\n}\r\n#RemoteCharacters .bot .name {\r\n	font-weight: bold;\r\n}\r\n#RemoteCharacters .bot .job {\r\n	margin-left: 6px;\r\n	color: #4a5f7f;\r\n}\r\n#RemoteCharacters .bot .map {\r\n	position: absolute;\r\n	top: 3px;\r\n	right: 6px;\r\n	color: #666666;\r\n}\r\n#RemoteCharacters .bot .sub {\r\n	margin-top: 2px;\r\n	font-size: 11px;\r\n	color: #888888;\r\n}\r\n#RemoteCharacters .bot .state {\r\n	position: absolute;\r\n	top: 18px;\r\n	right: 6px;\r\n	font-size: 11px;\r\n	color: #2a5db0;\r\n}\r\n#RemoteCharacters .message {\r\n	padding: 26px 14px 0;\r\n	text-align: center;\r\n	line-height: 16px;\r\n	color: #666666;\r\n}\r\n#RemoteCharacters .message.error {\r\n	color: #aa3333;\r\n}\r\n\r\n#RemoteCharacters .footer {\r\n	position: absolute;\r\n	bottom: 0;\r\n	left: 0;\r\n	width: 280px;\r\n	height: 29px;\r\n}\r\n#RemoteCharacters .footer .slice {\r\n	width: 21px;\r\n	height: 29px;\r\n}\r\n#RemoteCharacters .footer .left {\r\n	left: 0;\r\n}\r\n#RemoteCharacters .footer .mid {\r\n	left: 21px;\r\n	width: 238px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteCharacters .footer .right {\r\n	right: 0;\r\n}\r\n#RemoteCharacters .txt {\r\n	position: absolute;\r\n	bottom: 5px;\r\n	height: 20px;\r\n	padding: 0;\r\n	border: 0;\r\n	background-color: transparent;\r\n	background-size: 100% 20px;\r\n	font-size: 11px;\r\n	color: #333333;\r\n}\r\n#RemoteCharacters .settings {\r\n	left: 6px;\r\n	width: 62px;\r\n}\r\n#RemoteCharacters .login {\r\n	left: 72px;\r\n	width: 84px;\r\n}\r\n#RemoteCharacters .btn {\r\n	position: absolute;\r\n	right: 5px;\r\n	bottom: 5px;\r\n	width: 42px;\r\n	height: 20px;\r\n	border: 0;\r\n	background-color: transparent;\r\n}\r\n#RemoteCharacters .btn:disabled {\r\n	opacity: 0.5;\r\n}\r\n";
+}));
+// src/UI/Components/RemoteCharacters/RemoteCharacters.js
+/**
+* @param {?object} bot
+*/
+function select(bot) {
+	if (bot && !_opening) {
+		_selected = bot.id;
+		mark();
+	}
+}
+/**
+* Show the selection without rebuilding the rows (a rebuilt row would lose a double click)
+*/
+function mark() {
+	const root = RemoteCharacters.getRoot();
+	const rows = root.querySelectorAll(".bot");
+	for (let i = 0; i < rows.length; ++i) rows[i].classList.toggle("selected", rows[i].dataset.id === _selected);
+	root.querySelector(".connect").disabled = !_selected || !!_opening;
+}
+/**
+* Ask the selected bot for a room of its own
+* @see docs/reference/network/remote-bot.md
+*/
+function open() {
+	const settings = BotHall.loadSettings();
+	const bot = BotHall.bots().find((b) => b.id === _selected);
+	const shown = _shown;
+	if (!bot || _opening || !settings) return;
+	_opening = bot.id;
+	_failure = null;
+	update();
+	BotHall.open(bot.id).then((answer) => {
+		if (shown !== _shown) return;
+		_opening = null;
+		RemoteCharacters.onRoomOpened({
+			relay: settings.relay,
+			relayKey: settings.relayKey,
+			room: answer.room,
+			secret: answer.secret,
+			character: bot.playing ? bot.playing.name : null
+		});
+	}, (err) => {
+		if (shown !== _shown) return;
+		_opening = null;
+		_failure = {
+			id: bot.id,
+			text: OPEN_FAILURES[err.code] || "This remote client could not open a room."
+		};
+		update();
+	});
+}
+/**
+* @param {string} text
+* @param {boolean} [error]
+* @return {HTMLElement}
+*/
+function message(text, error) {
+	const node = document.createElement("div");
+	node.className = error ? "message error" : "message";
+	node.textContent = text;
+	return node;
+}
+/**
+* @param {object} bot
+* @return {HTMLElement}
+*/
+function row(bot) {
+	const node = document.createElement("div");
+	const play = bot.playing;
+	const parts = [
+		["dot", bot.id === _opening ? "◷" : "●"],
+		["name", play ? play.name : bot.account],
+		["job", play ? `${MonsterTable_default[play.job] || ""} ${play.lv}`.trim() : "not in game"],
+		["map", play ? play.map : ""]
+	];
+	node.className = bot.id === _selected ? "bot selected" : "bot";
+	node.dataset.id = bot.id;
+	for (let i = 0; i < parts.length; ++i) {
+		const span = document.createElement("span");
+		span.className = parts[i][0];
+		span.textContent = parts[i][1];
+		node.appendChild(span);
+	}
+	const sub = document.createElement("div");
+	sub.className = "sub";
+	sub.textContent = `${bot.account} · ${bot.chars.length} character${bot.chars.length === 1 ? "" : "s"}`;
+	node.appendChild(sub);
+	const state = document.createElement("span");
+	state.className = "state";
+	if (bot.id === _opening) state.textContent = "Opening…";
+	else if (_failure && _failure.id === bot.id) state.textContent = _failure.text;
+	else if (bot.windows) state.textContent = `${bot.windows} window${bot.windows === 1 ? "" : "s"} open`;
+	node.appendChild(state);
+	node.addEventListener("mousedown", (event) => {
+		select(bot);
+		event.stopImmediatePropagation();
+	});
+	return node;
+}
+/**
+* Draw the list, or why there is none
+*/
+function update() {
+	const root = RemoteCharacters.getRoot();
+	const list = root && root.querySelector(".list");
+	const state = BotHall.state();
+	const bots = BotHall.bots();
+	if (!list) return;
+	if (_selected && !bots.some((bot) => bot.id === _selected)) _selected = null;
+	if (!_selected && bots.length) _selected = bots[0].id;
+	list.textContent = "";
+	if (state === "joining") list.appendChild(message("Entering the hall…"));
+	else if (state !== "in") list.appendChild(message(HALL_FAILURES[state] || `Cannot reach the relay (${state}).`, true));
+	else if (!bots.length && BotHall.waiting()) list.appendChild(message("Calling the remote clients of the hall…"));
+	else if (!bots.length) list.appendChild(message("No remote client in this hall. Are your remote clients running with --spectate-rtc, and the same hall and secret?"));
+	else for (let i = 0; i < bots.length; ++i) list.appendChild(row(bots[i]));
+	mark();
+}
+var HALL_FAILURES, OPEN_FAILURES, RemoteCharacters, _selected, _opening, _failure, _shown, RemoteCharacters_default;
+var init_RemoteCharacters = __esmMin((() => {
+	init_Renderer();
+	init_KeyEventHandler();
+	init_UIManager();
+	init_GUIComponent();
+	init_MonsterTable();
+	init_BotHall();
+	init_Elements();
+	init_RemoteCharacters$2();
+	init_RemoteCharacters$1();
+	HALL_FAILURES = {
+		off: "Set your hall in Settings.",
+		key: "The relay refused the key. Check it in Settings.",
+		secret: "The hall secret is not valid. Check it in Settings.",
+		options: "These settings are not valid. Check them in Settings.",
+		"room-full": "The hall is full.",
+		rate: "The relay cut this window (too many messages)."
+	};
+	OPEN_FAILURES = {
+		busy: "This remote client has too many windows open.",
+		gone: "This remote client left the hall.",
+		"no-answer": "This remote client did not answer."
+	};
+	RemoteCharacters = new GUIComponent$1("RemoteCharacters", RemoteCharacters_default$1);
+	RemoteCharacters.render = () => RemoteCharacters_default$2;
+	_selected = null;
+	_opening = null;
+	_failure = null;
+	_shown = 0;
+	/**
+	* Initialize UI
+	*/
+	RemoteCharacters.init = function init() {
+		const root = this.getRoot();
+		this._host.style.top = `${(Renderer.height - 200) / 1.5}px`;
+		this._host.style.left = `${(Renderer.width - 280) / 2}px`;
+		this.draggable(root.querySelector(".titlebar"));
+		root.querySelector(".settings").addEventListener("click", () => RemoteCharacters.onSettingsRequest());
+		root.querySelector(".login").addEventListener("click", () => RemoteCharacters.onLoginRequest());
+		root.querySelector(".connect").addEventListener("click", () => open());
+		root.querySelector(".list").addEventListener("dblclick", (event) => {
+			if (event.target.closest(".bot")) open();
+		});
+	};
+	/**
+	* Join the hall of the saved settings
+	*/
+	RemoteCharacters.onAppend = function onAppend() {
+		const settings = BotHall.loadSettings();
+		_selected = null;
+		_opening = null;
+		_failure = null;
+		BotHall.onChange(update);
+		if (settings && BotHall.state() === "off") BotHall.join(settings);
+		update();
+	};
+	/**
+	* Stop drawing: the hall stays until the login is over or the player leaves it
+	*/
+	RemoteCharacters.onRemove = function onRemove() {
+		BotHall.onChange(null);
+		_shown++;
+	};
+	/**
+	* Key Management
+	*
+	* @param {object} event
+	* @return {boolean}
+	*/
+	RemoteCharacters.onKeyDown = function onKeyDown(event) {
+		const bots = BotHall.bots();
+		const at = bots.findIndex((bot) => bot.id === _selected);
+		switch (event.which) {
+			case KEYS.ENTER:
+				open();
+				break;
+			case KEYS.UP:
+				select(bots[Math.max(0, at - 1)]);
+				break;
+			case KEYS.DOWN:
+				select(bots[Math.min(bots.length - 1, at + 1)]);
+				break;
+			default: return true;
+		}
+		event.stopImmediatePropagation();
+		return false;
+	};
+	/**
+	* Callbacks to define
+	*/
+	RemoteCharacters.onSettingsRequest = function onSettingsRequest() {};
+	RemoteCharacters.onLoginRequest = function onLoginRequest() {};
+	RemoteCharacters.onRoomOpened = function onRoomOpened() {};
+	RemoteCharacters_default = UIManager.addComponent(RemoteCharacters);
+}));
+// src/UI/Components/RemoteSettings/RemoteSettings.html?raw
+var RemoteSettings_default$2;
+var init_RemoteSettings$2 = __esmMin((() => {
+	RemoteSettings_default$2 = "<div id=\"RemoteSettings\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/titlebar_left.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/titlebar_mid.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/titlebar_right.bmp\"></ui-image></div>\r\n		<span class=\"text\">Remote connections</span>\r\n	</div>\r\n	<div class=\"form\">\r\n		<label><span>Relay</span><input class=\"relay\" type=\"text\" placeholder=\"wss://…\" spellcheck=\"false\" /></label>\r\n		<label><span>Relay key</span><input class=\"relayKey\" type=\"password\" /></label>\r\n		<label><span>Hall</span><input class=\"room\" type=\"text\" spellcheck=\"false\" /></label>\r\n		<label\r\n			><span>Secret</span><input class=\"secret\" type=\"password\" spellcheck=\"false\" /><button\r\n				class=\"new\"\r\n				type=\"button\"\r\n				data-background=\"navigation_interface3/btn_normal.bmp\"\r\n				data-hover=\"navigation_interface3/btn_over.bmp\"\r\n				data-down=\"navigation_interface3/btn_press.bmp\"\r\n			>\r\n				New\r\n			</button></label\r\n		>\r\n		<div class=\"note\">⚠︎ Anyone with this secret can open your remote clients.</div>\r\n	</div>\r\n	<div class=\"footer\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/btnbar_left2.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/btnbar_mid2.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/btnbar_right2.bmp\"></ui-image></div>\r\n		<button\r\n			class=\"txt copy\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Copy for clients\r\n		</button>\r\n		<button\r\n			class=\"txt forget\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Forget\r\n		</button>\r\n		<ui-button class=\"btn ok\" bg=\"btn_ok.bmp\" hover=\"btn_ok_a.bmp\" down=\"btn_ok_b.bmp\"></ui-button>\r\n		<ui-button class=\"btn cancel\" bg=\"btn_cancel.bmp\" hover=\"btn_cancel_a.bmp\" down=\"btn_cancel_b.bmp\"></ui-button>\r\n	</div>\r\n</div>\r\n";
+}));
+// src/UI/Components/RemoteSettings/RemoteSettings.css?raw
+var RemoteSettings_default$1;
+var init_RemoteSettings$1 = __esmMin((() => {
+	RemoteSettings_default$1 = ":host {\r\n	width: 320px;\r\n	height: 212px;\r\n}\r\n\r\n#RemoteSettings {\r\n	position: relative;\r\n	width: 320px;\r\n	height: 212px;\r\n	background-color: white;\r\n	box-shadow: 0 0 0 1px #8c97a6;\r\n	color: black;\r\n	font-size: 12px;\r\n}\r\n\r\n#RemoteSettings .slice {\r\n	position: absolute;\r\n	top: 0;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#RemoteSettings .titlebar {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 320px;\r\n	height: 17px;\r\n}\r\n#RemoteSettings .titlebar .slice {\r\n	width: 12px;\r\n	height: 17px;\r\n}\r\n#RemoteSettings .titlebar .left {\r\n	left: 0;\r\n}\r\n#RemoteSettings .titlebar .mid {\r\n	left: 12px;\r\n	width: 296px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteSettings .titlebar .right {\r\n	right: 0;\r\n}\r\n#RemoteSettings .titlebar .text {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 17px;\r\n	font-weight: bold;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#RemoteSettings .form {\r\n	position: absolute;\r\n	top: 24px;\r\n	left: 10px;\r\n	width: 300px;\r\n}\r\n#RemoteSettings label {\r\n	display: flex;\r\n	align-items: center;\r\n	height: 24px;\r\n	font-size: 11px;\r\n	font-weight: bold;\r\n	color: #4a5f7f;\r\n}\r\n#RemoteSettings label span {\r\n	flex: none;\r\n	width: 70px;\r\n}\r\n#RemoteSettings input {\r\n	flex: 1;\r\n	height: 16px;\r\n	margin-left: 0;\r\n	padding: 0 3px;\r\n	border: 1px solid #b5bdc8;\r\n	background-color: #f5f6f8;\r\n	font-size: 11px;\r\n	font-weight: normal;\r\n	outline: none;\r\n}\r\n#RemoteSettings .new {\r\n	width: 42px;\r\n	height: 18px;\r\n	margin-left: 4px;\r\n	padding: 0;\r\n	border: 0;\r\n	background-color: transparent;\r\n	background-size: 100% 18px;\r\n	font-size: 10px;\r\n	color: #333333;\r\n}\r\n#RemoteSettings .note {\r\n	margin-top: 4px;\r\n	font-size: 11px;\r\n	color: #8a5a00;\r\n}\r\n#RemoteSettings .note.error {\r\n	color: #aa3333;\r\n}\r\n\r\n#RemoteSettings .footer {\r\n	position: absolute;\r\n	bottom: 0;\r\n	left: 0;\r\n	width: 320px;\r\n	height: 29px;\r\n}\r\n#RemoteSettings .footer .slice {\r\n	width: 21px;\r\n	height: 29px;\r\n}\r\n#RemoteSettings .footer .left {\r\n	left: 0;\r\n}\r\n#RemoteSettings .footer .mid {\r\n	left: 21px;\r\n	width: 278px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteSettings .footer .right {\r\n	right: 0;\r\n}\r\n#RemoteSettings .txt {\r\n	position: absolute;\r\n	bottom: 5px;\r\n	height: 20px;\r\n	padding: 0;\r\n	border: 0;\r\n	background-color: transparent;\r\n	background-size: 100% 20px;\r\n	font-size: 11px;\r\n	color: #333333;\r\n}\r\n#RemoteSettings .copy {\r\n	left: 6px;\r\n	width: 92px;\r\n}\r\n#RemoteSettings .forget {\r\n	left: 102px;\r\n	width: 62px;\r\n}\r\n#RemoteSettings .btn {\r\n	position: absolute;\r\n	bottom: 5px;\r\n	width: 42px;\r\n	height: 20px;\r\n}\r\n#RemoteSettings .ok {\r\n	right: 50px;\r\n}\r\n#RemoteSettings .cancel {\r\n	right: 5px;\r\n}\r\n";
+}));
+// src/UI/Components/RemoteSettings/RemoteSettings.js
+/**
+* @return {{relay: string, relayKey: string, room: string, secret: string}}
+*/
+function read$1() {
+	const root = RemoteSettings.getRoot();
+	return {
+		relay: root.querySelector(".relay").value.trim(),
+		relayKey: root.querySelector(".relayKey").value.trim(),
+		room: root.querySelector(".room").value.trim(),
+		secret: root.querySelector(".secret").value.trim()
+	};
+}
+/**
+* @param {string} text
+* @param {boolean} [error]
+*/
+function say(text, error) {
+	const note = RemoteSettings.getRoot().querySelector(".note");
+	note.textContent = text;
+	note.classList.toggle("error", !!error);
+}
+/**
+* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+* @return {?string} what is wrong, null when nothing is
+*/
+function check(settings) {
+	if (!/^wss?:\/\/./.test(settings.relay)) return "The relay is a wss:// address.";
+	if (!settings.room || settings.room.length > 64) return "Name the hall (64 characters at most).";
+	if (!/^[\w-]{43}$/.test(settings.secret)) return "The secret is not valid: press New for one.";
+	return null;
+}
+/**
+* Save and close, or say what is wrong
+*/
+function validate() {
+	const settings = read$1();
+	const wrong = check(settings);
+	if (wrong) {
+		say(wrong, true);
+		return;
+	}
+	BotHall.saveSettings(settings);
+	BotHall.leave();
+	RemoteSettings.onClose();
+}
+/**
+* The `spectate` block each remote client of this hall needs in its config
+* @see docs/reference/network/remote-bot.md
+*/
+function copy() {
+	const settings = read$1();
+	const wrong = check(settings);
+	if (wrong) {
+		say(wrong, true);
+		return;
+	}
+	if (!navigator.clipboard) {
+		say("This browser cannot copy here.", true);
+		return;
+	}
+	navigator.clipboard.writeText(`"spectate": ${JSON.stringify(settings, null, "	")}`).then(() => say("Copied: paste it into each remote client config."), () => say("This browser refused to copy.", true));
+}
+var WARNING, RemoteSettings, RemoteSettings_default;
+var init_RemoteSettings = __esmMin((() => {
+	init_Renderer();
+	init_KeyEventHandler();
+	init_UIManager();
+	init_GUIComponent();
+	init_BotHall();
+	init_signal();
+	init_Elements();
+	init_RemoteSettings$2();
+	init_RemoteSettings$1();
+	WARNING = "⚠︎ Anyone with this secret can open your remote clients.";
+	RemoteSettings = new GUIComponent$1("RemoteSettings", RemoteSettings_default$1);
+	RemoteSettings.render = () => RemoteSettings_default$2;
+	/**
+	* Modal: nothing else is clicked while it is open
+	*/
+	RemoteSettings.mouseMode = GUIComponent$1.MouseMode.FREEZE;
+	/**
+	* Typing goes to its fields
+	*/
+	RemoteSettings.captureKeyEvents = true;
+	/**
+	* Initialize UI
+	*/
+	RemoteSettings.init = function init() {
+		const root = this.getRoot();
+		this._host.style.top = `${(Renderer.height - 212) / 1.5}px`;
+		this._host.style.left = `${(Renderer.width - 320) / 2}px`;
+		this.draggable(root.querySelector(".titlebar"));
+		const inputs = root.querySelectorAll("input");
+		for (let i = 0; i < inputs.length; ++i) inputs[i].addEventListener("mousedown", (event) => event.stopImmediatePropagation());
+		root.querySelector(".new").addEventListener("click", () => {
+			root.querySelector(".secret").value = newSecret();
+			say("A new secret: copy it to your remote clients.");
+		});
+		root.querySelector(".copy").addEventListener("click", () => copy());
+		root.querySelector(".forget").addEventListener("click", () => {
+			BotHall.forgetSettings();
+			RemoteSettings.onClose();
+		});
+		root.querySelector(".ok").addEventListener("click", () => validate());
+		root.querySelector(".cancel").addEventListener("click", () => RemoteSettings.onClose());
+	};
+	/**
+	* Show the saved settings
+	*/
+	RemoteSettings.onAppend = function onAppend() {
+		const root = this.getRoot();
+		const settings = BotHall.loadSettings() || {
+			relay: "",
+			relayKey: "",
+			room: "",
+			secret: ""
+		};
+		root.querySelector(".relay").value = settings.relay;
+		root.querySelector(".relayKey").value = settings.relayKey;
+		root.querySelector(".room").value = settings.room;
+		root.querySelector(".secret").value = settings.secret;
+		say(WARNING);
+		root.querySelector(".relay").focus();
+	};
+	/**
+	* Key Management
+	*
+	* @param {object} event
+	* @return {boolean}
+	*/
+	RemoteSettings.onKeyDown = function onKeyDown(event) {
+		if (event.which === KEYS.ENTER) validate();
+		else if (event.which === KEYS.ESCAPE) RemoteSettings.onClose();
+		event.stopImmediatePropagation();
+		return true;
+	};
+	/**
+	* Callback to define: the window is done (saved, forgotten or cancelled)
+	*/
+	RemoteSettings.onClose = function onClose() {};
+	RemoteSettings_default = UIManager.addComponent(RemoteSettings);
+}));
+// src/UI/Components/RemoteEntry/RemoteEntry.html?raw
+var RemoteEntry_default$2;
+var init_RemoteEntry$2 = __esmMin((() => {
+	RemoteEntry_default$2 = "<button\r\n	id=\"RemoteEntry\"\r\n	type=\"button\"\r\n	data-background=\"navigation_interface3/btn_normal.bmp\"\r\n	data-hover=\"navigation_interface3/btn_over.bmp\"\r\n	data-down=\"navigation_interface3/btn_press.bmp\"\r\n>\r\n	Remote characters\r\n</button>\r\n";
+}));
+// src/UI/Components/RemoteEntry/RemoteEntry.css?raw
+var RemoteEntry_default$1;
+var init_RemoteEntry$1 = __esmMin((() => {
+	RemoteEntry_default$1 = ":host {\r\n	width: 120px;\r\n	height: 20px;\r\n	top: calc(60% - 26px);\r\n	left: calc(50% - 60px);\r\n}\r\n\r\n#RemoteEntry {\r\n	width: 120px;\r\n	height: 20px;\r\n	padding: 0;\r\n	border: 0;\r\n	background-color: transparent;\r\n	font-size: 11px;\r\n	color: #333333;\r\n}\r\n";
+}));
+// src/UI/Components/RemoteEntry/RemoteEntry.js
+var RemoteEntry, RemoteEntry_default;
+var init_RemoteEntry = __esmMin((() => {
+	init_UIManager();
+	init_GUIComponent();
+	init_Elements();
+	init_RemoteEntry$2();
+	init_RemoteEntry$1();
+	RemoteEntry = new GUIComponent$1("RemoteEntry", RemoteEntry_default$1);
+	RemoteEntry.render = () => RemoteEntry_default$2;
+	/**
+	* Initialize UI: above the login window (see the CSS)
+	*/
+	RemoteEntry.init = function init() {
+		this.getRoot().querySelector("#RemoteEntry").addEventListener("click", () => RemoteEntry.onRequest());
+	};
+	/**
+	* Callback to define
+	*/
+	RemoteEntry.onRequest = function onRequest() {};
+	RemoteEntry_default = UIManager.addComponent(RemoteEntry);
 }));
 // src/Vendors/spark-md5.min.js
 var SparkMD5;
@@ -354517,7 +355431,50 @@ var LoginEngine_exports = /* @__PURE__ */ __exportAll({ default: () => LoginEngi
 function backToLogin() {
 	AutoRetry.disarm();
 	UIManager.removeComponents();
+	showLoginScreen();
+}
+/**
+* The account's bots when a hall is set, else the login window and the way to them
+*
+* @see docs/reference/network/remote-bot.md
+*/
+function showLoginScreen() {
+	if (BotHall.loadSettings()) RemoteCharacters_default.append();
+	else {
+		RemoteBot.leave();
+		Controller.append();
+		RemoteEntry_default.append();
+	}
+}
+/**
+* From the login window to the account's bots
+*/
+function showLoginScreenFresh() {
+	Controller.remove();
+	RemoteEntry_default.remove();
+	showLoginScreen();
+}
+/**
+* The usual login window, and the way back to the bots
+*/
+function showWinLogin() {
+	BotHall.leave();
+	RemoteBot.leave();
+	RemoteCharacters_default.remove();
 	Controller.append();
+	RemoteEntry_default.append();
+}
+/**
+* A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
+*
+* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+* @see docs/reference/network/remote-bot.md
+*/
+function attachRemote(room) {
+	if (RemoteBot.useRoom(room)) {
+		RemoteCharacters_default.remove();
+		onConnectionRequest("remote", "remote");
+	}
 }
 /**
 * Report a failed login attempt.
@@ -354539,12 +355496,12 @@ function failLogin(text, kind, code, onOk = backToLogin) {
 */
 function askRemoteLink(badLink) {
 	if (badLink) {
-		UIManager.showMessageBox("This is not a bot link.", "ok", () => askRemoteLink(false), true);
+		UIManager.showMessageBox("This is not a remote client link.", "ok", () => askRemoteLink(false), true);
 		return;
 	}
 	InputBox_default.append();
 	InputBox_default.setType("text", false);
-	InputBox_default.getRoot().querySelector(".text").textContent = "Paste the bot link";
+	InputBox_default.getRoot().querySelector(".text").textContent = "Paste the remote client link";
 	InputBox_default.onSubmitRequest = function onSubmitRequest(text) {
 		InputBox_default.remove();
 		if (!RemoteBot.setLink(text)) askRemoteLink(true);
@@ -354560,6 +355517,7 @@ function onConnectionRequest(username, password) {
 	SoundManager.play("¹öÆ°¼Ò¸®.wav");
 	if (AutoRetry.isEnabled()) AutoRetry.arm(username, password);
 	Controller.remove();
+	RemoteEntry_default.remove();
 	WinLoading.append();
 	_loginID = username;
 	Network.connect(_server.address, _server.port, (success) => {
@@ -354664,6 +355622,7 @@ function onCharServerSelected(index) {
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
 	RemoteBot.setLoginScreen(null);
+	BotHall.leave();
 	SessionStorage_default.AuthCode = pkt.AuthCode;
 	SessionStorage_default.AID = pkt.AID;
 	SessionStorage_default.UserLevel = pkt.userLevel;
@@ -354678,7 +355637,7 @@ function onConnectionAccepted(pkt) {
 		list[i] += _charServers[i].name;
 		list[i] += _charServers[i].state ? DB.getMessage(484) : " " + DB.getMessage(483).replace("%d", _charServers[i].usercount);
 	}
-	if (count === 1 && Configs.get("skipServerList")) {
+	if (count === 1 && (Configs.get("skipServerList") || RemoteBot.isActive())) {
 		WinLoading.append();
 		SessionStorage_default.ServerName = _charServers[0].name;
 		Network.onDisconnect = null;
@@ -355157,6 +356116,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_CharEngine();
 	init_NetworkManager();
 	init_RemoteBot();
+	init_BotHall();
 	init_PacketVerManager();
 	init_PacketStructure();
 	init_PluginManager();
@@ -355166,6 +356126,9 @@ var init_LoginEngine = __esmMin((() => {
 	init_WinList();
 	init_WinPopup();
 	init_InputBox();
+	init_RemoteCharacters();
+	init_RemoteSettings();
+	init_RemoteEntry();
 	init_SkillTargetSelection();
 	init_Queue();
 	init_Background();
@@ -355249,6 +356212,15 @@ var init_LoginEngine = __esmMin((() => {
 			Background.setLoginBackground();
 			Controller.onConnectionRequest = onConnectionRequest;
 			Controller.onExitRequest = onExitRequest;
+			RemoteCharacters_default.onSettingsRequest = () => RemoteSettings_default.append();
+			RemoteCharacters_default.onLoginRequest = showWinLogin;
+			RemoteCharacters_default.onRoomOpened = attachRemote;
+			RemoteEntry_default.onRequest = () => BotHall.loadSettings() ? showLoginScreenFresh() : RemoteSettings_default.append();
+			RemoteSettings_default.onClose = () => {
+				RemoteSettings_default.remove();
+				RemoteCharacters_default.remove();
+				showLoginScreenFresh();
+			};
 			Network.onDisconnect = () => {
 				failLogin(DB.getMessage(1), "network");
 			};
@@ -355265,7 +356237,7 @@ var init_LoginEngine = __esmMin((() => {
 				onConnectionRequest.apply(null, autoLogin);
 				Configs.set("autoLogin", null);
 			} else q.add(function() {
-				Controller.append();
+				showLoginScreen();
 				RemoteBot.setLoginScreen(askRemoteLink);
 			});
 			if (PacketVerManager_default.value < 20170315) Network.hookPacket(PACKET$1.AC.ACCEPT_LOGIN, onConnectionAccepted);
@@ -355287,7 +356259,8 @@ var init_LoginEngine = __esmMin((() => {
 			UIManager.removeComponents();
 			Controller.onConnectionRequest = onConnectionRequest;
 			Controller.onExitRequest = onExitRequest;
-			Controller.append();
+			showLoginScreen();
+			RemoteBot.setLoginScreen(askRemoteLink);
 			Network.close();
 		}
 		/**
