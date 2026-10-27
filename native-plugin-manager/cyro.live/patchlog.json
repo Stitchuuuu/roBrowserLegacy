@@ -1076,6 +1076,180 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.9.0",
+			"date": "2026-10-27",
+			"title": "Big Cart Energy",
+			"sha": "",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Carts like the client",
+					"text": "Your cart used to be painted on your back. It now rolls behind you on its own, and stops stealing the clicks meant for the ground.",
+					"details": "A pushcart is now its own companion behind the merchant, as in the official client, instead of a drawing stuck to the player: it follows, takes a fixed place in the draw order, and no longer blocks a click or a free cell. Removing the cart clears it and its window.",
+					"commits": [
+						"460947e7f",
+						"2e12eec31"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Skill effects like the client",
+					"text": "A status that lasts a minute now glows for a minute, not one flash. Floor effects lie under your feet, and a level 10 skill finally looks like level 10.",
+					"details": "Many skill and status effects follow the official client more closely: floor effects under the characters, status and ground-unit effects that loop while they last, effects chosen by skill level, direction or hit, the client's ring, sphere and square shapes drawn, and 4th-job casts without a stray element aura.",
+					"commits": [
+						"52181eb2f",
+						"a107b31a6",
+						"16e62814c",
+						"d43e8c350",
+						"f474a45ee"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Chat tab All on",
+					"text": "Chat tab settings: an « All on » box ticks or clears every filter of the tab at once.",
+					"details": "The chat tab settings have an « All on » box that turns every filter of the tab on or off at once.",
+					"commits": [
+						"9440f4f1c"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Replays",
+					"text": "Replays restore more of the recorded session: hotkeys, quests, party and friends, storage, navigation, open windows and companions.",
+					"details": "Replays restore much more of the recorded session: hotkeys, quests, party and friends, storage, navigation, open windows and companions.",
+					"commits": [
+						"6d1043b0f"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Faster loading",
+					"text": "The decoder went to the gym. Same files out, less waiting.",
+					"details": "Encrypted GRF files and TGA images are decoded with WebAssembly, with the old path kept as a fallback; the decoded files are unchanged.",
+					"commits": [
+						"dfc04fc78",
+						"f16a44c07",
+						"8ba16e610",
+						"d88f904fc",
+						"1853fb088",
+						"6c2f978b0",
+						"155783e14"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Chat tabs",
+					"text": "You clicked a chat tab to read it and found yourself renaming it. Now a click switches and a double click renames, like the client.",
+					"details": "Chat tabs behave like the client: a click only switches tab and a double click renames it, a tab added with + starts with every filter off, a new tab no longer reuses an existing tab's id after the window is shown again, and a tab name with markup shows as text.",
+					"commits": [
+						"2ff4de6b2",
+						"62bffcaff",
+						"62640b0ae",
+						"76af0097a",
+						"294334a9d"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Pasted chat",
+					"text": "Pasting a paragraph into the chat no longer writes a poem. One line, as it should.",
+					"details": "Text pasted into the chat input stays on one line.",
+					"commits": [
+						"234691fba",
+						"eccb5cdce"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Animated models",
+					"text": "Maps with many animated models draw them again on browsers with a small texture limit (Firefox on macOS).",
+					"details": "Maps with many animated models (the grass of Payon Cave F5) drew them wrong or not at all on browsers with a small texture limit, Firefox on macOS among them.",
+					"commits": [
+						"34adf3d0f",
+						"cfb792769"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Quest objectives",
+					"text": "The quest giver no longer repeats himself. Each objective, once.",
+					"details": "Each quest objective is printed once in the chat when a quest is added, not twice.",
+					"commits": [
+						"7181f0f54"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Skill requirements",
+					"text": "Skill descriptions list only your own job's requirements, without a stray number in front of the line.",
+					"details": "Skill descriptions show only your job's requirement line, without the stray job number in front.",
+					"commits": [
+						"6fbe5d0ab"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Headgear on the paperdoll",
+					"text": "Headgear received during the session shows on the equipment window's paperdoll.",
+					"details": "Headgear and garments received during the session (picked up, from an NPC, traded) show on the equipment window's paperdoll when worn.",
+					"commits": [
+						"3991404c6"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Weapons shown",
+					"text": "Doram and Druid attacks show their weapon, weapons with a special look no longer vanish on classes without that sprite, and those shields count as shields.",
+					"details": "Doram and Druid attacks show the weapon; weapons with an expansion look draw the base weapon when a class has no sprite for the look; shields with such a look count as shields.",
+					"commits": [
+						"93fa51123",
+						"088762581",
+						"a243e31f1"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Hairstyle buttons",
+					"text": "Character creation draws the hairstyle buttons of every race and gender, not only the first list.",
+					"details": "At character creation every race and gender's hairstyle list has its buttons drawn, not only the first.",
+					"commits": [
+						"26c2ebc38"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Cash Shop",
+					"text": "One empty Cash Shop tab used to shift every tab after it by one. Each tab now shows its own items, and Enter searches.",
+					"details": "Each Cash Shop tab shows its own items even when a tab before it is empty, and Enter in the search box searches.",
+					"commits": [
+						"ca0db68e5",
+						"49060d210"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Hair, hats and capes",
+					"text": "Long hair, middle headgear and capes are drawn in the right order: no cape flickering through a hat, no headgear hidden by the hair.",
+					"details": "Long hair, middle headgear and capes are drawn in the right order: no cape flickering through a hat, no middle headgear hidden by the hair.",
+					"commits": [
+						"2dc0d1538",
+						"c9171e278",
+						"ae83cc584"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Files with non-ASCII names",
+					"text": "On Chrome, some maps loaded with blank ground: the browser refused to cache files in Korean-named folders, and the file was dropped with it. Loading now goes on.",
+					"details": "On Chromium, game files whose folder names Chromium refuses to cache (the client's Korean texture folders) no longer arrive empty: loading goes on when a cache write fails.",
+					"commits": [
+						"a1d20cea9"
+					]
+				}
+			]
 		}
 	]
 }
