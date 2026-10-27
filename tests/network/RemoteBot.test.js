@@ -184,10 +184,10 @@ describe('remote mode', () => {
 		const peer = fakePeer();
 		mocks.rooms[0].emit('peer', peer);
 
-		const fromObserver = Network.defaultSocketFactory('127.0.0.1', 6900);
+		const fromObserver = Network.defaultSocketFactory('game.invalid', 6900);
 		fromObserver.onComplete = vi.fn();
 		const done = vi.fn();
-		Network.connect('127.0.0.1', 6900, done);
+		Network.connect('game.invalid', 6900, done);
 		await settle();
 
 		expect(fromObserver.sid).toBe(1);
@@ -201,7 +201,7 @@ describe('remote mode', () => {
 		mocks.rooms[0].emit('peer', fakePeer());
 		const done = vi.fn();
 
-		Network.connect('127.0.0.1', 5121, done, true);
+		Network.connect('game.invalid', 5121, done, true);
 		await settle();
 
 		expect(done).toHaveBeenCalledWith(true);
@@ -213,7 +213,7 @@ describe('remote mode', () => {
 		let socket;
 		Network.setSocketFactory(() => (socket = { connected: true, send: vi.fn(), close: vi.fn() }));
 
-		Network.connect('127.0.0.1', 5121, vi.fn(), true);
+		Network.connect('game.invalid', 5121, vi.fn(), true);
 		socket.onComplete(true);
 
 		expect(mocks.packetCrypt.init).toHaveBeenCalledOnce();
@@ -227,7 +227,7 @@ describe('remote mode', () => {
 	])('tells the player why on %s, and forgets the link', async (code, text) => {
 		await load(LINK);
 		const done = vi.fn();
-		Network.connect('127.0.0.1', 6900, done);
+		Network.connect('game.invalid', 6900, done);
 		await settle();
 
 		mocks.rooms[0].emit('close', { code: code, message: code });
@@ -241,7 +241,7 @@ describe('remote mode', () => {
 		await load(LINK);
 		vi.useFakeTimers();
 		const done = vi.fn();
-		Network.connect('127.0.0.1', 6900, done);
+		Network.connect('game.invalid', 6900, done);
 		vi.advanceTimersByTime(15000);
 		vi.useRealTimers();
 
@@ -253,7 +253,7 @@ describe('remote mode', () => {
 	it('takes a new link on the login screen after a failure', async () => {
 		await load(LINK);
 		RemoteBot.setLoginScreen(vi.fn());
-		Network.connect('127.0.0.1', 6900, vi.fn());
+		Network.connect('game.invalid', 6900, vi.fn());
 		await settle();
 		mocks.rooms[0].emit('close', { code: 'key', message: 'key' });
 
