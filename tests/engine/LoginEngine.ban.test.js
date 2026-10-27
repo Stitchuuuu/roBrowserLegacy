@@ -65,6 +65,10 @@ vi.mock('UI/Components/WinPopup/WinPopup.js', () => ({ default: { clone: () => (
 vi.mock('UI/Components/WinLogin/WinLogin.js', () => ({
 	default: Object.assign(mocks.winLogin, { selectUIVersion: vi.fn() })
 }));
+vi.mock('UI/Components/RemoteCharacters/RemoteCharacters.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('UI/Components/RemoteSettings/RemoteSettings.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('UI/Components/RemoteEntry/RemoteEntry.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('Network/BotHall.js', () => ({ default: { loadSettings: () => null, leave: vi.fn() } }));
 vi.mock('UI/Components/SkillTargetSelection/SkillTargetSelection.js', () => ({ default: mocks.skillTarget }));
 vi.mock('Vendors/spark-md5.min.js', () => ({ default: {} }));
 vi.mock('Utils/Rijndael.js', () => ({ default: {} }));

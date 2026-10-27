@@ -1,0 +1,50 @@
+<div id="RemoteSettings">
+	<div class="titlebar">
+		<div class="slice left"><ui-image src="basic_interface/titlebar_left.bmp"></ui-image></div>
+		<div class="slice mid"><ui-image src="basic_interface/titlebar_mid.bmp"></ui-image></div>
+		<div class="slice right"><ui-image src="basic_interface/titlebar_right.bmp"></ui-image></div>
+		<span class="text">Remote connections</span>
+	</div>
+	<div class="form">
+		<label><span>Relay</span><input class="relay" type="text" placeholder="wss://…" spellcheck="false" /></label>
+		<label><span>Relay key</span><input class="relayKey" type="password" /></label>
+		<label><span>Hall</span><input class="room" type="text" spellcheck="false" /></label>
+		<label
+			><span>Secret</span><input class="secret" type="password" spellcheck="false" /><button
+				class="new"
+				type="button"
+				data-background="navigation_interface3/btn_normal.bmp"
+				data-hover="navigation_interface3/btn_over.bmp"
+				data-down="navigation_interface3/btn_press.bmp"
+			>
+				New
+			</button></label
+		>
+		<div class="note">⚠︎ Anyone with this secret can open your remote clients.</div>
+	</div>
+	<div class="footer">
+		<div class="slice left"><ui-image src="basic_interface/btnbar_left2.bmp"></ui-image></div>
+		<div class="slice mid"><ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image></div>
+		<div class="slice right"><ui-image src="basic_interface/btnbar_right2.bmp"></ui-image></div>
+		<button
+			class="txt copy"
+			type="button"
+			data-background="navigation_interface3/btn_normal.bmp"
+			data-hover="navigation_interface3/btn_over.bmp"
+			data-down="navigation_interface3/btn_press.bmp"
+		>
+			Copy for clients
+		</button>
+		<button
+			class="txt forget"
+			type="button"
+			data-background="navigation_interface3/btn_normal.bmp"
+			data-hover="navigation_interface3/btn_over.bmp"
+			data-down="navigation_interface3/btn_press.bmp"
+		>
+			Forget
+		</button>
+		<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
+		<ui-button class="btn cancel" bg="btn_cancel.bmp" hover="btn_cancel_a.bmp" down="btn_cancel_b.bmp"></ui-button>
+	</div>
+</div>

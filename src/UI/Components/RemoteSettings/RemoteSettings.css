@@ -1,0 +1,154 @@
+:host {
+	width: 320px;
+	height: 212px;
+}
+
+#RemoteSettings {
+	position: relative;
+	width: 320px;
+	height: 212px;
+	background-color: white;
+	box-shadow: 0 0 0 1px #8c97a6;
+	color: black;
+	font-size: 12px;
+}
+
+#RemoteSettings .slice {
+	position: absolute;
+	top: 0;
+	background-repeat: no-repeat;
+}
+
+#RemoteSettings .titlebar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 320px;
+	height: 17px;
+}
+#RemoteSettings .titlebar .slice {
+	width: 12px;
+	height: 17px;
+}
+#RemoteSettings .titlebar .left {
+	left: 0;
+}
+#RemoteSettings .titlebar .mid {
+	left: 12px;
+	width: 296px;
+	background-repeat: repeat-x;
+}
+#RemoteSettings .titlebar .right {
+	right: 0;
+}
+#RemoteSettings .titlebar .text {
+	position: absolute;
+	top: 2px;
+	left: 17px;
+	font-weight: bold;
+	text-shadow: 1px 1px white;
+	white-space: nowrap;
+}
+
+#RemoteSettings .form {
+	position: absolute;
+	top: 24px;
+	left: 10px;
+	width: 300px;
+}
+#RemoteSettings label {
+	display: flex;
+	align-items: center;
+	height: 24px;
+	font-size: 11px;
+	font-weight: bold;
+	color: #4a5f7f;
+}
+#RemoteSettings label span {
+	flex: none;
+	width: 70px;
+}
+#RemoteSettings input {
+	flex: 1;
+	height: 16px;
+	margin-left: 0;
+	padding: 0 3px;
+	border: 1px solid #b5bdc8;
+	background-color: #f5f6f8;
+	font-size: 11px;
+	font-weight: normal;
+	outline: none;
+}
+#RemoteSettings .new {
+	width: 42px;
+	height: 18px;
+	margin-left: 4px;
+	padding: 0;
+	border: 0;
+	background-color: transparent;
+	background-size: 100% 18px;
+	font-size: 10px;
+	color: #333333;
+}
+#RemoteSettings .note {
+	margin-top: 4px;
+	font-size: 11px;
+	color: #8a5a00;
+}
+#RemoteSettings .note.error {
+	color: #aa3333;
+}
+
+#RemoteSettings .footer {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 320px;
+	height: 29px;
+}
+#RemoteSettings .footer .slice {
+	width: 21px;
+	height: 29px;
+}
+#RemoteSettings .footer .left {
+	left: 0;
+}
+#RemoteSettings .footer .mid {
+	left: 21px;
+	width: 278px;
+	background-repeat: repeat-x;
+}
+#RemoteSettings .footer .right {
+	right: 0;
+}
+#RemoteSettings .txt {
+	position: absolute;
+	bottom: 5px;
+	height: 20px;
+	padding: 0;
+	border: 0;
+	background-color: transparent;
+	background-size: 100% 20px;
+	font-size: 11px;
+	color: #333333;
+}
+#RemoteSettings .copy {
+	left: 6px;
+	width: 92px;
+}
+#RemoteSettings .forget {
+	left: 102px;
+	width: 62px;
+}
+#RemoteSettings .btn {
+	position: absolute;
+	bottom: 5px;
+	width: 42px;
+	height: 20px;
+}
+#RemoteSettings .ok {
+	right: 50px;
+}
+#RemoteSettings .cancel {
+	right: 5px;
+}

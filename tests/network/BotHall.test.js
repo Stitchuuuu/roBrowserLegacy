@@ -157,6 +157,17 @@ describe('bot hall', () => {
 		expect(BotHall.bots()[0].windows).toBe(1);
 	});
 
+	it('counts the members that have not said who they are yet', async () => {
+		const room = await joined();
+		room.setMembers(['b1', 'b2']);
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		expect(BotHall.waiting()).toBe(2);
+
+		b1.say(HELLO);
+		expect(BotHall.waiting()).toBe(1);
+	});
+
 	it('a member that leaves the room leaves the list', async () => {
 		const room = await joined();
 		const change = vi.fn();

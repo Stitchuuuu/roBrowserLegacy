@@ -139,6 +139,13 @@ BotHall.bots = function bots() {
 };
 
 /**
+ * @return {number} members of the hall that have not said who they are yet
+ */
+BotHall.waiting = function waiting() {
+	return _room ? _room.members.filter(id => !_bots[id]).length : 0;
+};
+
+/**
  * Join the hall, leaving the one before
  *
  * @param {{relay: string, relayKey: string, room: string, secret: string}} settings
