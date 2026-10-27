@@ -262,13 +262,13 @@ export function loadStorage(storage, entries) {
 
 export { encodeValue, decodeValue, summarize };
 
-/** `excludePlugins` leaves the plugin code out: data only. */
-export async function dump({ excludeWinLogin = false, excludePlugins = false } = {}) {
+/** `excludePlugins` leaves the plugin code out: data only. `skipDbs`: databases never opened. */
+export async function dump({ excludeWinLogin = false, excludePlugins = false, skipDbs = [] } = {}) {
 	const list = await indexedDB.databases();
 	const databases = [];
 	for (let i = 0; i < list.length; i++) {
 		const name = list[i].name;
-		if (SKIP_DBS.indexOf(name) === -1 && !(excludePlugins && name === PLUGIN_DB)) {
+		if (SKIP_DBS.indexOf(name) === -1 && skipDbs.indexOf(name) === -1 && !(excludePlugins && name === PLUGIN_DB)) {
 			databases.push(await dumpDatabase(name));
 		}
 	}

@@ -342114,6 +342114,10 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
+		if (!_buildShown && "b5d1e9e5a7d6b2f8065a40c13d1b24044542e67b") {
+			_buildShown = true;
+			ChatBox_default.addText(`Build ${"b5d1e9e5a7d6b2f8065a40c13d1b24044542e67b".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
 		notified = true;
@@ -342502,7 +342506,7 @@ function onReassemblyAuth(pkt) {
 		return;
 	}
 }
-var _mapName, _isInitialised, _exiting, _exitTimer, snCounter, chatLines, packetMap, MapEngine, _walkTimer, _walkLastTick;
+var _mapName, _isInitialised, _buildShown, _exiting, _exitTimer, snCounter, chatLines, packetMap, MapEngine, _walkTimer, _walkLastTick;
 var init_MapEngine = __esmMin((() => {
 	init_DBManager();
 	init_Configs();
@@ -342617,6 +342621,7 @@ var init_MapEngine = __esmMin((() => {
 	init_preload_helper();
 	_mapName = "";
 	_isInitialised = false;
+	_buildShown = false;
 	_exiting = false;
 	_exitTimer = null;
 	snCounter = 0;
