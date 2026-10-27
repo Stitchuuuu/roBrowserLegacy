@@ -34,13 +34,13 @@ const _sockets = [];
 let _socketFactory = null;
 
 /**
- * Default socket factory - creates the remote bot's socket in remote mode,
- * else NodeSocket or WebSocket based on environment.
+ * Default socket factory - the remote bot's socket in remote mode, else NodeSocket or WebSocket.
  * Custom factories can call this as a fallback.
  *
  * @param {string} host
  * @param {number} port
  * @return {Socket}
+ * @see docs/reference/network/remote-bot.md
  */
 function defaultSocketFactory(host, port) {
 	if (RemoteBot.isActive()) {
@@ -247,6 +247,7 @@ function connect(host, port, callback, isZone) {
 			_sockets.push((_socket = socket));
 
 			// Map server encryption, done by the bot in remote mode
+			// See docs/reference/network/remote-bot.md
 			if (isZone && !RemoteBot.isActive()) {
 				PacketCrypt.init();
 			}

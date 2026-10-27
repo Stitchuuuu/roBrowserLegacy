@@ -4,13 +4,12 @@
  * Records of the remote-bot sockets sharing one WebRTC peer
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
- *
- * @see docs/reference/network/remote-bot.md
  */
 
 /**
  * Record types: [type u8][sid u16][len u32][payload], little endian
  * @const {number}
+ * @see docs/reference/network/remote-bot.md
  */
 export const OPEN = 1;
 export const DATA = 2;
@@ -28,6 +27,10 @@ const HEAD = 7;
  */
 export const MAX_MESSAGE = 1 << 20;
 
+/**
+ * Payload of OPEN and CLOSE
+ * @const {Uint8Array}
+ */
 const EMPTY = new Uint8Array(0);
 
 /**
@@ -38,7 +41,7 @@ const EMPTY = new Uint8Array(0);
  */
 export function encode(records) {
 	let size = 0;
-	for (let i = 0; i < records.length; ++i) {
+	for (let i = 0, count = records.length; i < count; ++i) {
 		size += HEAD + (records[i].bytes || EMPTY).length;
 	}
 
@@ -46,10 +49,11 @@ export function encode(records) {
 	const view = new DataView(out.buffer);
 	let at = 0;
 
-	for (let i = 0; i < records.length; ++i) {
-		const bytes = records[i].bytes || EMPTY;
-		view.setUint8(at, records[i].type);
-		view.setUint16(at + 1, records[i].sid, true);
+	for (let i = 0, count = records.length; i < count; ++i) {
+		const record = records[i];
+		const bytes = record.bytes || EMPTY;
+		view.setUint8(at, record.type);
+		view.setUint16(at + 1, record.sid, true);
 		view.setUint32(at + 3, bytes.length, true);
 		out.set(bytes, at + HEAD);
 		at += HEAD + bytes.length;
@@ -72,11 +76,11 @@ export function decode(msg) {
 
 	while (at < msg.length) {
 		if (at + HEAD > msg.length) {
-			throw new Error('RtcFrames: truncated record head at ' + at);
+			throw new Error(`RtcFrames: truncated record head at ${at}`);
 		}
 		const len = view.getUint32(at + 3, true);
 		if (at + HEAD + len > msg.length) {
-			throw new Error('RtcFrames: truncated record at ' + at + ' (' + len + ' B)');
+			throw new Error(`RtcFrames: truncated record at ${at} (${len} B)`);
 		}
 		out.push({
 			type: view.getUint8(at),
@@ -95,11 +99,9 @@ export function decode(msg) {
 export class Outbox {
 	/**
 	 * @param {function(Uint8Array): Promise} send - the peer's send
-	 * @param {number} [max] - largest message, in bytes
 	 */
-	constructor(send, max = MAX_MESSAGE) {
+	constructor(send) {
 		this.send = send;
-		this.max = max;
 		this.queue = [];
 		this.busy = false;
 		this.closed = false;
@@ -115,13 +117,13 @@ export class Outbox {
 			return;
 		}
 
-		const room = this.max - HEAD;
+		const room = MAX_MESSAGE - HEAD;
 		if (bytes && bytes.length > room) {
 			for (let at = 0; at < bytes.length; at += room) {
 				this.queue.push({ type: type, sid: sid, bytes: bytes.slice(at, at + room) });
 			}
 		} else {
-			this.queue.push({ type: type, sid: sid, bytes: bytes ? bytes.slice() : null });
+			this.queue.push({ type: type, sid: sid, bytes: bytes ? bytes.slice() : EMPTY });
 		}
 
 		if (!this.busy) {
@@ -131,6 +133,9 @@ export class Outbox {
 		}
 	}
 
+	/**
+	 * Send what waits, one message at a time
+	 */
 	flush() {
 		if (this.closed || !this.queue.length) {
 			this.busy = false;
@@ -141,8 +146,8 @@ export class Outbox {
 		let size = 0;
 		let n = 0;
 		while (n < queue.length) {
-			const next = HEAD + (queue[n].bytes || EMPTY).length;
-			if (n && size + next > this.max) {
+			const next = HEAD + queue[n].bytes.length;
+			if (n && size + next > MAX_MESSAGE) {
 				break;
 			}
 			size += next;

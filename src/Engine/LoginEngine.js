@@ -194,11 +194,7 @@ class LoginEngine {
 		} else {
 			q.add(function () {
 				WinLogin.append();
-
-				RemoteBot.onAsk = askRemoteLink;
-				if (RemoteBot.isAsking()) {
-					askRemoteLink();
-				}
+				RemoteBot.setLoginScreen(askRemoteLink);
 			});
 		}
 
@@ -267,7 +263,7 @@ function backToLogin() {
  * Report a failed login attempt.
  *
  * @param {string} text - message to display
- * @param {string} kind - 'network', 'refuse' or 'ban', for the retry policy
+ * @param {string} kind - 'network', 'refuse', 'ban' or 'remote' (never retried), for the retry policy
  * @param {number} [code] - server error code, unused for 'network'
  * @param {function} [onOk=backToLogin] - 'ok' callback, which must disarm auto-retry
  */
@@ -281,15 +277,23 @@ function failLogin(text, kind, code, onOk = backToLogin) {
 
 /**
  * Ask for a remote bot link (#remote alone, or Alt+Shift+R)
+ *
+ * @param {boolean} badLink - the last link was no bot link
+ * @see docs/reference/network/remote-bot.md
  */
-function askRemoteLink() {
+function askRemoteLink(badLink) {
+	if (badLink) {
+		UIManager.showMessageBox('This is not a bot link.', 'ok', () => askRemoteLink(false), true);
+		return;
+	}
+
 	InputBox.append();
 	InputBox.setType('text', false);
 	InputBox.getRoot().querySelector('.text').textContent = 'Paste the bot link';
 	InputBox.onSubmitRequest = function onSubmitRequest(text) {
 		InputBox.remove();
 		if (!RemoteBot.setLink(text)) {
-			UIManager.showMessageBox('This is not a bot link.', 'ok', askRemoteLink, true);
+			askRemoteLink(true);
 		}
 	};
 }
@@ -318,7 +322,8 @@ function onConnectionRequest(username, password) {
 	Network.connect(_server.address, _server.port, success => {
 		// Fail to connect...
 		if (!success) {
-			failLogin(RemoteBot.failText() || DB.getMessage(1), 'network');
+			const remote = RemoteBot.failure();
+			failLogin(remote ? remote.text : DB.getMessage(1), remote && remote.permanent ? 'remote' : 'network');
 			return;
 		}
 
@@ -450,6 +455,7 @@ function onCharServerSelected(index) {
  */
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
+	RemoteBot.setLoginScreen(null);
 
 	Session.AuthCode = pkt.AuthCode;
 	Session.AID = pkt.AID;

@@ -4,12 +4,10 @@
  * Remote mode: the game sockets ride a WebRTC peer of a running bot instead of a server
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
- *
- * @see docs/reference/network/remote-bot.md
  */
 
 import { joinRoom, parseLink } from 'Vendors/signal/index.js';
-import RtcSockets from './SocketHelpers/RtcSocket.js';
+import RtcSockets from './SocketHelpers/RtcSockets.js';
 
 /**
  * sessionStorage key of the link: a reload in the tab attaches again
@@ -18,78 +16,75 @@ import RtcSockets from './SocketHelpers/RtcSocket.js';
 const STORAGE_KEY = 'remoteBot';
 
 /**
- * What the player reads when the bot cannot be reached
+ * What the player reads when the bot cannot be reached, by library error code
  * @const {object}
  */
 const FAILURES = {
-	'no-bot': 'Remote bot: no bot answered in this room.',
-	secret: 'Remote bot: wrong secret for this room.',
+	'no-bot': 'Remote bot: no bot answered. Is it running, and is this link its current one?',
+	secret: 'Remote bot: the secret in this link is not valid.',
 	key: 'Remote bot: the relay refused the key.',
 	'room-full': 'Remote bot: another window is already attached to this bot.',
-	rate: 'Remote bot: the relay is busy, try again later.',
-	banned: 'Remote bot: the relay is busy, try again later.',
+	rate: 'Remote bot: the relay cut this window (too many messages).',
 	options: 'Remote bot: the link is not valid.'
 };
 
 /**
- * @var {?{room: string, secret: string, relay: string, relayKey: ?string}}
- */
-let _link = null;
-
-/**
- * @var {?RtcSockets}
+ * @var {?RtcSockets} _sockets - the bot's room, once a link is known
  */
 let _sockets = null;
 
 /**
- * A link is asked for (#remote alone, or the shortcut)
- * @var {boolean}
+ * @var {?function(boolean)} _ask - shows the paste box, while the login screen is there
+ */
+let _ask = null;
+
+/**
+ * @var {boolean} _asking - a paste box waits for the login screen
  */
 let _asking = false;
 
 /**
- * A game socket was made: the mode no longer changes
- * @var {boolean}
+ * @var {boolean} _badLink - the page link was no bot link
  */
-let _started = false;
+let _badLink = false;
+
+/**
+ * @var {boolean} _inGame - the login is over: the mode no longer changes
+ */
+let _inGame = false;
 
 const RemoteBot = {};
 
 /**
- * Show the paste box, set by the login screen
- * @var {?function}
- */
-RemoteBot.onAsk = null;
-
-/**
- * @return {boolean}
+ * @return {boolean} the game sockets go to the bot
  */
 RemoteBot.isActive = function isActive() {
-	return !!_link;
+	return !!_sockets;
 };
 
 /**
- * @return {boolean} a link is asked for and not shown yet
+ * Socket factory of the mode
+ *
+ * @return {object} a socket with the WebSocket helper's shape
+ * @see docs/reference/network/remote-bot.md
  */
-RemoteBot.isAsking = function isAsking() {
-	return _asking;
+RemoteBot.socket = function socket() {
+	return _sockets.socket();
 };
 
 /**
  * Use a bot link: page#r=<room>&s=<secret>&relay=<url>[&key=<relay key>]
  *
- * @param {string} text - the link, or only what follows its #
- * @return {boolean} false if it is no bot link
+ * @param {string} text - the link
+ * @return {boolean} false if it is no bot link, or the login is over
  */
 RemoteBot.setLink = function setLink(text) {
-	const value = String(text).trim();
-	const link = parseLink(value.indexOf('#') < 0 ? '#' + value : value);
+	const link = parseLink(text.trim());
 
-	if (_started || !link || !link.relay) {
+	if (_inGame || !link || !link.relay) {
 		return false;
 	}
 
-	_asking = false;
 	join(link);
 	try {
 		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(link));
@@ -100,32 +95,47 @@ RemoteBot.setLink = function setLink(text) {
 };
 
 /**
- * Socket factory of the mode
+ * The login screen is shown (with its paste box), or left for good
  *
- * @return {object} a socket with the WebSocket helper's shape
+ * @param {?function(boolean)} ask - opens the paste box, told whether the last link was bad; null once logged in
  */
-RemoteBot.socket = function socket() {
-	_started = true;
-	return _sockets.socket();
+RemoteBot.setLoginScreen = function setLoginScreen(ask) {
+	_ask = ask;
+	_inGame = !ask;
+
+	if (ask && _asking) {
+		_asking = false;
+		ask(_badLink);
+		_badLink = false;
+	}
 };
 
 /**
- * @return {?string} why the bot could not be reached, for the player
+ * Why the bot could not be reached; a link that can never work is forgotten
+ *
+ * @return {?{text: string, permanent: boolean}} null outside the mode or without failure
+ * @see docs/reference/network/remote-bot.md
  */
-RemoteBot.failText = function failText() {
+RemoteBot.failure = function failure() {
 	const code = _sockets && _sockets.failure();
+	const permanent = code !== 'no-bot';
 
 	if (!code) {
 		return null;
 	}
-	return FAILURES[code] || 'Remote bot: cannot reach the relay (' + code + ').';
-};
 
-/**
- * @return {?string} 'direct' or 'relay' while the bot's peer is there
- */
-RemoteBot.via = function via() {
-	return _sockets && _sockets.via;
+	if (permanent) {
+		try {
+			sessionStorage.removeItem(STORAGE_KEY);
+		} catch (_e) {
+			// Nothing kept
+		}
+	}
+
+	return {
+		text: FAILURES[code] || `Remote bot: cannot reach the relay (${code}).`,
+		permanent: permanent
+	};
 };
 
 /**
@@ -134,71 +144,69 @@ RemoteBot.via = function via() {
  * @param {object} link - parseLink() result
  */
 function join(link) {
-	const options = { relay: link.relay, room: link.room, secret: link.secret, max: 2 };
-
-	if (link.relayKey) {
-		options.relayKey = link.relayKey;
-	}
 	if (_sockets) {
 		_sockets.leave();
 	}
-
-	_link = link;
-	_sockets = new RtcSockets(joinRoom(options));
+	_sockets = new RtcSockets(joinRoom({ ...link, max: 2 }));
 }
 
 /**
- * Open the paste box, now or once the login screen is there
+ * Paste box: now on the login screen, before it once it is there, never in game
+ *
+ * @param {KeyboardEvent} event
  */
-function ask() {
-	_asking = true;
-	if (RemoteBot.onAsk) {
-		RemoteBot.onAsk();
-	}
-}
-
-/**
- * #remote&r=…&s=… joins at once, #remote alone reuses this tab's link or asks
- */
-function init() {
-	const hash = window.location.hash;
-	let stored = null;
-
-	if (!new URLSearchParams(hash.slice(1)).has('remote')) {
+function onKeyDown(event) {
+	if (_inGame || !event.altKey || !event.shiftKey || event.code !== 'KeyR') {
 		return;
 	}
 
-	if (RemoteBot.setLink(hash)) {
-		// No secret left in the address bar; #remote alone is the bookmark
-		history.replaceState(history.state, '', window.location.pathname + window.location.search + '#remote');
+	event.preventDefault();
+	event.stopPropagation();
+
+	if (_ask) {
+		_ask(false);
+	} else {
+		_asking = true;
+	}
+}
+
+/**
+ * #remote&r=...&s=... joins at once, #remote alone reuses this tab's link or asks
+ */
+function init() {
+	const hash = window.location.hash;
+	const params = new URLSearchParams(hash.slice(1));
+	let stored = null;
+
+	if (!params.has('remote')) {
+		return;
+	}
+
+	// No secret left in the address bar; #remote alone is the bookmark
+	history.replaceState(history.state, '', `${window.location.pathname}${window.location.search}#remote`);
+
+	if (params.has('r') || params.has('s')) {
+		if (!RemoteBot.setLink(hash)) {
+			_badLink = true;
+			_asking = true;
+		}
 		return;
 	}
 
 	try {
 		stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
 	} catch (_e) {
-		stored = null;
+		// Nothing kept
 	}
 
-	if (stored && stored.room && stored.secret && stored.relay) {
+	if (stored) {
 		join(stored);
-		return;
+	} else {
+		_asking = true;
 	}
-	ask();
 }
 
-window.addEventListener(
-	'keydown',
-	function onKeyDown(event) {
-		if (event.altKey && event.shiftKey && event.code === 'KeyR' && !_started) {
-			event.preventDefault();
-			event.stopPropagation();
-			ask();
-		}
-	},
-	true
-);
-
+window.addEventListener('keydown', onKeyDown, true);
 init();
 
 /**

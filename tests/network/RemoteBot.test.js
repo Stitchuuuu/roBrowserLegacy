@@ -2,9 +2,8 @@
  * tests/network/RemoteBot.test.js
  *
  * The remote mode, read from the page link: the game sockets come from the
- * bot's room whatever path asks for them (NetworkManager.connect, or a
- * plugin's factory built on Network.defaultSocketFactory), the window sends
- * in clear, and the link leaves the address bar.
+ * bot's room whatever path asks for them, the window sends in clear, the link
+ * leaves the address bar, and the paste box exists on the login screen only.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -60,6 +59,10 @@ async function load(hash) {
 	RemoteBot = (await import('Network/RemoteBot.js')).default;
 }
 
+function shortcut() {
+	window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', altKey: true, shiftKey: true }));
+}
+
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
 describe('remote mode', () => {
@@ -77,9 +80,11 @@ describe('remote mode', () => {
 
 	it('stays off without #remote', async () => {
 		await load('');
+		const ask = vi.fn();
+		RemoteBot.setLoginScreen(ask);
 
 		expect(RemoteBot.isActive()).toBe(false);
-		expect(RemoteBot.isAsking()).toBe(false);
+		expect(ask).not.toHaveBeenCalled();
 		expect(mocks.joinRoom).not.toHaveBeenCalled();
 	});
 
@@ -104,25 +109,63 @@ describe('remote mode', () => {
 		await load('#remote');
 
 		expect(RemoteBot.isActive()).toBe(true);
-		expect(RemoteBot.isAsking()).toBe(false);
 		expect(mocks.joinRoom).toHaveBeenCalledTimes(2);
 		expect(mocks.joinRoom.mock.calls[1][0].secret).toBe(SECRET);
 	});
 
-	it('asks for a link on #remote alone, and on Alt+Shift+R', async () => {
+	it('opens the paste box on the login screen for #remote alone', async () => {
 		await load('#remote');
-		expect(RemoteBot.isAsking()).toBe(true);
+		const ask = vi.fn();
+
 		expect(RemoteBot.isActive()).toBe(false);
+		RemoteBot.setLoginScreen(ask);
 
-		await load('');
-		RemoteBot.onAsk = vi.fn();
-		window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', altKey: true, shiftKey: true }));
-
-		expect(RemoteBot.onAsk).toHaveBeenCalledOnce();
-		expect(RemoteBot.isAsking()).toBe(true);
+		expect(ask).toHaveBeenCalledWith(false);
+		RemoteBot.setLoginScreen(ask);
+		expect(ask).toHaveBeenCalledOnce();
 	});
 
-	it('takes a pasted link, full or only its parameters, and refuses anything else', async () => {
+	it('says a page link is no bot link, and keeps no secret in the address bar', async () => {
+		await load(LINK);
+		await load('#remote&r=bot-1&s=short&relay=' + RELAY);
+		const ask = vi.fn();
+		RemoteBot.setLoginScreen(ask);
+
+		expect(ask).toHaveBeenCalledWith(true);
+		expect(RemoteBot.isActive()).toBe(false);
+		expect(location.hash).toBe('#remote');
+	});
+
+	it('opens the paste box with Alt+Shift+R on the login screen, or once it shows', async () => {
+		await load('');
+		shortcut();
+		const ask = vi.fn();
+
+		RemoteBot.setLoginScreen(ask);
+		expect(ask).toHaveBeenCalledOnce();
+
+		shortcut();
+		expect(ask).toHaveBeenCalledTimes(2);
+	});
+
+	it('leaves Alt+Shift+R and the links alone once logged in', async () => {
+		await load('');
+		const ask = vi.fn();
+		RemoteBot.setLoginScreen(ask);
+		RemoteBot.setLoginScreen(null);
+
+		shortcut();
+
+		expect(ask).not.toHaveBeenCalled();
+		expect(RemoteBot.setLink(LINK)).toBe(false);
+		expect(RemoteBot.isActive()).toBe(false);
+
+		// Nor is it kept for the next login screen
+		RemoteBot.setLoginScreen(ask);
+		expect(ask).not.toHaveBeenCalled();
+	});
+
+	it('takes a pasted link and refuses anything else', async () => {
 		await load('');
 
 		expect(RemoteBot.setLink('hello')).toBe(false);
@@ -130,9 +173,9 @@ describe('remote mode', () => {
 		expect(RemoteBot.setLink('#r=bot-1&s=' + SECRET)).toBe(false);
 		expect(RemoteBot.isActive()).toBe(false);
 
-		expect(RemoteBot.setLink('r=bot-1&s=' + SECRET + '&relay=' + RELAY)).toBe(true);
-		expect(RemoteBot.isActive()).toBe(true);
 		expect(RemoteBot.setLink(' https://x.example/api.html?app=ONLINE' + LINK + ' ')).toBe(true);
+		expect(RemoteBot.isActive()).toBe(true);
+		expect(RemoteBot.setLink(LINK)).toBe(true);
 		expect(mocks.rooms[0].leave).toHaveBeenCalledOnce();
 	});
 
@@ -143,14 +186,14 @@ describe('remote mode', () => {
 
 		const fromObserver = Network.defaultSocketFactory('127.0.0.1', 6900);
 		fromObserver.onComplete = vi.fn();
-		Network.connect('127.0.0.1', 6900, vi.fn());
+		const done = vi.fn();
+		Network.connect('127.0.0.1', 6900, done);
 		await settle();
 
 		expect(fromObserver.sid).toBe(1);
 		expect(fromObserver.onComplete).toHaveBeenCalledWith(true);
+		expect(done).toHaveBeenCalledWith(true);
 		expect(peer.send).toHaveBeenCalled();
-		expect(RemoteBot.via()).toBe('relay');
-		expect(RemoteBot.setLink(LINK)).toBe(false);
 	});
 
 	it('leaves the encryption to the bot on a zone socket', async () => {
@@ -179,9 +222,9 @@ describe('remote mode', () => {
 	it.each([
 		['room-full', 'another window is already attached'],
 		['key', 'refused the key'],
-		['secret', 'wrong secret'],
+		['secret', 'secret in this link is not valid'],
 		['relay', 'cannot reach the relay (relay)']
-	])('tells the player why on %s', async (code, text) => {
+	])('tells the player why on %s, and forgets the link', async (code, text) => {
 		await load(LINK);
 		const done = vi.fn();
 		Network.connect('127.0.0.1', 6900, done);
@@ -190,12 +233,37 @@ describe('remote mode', () => {
 		mocks.rooms[0].emit('close', { code: code, message: code });
 
 		expect(done).toHaveBeenCalledWith(false);
-		expect(RemoteBot.failText()).toContain(text);
+		expect(RemoteBot.failure()).toEqual({ text: expect.stringContaining(text), permanent: true });
+		expect(sessionStorage.getItem('remoteBot')).toBe(null);
 	});
 
-	it('has no failure text outside the mode', async () => {
+	it('keeps the link when no bot answered: it may come back', async () => {
+		await load(LINK);
+		vi.useFakeTimers();
+		const done = vi.fn();
+		Network.connect('127.0.0.1', 6900, done);
+		vi.advanceTimersByTime(15000);
+		vi.useRealTimers();
+
+		expect(done).toHaveBeenCalledWith(false);
+		expect(RemoteBot.failure()).toEqual({ text: expect.stringContaining('no bot answered'), permanent: false });
+		expect(sessionStorage.getItem('remoteBot')).not.toBe(null);
+	});
+
+	it('takes a new link on the login screen after a failure', async () => {
+		await load(LINK);
+		RemoteBot.setLoginScreen(vi.fn());
+		Network.connect('127.0.0.1', 6900, vi.fn());
+		await settle();
+		mocks.rooms[0].emit('close', { code: 'key', message: 'key' });
+
+		expect(RemoteBot.setLink(LINK)).toBe(true);
+		expect(RemoteBot.failure()).toBe(null);
+	});
+
+	it('has no failure outside the mode', async () => {
 		await load('');
 
-		expect(RemoteBot.failText()).toBe(null);
+		expect(RemoteBot.failure()).toBe(null);
 	});
 });

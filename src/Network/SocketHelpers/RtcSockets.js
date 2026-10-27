@@ -1,11 +1,9 @@
 /**
- * Network/SocketHelpers/RtcSocket.js
+ * Network/SocketHelpers/RtcSockets.js
  *
  * Game sockets riding the WebRTC peer of a remote bot's room
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
- *
- * @see docs/reference/network/remote-bot.md
  */
 
 import { OPEN, DATA, CLOSE, Outbox, decode } from './RtcFrames.js';
@@ -18,28 +16,37 @@ const PEER_WAIT_MS = 15000;
 
 /**
  * A socket with the WebSocket helper's shape
- *
- * @param {RtcSockets} owner
- * @param {number} sid
  */
 class Socket {
+	/**
+	 * @param {RtcSockets} owner
+	 * @param {number} sid - socket id of its records
+	 */
 	constructor(owner, sid) {
 		this.owner = owner;
 		this.sid = sid;
 		this.connected = false;
+		this.closed = false;
 		this.timer = 0;
 	}
 
+	/**
+	 * @param {ArrayBuffer} buffer
+	 */
 	send(buffer) {
 		if (this.connected) {
 			this.owner.out.write(DATA, this.sid, new Uint8Array(buffer));
 		}
 	}
 
+	/**
+	 * Closing connection to the bot
+	 */
 	close() {
 		const waiting = this.owner.waiting;
 		const index = waiting.indexOf(this);
 
+		this.closed = true;
 		if (index >= 0) {
 			waiting.splice(index, 1);
 			clearTimeout(this.timer);
@@ -52,26 +59,27 @@ class Socket {
 
 /**
  * The sockets of one room: one peer, one record stream
- *
- * @param {object} room - a joinRoom() room of max 2 (the bot and us)
  */
 class RtcSockets {
+	/**
+	 * @param {object} room - a joinRoom() room of max 2 (the bot and us)
+	 * @see docs/reference/network/remote-bot.md
+	 */
 	constructor(room) {
 		this.room = room;
 		this.socks = Object.create(null);
 		this.waiting = [];
 		this.out = null;
 		this.next = 1;
-		this.via = null;
 		this.error = null;
 		this.lastFailure = null;
 
 		room.on('error', err => {
-			console.warn('[RemoteBot] ' + err.code + ': ' + err.message);
+			console.warn(`[RemoteBot] ${err.code}: ${err.message}`);
 		});
 		room.on('close', err => {
 			if (err) {
-				console.error('[RemoteBot] room closed, ' + err.code + ': ' + err.message);
+				console.error(`[RemoteBot] room closed, ${err.code}: ${err.message}`);
 				this.fail(err.code);
 			}
 		});
@@ -88,6 +96,9 @@ class RtcSockets {
 
 		// NetworkManager sets onComplete after the factory returns
 		setTimeout(() => {
+			if (s.closed) {
+				return;
+			}
 			if (this.error) {
 				s.onComplete(false);
 			} else if (this.out) {
@@ -106,21 +117,28 @@ class RtcSockets {
 	}
 
 	/**
-	 * Why the last socket failed, if any
+	 * Why the last socket failed
 	 *
-	 * @return {?string} a library error code, or 'no-bot'
+	 * @return {?string} a library error code, 'no-bot', or null
 	 */
 	failure() {
-		return this.error || this.lastFailure || null;
+		return this.error || this.lastFailure;
 	}
 
+	/**
+	 * Leave the room, for another link
+	 */
 	leave() {
 		this.room.leave();
 	}
 
+	/**
+	 * The bot's peer is there: open the waiting sockets on it
+	 *
+	 * @param {object} peer - a joinRoom() peer
+	 */
 	link(peer) {
-		console.log('%c[RemoteBot] bot peer ' + peer.id + ' via ' + peer.via, 'font-weight:bold');
-		this.via = peer.via;
+		console.log(`%c[RemoteBot] bot peer ${peer.id} via ${peer.via}`, 'font-weight:bold');
 		this.lastFailure = null;
 		this.out = new Outbox(bytes => peer.send(bytes));
 
@@ -134,43 +152,45 @@ class RtcSockets {
 			try {
 				records = decode(data);
 			} catch (err) {
-				console.error('[RemoteBot] ' + err.message + ', bot peer cut');
+				console.error(`[RemoteBot] ${err.message}, bot peer cut`);
 				peer.close();
 				return;
 			}
 
-			for (let i = 0; i < records.length; ++i) {
-				const s = this.socks[records[i].sid];
+			for (let i = 0, count = records.length; i < count; ++i) {
+				const record = records[i];
+				const s = this.socks[record.sid];
+
 				if (!s) {
 					continue;
 				}
-				if (records[i].type === DATA) {
-					if (s.onMessage) {
-						s.onMessage(records[i].bytes.slice().buffer);
-					}
-				} else if (records[i].type === CLOSE) {
-					this.end(records[i].sid);
+				if (record.type === DATA) {
+					s.onMessage(record.bytes.slice().buffer);
+				} else if (record.type === CLOSE) {
+					this.end(record.sid);
 				}
 			}
 		});
 
 		peer.on('close', reason => {
-			console.warn('[RemoteBot] bot peer left (' + reason + ')');
+			console.warn(`[RemoteBot] bot peer left (${reason})`);
 			this.out.close();
 			this.out = null;
-			this.via = null;
 			for (const sid in this.socks) {
 				this.end(sid);
 			}
 		});
 
 		const waiting = this.waiting.splice(0);
-		for (let i = 0; i < waiting.length; ++i) {
+		for (let i = 0, count = waiting.length; i < count; ++i) {
 			clearTimeout(waiting[i].timer);
 			this.open(waiting[i]);
 		}
 	}
 
+	/**
+	 * @param {Socket} s
+	 */
 	open(s) {
 		this.socks[s.sid] = s;
 		s.connected = true;
@@ -178,8 +198,14 @@ class RtcSockets {
 		s.onComplete(true);
 	}
 
+	/**
+	 * A socket is over, from either side
+	 *
+	 * @param {number|string} sid
+	 */
 	end(sid) {
 		const s = this.socks[sid];
+
 		if (!s) {
 			return;
 		}
@@ -190,10 +216,16 @@ class RtcSockets {
 		}
 	}
 
+	/**
+	 * The room ended for good: no socket opens any more
+	 *
+	 * @param {string} code - library error code
+	 */
 	fail(code) {
-		this.error = code;
 		const waiting = this.waiting.splice(0);
-		for (let i = 0; i < waiting.length; ++i) {
+
+		this.error = code;
+		for (let i = 0, count = waiting.length; i < count; ++i) {
 			clearTimeout(waiting[i].timer);
 			waiting[i].onComplete(false);
 		}

@@ -1,12 +1,12 @@
 /**
- * tests/network/RtcSocket.test.js
+ * tests/network/RtcSockets.test.js
  *
  * The game sockets of the remote mode share one peer of the bot's room: each
  * socket is a run of OPEN / DATA / CLOSE records on it, opened once the bot's
  * peer is there, ended when the peer goes.
  */
 import { describe, expect, it, vi } from 'vitest';
-import RtcSockets from 'Network/SocketHelpers/RtcSocket.js';
+import RtcSockets from 'Network/SocketHelpers/RtcSockets.js';
 import { OPEN, DATA, CLOSE, encode, decode } from 'Network/SocketHelpers/RtcFrames.js';
 
 function emitter() {
@@ -116,6 +116,22 @@ describe('RtcSockets', () => {
 		expect(char.onClose).not.toHaveBeenCalled();
 	});
 
+	it('copies what the game sends: it may reuse its buffer before the message leaves', async () => {
+		const room = fakeRoom();
+		const sockets = new RtcSockets(room);
+		const peer = fakePeer();
+		room.emit('peer', peer);
+		const s = connect(sockets);
+		await settle();
+
+		const buffer = bytes(7, 8).buffer;
+		s.send(buffer);
+		new Uint8Array(buffer).fill(0);
+		await settle();
+
+		expect(peer.sent[1].bytes).toEqual(bytes(7, 8));
+	});
+
 	it('sends CLOSE and calls onClose when the game closes a socket', async () => {
 		const room = fakeRoom();
 		const sockets = new RtcSockets(room);
@@ -147,7 +163,7 @@ describe('RtcSockets', () => {
 
 		expect(a.onClose).toHaveBeenCalledOnce();
 		expect(b.onClose).toHaveBeenCalledOnce();
-		expect(sockets.via).toBe(null);
+		expect(sockets.out).toBe(null);
 	});
 
 	it('cuts a peer that sends a malformed message', () => {
@@ -193,6 +209,20 @@ describe('RtcSockets', () => {
 
 		expect(s.onComplete).toHaveBeenCalledWith(false);
 		expect(sockets.failure()).toBe('no-bot');
+	});
+
+	it('never opens a socket the game closed before its first tick', async () => {
+		const room = fakeRoom();
+		const sockets = new RtcSockets(room);
+		const peer = fakePeer();
+		room.emit('peer', peer);
+
+		const s = connect(sockets);
+		s.close();
+		await settle();
+
+		expect(s.onComplete).not.toHaveBeenCalled();
+		expect(peer.sent).toEqual([]);
 	});
 
 	it('forgets a waiting socket the game closed', async () => {
