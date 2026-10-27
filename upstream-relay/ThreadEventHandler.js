@@ -4,7 +4,41 @@
 * This file is part of ROBrowser, (http://www.robrowser.com/).
 * @author Vincent Thibault and the community
 */
-//#region src/Loaders/GameFileDecrypt.js
+// src/Utils/wasmLoader.js
+var base64ToUint8Array = (base64) => {
+	const binaryString = atob(base64);
+	const len = binaryString.length;
+	const bytes = new Uint8Array(len);
+	for (let i = 0; i < len; ++i) bytes[i] = binaryString.charCodeAt(i);
+	return bytes;
+};
+var createWasmLoader = (base64, name, imports = {}) => {
+	let instance = null;
+	let failed = false;
+	return () => {
+		if (instance) return instance;
+		if (failed) return null;
+		if (typeof WebAssembly !== "object" || typeof WebAssembly.Module !== "function") {
+			failed = true;
+			return null;
+		}
+		try {
+			instance = new WebAssembly.Instance(new WebAssembly.Module(base64ToUint8Array(base64)), imports);
+			return instance;
+		} catch (e) {
+			failed = true;
+			console.warn(`Loaderswasm${name} - Failed to instantiate WASM module`, e);
+			return null;
+		}
+	};
+};
+/**
+* Lazily loads and returns the compiled WASM gameFileDecrypt instance.
+* Returns null if WebAssembly is not supported or instantiation fails.
+* @returns {object|null}
+*/
+var getGameFileDecryptWasm = createWasmLoader("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", "gameFileDecrypt");
+// src/Loaders/GameFileDecrypt.js
 /**
 * Loaders/GameFileDecrypt.js
 *
@@ -15,6 +49,7 @@
 *
 * @author Vincent Thibault
 */
+var WASM_DATA_OFFSET = 704;
 var mask = new Uint8Array([
 	128,
 	64,
@@ -565,7 +600,7 @@ function decryptBlock(src, index) {
 	roundFunction(src, index);
 	finalPermutation(src, index);
 }
-var GameFileDecrypt = class {
+var GameFileDecrypt = class GameFileDecrypt {
 	/**
 	* Decode the whole file
 	*
@@ -574,10 +609,35 @@ var GameFileDecrypt = class {
 	* @param {number} entry_len
 	*/
 	static decodeFull(buf, len, entry_len) {
-		const nblocks = len >> 3;
-		let i, j;
 		const digits = entry_len.toString().length;
 		const cycle = digits < 3 ? 3 : digits < 5 ? digits + 1 : digits < 7 ? digits + 9 : digits + 15;
+		const wasm = getGameFileDecryptWasm();
+		if (wasm) {
+			const { memory, decodeFull } = wasm.exports;
+			const needed = WASM_DATA_OFFSET + len;
+			if (memory.buffer.byteLength < needed) try {
+				memory.grow(Math.ceil((needed - memory.buffer.byteLength) / 65536));
+			} catch (_e) {
+				GameFileDecrypt.decodeFullJS(buf, len, cycle);
+				return;
+			}
+			new Uint8Array(memory.buffer, WASM_DATA_OFFSET, len).set(buf.subarray(0, len));
+			decodeFull(WASM_DATA_OFFSET, len, cycle);
+			buf.set(new Uint8Array(memory.buffer, WASM_DATA_OFFSET, len));
+			return;
+		}
+		GameFileDecrypt.decodeFullJS(buf, len, cycle);
+	}
+	/**
+	* Pure JS fallback for decodeFull
+	*
+	* @param {Uint8Array} buf
+	* @param {number} len
+	* @param {number} cycle
+	*/
+	static decodeFullJS(buf, len, cycle) {
+		const nblocks = len >> 3;
+		let i, j;
 		for (i = 0; i < 20 && i < nblocks; ++i) decryptBlock(buf, i * 8);
 		for (i = 20, j = 0; i < nblocks; ++i) {
 			if (i % cycle === 0) {
@@ -598,6 +658,32 @@ var GameFileDecrypt = class {
 	* @param {number} len
 	*/
 	static decodeHeader(buf, len) {
+		const wasm = getGameFileDecryptWasm();
+		if (wasm) {
+			const hlen = Math.min(len & -8, 160);
+			if (hlen === 0) return;
+			const { memory, decodeHeader } = wasm.exports;
+			const needed = WASM_DATA_OFFSET + hlen;
+			if (memory.buffer.byteLength < needed) try {
+				memory.grow(Math.ceil((needed - memory.buffer.byteLength) / 65536));
+			} catch (_e) {
+				GameFileDecrypt.decodeHeaderJS(buf, len);
+				return;
+			}
+			new Uint8Array(memory.buffer, WASM_DATA_OFFSET, hlen).set(buf.subarray(0, hlen));
+			decodeHeader(WASM_DATA_OFFSET, hlen);
+			buf.set(new Uint8Array(memory.buffer, WASM_DATA_OFFSET, hlen), 0);
+			return;
+		}
+		GameFileDecrypt.decodeHeaderJS(buf, len);
+	}
+	/**
+	* Pure JS fallback for decodeHeader
+	*
+	* @param {Uint8Array} buf
+	* @param {number} len
+	*/
+	static decodeHeaderJS(buf, len) {
 		const nblocks = len >> 3;
 		let i = 0;
 		for (; i < 20 && i < nblocks; ++i) decryptBlock(buf, i * 8);
@@ -652,8 +738,7 @@ shuffleDec.table = (function init_substitution() {
 	}
 	return out;
 })();
-//#endregion
-//#region src/Utils/Struct.js
+// src/Utils/Struct.js
 /**
 * Utils/Struct.js
 *
@@ -731,8 +816,7 @@ function Struct() {
 	this._list = out;
 	this.size = total;
 }
-//#endregion
-//#region src/Vendors/iconv-lite.js
+// src/Vendors/iconv-lite.js
 var iconv = (() => {
 	var __getOwnPropNames = Object.getOwnPropertyNames;
 	var __commonJS = (cb, mod) => function __require() {
@@ -11107,8 +11191,7 @@ buffer/index.js:
 safe-buffer/index.js:
 (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 */
-//#endregion
-//#region src/Utils/CodepageManager.js
+// src/Utils/CodepageManager.js
 /**
 * Smart decode helper.
 *
@@ -11514,8 +11597,7 @@ BinaryReader.prototype.getPos2 = BinaryReader.prototype.readPos2 = function getP
 		f & 15
 	];
 };
-//#endregion
-//#region src/Utils/Inflate.js
+// src/Utils/Inflate.js
 /**
 * Utils/Inflate.js
 *
@@ -12354,8 +12436,7 @@ Inflate.prototype.readBlock = function Inflate_readBlock() {
 		for (let k = 0; k < len; ++k, ++pos) buffer[pos] = buffer[pos - dist];
 	}
 };
-//#endregion
-//#region src/Loaders/GameFile.js
+// src/Loaders/GameFile.js
 /**
 * Loaders/GameFile.js
 *
@@ -12574,8 +12655,7 @@ function loadEntries(out, count, version) {
 	}
 	return entries;
 }
-//#endregion
-//#region src/Vendors/gl-matrix.js
+// src/Vendors/gl-matrix.js
 /**
 * @fileoverview gl-matrix - High performance matrix and vector operations
 * @author Brandon Jones
@@ -15778,8 +15858,7 @@ quat.str = function(a) {
 	return "quat(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
 };
 if (typeof exports !== "undefined") exports.quat = quat;
-//#endregion
-//#region src/Utils/gl-matrix.js
+// src/Utils/gl-matrix.js
 /**
 * Utils/gl-matrix.js
 *
@@ -16114,8 +16193,7 @@ exports.mat4.toInverseMat3 = function(mat, dest) {
 	return dest;
 };
 var gl_matrix_default = exports;
-//#endregion
-//#region src/Loaders/World.js
+// src/Loaders/World.js
 /**
 * Loaders/World.js
 *
@@ -16355,8 +16433,7 @@ var RSW = class RSW {
 		};
 	}
 };
-//#endregion
-//#region src/Loaders/Ground.js
+// src/Loaders/Ground.js
 /**
 * Loaders/Ground.js
 *
@@ -16767,8 +16844,7 @@ var GND = class {
 		};
 	}
 };
-//#endregion
-//#region src/Loaders/Altitude.js
+// src/Loaders/Altitude.js
 /**
 * Loaders/Altitude.js
 *
@@ -16857,8 +16933,7 @@ var GAT = class GAT {
 		};
 	}
 };
-//#endregion
-//#region src/Loaders/Model.js
+// src/Loaders/Model.js
 /**
 * Loaders/Model.js
 *
@@ -17981,101 +18056,19 @@ function getScaleAtFrame(keyframes, frame, animLen) {
 		prev.Scale[2] + (next.Scale[2] - prev.Scale[2]) * t
 	];
 }
-//#endregion
-//#region src/Loaders/wasm/paletteConvert.js
-/**
-* Loaders/wasm/paletteConvert.js
-*
-* WebAssembly module for converting indexed 8-bit palette images to 32-bit RGBA
-* with vertical flip (dest row = height - y - 1).
-*
-* Embedded as Base64 to avoid requiring a separate wasm toolchain/loader during Vite build.
-*/
-var PALETTE_CONVERT_WASM_BASE64 = "AGFzbQEAAAABCQFgBX9/f39/AAMCAQAFAwEAAQcXAgZtZW1vcnkCAApjb252ZXJ0UGFsAAAKdwF1AQV/IANBAnQhCUEAIQUCQANAIAUgBE8NASABIAUgA2xqIQcgAiAEIAVrQQFrIAlsaiEIQQAhBgJAA0AgBiADTw0BIAggBkECdGogACAHIAZqLQAAQQJ0aigCADYCACAGQQFqIQYMAAsLIAVBAWohBQwACwsL";
-/**
-* Decode base64 string to Uint8Array in browser / desktop environments
-*/
-var base64ToUint8Array$1 = (base64) => {
-	const binaryString = atob(base64);
-	const len = binaryString.length;
-	const bytes = new Uint8Array(len);
-	for (let i = 0; i < len; ++i) bytes[i] = binaryString.charCodeAt(i);
-	return bytes;
-};
-var _wasmInstance$1 = null;
-var _wasmFailed$1 = false;
 /**
 * Lazily loads and returns the compiled WASM converter instance.
 * Returns null if WebAssembly is not supported or instantiation fails.
 * @returns {object|null}
 */
-var getPaletteConvertWasm = () => {
-	if (_wasmInstance$1) return _wasmInstance$1;
-	if (_wasmFailed$1) return null;
-	if (typeof WebAssembly !== "object" || typeof WebAssembly.Module !== "function") {
-		_wasmFailed$1 = true;
-		return null;
-	}
-	try {
-		const wasmBytes = base64ToUint8Array$1(PALETTE_CONVERT_WASM_BASE64);
-		const module = new WebAssembly.Module(wasmBytes);
-		_wasmInstance$1 = new WebAssembly.Instance(module);
-		return _wasmInstance$1;
-	} catch (e) {
-		_wasmFailed$1 = true;
-		console.warn("Loaders/wasm/paletteConvert - Failed to instantiate WASM module:", e);
-		return null;
-	}
-};
-//#endregion
-//#region src/Loaders/wasm/spriteCompile.js
-/**
-* Loaders/wasm/spriteCompile.js
-*
-* WebAssembly module for compiling SPR frames to Power-of-Two textures:
-* - compilePal: copies 8-bit palette indices with magenta (0xFFFF00FF) transparency zeroing into centered Power-of-Two buffer
-* - compileRgba: copies 32-bit RGBA with vertical flip, zeroing when alpha is 0, and channel swizzle (a<<24)|(b<<16)|(g<<8)|r
-*
-* Embedded as Base64 to avoid requiring a separate wasm toolchain/loader during Vite build.
-*/
-var SPRITE_COMPILE_WASM_BASE64 = "AGFzbQEAAAABJgRgCX9/f39/f39/fwBgB39/f39/f38AYAR/f39/AGAFf39/f38AAwUEAAECAwUDAQABB0wFBm1lbW9yeQIACmNvbXBpbGVQYWwAAAtjb21waWxlUmdiYQABEWZyYW1lUmdiYVRvQ2FudmFzAAIQZnJhbWVQYWxUb0NhbnZhcwADCqcEBIQBAQV/QQAhCQJAA0AgCSAETw0BIAEgCSADbGohCyACIAkgCGogBWwgB2pqIQxBACEKAkADQCAKIANPDQEgCyAKai0AACENIAAgDUECdGooAgBB/4F8RgRAIAwgCmpBADoAAAUgDCAKaiANOgAACyAKQQFqIQoMAAsLIAlBAWohCQwACwsLsQEBCX8gAkECdCEJQQAhBwJAA0AgByADTw0BIAAgAyAHa0EBayAJbGohCiABIAcgBmogBGwgBWpBAnRqIQtBACEIAkADQCAIIAJPDQEgCiAIQQJ0aiEMIAsgCEECdGohDSAMLQAAIQ4gDkUEQCANQQA2AgAFIA5BGHQgDC0AAUEQdHIgDC0AAkEIdCAMLQADcnIhDyANIA82AgALIAhBAWohCAwACwsgB0EBaiEHDAALCwuhAQEHfyACQQJ0IQZBACEEAkADQCAEIANPDQEgACAEIAZsaiEHIAEgAyAEa0EBayAGbGohCEEAIQUCQANAIAUgAk8NASAHIAVBAnRqKAIAIQkgCUH/AXFBGHQgCUGA/gNxQQh0ciAJQYCA/AdxQQh2IAlBgICAeHFBGHZyciEKIAggBUECdGogCjYCACAFQQFqIQUMAAsLIARBAWohBAwACwsLSQEEfyADIARsIQZBACEFAkADQCAFIAZPDQEgASAFai0AACEHIAAgB0ECdGooAgAhCCACIAVBAnRqIAg2AgAgBUEBaiEFDAALCws=";
-/**
-* Decode base64 string to Uint8Array in browser / desktop environments
-*/
-var base64ToUint8Array = (base64) => {
-	const binaryString = atob(base64);
-	const len = binaryString.length;
-	const bytes = new Uint8Array(len);
-	for (let i = 0; i < len; ++i) bytes[i] = binaryString.charCodeAt(i);
-	return bytes;
-};
-var _wasmInstance = null;
-var _wasmFailed = false;
+var getPaletteConvertWasm = createWasmLoader("AGFzbQEAAAABCQFgBX9/f39/AAMCAQAFAwEAAQcXAgZtZW1vcnkCAApjb252ZXJ0UGFsAAAKdwF1AQV/IANBAnQhCUEAIQUCQANAIAUgBE8NASABIAUgA2xqIQcgAiAEIAVrQQFrIAlsaiEIQQAhBgJAA0AgBiADTw0BIAggBkECdGogACAHIAZqLQAAQQJ0aigCADYCACAGQQFqIQYMAAsLIAVBAWohBQwACwsL", "paletteConvert");
 /**
 * Lazily loads and returns the compiled WASM converter instance.
 * Returns null if WebAssembly is not supported or instantiation fails.
 * @returns {object|null}
 */
-var getSpriteCompileWasm = () => {
-	if (_wasmInstance) return _wasmInstance;
-	if (_wasmFailed) return null;
-	if (typeof WebAssembly !== "object" || typeof WebAssembly.Module !== "function") {
-		_wasmFailed = true;
-		return null;
-	}
-	try {
-		const wasmBytes = base64ToUint8Array(SPRITE_COMPILE_WASM_BASE64);
-		const module = new WebAssembly.Module(wasmBytes);
-		_wasmInstance = new WebAssembly.Instance(module);
-		return _wasmInstance;
-	} catch (e) {
-		_wasmFailed = true;
-		console.warn("Loaders/wasm/spriteCompile - Failed to instantiate WASM module:", e);
-		return null;
-	}
-};
-//#endregion
-//#region src/Loaders/Sprite.js
+var getSpriteCompileWasm = createWasmLoader("AGFzbQEAAAABJgRgCX9/f39/f39/fwBgB39/f39/f38AYAR/f39/AGAFf39/f38AAwUEAAECAwUDAQABB0wFBm1lbW9yeQIACmNvbXBpbGVQYWwAAAtjb21waWxlUmdiYQABEWZyYW1lUmdiYVRvQ2FudmFzAAIQZnJhbWVQYWxUb0NhbnZhcwADCqcEBIQBAQV/QQAhCQJAA0AgCSAETw0BIAEgCSADbGohCyACIAkgCGogBWwgB2pqIQxBACEKAkADQCAKIANPDQEgCyAKai0AACENIAAgDUECdGooAgBB/4F8RgRAIAwgCmpBADoAAAUgDCAKaiANOgAACyAKQQFqIQoMAAsLIAlBAWohCQwACwsLsQEBCX8gAkECdCEJQQAhBwJAA0AgByADTw0BIAAgAyAHa0EBayAJbGohCiABIAcgBmogBGwgBWpBAnRqIQtBACEIAkADQCAIIAJPDQEgCiAIQQJ0aiEMIAsgCEECdGohDSAMLQAAIQ4gDkUEQCANQQA2AgAFIA5BGHQgDC0AAUEQdHIgDC0AAkEIdCAMLQADcnIhDyANIA82AgALIAhBAWohCAwACwsgB0EBaiEHDAALCwuhAQEHfyACQQJ0IQZBACEEAkADQCAEIANPDQEgACAEIAZsaiEHIAEgAyAEa0EBayAGbGohCEEAIQUCQANAIAUgAk8NASAHIAVBAnRqKAIAIQkgCUH/AXFBGHQgCUGA/gNxQQh0ciAJQYCA/AdxQQh2IAlBgICAeHFBGHZyciEKIAggBUECdGogCjYCACAFQQFqIQUMAAsLIARBAWohBAwACwsLSQEEfyADIARsIQZBACEFAkADQCAFIAZPDQEgASAFai0AACEHIAAgB0ECdGooAgAhCCACIAVBAnRqIAg2AgAgBUEBaiEFDAALCws=", "spriteCompile");
+// src/Loaders/Sprite.js
 /**
 * Loaders/Sprite.js
 *
@@ -18217,12 +18210,12 @@ var SPR = class SPR {
 	*
 	* The exact byte layout depends on the chosen packing below.
 	*/
-	convert32bPal(pal, flip = false) {
+	convert32bPal(flip = false) {
 		const pal32 = /* @__PURE__ */ new Uint32Array(256);
 		for (let i = 0; i < 256; i++) {
-			const r = pal[i * 4 + 0];
-			const g = pal[i * 4 + 1];
-			const b = pal[i * 4 + 2];
+			const r = this.palette[i * 4 + 0];
+			const g = this.palette[i * 4 + 1];
+			const b = this.palette[i * 4 + 2];
 			const a = i === 0 ? 0 : 255;
 			if (flip === true) pal32[i] = a << 24 | b << 16 | g << 8 | r;
 			else pal32[i] = r << 24 | g << 16 | b << 8 | a;
@@ -18234,8 +18227,8 @@ var SPR = class SPR {
 	* (why keep palette for hat/weapon/shield/monster ?)
 	*/
 	switchToRGBA() {
-		const frames = this.frames, pal = this.palette;
-		const pal32 = this.convert32bPal(pal, false);
+		const frames = this.frames;
+		const pal32 = this.convert32bPal(false);
 		const wasmInstance = getPaletteConvertWasm();
 		if (wasmInstance) {
 			const memory = wasmInstance.exports.memory;
@@ -18255,10 +18248,23 @@ var SPR = class SPR {
 				}
 				const dstPtr = srcPtr + pixelCount;
 				const totalBytesNeeded = dstPtr + pixelCount * 4;
-				if (memory.buffer.byteLength < totalBytesNeeded) {
+				if (memory.buffer.byteLength < totalBytesNeeded) try {
 					const additionalPages = Math.ceil((totalBytesNeeded - memory.buffer.byteLength) / 65536);
 					memory.grow(additionalPages);
 					new Uint32Array(memory.buffer, palPtr, 256).set(pal32);
+				} catch (_e) {
+					const frameWidth = frame.width, frameHeight = frame.height;
+					const data = frame.data;
+					const out = new Uint8Array(frameWidth * frameHeight * 4);
+					const out32 = new Uint32Array(out.buffer);
+					for (let y = 0; y < frameHeight; ++y) {
+						const srcRowStart = y * frameWidth;
+						const dstRowStart = (frameHeight - y - 1) * frameWidth;
+						for (let x = 0; x < frameWidth; ++x) out32[dstRowStart + x] = pal32[data[srcRowStart + x]];
+					}
+					frame.data = out;
+					frame.type = SPR.TYPE_RGBA;
+					continue;
 				}
 				new Uint8Array(memory.buffer, srcPtr, pixelCount).set(frame.data);
 				convertPal(palPtr, srcPtr, dstPtr, width, height);
@@ -18318,9 +18324,27 @@ var SPR = class SPR {
 				const srcPtr = 1024;
 				const dstPtr = srcPtr + srcBytes;
 				const totalBytesNeeded = dstPtr + dstBytes;
-				if (memory.buffer.byteLength < totalBytesNeeded) {
+				if (memory.buffer.byteLength < totalBytesNeeded) try {
 					const additionalPages = Math.ceil((totalBytesNeeded - memory.buffer.byteLength) / 65536);
 					memory.grow(additionalPages);
+				} catch (_e) {
+					const data32 = new Uint32Array(imageData.data.buffer);
+					let frameData32;
+					if ((frame.data.byteOffset & 3) === 0) frameData32 = new Uint32Array(frame.data.buffer, frame.data.byteOffset, pixelCount);
+					else {
+						frameData32 = new Uint32Array(pixelCount);
+						new Uint8Array(frameData32.buffer).set(new Uint8Array(frame.data.buffer, frame.data.byteOffset, pixelCount * 4));
+					}
+					for (let y = 0; y < height; ++y) {
+						const srcRow = y * width;
+						const dstRow = (height - y - 1) * width;
+						for (let x = 0; x < width; ++x) {
+							const pixel = frameData32[srcRow + x];
+							data32[dstRow + x] = (pixel & 255) << 24 | (pixel & 65280) << 8 | (pixel & 16711680) >> 8 | (pixel & 4278190080) >>> 24;
+						}
+					}
+					ctx.putImageData(imageData, 0, 0);
+					return canvas;
 				}
 				const frameBytes = new Uint8Array(frame.data.buffer, frame.data.byteOffset, srcBytes);
 				new Uint8Array(memory.buffer, srcPtr, srcBytes).set(frameBytes);
@@ -18344,8 +18368,8 @@ var SPR = class SPR {
 				}
 			}
 		} else {
-			if (!this._pal32Canvas && this.palette) this._pal32Canvas = this.convert32bPal(this.palette, true);
-			const pal32 = this._pal32Canvas || this.convert32bPal(this.palette, true);
+			if (!this._pal32Canvas && this.palette) this._pal32Canvas = this.convert32bPal(true);
+			const pal32 = this._pal32Canvas || this.convert32bPal(true);
 			const pixelCount = width * height;
 			const srcBytes = pixelCount;
 			const dstBytes = pixelCount * 4;
@@ -18355,9 +18379,21 @@ var SPR = class SPR {
 				const srcPtr = 1024;
 				const dstPtr = srcPtr + srcBytes;
 				const totalBytesNeeded = dstPtr + dstBytes;
-				if (memory.buffer.byteLength < totalBytesNeeded) {
+				if (memory.buffer.byteLength < totalBytesNeeded) try {
 					const additionalPages = Math.ceil((totalBytesNeeded - memory.buffer.byteLength) / 65536);
 					memory.grow(additionalPages);
+				} catch (_e) {
+					const data32 = new Uint32Array(imageData.data.buffer);
+					const frameIndices = new Uint8Array(frame.data.buffer, frame.data.byteOffset, pixelCount);
+					for (let y = 0; y < height; ++y) {
+						const rowStart = y * width;
+						for (let x = 0; x < width; ++x) {
+							const idx = frameIndices[rowStart + x];
+							data32[rowStart + x] = pal32[idx];
+						}
+					}
+					ctx.putImageData(imageData, 0, 0);
+					return canvas;
 				}
 				new Uint32Array(memory.buffer, palPtr, 256).set(pal32);
 				const frameBytes = new Uint8Array(frame.data.buffer, frame.data.byteOffset, srcBytes);
@@ -18412,16 +18448,36 @@ var SPR = class SPR {
 			start_x = Math.floor((gl_width - width) * .5);
 			start_y = Math.floor((gl_height - height) * .5);
 			if (frame.type === SPR.TYPE_PAL) {
-				if (!pal32) pal32 = this.convert32bPal(this.palette, true);
+				if (!pal32) pal32 = this.convert32bPal(true);
 				if (width <= 0 || height <= 0) out = new Uint8Array(gl_width * gl_height);
 				else if (wasmInstance) {
 					const srcBytes = width * height;
 					const dstBytes = gl_width * gl_height;
 					const dstPtr = wasmSrcPtr + srcBytes;
 					const totalBytesNeeded = dstPtr + dstBytes;
-					if (wasmMem.buffer.byteLength < totalBytesNeeded) {
+					if (wasmMem.buffer.byteLength < totalBytesNeeded) try {
 						const additionalPages = Math.ceil((totalBytesNeeded - wasmMem.buffer.byteLength) / 65536);
 						wasmMem.grow(additionalPages);
+					} catch (_e) {
+						out = new Uint8Array(gl_width * gl_height);
+						for (let y = 0; y < height; ++y) {
+							const srcRow = y * width;
+							const dstRow = (y + start_y) * gl_width + start_x;
+							for (let x = 0; x < width; ++x) {
+								const idx = data[srcRow + x];
+								if (pal32[idx] === MAGENTA) out[dstRow + x] = 0;
+								else out[dstRow + x] = idx;
+							}
+						}
+						output[i] = {
+							type: frame.type,
+							width: gl_width,
+							height: gl_height,
+							originalWidth: width,
+							originalHeight: height,
+							data: out
+						};
+						continue;
 					}
 					if (!wasmPalInitialized) {
 						new Uint32Array(wasmMem.buffer, wasmPalPtr, 256).set(pal32);
@@ -18449,9 +18505,40 @@ var SPR = class SPR {
 				const dstBytes = gl_width * gl_height * 4;
 				const dstPtr = wasmSrcPtr + srcBytes;
 				const totalBytesNeeded = dstPtr + dstBytes;
-				if (wasmMem.buffer.byteLength < totalBytesNeeded) {
+				if (wasmMem.buffer.byteLength < totalBytesNeeded) try {
 					const additionalPages = Math.ceil((totalBytesNeeded - wasmMem.buffer.byteLength) / 65536);
 					wasmMem.grow(additionalPages);
+				} catch (_e) {
+					out = new Uint8Array(gl_width * gl_height * 4);
+					const out32 = new Uint32Array(out.buffer);
+					for (let y = 0; y < height; ++y) {
+						const srcRow = (height - y - 1) * width * 4;
+						const dstRow = (y + start_y) * gl_width + start_x;
+						for (let x = 0; x < width; ++x) {
+							const srcIdx = srcRow + x * 4;
+							/**
+							* OLD LOGIC: Manual per-channel assignments (out[dst+0]=... out[dst+3]=...). 4 loads + 4 stores + branches.
+							* NEW LOGIC: Reads RGBA bytes, remaps color channels using bitwise operations, and writes the result as a single 32-bit integer. 4 loads + 1 store.
+							*/
+							const a = data[srcIdx];
+							if (a === 0) out32[dstRow + x] = 0;
+							else {
+								const r = data[srcIdx + 3];
+								const g = data[srcIdx + 2];
+								const b = data[srcIdx + 1];
+								out32[dstRow + x] = a << 24 | b << 16 | g << 8 | r;
+							}
+						}
+					}
+					output[i] = {
+						type: frame.type,
+						width: gl_width,
+						height: gl_height,
+						originalWidth: width,
+						originalHeight: height,
+						data: out
+					};
+					continue;
 				}
 				new Uint8Array(wasmMem.buffer, dstPtr, dstBytes).fill(0);
 				new Uint8Array(wasmMem.buffer, wasmSrcPtr, srcBytes).set(data);
@@ -18497,8 +18584,7 @@ var SPR = class SPR {
 		};
 	}
 };
-//#endregion
-//#region src/Loaders/Action.js
+// src/Loaders/Action.js
 /**
 * Loaders/Action.js
 *
@@ -18640,8 +18726,7 @@ var ACT = class {
 		};
 	}
 };
-//#endregion
-//#region src/Loaders/Str.js
+// src/Loaders/Str.js
 /**
 * Loaders/Str.js
 *
@@ -18746,8 +18831,7 @@ var STR = class {
 		for (i = 0; i < this.layernum; ++i) this.layers[i] = new STRLayer(fp, this.texturePath);
 	}
 };
-//#endregion
-//#region src/Core/FileSystem.js
+// src/Core/FileSystem.js
 /**
 * Core/FileSystem.js
 *
@@ -18790,6 +18874,55 @@ var _available = !!(self.requestFileSystemSync || self.webkitRequestFileSystemSy
 * @param {boolean} save data to file system ?
 */
 var _save = false;
+/**
+* Chromium's FileSystem may refuse a name outside printable ASCII
+* (SecurityError), as the client's Korean folders: those characters and `%`
+* are stored percent-encoded. A surrogate pair is encoded as one character.
+* Encoded files live under their own folder, apart from the files an older
+* client stored under raw names at the root, which an encoded name could
+* match: those are still read, under their raw name.
+*/
+var _storeDir = "cache-v2/";
+/**
+* A file is written here first, then moved over its name: a failed write
+* never leaves an empty or half-replaced file under that name.
+*/
+var _writeDir = "cache-write/";
+var _writeCount = 0;
+var _unsafeChars = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\x20-\x7e]|%/g;
+/**
+* @param {string} char
+* @returns {string} its encoding; `%uXXXX` for a lone surrogate, which
+* encodeURIComponent refuses
+*/
+function encodeChar(char) {
+	try {
+		return encodeURIComponent(char);
+	} catch (_e) {
+		return `%u${char.charCodeAt(0).toString(16)}`;
+	}
+}
+/**
+* @param {string} path
+* @returns {string} the name it is stored under
+*/
+function toStoredPath(path) {
+	return _storeDir + path.replace(_unsafeChars, encodeChar);
+}
+/**
+* @param {string} name
+* @returns {string} the name it was stored for
+*/
+function fromStoredName(name) {
+	return name.replace(/%u([0-9a-f]{4})|(?:%[0-9A-F]{2})+/gi, (match, unit) => {
+		if (unit) return String.fromCharCode(parseInt(unit, 16));
+		try {
+			return decodeURIComponent(match);
+		} catch (_e) {
+			return match;
+		}
+	});
+}
 /**
 * Normalize file path
 *
@@ -18869,7 +19002,7 @@ function processUpload(index) {
 		processUpload(index);
 		return;
 	}
-	_fs.root.getFile("/__tmp_upload/" + file._path, { create: true }, function(fileEntry) {
+	_fs.root.getFile("/__tmp_upload/" + toStoredPath(file._path), { create: true }, function(fileEntry) {
 		fileEntry.createWriter(function(writer) {
 			writer.onerror = errorHandler;
 			writer.onwriteend = function() {
@@ -18918,7 +19051,8 @@ function buildHierarchy() {
 	const keys = Object.keys(cache);
 	keys.sort();
 	_fs_sync.root.getDirectory("/__tmp_upload/", { create: true });
-	for (i = 0, count = keys.length; i < count; ++i) _fs_sync.root.getDirectory("/__tmp_upload/" + keys[i], { create: true });
+	_fs_sync.root.getDirectory("/__tmp_upload/cache-v2/", { create: true });
+	for (i = 0, count = keys.length; i < count; ++i) _fs_sync.root.getDirectory("/__tmp_upload/" + toStoredPath(keys[i]), { create: true });
 }
 /**
 * Trigger an event
@@ -18953,13 +19087,16 @@ var FileSystem = class FileSystem {
 			for (i = 0; i < count; ++i) if (_files[i]._path.toLowerCase() === filename.toLowerCase()) return _files[i];
 			return null;
 		}
-		let fileEntry;
-		try {
-			fileEntry = _fs_sync.root.getFile(filename, { create: false });
-		} catch (_e) {
-			return null;
+		const paths = [toStoredPath(filename), filename];
+		for (let i = 0; i < paths.length; ++i) {
+			let fileEntry;
+			try {
+				fileEntry = _fs_sync.root.getFile(paths[i], { create: false });
+			} catch (_e) {
+				continue;
+			}
+			if (fileEntry.isFile) return fileEntry.file();
 		}
-		if (fileEntry.isFile) return fileEntry.file();
 		return null;
 	}
 	/**
@@ -18981,10 +19118,23 @@ var FileSystem = class FileSystem {
 			onerror();
 			return;
 		}
-		_fs.root.getFile(filename, { create: false }, (fileEntry) => {
-			if (fileEntry.isFile) fileEntry.file(onload);
-			else onerror();
-		}, onerror);
+		const paths = [toStoredPath(filename), filename];
+		function tryPath(i) {
+			if (i >= paths.length) {
+				onerror();
+				return;
+			}
+			const next = () => tryPath(i + 1);
+			try {
+				_fs.root.getFile(paths[i], { create: false }, (fileEntry) => {
+					if (fileEntry.isFile) fileEntry.file(onload);
+					else next();
+				}, next);
+			} catch (_e) {
+				next();
+			}
+		}
+		tryPath(0);
 	}
 	/**
 	* Save the content of a files in file system
@@ -18995,14 +19145,28 @@ var FileSystem = class FileSystem {
 	*/
 	static saveFile(filePath, buffer) {
 		if (!_save || !_available) return;
-		const filename = filePath.replace(/\\/g, "/");
-		const directories = filename.split("/").slice(0, -1);
+		const filename = toStoredPath(filePath.replace(/\\/g, "/"));
+		const directories = filename.split("/");
+		const name = directories.pop();
 		let path = "";
-		while (directories.length) {
-			path += directories.shift() + "/";
-			_fs_sync.root.getDirectory(path, { create: true });
+		let dir = _fs_sync.root;
+		let tmpEntry = null;
+		try {
+			while (directories.length) {
+				path += directories.shift() + "/";
+				dir = _fs_sync.root.getDirectory(path, { create: true });
+			}
+			tmpEntry = _fs_sync.root.getDirectory(_writeDir, { create: true }).getFile(String(_writeCount++), { create: true });
+			const writer = tmpEntry.createWriter();
+			writer.truncate(0);
+			writer.write(new Blob([buffer]));
+			tmpEntry.moveTo(dir, name);
+		} catch (e) {
+			console.warn(`[FileSystem] cannot cache ${filename}: ${e.name}`);
+			if (tmpEntry) try {
+				tmpEntry.remove();
+			} catch (_e) {}
 		}
-		_fs_sync.root.getFile(filename, { create: true }).createWriter().write(new Blob([buffer]));
 	}
 	/**
 	* Search a file from FileSystem using a regex
@@ -19017,8 +19181,22 @@ var FileSystem = class FileSystem {
 			for (i = 0, count = _files.length; i < count; ++i) if (_files[i].name.match(regex)) list.push(_files[i]);
 			return list;
 		}
-		const entries = _fs_sync.root.createReader().readEntries();
-		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && entries[i].name.match(regex)) list.push(entries[i].file());
+		let entries;
+		try {
+			entries = _fs_sync.root.getDirectory(_storeDir, {}).createReader().readEntries();
+		} catch (_e) {
+			entries = [];
+		}
+		const found = Object.create(null);
+		for (i = 0, count = entries.length; i < count; ++i) {
+			const name = fromStoredName(entries[i].name);
+			if (entries[i].isFile && name.match(regex)) {
+				found[name] = true;
+				list.push(entries[i].file());
+			}
+		}
+		entries = _fs_sync.root.createReader().readEntries();
+		for (i = 0, count = entries.length; i < count; ++i) if (entries[i].isFile && !found[entries[i].name] && entries[i].name.match(regex)) list.push(entries[i].file());
 		return list;
 	}
 	/**
@@ -19076,8 +19254,7 @@ var FileSystem = class FileSystem {
 		}, errorHandler);
 	}
 };
-//#endregion
-//#region src/Core/FileManager.js
+// src/Core/FileManager.js
 /**
 * Core/FileManager.js
 *
@@ -19403,8 +19580,7 @@ var FileManager = class FileManager {
 		});
 	}
 };
-//#endregion
-//#region src/Loaders/MapLoader.js
+// src/Loaders/MapLoader.js
 /**
 * Loaders/MapLoader.js
 *
@@ -19905,8 +20081,7 @@ function SortMeshByTextures(a, b) {
 	if (a.texture > b.texture) return 1;
 	return 0;
 }
-//#endregion
-//#region src/Core/ThreadEventHandler.js
+// src/Core/ThreadEventHandler.js
 /**
 * Core/ThreadEventHandler.js
 *
@@ -20054,4 +20229,3 @@ onmessage = function receive(event) {
 * Once the thread is ready
 */
 postMessage({ type: "THREAD_READY" });
-//#endregion
