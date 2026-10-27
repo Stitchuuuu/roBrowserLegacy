@@ -1,0 +1,1054 @@
+{
+	"releases": [
+		{
+			"version": "0.1.0",
+			"date": "2026-04-30",
+			"title": "Five Spheres, One Punch",
+			"sha": "a1e326ce",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Asura Strike",
+					"text": "Fury, Asura, Zen: full glow, full burst, blue for Champs. Your Asura build finally looks the way your damage numbers feel.",
+					"details": "Asura Strike now plays the official full-screen effect, blue for Champions. Fury, Asura Strike and Zen show their casting glow, and the Monk keeps the attack pose until the skill ends instead of snapping back to idle.",
+					"commits": [
+						"d4d80320",
+						"9cc5530a",
+						"9f219286",
+						"f8f6a0ad",
+						"feac8aa2",
+						"19e5569e",
+						"aa9e3f35",
+						"1d8250bb",
+						"526f4914",
+						"675a942b",
+						"ca4ceb0d"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Buff afterimages",
+					"text": "Your Lord Knight pops Frenzy and now leaves a trail of ghosts behind them. The ghosts are also scared.",
+					"details": "Energy Coat, Two-Hand Quicken, Over Thrust, Fury, Frenzy and Shadow Clone leave a ghost trail behind the character, and Assumptio shows its glowing double-body halo. A status that ended could also leave its glow switched on; it now goes away with the status.",
+					"commits": [
+						"eed5c2c2",
+						"d5ed32ed",
+						"dacd45d6",
+						"f77b4fb9",
+						"25ef12c5",
+						"8d5fce6a"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Skill effects",
+					"text": "Your Paladin casts Martyr's Reckoning, and for the first time the monster can tell. Sightrasher, Basilica, Soul Drain and a few others got their real effects too.",
+					"details": "Official effects added for Soul Drain (High Wizard), Indulge (Professor), Martyr's Reckoning (Paladin), Head Crush and Joint Beat (Lord Knight), Sightless Mind (Rogue) and Basilica (High Priest), and an upgraded Sightrasher. Crimson Fire Formation (Ninja) now follows the caster. The block animation only plays under Kyrie Eleison, Guard or Parrying, not on every miss.",
+					"commits": [
+						"7fd74cbd",
+						"412bc366",
+						"4c7dd47e",
+						"5f04c283",
+						"7836675c",
+						"192e785c",
+						"72950456",
+						"66eb5699",
+						"3d999327",
+						"04ebc6b1",
+						"a7d60481",
+						"25016168"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "World Map",
+					"text": "You hovered the World Map trying to remember which field was which, and it just sat there. It now shows a preview with the map's name.",
+					"details": "Hovering a region on the World Map shows a preview with the map's name; clicking it opens Navigation on that map.",
+					"commits": [
+						"d812fec5",
+						"fb529e56",
+						"b611af4e",
+						"c8499c5d",
+						"28559990",
+						"da62984c"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Sprite layering",
+					"text": "Your Falcon spent a month flying inside your Hunter's head. It's been asked to come out.",
+					"details": "The Falcon and homunculus stay in front of the character, Spirit Spheres are drawn at the right depth, and garments sit behind a character facing the camera.",
+					"commits": [
+						"ca02e396",
+						"10555e27",
+						"9a1c52b9",
+						"6bdd293d",
+						"42b40847",
+						"bf93d9e3"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "HP bars",
+					"text": "The MVP walked off-screen at 10% HP and came back with an empty bar, and the whole party panicked. HP bars now remember.",
+					"details": "Monster, party member, homunculus and mercenary HP bars went blank when they left your screen and came back. They keep their last known value now.",
+					"commits": [
+						"8cab0dad"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Homunculus & Mercenary AI",
+					"text": "The Aggressive checkbox now does something. Separately for each companion.",
+					"details": "The Aggressive setting never took effect: it was saved under one name and read under another. It now works, separately for the homunculus and the mercenary.",
+					"commits": [
+						"67779614",
+						"34ef7dc9",
+						"a6c8df0b",
+						"da62984c"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Stuck after warp",
+					"text": "You warped, clicked the Kafra a bit too early, and your character decided to live there now. Early clicks are ignored during loading.",
+					"details": "Clicking an NPC while a map was still loading could leave the character unable to move after the warp. Clicks are ignored until the map is shown.",
+					"commits": [
+						"71768766"
+					]
+				}
+			]
+		},
+		{
+			"version": "0.2.0",
+			"date": "2026-05-31",
+			"title": "Singing in the Rain",
+			"sha": "8e1405d8",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Rain puddles",
+					"text": "Rain now makes puddles. Puddles dry. Weather, basically.",
+					"details": "When it rains, puddles build up where drops land and dry out a few seconds after the last drop.",
+					"commits": [
+						"75e745a8"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Skill description on right-click",
+					"text": "Right-click a skill to read about it. The text waits until you're done reading.",
+					"details": "Right-clicking a skill in the Skill List always opens its description. With 'view skill info' unchecked, the description stays open when you move the mouse away.",
+					"commits": [
+						"2f59e722",
+						"b05f0b4b"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Magician attack animation",
+					"text": "Your Magician swung a staff and the sprite did something else entirely, like a mime miming a different mime. Rod and staff attacks now play the right animation.",
+					"details": "Magicians attacking with a rod or staff play the correct attack animation.",
+					"commits": [
+						"564decb5"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "New skills in Skill List",
+					"text": "You finished the quest, the NPC said \"you learned a new skill!\", and the Skill List said nothing until you relogged. New skills now show up right away.",
+					"details": "A skill you gain or that changes during play (from a quest, for example) appears or updates in the Skill List right away.",
+					"commits": [
+						"8e1405d8"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Disconnect during login",
+					"text": "A disconnect during login now sends you back to the login window. No page reload.",
+					"details": "Losing the connection during login showed an error box and reloaded the page. It now brings you back to the login window.",
+					"commits": [
+						"26bc2ac3",
+						"4f773db1"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Login screen background",
+					"text": "You picked a server against a solid black void, like the game hadn't decided where you were yet. The login background is back on the server list.",
+					"details": "The server selection window showed on a black screen; the login background now stays behind it.",
+					"commits": [
+						"73f97120",
+						"a648c267",
+						"ec522406"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Character Select fixes",
+					"text": "Character Select looks like Character Select again.",
+					"details": "On the Character Select screen, slots show their background, the deletion countdown is formatted and placed correctly, and character names are easier to read.",
+					"commits": [
+						"88a023cd",
+						"ffa5b72a",
+						"26bc2ac3"
+					]
+				}
+			]
+		},
+		{
+			"version": "0.3.0",
+			"date": "2026-06-30",
+			"title": "Read Before You Refine",
+			"sha": "2d2aa994",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "TaeKwon status icons",
+					"text": "Your Taekwon got Aspersio and the buff bar showed the plain icon, like any other class. TaeKwon, Star Gladiator and Soul Linker now get their own element icons.",
+					"details": "TaeKwon Kid, Taekwon Master and Soul Linker characters see the special Warm Wind icons for element buffs (Aspersio, elemental converters, Warm Wind), like the official client.",
+					"commits": [
+						"d037288e",
+						"38ff757b",
+						"a2549459"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Map music",
+					"text": "Every time you crossed a field border the music jumped back to the first note, like a DJ who only knows one intro. Same-music maps now keep the song going.",
+					"details": "When you change maps and the new map uses the same music, the BGM continues instead of restarting.",
+					"commits": [
+						"0cc8adb2"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Homunculus / Mercenary AI",
+					"text": "Your Homunculus tried to cast its skill from across the screen, then again while lying dead on the floor. AI scripts now respect skill range, pick the closest target, and stop casting when it makes no sense.",
+					"details": "AI scripts compared skill range with the squared distance, so homunculi and mercenaries didn't cast at their real range. They now do, and they stop trying to cast once dead.",
+					"commits": [
+						"a2178b0a",
+						"dcfe124d"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Refine window",
+					"text": "The window said +6 and a comfy success rate, so you clicked again. It was actually +7 and the rate was much worse. You know how this ends. The Refine window now shows the real level and the real odds.",
+					"details": "When refining the same item several times in a row, the Refine window shows the new +level name and the correct success rate.",
+					"commits": [
+						"eec470fe"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Blessing effect",
+					"text": "Blessing has one animation per cast now, as intended.",
+					"details": "The Blessing animation no longer duplicates oddly, and quick repeated casts stack visually like in the official client.",
+					"commits": [
+						"d1d7e841",
+						"f5d993af"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Books (Read / Auto Read)",
+					"text": "Books can be read again. With the buttons, even.",
+					"details": "The Read and Auto Read buttons on readable book items work again.",
+					"commits": [
+						"9af352cf",
+						"37f506bc"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Mobile controls",
+					"text": "Mobile controls now fit the screen, either way up.",
+					"details": "On phones and tablets the on-screen buttons and joystick scale with the screen and re-layout when you rotate it.",
+					"commits": [
+						"0983aa81",
+						"0a2c1f64"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Mercenary window",
+					"text": "Two windows were not told the Mercenary was gone. They know now.",
+					"details": "Dismissing your Mercenary closes its info and skill windows, and the Time Left / Kills / Faith values no longer wrap onto extra lines.",
+					"commits": [
+						"1b0cbd66"
+					]
+				}
+			]
+		},
+		{
+			"version": "0.4.0",
+			"date": "2026-07-31",
+			"title": "The Emperium Strikes Back",
+			"sha": "f8f957aa",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "3D WoE models",
+					"text": "Your guild stormed the castle, broke through to the Emperium, and found... a Crystal. Defended by Raydrics in disguise, next to a Mimic posing as a Treasure Box. The Emperium, Guardians, Treasure Boxes and guild flags now show their real 3D models.",
+					"details": "The Emperium, the Knight, Archer and Soldier Guardians, castle Treasure Boxes and guild flags now appear as their real 3D models instead of 2D stand-ins borrowed from other monsters (a Crystal, Raydrics, a Mimic, a Neutrality Flag). Guild flags show the owning guild's live emblem.",
+					"commits": [
+						"75fe9580",
+						"52834001",
+						"967a01af",
+						"6a54e149",
+						"45e2873c",
+						"665bf303",
+						"6b6c18b7",
+						"cbf35ffd",
+						"1cc3f653",
+						"141f1036",
+						"5574aded",
+						"a6137b5a",
+						"14db91b3",
+						"e28c6d47"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Guild create/disband",
+					"text": "Creating a guild meant typing /guild with the exact name, and disbanding meant /breakguild, from memory. Both now have their button in the Guild window, with a result message.",
+					"details": "Guilds can be created and disbanded from the Guild window instead of the /guild and /breakguild commands, with a result message each time. The Guild Master's own row has the Position dropdown.",
+					"commits": [
+						"95abb0b1",
+						"652c6001",
+						"9e7e9cc2",
+						"55d82116",
+						"4cd42e5d"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "World Map levels",
+					"text": "The World Map had red numbers stamped on every field, like a crime scene. Monster levels are now in white at the bottom of each tile, like the official client.",
+					"details": "Monster level ranges on the World Map are drawn in white near the bottom of each map tile, not in red over the middle.",
+					"commits": [
+						"293611aa"
+					]
+				}
+			]
+		},
+		{
+			"version": "0.5.0",
+			"date": "2026-09-30",
+			"title": "Beyond the Waterfall",
+			"sha": "5ed268b9",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Guild window",
+					"text": "You wanted to know who in your guild had been gone for months, and the member list had no idea. It now shows each member's last login, puts online members on top, and the Guild Master can hand the guild over with a right-click.",
+					"details": "The Guild window follows the official client's layout. New: the tendency chart, each member's last login, online members listed first, a Guild Storage permission column, handing the guild over by right-clicking a member, /guildinvite <name>, and /li to turn the member login messages off.",
+					"commits": [
+						"cf64f5b0",
+						"337a5cc6",
+						"0b43638a",
+						"d3eef20a",
+						"c2e24c76",
+						"3ef3bb8f",
+						"3a569ba2",
+						"d7aa62dd",
+						"5c97d6a4",
+						"38cead25",
+						"bfdf52c6",
+						"4e79b26b",
+						"6768ccdb",
+						"92dc4375",
+						"eeafa23c",
+						"803a15d2",
+						"2df5021a",
+						"b6768096",
+						"518c63b6",
+						"08a92f1b",
+						"03eceda8",
+						"2d91ebb4",
+						"4af9eba4",
+						"e584b318",
+						"c0bccf53",
+						"626aea4e",
+						"b5e0e9e2",
+						"62d3cc76",
+						"3b25751d",
+						"5eb35810",
+						"983d931c",
+						"85a1ff59",
+						"87571dd7",
+						"140b7890",
+						"25b441d3",
+						"8628aa54",
+						"9862335b",
+						"44a9c73c",
+						"d8c827dd",
+						"cf0d2ed4",
+						"0f20b318",
+						"ed6cb495",
+						"74decfca",
+						"ba3269e3",
+						"577291c3",
+						"52517450",
+						"bd75888e",
+						"a61cea17",
+						"b11e25d2",
+						"b799e0c7",
+						"4f365a7f",
+						"c6f0ef31",
+						"57f6bbaa",
+						"c86d3427",
+						"86b2025b",
+						"3b3c9d4f",
+						"85067ccd",
+						"2503a34e",
+						"86a6ad94",
+						"fa353517",
+						"0226aba7",
+						"094908ce",
+						"cdd15524",
+						"19631f80",
+						"c3766ade",
+						"02f71053",
+						"18ceaf88",
+						"00164b3e",
+						"5e56bc1c",
+						"e8f07e4a",
+						"00b54c17",
+						"f1d3073a",
+						"f8cf580a",
+						"c7ef3c61",
+						"327cec36",
+						"4d8e954f",
+						"fbda4baf",
+						"c3b6c968",
+						"74420bc8",
+						"92be4877",
+						"54050489",
+						"8139eb46"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Guild emblem",
+					"text": "Your Guild Master uploaded the new emblem, and everyone else kept seeing the old one. Now everyone nearby sees it right away. Heads-up: emblems must be 24×24 and tiny, like the official client wants.",
+					"details": "The Guild Master can click the emblem or drop an image onto the Guild window. The map server is told, so everyone nearby sees the new emblem at once, and the emblem next to names is sharp on high-resolution screens. Emblems must be 24×24 and about 2 KB at most, like the official client.",
+					"commits": [
+						"4aa917b6",
+						"d570102a",
+						"fe7a1211",
+						"74b1d23a",
+						"68745f67",
+						"03ee3ea7",
+						"f5ceae22",
+						"ed05c636"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Waterfalls",
+					"text": "The map was called \"Beyond the Waterfall\" and there was no waterfall. There is now.",
+					"details": "Map waterfalls are drawn, with layered water sheets and a light spray at the base.",
+					"commits": [
+						"21ad4492",
+						"7ad34fea",
+						"79ca06bb",
+						"dec5e74b",
+						"8557d537",
+						"72c5d482"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Frost Diver trail",
+					"text": "Frost Diver now travels to its target instead of appearing on it.",
+					"details": "Frost Diver (Mage) and Grimtooth (Assassin) leave a trail of ice spikes along the ground toward the target, hit or miss.",
+					"commits": [
+						"5c7e63b6",
+						"34a9fd06",
+						"80076387",
+						"17223115",
+						"2cb620dc",
+						"9cabe048"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "See-through buildings",
+					"text": "You lost your character behind the Prontera church for a full minute and got killed by a Thief Bug you never saw. Turn on see-through buildings: walls fade around you.",
+					"details": "A new graphics option fades walls and buildings standing between the camera and your character, with an adjustable radius. Off by default, works with every camera except first person.",
+					"commits": [
+						"75e74b11",
+						"a40aea85",
+						"810bbe54",
+						"6c0bcea7",
+						"ccf29b36",
+						"363fa5bd",
+						"1c74c560",
+						"26969bf0",
+						"246c9199",
+						"de29935e"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Bulk item transfer",
+					"text": "You dragged 400 Jellopies to the sell window one stack at a time and typed the amount every time. Alt + right-click now moves the whole stack to Trade or the NPC sell window.",
+					"details": "Alt + right-click on an inventory item moves the whole stack into an open Trade window or the NPC sell window.",
+					"commits": [
+						"e33a3b7d",
+						"4c96cd33"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Combat timing",
+					"text": "Monsters now wait for the hit before dying. It's only polite.",
+					"details": "A monster dies when the killing hit lands, not before your attack reaches it. Walking stutters less, knockback, slides and Snap move smoothly, skill animations last as long as the attack motion, and Monk combos play the right part of the animation.",
+					"commits": [
+						"eb0a6cf2",
+						"90ab8059",
+						"8856faf4",
+						"977c0f0e",
+						"0773a07a",
+						"bab9e653"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Clicking",
+					"text": "You now click on what you see. The camera turns when you want it to, and only then.",
+					"details": "Ground items and small sprites can be clicked right where they are drawn. Right-clicking a monster or NPC no longer acts while you are turning the camera, and releasing the right button over a window stops the camera.",
+					"commits": [
+						"6ce876da",
+						"f04f0f6b",
+						"760be664"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Characters in water",
+					"text": "That Marina floating in the river looked like it was standing behind a pane of blue glass. Monsters and NPCs in water now sit half under the surface, like they should.",
+					"details": "Monsters and NPCs standing in water were drawn behind the water surface; they now look partly under it.",
+					"commits": [
+						"eecbad53",
+						"6e40a97c",
+						"85730d10",
+						"a97514db"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Phones and Safari",
+					"text": "Phones get a working Sit button and a guide. Safari gets quieter fights.",
+					"details": "On phones: the Sit button works, a long press shows what a button does, a guide explains the controls (/mobileguide), items can be dragged by touch and ground skills placed by touch. In Safari: no more sound stutter in big fights, and no duplicated heads in character previews.",
+					"commits": [
+						"32c1857d",
+						"60cd8828",
+						"7d1bb517",
+						"64709722",
+						"e7724d38",
+						"3c2033ad",
+						"48229e1a",
+						"4b2e1c25",
+						"1d394407",
+						"1883d34c",
+						"324b3697",
+						"5bf9e694",
+						"a3f6e2ff",
+						"224cb886",
+						"a9ce22f6",
+						"45387eed",
+						"f4f06fa7",
+						"e0aa64b2",
+						"492518a1",
+						"cb130d46",
+						"73addfa1",
+						"61d4adec",
+						"6d625a8a",
+						"27d38bdd",
+						"40e273e2",
+						"852b418c",
+						"6634badf",
+						"77449a69",
+						"350e5db9",
+						"549d79d8",
+						"060f5404"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Skill Tree and shortcuts",
+					"text": "The Skill Tree no longer spends points on a plan it can't finish.",
+					"details": "The Skill Tree honours job-specific prerequisites, places a skill chain only if you can afford all of it, and forgets the plan when closed. Homunculus, Mercenary and Guild skills on the shortcut bar work after login, and Mercenary ground skills are cast by the mercenary.",
+					"commits": [
+						"b67c591e",
+						"7ffc9e9c",
+						"26ba08f2",
+						"1cadd0b2",
+						"fe8e60a7",
+						"995124cb"
+					]
+				}
+			]
+		},
+		{
+			"version": "0.6.0",
+			"date": "2026-10-11",
+			"title": "Please Hold, Your Login Matters",
+			"sha": "68270a93",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Smooth map change",
+					"text": "Every warp used to cut to the loading screen like a slammed door, then cut back just as hard. Turn on Smooth in Graphics: map changes now fade in and out. Purists keep the official cut.",
+					"details": "The loading image used to appear and disappear with hard cuts. A new \"Smooth\" option in Graphics fades in and out around it. The default stays the official client's behaviour.",
+					"commits": [
+						"864bb5f6"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Selection windows",
+					"text": "You opened the Identify list with a Magnifier and reached for the mouse, because Enter just typed into the chat. Up, Down and Enter now drive item and craft selection windows.",
+					"details": "The chat grabbed every Enter, so item and craft selection windows needed the mouse. Enter now confirms them, and Up / Down move the selection.",
+					"commits": [
+						"22e96df3",
+						"157254d6"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Auto-retry",
+					"text": "Tick Auto-retry under the login window and the client keeps knocking until the server lets you in.",
+					"details": "A full server or a \"still recognizes your last log-in\" error meant retyping your password and clicking again. A new checkbox under the login window retries by itself, showing \"Attempt #N\", as fast as the server's flood protection allows. It also retries an unreachable map server and goes straight in with an account's only character. Wrong passwords, bans and \"someone has logged in with this ID\" are never retried, so it never kicks the other session.",
+					"commits": [
+						"b632ceed",
+						"fb1ed5a2",
+						"beeac749",
+						"361049f5"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Default UI font",
+					"text": "Every window opened with a font that looked like it came free with a Korean word processor. The interface now uses Arial by default; servers can bring SCDream back.",
+					"details": "Windows use Arial by default instead of the SCDream font; servers can switch SCDream back on.",
+					"commits": [
+						"c8f0c671"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Skill effects",
+					"text": "Your Hunter laid a Land Mine and nothing appeared on the ground, so the monster walked right into a trap nobody could see. About a hundred skills that were invisible or sound-only now play their effect.",
+					"details": "About 100 skills of first, second and transcendent classes that showed no effect or only a sound now play their animation from the client data.",
+					"commits": [
+						"8098ccc5"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Teleport",
+					"text": "Teleporting no longer closes and reopens every window.",
+					"details": "Every teleport and map change closed and reopened all the game windows. They now stay open.",
+					"commits": [
+						"06ea8106"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Chat",
+					"text": "Colour codes show as colours, and multi-line messages keep their lines.",
+					"details": "Multi-line messages like /help were squashed into one line, and ^RRGGBB colour codes showed as raw text. Line breaks are now kept and colours applied, and password managers no longer fill the whisper name field.",
+					"commits": [
+						"5ab0d34b",
+						"82990432"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Storage and Rodex",
+					"text": "You filtered your Storage for cards, deposited three more, and the filter swore you still had the old count. Filters now keep up, and the Rodex window drags smoothly no matter how many times you open it.",
+					"details": "Storage filter windows no longer drift out of date when you deposit or withdraw, and dragging the Rodex window no longer gets jumpy after reopening it.",
+					"commits": [
+						"c49cd93e",
+						"f6c62c62"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Black map ground",
+					"text": "The ground is no longer black. Unless the map is supposed to be dark.",
+					"details": "On some Chrome setups, maps loaded with a completely black ground; they now render normally.",
+					"commits": [
+						"68270a93"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Weather & aura speed",
+					"text": "On your 144 Hz monitor, the sakura petals fell like they were late for a meeting and your level-99 aura spun like a ceiling fan. Weather and auras now run at the same speed on every screen.",
+					"details": "Clouds, sakura and weather effects, ground and swirling auras and the level-99 bubbles no longer run faster on high refresh rate screens.",
+					"commits": [
+						"518e4070"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Kicked / banned in game",
+					"text": "You got kicked mid-teleport, clicked OK, and the game loaded you back into the map anyway, half connected. A cancelled map load now stays cancelled, and your skill cursor no longer freezes on top of the OK button.",
+					"details": "If a map load was cancelled by a kick or disconnect, the client no longer jumps back into the game afterwards, and the skill target cursor no longer stays frozen over the message's OK button.",
+					"commits": [
+						"b68560ce",
+						"303454f4",
+						"c325cdd3",
+						"7658f582",
+						"2d67f3d5"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Mouse cursor",
+					"text": "You moved the mouse on the login screen and the cursor stayed exactly where it was, like it had fallen asleep. It now follows you on every screen, and stops showing the NPC bubble when you're over a window.",
+					"details": "The game cursor no longer freezes on the login, server and character select screens, and no longer shows the NPC talk bubble while inside a window.",
+					"commits": [
+						"f1150089",
+						"ebed034e"
+					]
+				}
+			]
+		},
+		{
+			"version": "0.7.0",
+			"date": "2026-10-19",
+			"title": "Open for Business",
+			"sha": "",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Patch Notes window",
+					"text": "Something changed in the game and you only found out three weeks later, from a guildmate. The client version now sits in the corner of the login screen: click it to read what's new. After an update, the notes pop once when you log in.",
+					"details": "The client version now shows in the bottom-right corner of the login screen and in the Escape menu. Click it to open a Patch Notes window that lists what is new and what was fixed. After an update, the notes open once when you enter the game.",
+					"commits": [
+						"cf5c0ab9",
+						"a58a776f",
+						"43894794",
+						"2d06e845",
+						"9a6e28db",
+						"b8ce4e4e",
+						"e3dd4672"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Sell all",
+					"text": "You came back from Glast Heim with 80 different kinds of loot and dragged them to the sell window one by one. The NPC sell window now has a Sell all button.",
+					"details": "The NPC sell window has a new Sell all button that moves your whole sellable inventory into the sell list in one click.",
+					"commits": [
+						"277b5ff8"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Chat window mouse",
+					"text": "Double-click a chat line to whisper its author. Shift+click an item link to post it again. The wheel scrolls three lines at a time.",
+					"details": "Double-click a chat line to start a whisper to whoever sent it. Shift+click an item link in chat to link that item again. The mouse wheel now scrolls the chat 3 lines at a time.",
+					"commits": [
+						"28a992a3"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Whisper blocking commands",
+					"text": "A bot whispered you \"cheap zeny\" for the fortieth time and you had no way to make it stop. /ex <name> now blocks them, /exall blocks everyone, /in lets them back.",
+					"details": "/ex <name>, /in <name>, /exall, /inall and /ex (alone, shows your block list) now work. Their results show in chat, and a successful block prints nothing, as in the modern client.",
+					"commits": [
+						"b35eeb72",
+						"4b1375bf",
+						"b6343677",
+						"89054a51",
+						"54f32319"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Server messages",
+					"text": "The server had been talking about your gear for years. The chat now repeats what it says.",
+					"details": "The chat shows the server's messages about your gear (equipment damaged, Item Repair and Upgrade Weapon results, bind-on-equip notices, arrow and bullet equip lines), the MVP special EXP and no-item messages, and a line when a party member picks up an item.",
+					"commits": [
+						"ff9e419c",
+						"b40cb250"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Bank opened by NPCs",
+					"text": "The banker now opens the Bank. That's their whole job.",
+					"details": "NPCs that open the Bank window for you now do so. Before, nothing happened.",
+					"commits": [
+						"8cd32184"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Smoother rendering",
+					"text": "The graphics card now does more of the graphics.",
+					"details": "Fewer stutters on busy maps: animated map models, swirling auras, the Str-up effect and trap models are drawn by the graphics card, and heavy network traffic is handled more smoothly.",
+					"commits": [
+						"8594c875",
+						"b0f3a7cf",
+						"4c7f1dcf",
+						"f20f50ad",
+						"3a7d80ca",
+						"6625f762",
+						"ede864fc",
+						"12111dd0",
+						"0ef16f83",
+						"1518f051"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Inventory",
+					"text": "You refined your weapon, tried to sell the old one, and the NPC said you had zero of them. You had to change maps for the item to exist again. It sells right away now, and a minimized Inventory stays minimized.",
+					"details": "An item you refined, identified, carded or unequipped could show a count of 0 and be refused by NPC shops until your next map change; it sells normally now. A minimized Inventory or Cart window now reopens minimized, and the windows remember their size when closed or resized.",
+					"commits": [
+						"09a043e2",
+						"85b64341",
+						"864e6449",
+						"adfcbef3",
+						"17ff0d5a",
+						"65795137"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Equipment Cart button",
+					"text": "You went to open your cart from the Equipment window, clicked a hair too low, and hit the button underneath instead. The Cart button now only answers clicks on the Cart icon.",
+					"details": "A click just below the Cart icon in the Equipment window no longer hits the remove-option button by mistake.",
+					"commits": [
+						"6e2c73ef"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Chat safety",
+					"text": "A stranger whispered you an \"item link\" that wasn't quite an item link. Whispers and linked chat lines are now shown as plain text, whatever they contain.",
+					"details": "Whispers and chat lines that contain item links can no longer run hidden code sent by another player.",
+					"commits": [
+						"f05f4e23",
+						"17379ade",
+						"9a8b4c44"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Performance mode",
+					"text": "With performance mode on, a whole crowd's names and HP bars stayed hanging in the air after the players had walked away, like ghosts. They leave with their owners now.",
+					"details": "With performance mode on, names, HP bars, chat bubbles and shop or chat room signs no longer stay frozen on screen when a character walks out of view.",
+					"commits": [
+						"a4fa82f5",
+						"b397c4ae",
+						"b500d105"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Homunculus AI scripts",
+					"text": "One file was missing from your custom AI folder, so your Homunculus just stood there, doing nothing at all, forever. The default AI now takes over when a custom file is missing.",
+					"details": "If a custom Homunculus or Mercenary AI file (USER_AI) is missing, the default AI takes over instead of leaving the companion with no AI at all; custom scripts that load other Lua files find them reliably.",
+					"commits": [
+						"0602ba71",
+						"e949a07a",
+						"35516702",
+						"11009d00"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Small fixes",
+					"text": "You clicked the taming slot machine a little too fast and lost your Unripe Apple to a machine that wasn't even ready. That, and a handful of other small injustices, are fixed: mount colours, capes in attack, leftover skills, the map name banner.",
+					"details": "Halter Lead mounts use their own colour palette (or the rider's). The pet taming slot machine no longer eats your try if clicked before it finished loading. Temporary skills the server removes leave the Skill List. Capes and robes are drawn in the right order when attacking while facing away. Returning to character select fades the map out smoothly, and the map name banner stays 5 seconds then fades out quickly.",
+					"commits": [
+						"b25fbf30",
+						"007a73f2",
+						"328ae34d",
+						"7ebf16e7",
+						"00341a4d",
+						"311c59ee",
+						"48c6cc57",
+						"70c4412e"
+					]
+				},
+				{
+					"type": "plugins",
+					"keyword": "Plugin Manager",
+					"text": "Type /pm, pick a plugin, click Install. That's the whole guide. The Kafra ran out of things to explain.",
+					"details": "Plugins used to need an external loader or userscript. The client now has its own plugin manager (Alt+Shift+P or /pm): install from the server's plugin list or by dropping or uploading a plugin file. Plugins are stored in your browser and loaded at every start.",
+					"commits": [
+						"acbbd3e9",
+						"f8f957aa",
+						"6caea089"
+					]
+				},
+				{
+					"type": "plugins",
+					"keyword": "RespawnRadar",
+					"text": "You killed the MVP at 14:02, forgot the time, and showed up two hours late to an empty map. RespawnRadar tracks your kills, shows the respawn window and marks it on the minimap.",
+					"details": "MVP / respawn helper: kill tracking, respawn windows, minimap marks, per-mob kill counters, and a map sweep that walks until a watched mob is in sight.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "TabTargetNative",
+					"text": "You spent the whole fight trying to click the one Hydra hiding behind four others. Press Tab to cycle targets, lock the one you want, and your skills keep hitting it.",
+					"details": "Tab / Shift+Tab / Enter targeting with its own panel, a lock key or /focus to pin a target, auto-focus on manual attack or on your homunculus's target, and digit keys 1-9 that cast your F2 skillbar on the locked mob (with auto-craft and self-cast modes). /tt toggles the panel.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "RoItemInfo",
+					"text": "/ii tells you about items. /mi tells you about monsters. No more alt-tab.",
+					"details": "Item database lookup: /iteminfo (/ii) <id or name> shows what an item is made from, what it's used in and what it unlocks; /mobinfo (/mi) opens a monster sheet with its sprite and drops.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "DropNotifier",
+					"text": "Desktop notification + beep on ground drops, filtered by name and drop-rate tier. Never miss a 0.01% again.",
+					"details": "Desktop notification and optional beep when an item drops on the ground, filtered by name and by drop-rate rarity.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "CustomHomunAI",
+					"text": "Your Homunculus can now be told what to do. It might even listen.",
+					"details": "Custom Homunculus AI with a settings panel (/chai): Default, Custom one-file or Custom next-gen (a full AI folder imported by drag and drop, with pathfinding). Follow, attack, kite, defend, flee and per-monster rules.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "RoRadio",
+					"text": "Your own playlist of RO music, in RO.",
+					"details": "In-game music player: plays any BGM from the client, with a playlist, shuffle and repeat; mutes the map music while playing and keeps going across map changes.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "HomunGrowthLog",
+					"text": "You swore your Lif rolled terrible INT three levels in a row, and nobody believed you. HomunGrowthLog records every level-up, with proof.",
+					"details": "Records every homunculus level-up: the stat roll and the resulting changes, in a table you can download as JSON or CSV. /homungrowth.",
+					"commits": []
+				},
+				{
+					"type": "plugins",
+					"keyword": "CookingFix",
+					"text": "You opened the Cooking list, clicked OK, and the game tried to cook nothing. CookingFix selects a recipe properly and ignores OK with nothing picked.",
+					"details": "Fixes the Cooking list auto-select and stops the OK button from doing anything when no recipe is selected.",
+					"commits": []
+				}
+			]
+		},
+		{
+			"version": "0.8.0",
+			"date": "2026-10-20",
+			"title": "Full Speed Ahead",
+			"sha": "",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Crowded maps",
+					"text": "Prontera at 7 pm, two hundred players around the fountain, and your frame counter sulking. Entity sprites are now drawn in batches by the graphics card: crowds cost a fraction of what they did.",
+					"details": "Entity sprites are now drawn in batches by the graphics card, sharing one sprite atlas and one palette atlas across sprite files: towns, WoE and MVP crowds take far fewer draw calls. The batches rebuild themselves after a graphics context loss.",
+					"commits": [
+						"06a7d6cd",
+						"10212c01",
+						"38358fd8",
+						"3a9aeefa",
+						"7f3b8d11"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "FPS limit",
+					"text": "The FPS limit now matches your display. It used to argue with it. The FPS window also remembers the worst it saw.",
+					"details": "The FPS limit now defaults to \"Match display\" and is paced to whole display refreshes, so a 60 Hz screen gets an even 60 and a 144 Hz one an even 144, without the beat between the limit and the refresh. The FPS window also shows the lowest FPS registered.",
+					"commits": [
+						"16c19f93",
+						"9864ec9e",
+						"e94ef11f",
+						"5bbe39cc",
+						"bdef5ec3"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Map changes",
+					"text": "Warp, loading screen, a second of black, then the map arrives while you watch it build itself. The next map now loads while the screen is still fading out, and draws its first frames behind the loading image.",
+					"details": "A map change now asks for the next map as soon as the screen starts fading to the loading image, requests the ground, models and textures as soon as their names are known, and starts the new map behind the closing fade: a shorter loading screen, and the first frames are drawn before you see them.",
+					"commits": [
+						"1d4902fa",
+						"4242b32e",
+						"d76660cf",
+						"f3dbd9a2",
+						"1a6184e0"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Window art",
+					"text": "You logged in and the client fetched the art of thirty windows you had not opened. A window now fetches its images the first time it is drawn.",
+					"details": "Entering the map no longer downloads the art of every window at once: a window fetches its images the first time it is drawn, so arriving on a map starts with hundreds fewer requests.",
+					"commits": [
+						"bd22ae48",
+						"0682c3a8",
+						"5eb338fd",
+						"0d9d4caf",
+						"dd09fc2c"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Sprite loading",
+					"text": "A new mob type walks in and stays invisible for a beat while its sprite is prepared. Sprite frames and palettes are now compiled by WebAssembly, and that beat is shorter.",
+					"details": "Sprite frames and palettes are compiled by WebAssembly: characters, monsters and effects appear faster when they first load.",
+					"commits": [
+						"531aa7c8",
+						"a76426b5",
+						"3d1d1893"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "World map party marks",
+					"text": "Your friend left the party two hours ago and the world map still showed them in Geffen. Members who leave now leave the map too.",
+					"details": "A party member who leaves, or the whole party when you leave it, no longer stays marked on the world map.",
+					"commits": [
+						"0d9d4caf"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Loading screen on mobile",
+					"text": "On a phone, the joystick floated over the loading screen like it had somewhere to be. The loading image now covers the touch controls.",
+					"details": "On a phone, the touch controls no longer sit over the loading image while a map loads.",
+					"commits": [
+						"fc3e0fc7"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Map name banner",
+					"text": "You arrived in Payon, rolled the wheel to zoom and nothing happened for five seconds: the map name banner was in the way. The pointer now goes through it.",
+					"details": "For the few seconds the map name banner is shown after entering a map, the wheel and item drops under it now reach the map: zooming or dropping an item in that band works at once.",
+					"commits": [
+						"25593c8d"
+					]
+				}
+			]
+		}
+	]
+}
