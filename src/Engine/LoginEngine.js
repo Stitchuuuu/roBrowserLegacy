@@ -20,6 +20,7 @@ import Session from 'Engine/SessionStorage.js';
 import AutoRetry from 'Engine/AutoRetry.js';
 import CharEngine from 'Engine/CharEngine.js';
 import Network from 'Network/NetworkManager.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PluginManager from 'Plugins/PluginManager.js';
@@ -28,6 +29,7 @@ import MapRenderer from 'Renderer/MapRenderer.js';
 import UIManager from 'UI/UIManager.js';
 import WinList from 'UI/Components/WinList/WinList.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
+import InputBox from 'UI/Components/InputBox/InputBox.js';
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Queue from 'Utils/Queue.js';
 import Background from 'UI/Background.js';
@@ -192,6 +194,11 @@ class LoginEngine {
 		} else {
 			q.add(function () {
 				WinLogin.append();
+
+				RemoteBot.onAsk = askRemoteLink;
+				if (RemoteBot.isAsking()) {
+					askRemoteLink();
+				}
 			});
 		}
 
@@ -273,6 +280,21 @@ function failLogin(text, kind, code, onOk = backToLogin) {
 }
 
 /**
+ * Ask for a remote bot link (#remote alone, or Alt+Shift+R)
+ */
+function askRemoteLink() {
+	InputBox.append();
+	InputBox.setType('text', false);
+	InputBox.getRoot().querySelector('.text').textContent = 'Paste the bot link';
+	InputBox.onSubmitRequest = function onSubmitRequest(text) {
+		InputBox.remove();
+		if (!RemoteBot.setLink(text)) {
+			UIManager.showMessageBox('This is not a bot link.', 'ok', askRemoteLink, true);
+		}
+	};
+}
+
+/**
  * Trying to connect to Login server
  *
  * @param {string} username
@@ -296,7 +318,7 @@ function onConnectionRequest(username, password) {
 	Network.connect(_server.address, _server.port, success => {
 		// Fail to connect...
 		if (!success) {
-			failLogin(DB.getMessage(1), 'network');
+			failLogin(RemoteBot.failText() || DB.getMessage(1), 'network');
 			return;
 		}
 
