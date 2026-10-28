@@ -262,6 +262,10 @@ NpcBox.setText = function setText(text, gid) {
 	if (_needCleanUp) {
 		_needCleanUp = false;
 		content.textContent = '';
+		const nextBtn = root.querySelector('.next');
+		if (nextBtn) {
+			nextBtn.style.display = 'none';
+		}
 	}
 
 	const div = document.createElement('div');
@@ -295,6 +299,13 @@ NpcBox.addClose = function addClose(gid) {
 	if (closeBtn) {
 		closeBtn.style.display = 'block';
 	}
+};
+
+/**
+ * The page is complete: the next text starts a new one
+ */
+NpcBox.endPage = function endPage() {
+	_needCleanUp = true;
 };
 
 /**
