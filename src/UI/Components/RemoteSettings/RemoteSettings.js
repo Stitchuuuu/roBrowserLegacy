@@ -11,7 +11,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import BotHall from 'Network/BotHall.js';
-import { newSecret } from 'Vendors/signal/index.js';
+import { newSecret, formatLink } from 'Vendors/signal/index.js';
 import 'UI/Elements/Elements.js';
 import htmlText from './RemoteSettings.html?raw';
 import cssText from './RemoteSettings.css?raw';
@@ -165,7 +165,7 @@ function validate() {
 }
 
 /**
- * The `spectate` block each remote client of this hall needs in its config
+ * The console line that puts a remote client in this hall: /remote <hall link>
  * @see docs/reference/network/remote-bot.md
  */
 function copy() {
@@ -180,8 +180,8 @@ function copy() {
 		say('This browser cannot copy here.', true);
 		return;
 	}
-	navigator.clipboard.writeText(`"spectate": ${JSON.stringify(settings, null, '\t')}`).then(
-		() => say('Copied: paste it into each remote client config.'),
+	navigator.clipboard.writeText(`/remote ${formatLink('', settings)}`).then(
+		() => say('Copied: paste it into the console of each remote client.'),
 		() => say('This browser refused to copy.', true)
 	);
 }
