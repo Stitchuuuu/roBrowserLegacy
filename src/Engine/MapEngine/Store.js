@@ -16,6 +16,7 @@ import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import NpcStore from 'UI/Components/NpcStore/NpcStore.js';
@@ -171,6 +172,10 @@ function onExpandedBarterBuyList(pkt) {
  * @param {object} pkt - PACKET_ZC_PC_PURCHASE_RESULT
  */
 function onBuyResult(pkt) {
+	// On a remote bot the window sends nothing: its close would go to the server under the bot
+	if (RemoteBot.isActive()) {
+		NpcStore.setClosePacketSent(true);
+	}
 	NpcStore.remove();
 
 	switch (pkt.result) {

@@ -23,6 +23,7 @@ import Renderer from 'Renderer/Renderer.js';
 import NpcBox from 'UI/Components/NpcBox/NpcBox.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import NpcMenu from 'UI/Components/NpcMenu/NpcMenu.js';
+import NpcStore from 'UI/Components/NpcStore/NpcStore.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
@@ -81,6 +82,11 @@ function onCloseAppear(pkt) {
  * @param {object} pkt - PACKET.ZC.CLOSE_SCRIPT
  */
 function onCloseScript(pkt) {
+	// On a remote bot the bot leaving a shop is said with this packet: the server says nothing
+	if (RemoteBot.isActive()) {
+		NpcStore.setClosePacketSent(true);
+		NpcStore.remove();
+	}
 	if (NpcBox.ownerID === pkt.NAID) {
 		NpcBox.remove();
 		NpcMenu.remove();
@@ -181,6 +187,10 @@ function onInputAppear(pkt) {
  * @param {object} pkt - PACKET.ZC.SELECT_DEALTYPE
  */
 function onDealSelection(pkt) {
+	// On a remote bot the bot picks Buy or Sell: the list that follows shows which
+	if (RemoteBot.isActive()) {
+		return;
+	}
 	const WinDeal = WinPopup.clone('WinDeal');
 	const NAID = pkt.NAID;
 
