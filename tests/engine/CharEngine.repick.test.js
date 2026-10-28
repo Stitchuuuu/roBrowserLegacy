@@ -54,7 +54,18 @@ vi.mock('Network/NetworkManager.js', () => ({
 		utils: { longToIP: () => '127.0.0.1' }
 	}
 }));
-vi.mock('Network/RemoteBot.js', () => ({ default: { takeCharacter: () => mocks.botCharacter } }));
+vi.mock('Network/RemoteBot.js', () => ({
+	default: {
+		// Once, like the real one, when a test asks for it
+		takeCharacter: () => {
+			const name = mocks.botCharacter;
+			if (mocks.botCharacterOnce) {
+				mocks.botCharacter = null;
+			}
+			return name;
+		}
+	}
+}));
 vi.mock('Network/PacketVerManager.js', () => ({ default: { value: 20211103 } }));
 vi.mock('DB/DBManager.js', () => ({ default: { getMessage: id => 'MSG ' + id } }));
 vi.mock('Core/Configs.js', () => ({ default: { get: (_k, d) => d, getServer: () => ({}) } }));
@@ -234,6 +245,7 @@ describe('CharEngine pick of a remote bot\'s character', () => {
 
 	afterEach(() => {
 		mocks.botCharacter = null;
+		mocks.botCharacterOnce = false;
 	});
 
 	it('picks the character the bot plays, by name', () => {
@@ -264,6 +276,23 @@ describe('CharEngine pick of a remote bot\'s character', () => {
 
 		deliver('ACCEPT_ENTER_NEO_UNION_LIST', { charInfo: [{ CharNum: 5, name: 'Second' }] });
 		expect(picked()).toEqual([5]);
+	});
+
+	// cyro sends the header variant, then its list in a plain accept: two accepts
+	// for one character select, and the name is handed out once.
+	it('picks it from the list that follows the header', () => {
+		mocks.botCharacter = 'Second';
+		mocks.botCharacterOnce = true;
+		CharEngine.init(SERVER);
+		deliver('ACCEPT_ENTER_NEO_UNION_HEADER', {});
+		deliver('ACCEPT_ENTER_NEO_UNION', {
+			charInfo: [
+				{ CharNum: 0, name: 'First' },
+				{ CharNum: 1, name: 'Second' }
+			]
+		});
+
+		expect(picked()).toEqual([1]);
 	});
 
 	it('leaves the pick to the player when the bot plays none of them', () => {
