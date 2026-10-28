@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // onServerClosed is module-private and only reachable through the hook init()
 // registers, so the Network mock keeps the packet name -> handler map.
@@ -19,12 +19,13 @@ const mocks = vi.hoisted(() => {
 			setPercent: vi.fn()
 		},
 		bgm: { play: vi.fn(), setAvailableExtensions: vi.fn() },
-		winLogin: { append: record('WinLogin.append') },
+		winLogin: { append: record('WinLogin.append'), remove: vi.fn() },
+		remoteCharacters: { append: record('RemoteCharacters.append'), remove: vi.fn() },
 		skillTarget: { remove: vi.fn() },
 		remoteBot: { isActive: vi.fn(() => false), setLoginScreen: vi.fn(), leave: vi.fn(), failure: vi.fn() },
 		charEngine: { init: vi.fn() },
 		remoteEntry: { append: record('RemoteEntry.append'), remove: vi.fn() },
-		botHall: { loadSettings: () => null, loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn() },
+		botHall: { loadSettings: vi.fn(() => null), loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn() },
 		winList: { append: vi.fn(), setList: vi.fn() },
 		uiManager: {
 			removeComponents: record('UIManager.removeComponents'),
@@ -44,6 +45,7 @@ vi.mock('Network/NetworkManager.js', () => ({
 			mocks.hooks[struct.name] = fn;
 		},
 		close: vi.fn(),
+		connect: vi.fn(),
 		setPing: vi.fn(),
 		sendPacket: vi.fn()
 	}
@@ -74,7 +76,7 @@ vi.mock('UI/Components/WinPopup/WinPopup.js', () => ({ default: { clone: () => (
 vi.mock('UI/Components/WinLogin/WinLogin.js', () => ({
 	default: Object.assign(mocks.winLogin, { selectUIVersion: vi.fn() })
 }));
-vi.mock('UI/Components/RemoteCharacters/RemoteCharacters.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
+vi.mock('UI/Components/RemoteCharacters/RemoteCharacters.js', () => ({ default: mocks.remoteCharacters }));
 vi.mock('UI/Components/RemoteSettings/RemoteSettings.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
 vi.mock('UI/Components/RemoteEntry/RemoteEntry.js', () => ({ default: mocks.remoteEntry }));
 vi.mock('Network/BotHall.js', () => ({ default: mocks.botHall }));
@@ -170,6 +172,37 @@ describe('LoginEngine login accepted', () => {
 
 		expect(mocks.calls).toEqual(['UIManager.removeComponents', 'WinLogin.append', 'RemoteEntry.append']);
 		expect(mocks.remoteBot.setLoginScreen).toHaveBeenLastCalledWith(expect.any(Function));
+	});
+
+	describe('with the bots set up, a quit goes back to the way the player logged in', () => {
+		const HALL = { relay: 'wss://r/', relayKey: '', room: 'hall', secret: 's' };
+
+		beforeEach(() => {
+			mocks.botHall.loadSettings.mockReturnValue(HALL);
+		});
+		afterEach(() => {
+			mocks.botHall.loadSettings.mockReturnValue(null);
+			mocks.remoteBot.isActive.mockReturnValue(false);
+		});
+
+		const banned = () => {
+			mocks.calls.length = 0;
+			mocks.hooks['SC.NOTIFY_BAN']({ ErrorCode: 2 });
+			mocks.uiManager.showMessageBox.mock.lastCall[2]();
+			return mocks.calls.filter(c => /^(WinLogin|RemoteEntry|RemoteCharacters)\./.test(c));
+		};
+
+		it('logged in by hand: the login window and the way to the bots', () => {
+			mocks.winLogin.onConnectionRequest('me', 'pw');
+			expect(banned()).toEqual(['WinLogin.append', 'RemoteEntry.append']);
+		});
+
+		it('logged in through a remote client: the remote characters', () => {
+			mocks.winLogin.onConnectionRequest('me', 'pw');
+			mocks.remoteBot.isActive.mockReturnValue(true);
+			mocks.winLogin.onConnectionRequest('remote', 'remote');
+			expect(banned()).toEqual(['RemoteCharacters.append']);
+		});
 	});
 
 	it('without hall settings, a room the list opened is left before the login window', () => {
