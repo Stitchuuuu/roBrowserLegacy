@@ -206,6 +206,23 @@ the `CZ_CLOSE_DIALOG` the script waits for (rathena `buildin_close`: the script
 goes on when Close is pressed) — known gap, the window cannot tell whether it
 holds control.
 
+## NPC shops
+
+The same for a shop: the bot's Buy / Sell pick (`CZ_ACK_SELECT_DEALTYPE`), its
+batch (`CZ_PC_PURCHASE_ITEMLIST`, `CZ_PC_SELL_ITEMLIST`) and its leaving
+(`CZ_NPC_TRADE_QUIT`, which the server answers with nothing) never reach the
+window. In the mode (`Engine/MapEngine/NPC.js`, `Engine/MapEngine/Store.js`):
+
+| packet | in the mode |
+|---|---|
+| `ZC_SELECT_DEALTYPE` | no Buy / Sell chooser: the list that follows shows which the bot picked |
+| `ZC_PC_PURCHASE_RESULT` | the store closes without the window's own close packet, which would reach the server under the bot |
+| `ZC_CLOSE_SCRIPT` | the store closes too: the bot's responder sends one when the bot leaves a shop |
+
+The bot's responder also writes the batch in the window's chat
+(« [spectate] the bot buys Butterfly Wing x8, Fly Wing x81 »): no server packet
+carries it.
+
 ## When the bot cannot be reached
 
 The login failure box says why instead of the generic message:
