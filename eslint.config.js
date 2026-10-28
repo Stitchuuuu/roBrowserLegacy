@@ -96,6 +96,7 @@ export default [
         importScripts: 'readonly',  
         Buffer: 'readonly',  
         ROConfig: 'readonly',  
+        __BUILD_SHA__: 'readonly',  
         SEEK_CUR: 'readonly',  
         SEEK_SET: 'readonly',  
         SEEK_END: 'readonly'  

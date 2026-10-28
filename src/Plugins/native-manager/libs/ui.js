@@ -362,7 +362,9 @@ export function registerPlayerWindow(panelFactory, opts = {}) {
 	}
 
 	function _onMapReady() {
-		if (disposed || appended) {return}
+		// `appended` alone can lie : a removal at black with no map-leave before
+		// it (two map changes close together) leaves it set on a detached panel.
+		if (disposed || (appended && panel && !_detached(panel))) {return}
 		_doAppend()
 	}
 

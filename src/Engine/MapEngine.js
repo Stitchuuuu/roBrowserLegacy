@@ -131,6 +131,11 @@ let _mapName = '';
  */
 let _isInitialised = false;
 
+/**
+ * @var {boolean} build commit already printed in the chat
+ */
+let _buildShown = false;
+
 let _exiting = false;
 let _exitTimer = null;
 
@@ -821,6 +826,12 @@ function onMapChange(pkt) {
 
 		// Notes of the versions not seen yet, once in game
 		PatchNotes.checkUnseen();
+
+		// The commit this client was built from, once per page load: tells a reload went through
+		if (!_buildShown && typeof __BUILD_SHA__ !== 'undefined' && __BUILD_SHA__) {
+			_buildShown = true;
+			ChatBox.addText(`Build ${__BUILD_SHA__.slice(0, 7)}`, ChatBox.TYPE.INFO, ChatBox.FILTER.PUBLIC_LOG);
+		}
 	};
 
 	// A teleport within the map announces itself before the fade, as the client does
