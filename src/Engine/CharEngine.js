@@ -314,7 +314,7 @@ function onConnectionAccepted(pkt) {
 
 	// Straight from an auto-retry login, a single character needs no click.
 	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
-	_pickName = _repickSlot < 0 ? RemoteBot.character() : null;
+	_pickName = _repickSlot < 0 ? RemoteBot.takeCharacter() : null;
 	_listed = [];
 
 	// We are on the char server — what auto-retry was waiting for, unless it

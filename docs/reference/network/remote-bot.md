@@ -100,7 +100,7 @@ gets its own room. The login then runs by itself with dummy credentials (the
 bot answers with its own), the one char server is entered without its list
 (in the remote mode a bot always answers with the one it plays on, from a link
 too), and the character the bot plays is picked by name
-(`RemoteBot.character()`, `CharEngine`). An answer that comes once the list is
+(`RemoteBot.takeCharacter()`, `CharEngine` — once: back at the character select, the player picks). An answer that comes once the list is
 gone (the player opened Settings meanwhile) is dropped.
 
 What the list says when it cannot show remote clients, or one does not open:
