@@ -16,6 +16,7 @@ import SoundOption from 'UI/Components/SoundOption/SoundOption.js';
 import GraphicsOption from 'UI/Components/GraphicsOption/GraphicsOption.js';
 import ShortCutOption from 'UI/Components/ShortCutOption/ShortCutOption.js';
 import PatchNotes from 'UI/Components/PatchNotes/PatchNotes.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
 
@@ -86,6 +87,8 @@ Escape.init = function init() {
  */
 Escape.onAppend = function onAppend() {
 	this._host.style.display = 'none';
+	// On a remote bot the character select is the bot's: only Exit leaves
+	this.getRoot().querySelector('.charselect').style.display = RemoteBot.isActive() ? 'none' : '';
 };
 
 /**
