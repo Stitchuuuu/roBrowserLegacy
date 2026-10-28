@@ -196,7 +196,7 @@ window reacts to the packets instead:
 
 | packet | in the mode |
 |---|---|
-| `ZC_WAIT_DIALOG`, `ZC_MENU_LIST` | the page is complete (`NpcBox.endPage`): the next text clears the box and hides the Next button |
+| `ZC_WAIT_DIALOG`, `ZC_MENU_LIST` | the page is complete (`NpcBox.endPage`): the next text clears the box; a menu also takes the Next button away, the bot's Next it answers |
 | `ZC_SAY_DIALOG` | an open menu or input box goes away first — the bot answered it |
 | `ZC_CLOSE_DIALOG` | the box and its menu close at once, no Close button |
 

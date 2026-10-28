@@ -50,10 +50,10 @@ function onMessage(pkt) {
  */
 function onNextAppear(pkt) {
 	NpcBox.append();
-	NpcBox.addNext(pkt.NAID);
 	if (RemoteBot.isActive()) {
 		NpcBox.endPage();
 	}
+	NpcBox.addNext(pkt.NAID);
 }
 
 /**

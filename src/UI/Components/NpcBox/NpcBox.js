@@ -262,10 +262,7 @@ NpcBox.setText = function setText(text, gid) {
 	if (_needCleanUp) {
 		_needCleanUp = false;
 		content.textContent = '';
-		const nextBtn = root.querySelector('.next');
-		if (nextBtn) {
-			nextBtn.style.display = 'none';
-		}
+		hideNext();
 	}
 
 	const div = document.createElement('div');
@@ -302,10 +299,21 @@ NpcBox.addClose = function addClose(gid) {
 };
 
 /**
- * The page is complete: the next text starts a new one
+ * Hide the "next" button
+ */
+function hideNext() {
+	const nextBtn = NpcBox.getRoot().querySelector('.next');
+	if (nextBtn) {
+		nextBtn.style.display = 'none';
+	}
+}
+
+/**
+ * The page is complete, its Next answered elsewhere: the next text starts a new one
  */
 NpcBox.endPage = function endPage() {
 	_needCleanUp = true;
+	hideNext();
 };
 
 /**

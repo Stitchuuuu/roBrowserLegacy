@@ -62,8 +62,12 @@ describe('NPC dialog on a remote bot', () => {
 
 	it('takes the menu away and starts a fresh page when the text after it comes', () => {
 		say('Where to?');
+		deliver(PACKET.ZC.WAIT_DIALOG, {});
+		// The bot's Next is answered by a menu: no Next button left over it.
 		deliver(PACKET.ZC.MENU_LIST, { msg: 'Izlude:Prontera' });
 		expect(NpcMenu.__active).toBe(true);
+		expect(shown('.next')).toBe(false);
+		expect(lines()).toEqual(['Where to?']);
 
 		say('Off you go.');
 		expect(NpcMenu.__active).toBe(false);
