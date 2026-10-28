@@ -286,7 +286,10 @@ function showLoginScreen() {
 		// No hall: a room the list opened before is no use for the login window
 		RemoteBot.leave();
 		WinLogin.append();
-		RemoteEntry.append();
+		// The way to the bots, once a page link gave a relay
+		if (BotHall.loadRelay()) {
+			RemoteEntry.append();
+		}
 	}
 }
 
@@ -558,11 +561,7 @@ function onConnectionAccepted(pkt) {
 	else {
 		// Show window
 		WinList.onIndexSelected = onCharServerSelected;
-		WinList.onExitRequest = () => {
-			Network.close();
-			WinList.remove();
-			WinLogin.append();
-		};
+		WinList.onExitRequest = LoginEngine.reload;
 		WinList.append();
 		WinList.setList(list);
 	}
@@ -1047,9 +1046,8 @@ function onServerClosed(pkt) {
 		MapRenderer.free();
 		BGM.play('01.mp3');
 		AutoRetry.disarm();
-		UIManager.removeComponents();
 		Background.setLoginBackground();
-		WinLogin.append();
+		LoginEngine.reload();
 	});
 	Network.close();
 }

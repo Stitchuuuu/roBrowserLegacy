@@ -53,7 +53,7 @@ joins it at every start, `--spectate-rtc` or not.
 |---|---|
 | **Remote connections** (`UI/Components/RemoteSettings`) | relay, relay key, hall, secret, kept in `localStorage` (`botHall`) until « Forget ». « New » draws a secret, « Copy for clients » copies `/remote <hall link>` for each bot's console |
 | **Remote characters** (`UI/Components/RemoteCharacters`) | the login screen once settings are saved: one row per remote client, « Normal login » for the usual window |
-| « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window: the list, or the settings the first time |
+| « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window, once this browser has a relay: the list, or the settings the first time |
 
 `Network/BotHall.js` joins the hall when the list shows (never at load) and
 leaves it once the login is accepted. Everyone joins with `connect: 'manual'`
@@ -62,6 +62,13 @@ are linked (a library room is otherwise a full mesh). `max` counts every
 member, linked or not, and the relay caps it (`RELAY_ROOM_MAX`); each bot
 holds one relay connection, so a machine with N bots and W open windows uses
 N + W of the relay's per-address connections (`RELAY_IP_CONN`).
+
+The button stays hidden for whoever never used the mode. A relay is given by
+a page opened with `?relay=<wss url>[&key=<relay key>]` (both leave the
+address bar), or by a bot link; it is kept in `localStorage`
+(`botHallRelay`), fills the empty settings, and goes with « Forget ». Every
+way back to the login window (Cancel on the char server list, a ban) passes
+through the same screen, so the button comes back with it.
 
 What the hall secret gives away: whoever has it lists the account's remote
 clients **and opens any of them**. Every build served from one origin reads

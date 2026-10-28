@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => {
 		skillTarget: { remove: vi.fn() },
 		remoteBot: { isActive: vi.fn(() => false), setLoginScreen: vi.fn(), leave: vi.fn(), failure: vi.fn() },
 		charEngine: { init: vi.fn() },
+		remoteEntry: { append: record('RemoteEntry.append'), remove: vi.fn() },
+		botHall: { loadSettings: () => null, loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn() },
 		winList: { append: vi.fn(), setList: vi.fn() },
 		uiManager: {
 			removeComponents: record('UIManager.removeComponents'),
@@ -74,8 +76,8 @@ vi.mock('UI/Components/WinLogin/WinLogin.js', () => ({
 }));
 vi.mock('UI/Components/RemoteCharacters/RemoteCharacters.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
 vi.mock('UI/Components/RemoteSettings/RemoteSettings.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
-vi.mock('UI/Components/RemoteEntry/RemoteEntry.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
-vi.mock('Network/BotHall.js', () => ({ default: { loadSettings: () => null, leave: vi.fn() } }));
+vi.mock('UI/Components/RemoteEntry/RemoteEntry.js', () => ({ default: mocks.remoteEntry }));
+vi.mock('Network/BotHall.js', () => ({ default: mocks.botHall }));
 vi.mock('UI/Components/SkillTargetSelection/SkillTargetSelection.js', () => ({ default: mocks.skillTarget }));
 vi.mock('Vendors/spark-md5.min.js', () => ({ default: {} }));
 vi.mock('Utils/Rijndael.js', () => ({ default: {} }));
@@ -114,9 +116,10 @@ describe('LoginEngine SC.NOTIFY_BAN', () => {
 			'Renderer.stop',
 			'MapRenderer.cancelLoad',
 			'MapRenderer.free',
-			'UIManager.removeComponents',
 			'Background.setLoginBackground',
-			'WinLogin.append'
+			'UIManager.removeComponents',
+			'WinLogin.append',
+			'RemoteEntry.append'
 		]);
 		expect(mocks.bgm.play).toHaveBeenCalledWith('01.mp3');
 	});
@@ -150,6 +153,23 @@ describe('LoginEngine login accepted', () => {
 		LoginEngine.reload();
 
 		expect(mocks.remoteBot.setLoginScreen).toHaveBeenCalledWith(expect.any(Function));
+	});
+
+	it('no relay ever given: the login window alone, no way to the bots', () => {
+		mocks.botHall.loadRelay.mockReturnValueOnce(null);
+		mocks.calls.length = 0;
+		LoginEngine.reload();
+
+		expect(mocks.calls).toEqual(['UIManager.removeComponents', 'WinLogin.append']);
+	});
+
+	it('Cancel on the char server list: back to the login window with the way to the bots', () => {
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+		mocks.calls.length = 0;
+		mocks.winList.onExitRequest();
+
+		expect(mocks.calls).toEqual(['UIManager.removeComponents', 'WinLogin.append', 'RemoteEntry.append']);
+		expect(mocks.remoteBot.setLoginScreen).toHaveBeenLastCalledWith(expect.any(Function));
 	});
 
 	it('without hall settings, a room the list opened is left before the login window', () => {
