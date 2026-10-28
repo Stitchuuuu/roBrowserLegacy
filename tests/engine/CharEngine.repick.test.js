@@ -54,7 +54,7 @@ vi.mock('Network/NetworkManager.js', () => ({
 		utils: { longToIP: () => '127.0.0.1' }
 	}
 }));
-vi.mock('Network/RemoteBot.js', () => ({ default: { character: () => mocks.botCharacter } }));
+vi.mock('Network/RemoteBot.js', () => ({ default: { takeCharacter: () => mocks.botCharacter } }));
 vi.mock('Network/PacketVerManager.js', () => ({ default: { value: 20211103 } }));
 vi.mock('DB/DBManager.js', () => ({ default: { getMessage: id => 'MSG ' + id } }));
 vi.mock('Core/Configs.js', () => ({ default: { get: (_k, d) => d, getServer: () => ({}) } }));
