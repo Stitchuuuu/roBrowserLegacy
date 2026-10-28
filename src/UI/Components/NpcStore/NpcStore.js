@@ -147,7 +147,6 @@ NpcStore.init = function init() {
 	root.querySelector('.btn.cancel').addEventListener('click', () => this.remove());
 	root.querySelector('.btn.buy').addEventListener('click', () => this.submit());
 	root.querySelector('.btn.sell').addEventListener('click', () => this.submit());
-	root.querySelector('.sellall').addEventListener('click', onSellAll);
 
 	const selectall = root.querySelector('.selectall');
 	if (selectall) {
@@ -1049,16 +1048,6 @@ function transferSellItemStack(index) {
 		true
 	);
 	return true;
-}
-
-/**
- * Move every sellable item to the output window
- */
-function onSellAll() {
-	const count = _input.length;
-	for (let i = 0; i < count; ++i) {
-		transferSellItemStack(i);
-	}
 }
 
 NpcStore.inventoryTransferPriority = InventoryItemTransferPriority.NPC_STORE;
