@@ -16,6 +16,12 @@ import { VERSION, encode, parse } from './HallMessages.js';
 const SETTINGS_KEY = 'botHall';
 
 /**
+ * localStorage key of the relay a page link gave: the login screen shows the way to the bots from then on
+ * @const {string}
+ */
+const RELAY_KEY = 'botHallRelay';
+
+/**
  * Members a hall holds: the page and the bots of the account (the relay caps it too)
  * @const {number}
  */
@@ -98,10 +104,42 @@ BotHall.saveSettings = function saveSettings(settings) {
 BotHall.forgetSettings = function forgetSettings() {
 	try {
 		localStorage.removeItem(SETTINGS_KEY);
+		localStorage.removeItem(RELAY_KEY);
 	} catch (_e) {
 		// Nothing kept
 	}
 	BotHall.leave();
+};
+
+/**
+ * @return {?{relay: string, relayKey: string}} the relay a page link gave
+ */
+BotHall.loadRelay = function loadRelay() {
+	let r = null;
+
+	try {
+		r = JSON.parse(localStorage.getItem(RELAY_KEY));
+	} catch (_e) {
+		return null;
+	}
+	if (!r || typeof r.relay !== 'string') {
+		return null;
+	}
+	return { relay: r.relay, relayKey: typeof r.relayKey === 'string' ? r.relayKey : '' };
+};
+
+/**
+ * Keep the relay of a page link (?relay=, or a bot link): the settings start from it
+ *
+ * @param {string} relay
+ * @param {string} [relayKey]
+ */
+BotHall.rememberRelay = function rememberRelay(relay, relayKey) {
+	try {
+		localStorage.setItem(RELAY_KEY, JSON.stringify({ relay, relayKey: relayKey || '' }));
+	} catch (_e) {
+		// Private mode: the way to the bots stays hidden
+	}
 };
 
 /**
@@ -360,6 +398,31 @@ function changed() {
 		_onChange();
 	}
 }
+
+/**
+ * ?relay=<wss url>[&key=<relay key>] keeps the relay, then leaves the address bar
+ */
+function init() {
+	const params = new URLSearchParams(window.location.search);
+	const relay = params.get('relay');
+
+	if (!relay) {
+		return;
+	}
+	if (/^wss?:\/\/./.test(relay)) {
+		BotHall.rememberRelay(relay, params.get('key'));
+	}
+	params.delete('relay');
+	params.delete('key');
+	const search = params.toString();
+	history.replaceState(
+		history.state,
+		'',
+		`${window.location.pathname}${search ? '?' + search : ''}${window.location.hash}`
+	);
+}
+
+init();
 
 /**
  * Export
