@@ -208877,6 +208877,19 @@ var init_room = __esmMin((() => {
 }));
 // src/Vendors/signal/link.js
 /**
+* @param {string} base - the page URL, with or without a fragment (replaced)
+* @param {{room: string, secret: string, relay?: string, relayKey?: string}} parts
+* @returns {string} `base#r=<room>&s=<secret>[&relay=<url>][&key=<relayKey>]`
+*/
+function formatLink(base, { room, secret, relay, relayKey }) {
+	const params = new URLSearchParams();
+	params.set("r", room);
+	params.set("s", secret);
+	if (relay) params.set("relay", relay);
+	if (relayKey) params.set("key", relayKey);
+	return `${String(base).split("#")[0]}#${params}`;
+}
+/**
 * @param {string} url - a full URL or just its `#…` part
 * @returns {{room: string, secret: string, relay?: string, relayKey?: string}|null} null unless both a room and a
 *   well-formed secret are there ; spread it into joinRoom()
@@ -353616,7 +353629,7 @@ function validate() {
 	RemoteSettings.onClose();
 }
 /**
-* The `spectate` block each remote client of this hall needs in its config
+* The console line that puts a remote client in this hall: /remote <hall link>
 * @see docs/reference/network/remote-bot.md
 */
 function copy() {
@@ -353630,7 +353643,7 @@ function copy() {
 		say("This browser cannot copy here.", true);
 		return;
 	}
-	navigator.clipboard.writeText(`"spectate": ${JSON.stringify(settings, null, "	")}`).then(() => say("Copied: paste it into each remote client config."), () => say("This browser refused to copy.", true));
+	navigator.clipboard.writeText(`/remote ${formatLink("", settings)}`).then(() => say("Copied: paste it into the console of each remote client."), () => say("This browser refused to copy.", true));
 }
 var WARNING, RemoteSettings, RemoteSettings_default;
 var init_RemoteSettings = __esmMin((() => {
