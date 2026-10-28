@@ -95,4 +95,20 @@ describe('a plugin window across a map transition', () => {
 		expect(window.ui[0].isConnected).toBe(true);
 		expect(window.append).toHaveBeenCalledTimes(2);
 	});
+
+	// Two map changes close together: the engine removes the window at black
+	// with no map-leave before it, and no map-ready after.
+	it('comes back on map-ready after a removal the transition did not announce', async () => {
+		const window = panel();
+		registerPlayerWindow(() => window);
+		emit(EVENTS.MAP_READY);
+		window.remove();
+
+		emit(EVENTS.MAP_LEAVE);
+		await Promise.resolve();
+		window.remove();
+
+		emit(EVENTS.MAP_READY);
+		expect(window.ui[0].isConnected).toBe(true);
+	});
 });
