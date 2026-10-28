@@ -42,14 +42,16 @@ server entry of the list until the tab is closed.
 ## Remote characters: the account's hall
 
 Instead of a link per bot, the login screen can list every remote client of
-the account and attach to the one picked. Each bot started with
-`--spectate-rtc` sits in the account's **hall**: one room named by the
-`spectate` block of its config (relay, relay key, room, secret — the same
-block in every bot of the account).
+the account and attach to the one picked. Each bot sits in the account's
+**hall**: one room named by the `spectate` block of its config (relay, relay
+key, room, secret — the same block in every bot of the account). The block is
+written by `/remote <hall link>` typed in the bot's console (the line « Copy
+for clients » copies, the library's link format); a bot with a saved hall
+joins it at every start, `--spectate-rtc` or not.
 
 | screen | when |
 |---|---|
-| **Remote connections** (`UI/Components/RemoteSettings`) | relay, relay key, hall, secret, kept in `localStorage` (`botHall`) until « Forget ». « New » draws a secret, « Copy for clients » copies the bots' `spectate` block |
+| **Remote connections** (`UI/Components/RemoteSettings`) | relay, relay key, hall, secret, kept in `localStorage` (`botHall`) until « Forget ». « New » draws a secret, « Copy for clients » copies `/remote <hall link>` for each bot's console |
 | **Remote characters** (`UI/Components/RemoteCharacters`) | the login screen once settings are saved: one row per remote client, « Normal login » for the usual window |
 | « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window: the list, or the settings the first time |
 
