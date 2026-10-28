@@ -209338,10 +209338,15 @@ var init_RemoteBot = __esmMin((() => {
 		return true;
 	};
 	/**
-	* @return {?string} the character to pick once listed, the one the bot plays
+	* The character to pick at the first character select of a room the list opened: once, so a player who goes
+	* back to the character select stays there
+	*
+	* @return {?string} the one the bot plays
 	*/
-	RemoteBot.character = function character() {
-		return _sockets$1 ? _character : null;
+	RemoteBot.takeCharacter = function takeCharacter() {
+		const name = _sockets$1 ? _character : null;
+		_character = null;
+		return name;
 	};
 	/**
 	* Back to the server from a room the bot list opened; a link stays
@@ -238675,6 +238680,7 @@ var init_Escape = __esmMin((() => {
 	init_GraphicsOption();
 	init_ShortCutOption();
 	init_PatchNotes();
+	init_RemoteBot();
 	init_Escape$2();
 	init_Escape$1();
 	Escape = new GUIComponent("Escape", Escape_default$1);
@@ -238729,6 +238735,7 @@ var init_Escape = __esmMin((() => {
 	*/
 	Escape.onAppend = function onAppend() {
 		this._host.style.display = "none";
+		this.getRoot().querySelector(".charselect").style.display = RemoteBot.isActive() ? "none" : "";
 	};
 	/**
 	* Reset buttons once UI is removed
@@ -348936,9 +348943,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "0029c6aee1da742e98b742f4baf8d74ad77529e4") {
+		if (!_buildShown && "350189c1bea50868412a2af4bc5ad3e0beecfbee") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"0029c6aee1da742e98b742f4baf8d74ad77529e4".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"350189c1bea50868412a2af4bc5ad3e0beecfbee".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -352277,7 +352284,7 @@ function onConnectionAccepted$1(pkt) {
 	}
 	UIManager.getComponent("WinLoading").remove();
 	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
-	_pickName = _repickSlot < 0 ? RemoteBot.character() : null;
+	_pickName = _repickSlot < 0 ? RemoteBot.takeCharacter() : null;
 	_listed = [];
 	if (_repickSlot < 0) AutoRetry.disarm();
 	Controller$2.onExitRequest = onExitRequest$1;
