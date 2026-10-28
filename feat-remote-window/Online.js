@@ -11385,7 +11385,7 @@ var init_MemoryManager = __esmMin((() => {
 }));
 // src/Network/Packets/packets2003_len_main.js
 var packets2003_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2003_len_main_default });
-function init$39(packetver) {
+function init$40(packetver) {
 	length_list$22[100] = 55;
 	length_list$22[101] = 17;
 	length_list$22[102] = 3;
@@ -11793,11 +11793,11 @@ function init$39(packetver) {
 var length_list$22, packets2003_len_main_default;
 var init_packets2003_len_main = __esmMin((() => {
 	length_list$22 = new Array();
-	packets2003_len_main_default = { init: init$39 };
+	packets2003_len_main_default = { init: init$40 };
 }));
 // src/Network/Packets/packets2004_len_main.js
 var packets2004_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2004_len_main_default });
-function init$38(packetver) {
+function init$39(packetver) {
 	length_list$21[100] = 55;
 	length_list$21[101] = 17;
 	length_list$21[102] = 3;
@@ -12405,11 +12405,11 @@ function init$38(packetver) {
 var length_list$21, packets2004_len_main_default;
 var init_packets2004_len_main = __esmMin((() => {
 	length_list$21 = new Array();
-	packets2004_len_main_default = { init: init$38 };
+	packets2004_len_main_default = { init: init$39 };
 }));
 // src/Network/Packets/packets2005_len_main.js
 var packets2005_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2005_len_main_default });
-function init$37(packetver) {
+function init$38(packetver) {
 	length_list$20[100] = 55;
 	length_list$20[101] = 17;
 	length_list$20[102] = 3;
@@ -13034,11 +13034,11 @@ function init$37(packetver) {
 var length_list$20, packets2005_len_main_default;
 var init_packets2005_len_main = __esmMin((() => {
 	length_list$20 = new Array();
-	packets2005_len_main_default = { init: init$37 };
+	packets2005_len_main_default = { init: init$38 };
 }));
 // src/Network/Packets/packets2006_len_main.js
 var packets2006_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2006_len_main_default });
-function init$36(packetver) {
+function init$37(packetver) {
 	length_list$19[100] = 55;
 	length_list$19[101] = 17;
 	length_list$19[102] = 3;
@@ -13632,11 +13632,11 @@ function init$36(packetver) {
 var length_list$19, packets2006_len_main_default;
 var init_packets2006_len_main = __esmMin((() => {
 	length_list$19 = new Array();
-	packets2006_len_main_default = { init: init$36 };
+	packets2006_len_main_default = { init: init$37 };
 }));
 // src/Network/Packets/packets2007_len_main.js
 var packets2007_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2007_len_main_default });
-function init$35(packetver) {
+function init$36(packetver) {
 	length_list$18[100] = 55;
 	length_list$18[101] = 17;
 	length_list$18[102] = 3;
@@ -14323,11 +14323,11 @@ function init$35(packetver) {
 var length_list$18, packets2007_len_main_default;
 var init_packets2007_len_main = __esmMin((() => {
 	length_list$18 = new Array();
-	packets2007_len_main_default = { init: init$35 };
+	packets2007_len_main_default = { init: init$36 };
 }));
 // src/Network/Packets/packets2008_len_main.js
 var packets2008_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2008_len_main_default });
-function init$34(packetver) {
+function init$35(packetver) {
 	length_list$17[100] = 55;
 	length_list$17[101] = 17;
 	length_list$17[102] = 3;
@@ -32511,11 +32511,11 @@ function init$34(packetver) {
 var length_list$17, packets2008_len_main_default;
 var init_packets2008_len_main = __esmMin((() => {
 	length_list$17 = new Array();
-	packets2008_len_main_default = { init: init$34 };
+	packets2008_len_main_default = { init: init$35 };
 }));
 // src/Network/Packets/packets2009_len_main.js
 var packets2009_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2009_len_main_default });
-function init$33(packetver) {
+function init$34(packetver) {
 	length_list$16[100] = 55;
 	length_list$16[101] = 17;
 	length_list$16[102] = 3;
@@ -38752,11 +38752,11 @@ function init$33(packetver) {
 var length_list$16, packets2009_len_main_default;
 var init_packets2009_len_main = __esmMin((() => {
 	length_list$16 = new Array();
-	packets2009_len_main_default = { init: init$33 };
+	packets2009_len_main_default = { init: init$34 };
 }));
 // src/Network/Packets/packets2010_len_main.js
 var packets2010_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2010_len_main_default });
-function init$32(packetver) {
+function init$33(packetver) {
 	length_list$15[100] = 55;
 	length_list$15[101] = 17;
 	length_list$15[102] = 3;
@@ -40230,11 +40230,11 @@ function init$32(packetver) {
 var length_list$15, packets2010_len_main_default;
 var init_packets2010_len_main = __esmMin((() => {
 	length_list$15 = new Array();
-	packets2010_len_main_default = { init: init$32 };
+	packets2010_len_main_default = { init: init$33 };
 }));
 // src/Network/Packets/packets2011_len_main.js
 var packets2011_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2011_len_main_default });
-function init$31(packetver) {
+function init$32(packetver) {
 	length_list$14[100] = 55;
 	length_list$14[101] = 17;
 	length_list$14[102] = 3;
@@ -43164,11 +43164,11 @@ function init$31(packetver) {
 var length_list$14, packets2011_len_main_default;
 var init_packets2011_len_main = __esmMin((() => {
 	length_list$14 = new Array();
-	packets2011_len_main_default = { init: init$31 };
+	packets2011_len_main_default = { init: init$32 };
 }));
 // src/Network/Packets/packets2012_len_main.js
 var packets2012_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2012_len_main_default });
-function init$30(packetver) {
+function init$31(packetver) {
 	length_list$13[100] = 55;
 	length_list$13[101] = 17;
 	length_list$13[102] = 3;
@@ -46583,11 +46583,11 @@ function init$30(packetver) {
 var length_list$13, packets2012_len_main_default;
 var init_packets2012_len_main = __esmMin((() => {
 	length_list$13 = new Array();
-	packets2012_len_main_default = { init: init$30 };
+	packets2012_len_main_default = { init: init$31 };
 }));
 // src/Network/Packets/packets2013_len_main.js
 var packets2013_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2013_len_main_default });
-function init$29(packetver) {
+function init$30(packetver) {
 	length_list$12[100] = 55;
 	length_list$12[101] = 17;
 	length_list$12[102] = 3;
@@ -50076,11 +50076,11 @@ function init$29(packetver) {
 var length_list$12, packets2013_len_main_default;
 var init_packets2013_len_main = __esmMin((() => {
 	length_list$12 = new Array();
-	packets2013_len_main_default = { init: init$29 };
+	packets2013_len_main_default = { init: init$30 };
 }));
 // src/Network/Packets/packets2014_len_main.js
 var packets2014_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2014_len_main_default });
-function init$28(packetver) {
+function init$29(packetver) {
 	length_list$11[100] = 55;
 	length_list$11[101] = 17;
 	length_list$11[102] = 3;
@@ -53660,11 +53660,11 @@ function init$28(packetver) {
 var length_list$11, packets2014_len_main_default;
 var init_packets2014_len_main = __esmMin((() => {
 	length_list$11 = new Array();
-	packets2014_len_main_default = { init: init$28 };
+	packets2014_len_main_default = { init: init$29 };
 }));
 // src/Network/Packets/packets2015_len_main.js
 var packets2015_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2015_len_main_default });
-function init$27(packetver) {
+function init$28(packetver) {
 	length_list$10[100] = 55;
 	length_list$10[101] = 17;
 	length_list$10[102] = 3;
@@ -57096,11 +57096,11 @@ function init$27(packetver) {
 var length_list$10, packets2015_len_main_default;
 var init_packets2015_len_main = __esmMin((() => {
 	length_list$10 = new Array();
-	packets2015_len_main_default = { init: init$27 };
+	packets2015_len_main_default = { init: init$28 };
 }));
 // src/Network/Packets/packets2016_len_main.js
 var packets2016_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2016_len_main_default });
-function init$26(packetver) {
+function init$27(packetver) {
 	length_list$9[100] = 55;
 	length_list$9[101] = 17;
 	length_list$9[102] = 3;
@@ -60698,11 +60698,11 @@ function init$26(packetver) {
 var length_list$9, packets2016_len_main_default;
 var init_packets2016_len_main = __esmMin((() => {
 	length_list$9 = new Array();
-	packets2016_len_main_default = { init: init$26 };
+	packets2016_len_main_default = { init: init$27 };
 }));
 // src/Network/Packets/packets2017_len_main.js
 var packets2017_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2017_len_main_default });
-function init$25(packetver) {
+function init$26(packetver) {
 	length_list$8[100] = 55;
 	length_list$8[101] = 17;
 	length_list$8[102] = 3;
@@ -64280,11 +64280,11 @@ function init$25(packetver) {
 var length_list$8, packets2017_len_main_default;
 var init_packets2017_len_main = __esmMin((() => {
 	length_list$8 = new Array();
-	packets2017_len_main_default = { init: init$25 };
+	packets2017_len_main_default = { init: init$26 };
 }));
 // src/Network/Packets/packets2018_len_main.js
 var packets2018_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2018_len_main_default });
-function init$24(packetver) {
+function init$25(packetver) {
 	length_list$7[100] = 55;
 	length_list$7[101] = 17;
 	length_list$7[102] = 3;
@@ -66188,11 +66188,11 @@ function init$24(packetver) {
 var length_list$7, packets2018_len_main_default;
 var init_packets2018_len_main = __esmMin((() => {
 	length_list$7 = new Array();
-	packets2018_len_main_default = { init: init$24 };
+	packets2018_len_main_default = { init: init$25 };
 }));
 // src/Network/Packets/packets2019_len_main.js
 var packets2019_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2019_len_main_default });
-function init$23(packetver) {
+function init$24(packetver) {
 	length_list$6[100] = 55;
 	length_list$6[101] = 17;
 	length_list$6[102] = 3;
@@ -67770,11 +67770,11 @@ function init$23(packetver) {
 var length_list$6, packets2019_len_main_default;
 var init_packets2019_len_main = __esmMin((() => {
 	length_list$6 = new Array();
-	packets2019_len_main_default = { init: init$23 };
+	packets2019_len_main_default = { init: init$24 };
 }));
 // src/Network/Packets/packets2020_len_main.js
 var packets2020_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2020_len_main_default });
-function init$22(packetver) {
+function init$23(packetver) {
 	length_list$5[100] = 55;
 	length_list$5[101] = 17;
 	length_list$5[102] = 3;
@@ -69359,11 +69359,11 @@ function init$22(packetver) {
 var length_list$5, packets2020_len_main_default;
 var init_packets2020_len_main = __esmMin((() => {
 	length_list$5 = new Array();
-	packets2020_len_main_default = { init: init$22 };
+	packets2020_len_main_default = { init: init$23 };
 }));
 // src/Network/Packets/packets2021_len_main.js
 var packets2021_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2021_len_main_default });
-function init$21(packetver) {
+function init$22(packetver) {
 	length_list$4[100] = 55;
 	length_list$4[101] = 17;
 	length_list$4[102] = 3;
@@ -70969,11 +70969,11 @@ function init$21(packetver) {
 var length_list$4, packets2021_len_main_default;
 var init_packets2021_len_main = __esmMin((() => {
 	length_list$4 = new Array();
-	packets2021_len_main_default = { init: init$21 };
+	packets2021_len_main_default = { init: init$22 };
 }));
 // src/Network/Packets/packets2022_len_main.js
 var packets2022_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2022_len_main_default });
-function init$20(packetver) {
+function init$21(packetver) {
 	length_list$3[100] = 55;
 	length_list$3[101] = 17;
 	length_list$3[102] = 3;
@@ -72585,11 +72585,11 @@ function init$20(packetver) {
 var length_list$3, packets2022_len_main_default;
 var init_packets2022_len_main = __esmMin((() => {
 	length_list$3 = new Array();
-	packets2022_len_main_default = { init: init$20 };
+	packets2022_len_main_default = { init: init$21 };
 }));
 // src/Network/Packets/packets2023_len_main.js
 var packets2023_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2023_len_main_default });
-function init$19(packetver) {
+function init$20(packetver) {
 	length_list$2[100] = 55;
 	length_list$2[101] = 17;
 	length_list$2[102] = 3;
@@ -74255,11 +74255,11 @@ function init$19(packetver) {
 var length_list$2, packets2023_len_main_default;
 var init_packets2023_len_main = __esmMin((() => {
 	length_list$2 = new Array();
-	packets2023_len_main_default = { init: init$19 };
+	packets2023_len_main_default = { init: init$20 };
 }));
 // src/Network/Packets/packets2024_len_main.js
 var packets2024_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2024_len_main_default });
-function init$18(packetver) {
+function init$19(packetver) {
 	length_list$1[100] = 55;
 	length_list$1[101] = 17;
 	length_list$1[102] = 3;
@@ -75965,11 +75965,11 @@ function init$18(packetver) {
 var length_list$1, packets2024_len_main_default;
 var init_packets2024_len_main = __esmMin((() => {
 	length_list$1 = new Array();
-	packets2024_len_main_default = { init: init$18 };
+	packets2024_len_main_default = { init: init$19 };
 }));
 // src/Network/Packets/packets2025_len_main.js
 var packets2025_len_main_exports = /* @__PURE__ */ __exportAll({ default: () => packets2025_len_main_default });
-function init$17(packetver) {
+function init$18(packetver) {
 	length_list[100] = 55;
 	length_list[101] = 17;
 	length_list[102] = 3;
@@ -77715,7 +77715,7 @@ function init$17(packetver) {
 var length_list, packets2025_len_main_default;
 var init_packets2025_len_main = __esmMin((() => {
 	length_list = new Array();
-	packets2025_len_main_default = { init: init$17 };
+	packets2025_len_main_default = { init: init$18 };
 }));
 // src/Network/PacketLength.js
 /**
@@ -77723,7 +77723,7 @@ var init_packets2025_len_main = __esmMin((() => {
 *
 * @param {number} packetver - packet version (clientdate)
 */
-function init$16(packetver) {
+function init$17(packetver) {
 	packetver = parseInt(packetver);
 	const years = [
 		2025,
@@ -77824,7 +77824,7 @@ var init_PacketLength = __esmMin((() => {
 	};
 	packets_len = new Array();
 	PacketLength_default = {
-		init: init$16,
+		init: init$17,
 		getPacketLength
 	};
 }));
@@ -207670,6 +207670,429 @@ var init_RtcSockets = __esmMin((() => {
 		}
 	};
 }));
+// src/Network/HallMessages.js
+/**
+* @param {string} what
+*/
+function fail(what) {
+	throw new Error(`hall message: ${what}`);
+}
+/**
+* @param {*} value
+* @param {number} max
+* @param {string} what
+* @return {number}
+*/
+function int(value, max, what) {
+	if (!Number.isInteger(value) || value < 0 || value > max) fail(`${what} is not an integer in 0..${max}`);
+	return value;
+}
+/**
+* @param {*} value
+* @param {number} max
+* @param {string} what
+* @return {string}
+*/
+function str(value, max, what) {
+	if (typeof value !== "string" || value.length < 1 || value.length > max) fail(`${what} is not a string of 1 to ${max} characters`);
+	return value;
+}
+/**
+* @param {*} c
+* @param {string} what
+* @return {{name: string, job: number, lv: number}}
+*/
+function char(c, what) {
+	if (!c || typeof c !== "object") fail(`${what} is not an object`);
+	return {
+		name: str(c.name, MAX_NAME, `${what}.name`),
+		job: int(c.job, 9999, `${what}.job`),
+		lv: int(c.lv, 999, `${what}.lv`)
+	};
+}
+/**
+* The message with only its known fields, in a fixed order
+*
+* @param {*} m
+* @return {?object} null for an unknown type
+* @see docs/reference/network/remote-bot.md
+*/
+function normalize(m) {
+	if (!m || typeof m !== "object" || Array.isArray(m)) fail("not an object");
+	const t = str(m.t, MAX_KIND, "t");
+	const v = int(m.v, 999, "v");
+	if (v < 1) fail("v is below 1");
+	switch (t) {
+		case "who": return {
+			t,
+			v
+		};
+		case "hello": {
+			if (!Array.isArray(m.chars) || m.chars.length > 15) fail(`chars is not an array of at most 15`);
+			const chars = m.chars.map((c, i) => char(c, `chars[${i}]`));
+			let playing = null;
+			if (m.playing !== null) {
+				playing = char(m.playing, "playing");
+				playing.map = str(m.playing.map, MAX_NAME, "playing.map");
+			}
+			return {
+				t,
+				v,
+				kind: str(m.kind, MAX_KIND, "kind"),
+				account: str(m.account, MAX_NAME, "account"),
+				chars,
+				playing,
+				windows: int(m.windows, 99, "windows")
+			};
+		}
+		case "open": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id")
+		};
+		case "room": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id"),
+			room: str(m.room, MAX_ROOM, "room"),
+			secret: str(m.secret, MAX_SECRET, "secret")
+		};
+		case "no": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id"),
+			why: str(m.why, MAX_KIND, "why")
+		};
+		default: return null;
+	}
+}
+/**
+* @param {object} m
+* @return {string}
+*/
+function encode(m) {
+	const n = normalize(m);
+	if (!n) fail(`unknown t ${m.t}`);
+	return JSON.stringify(n);
+}
+/**
+* @param {*} data - what a peer sent
+* @return {?object} null for an unknown type; throws on anything else that is no hall message
+*/
+function parse(data) {
+	let m;
+	if (typeof data !== "string") fail("not text");
+	if (data.length > 8192) fail(`longer than ${MAX_TEXT}`);
+	try {
+		m = JSON.parse(data);
+	} catch (_e) {
+		fail("not JSON");
+	}
+	return normalize(m);
+}
+var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID;
+var init_HallMessages = __esmMin((() => {
+	MAX_TEXT = 8192;
+	MAX_NAME = 32;
+	MAX_KIND = 16;
+	MAX_ROOM = 64;
+	MAX_SECRET = 128;
+	MAX_ID = 2147483647;
+}));
+// src/Network/BotHall.js
+/**
+* @param {object} bot
+* @return {string}
+*/
+function label(bot) {
+	return `${bot.account}\u0000${bot.playing ? bot.playing.name : ""}`;
+}
+/**
+* Link to a member; a link that fails is tried again on the next members change
+*
+* @param {object} room
+* @param {string} id
+*/
+function call(room, id) {
+	room.connect(id).catch((err) => {
+		console.warn(`[BotHall] ${id}: ${err.code}`);
+	});
+}
+/**
+* A linked member: asked who it is, its answers read
+*
+* @param {object} room
+* @param {object} peer
+*/
+function link(room, peer) {
+	if (room !== _room) return;
+	peer.on("message", (data) => {
+		let m;
+		if (room !== _room) return;
+		try {
+			m = parse(data);
+		} catch (err) {
+			console.warn(`[BotHall] ${err.message}, ${peer.id} cut`);
+			delete _bots[peer.id];
+			peer.close();
+			changed();
+			return;
+		}
+		if (!m) return;
+		if (m.t === "hello") {
+			_bots[peer.id] = Object.assign(m, {
+				id: peer.id,
+				via: peer.via,
+				peer
+			});
+			changed();
+		} else if ((m.t === "room" || m.t === "no") && _opens[m.id] && _opens[m.id].peer === peer.id) settle(m.id, m.t === "room" ? {
+			room: m.room,
+			secret: m.secret
+		} : null, m.why);
+	});
+	send$1(peer, {
+		t: "who",
+		v: 1
+	});
+}
+/**
+* @param {object} peer
+* @param {object} m
+*/
+function send$1(peer, m) {
+	peer.send(encode(m)).catch(() => {});
+}
+/**
+* @param {number} n - open id
+* @param {?object} answer
+* @param {?string} code - why it failed
+*/
+function settle(n, answer, code) {
+	const pending = _opens[n];
+	if (!pending) return;
+	delete _opens[n];
+	clearTimeout(pending.timer);
+	if (answer) pending.resolve(answer);
+	else pending.reject(Object.assign(/* @__PURE__ */ new Error(`open refused: ${code}`), { code }));
+}
+/**
+* Tell the list
+*/
+function changed() {
+	if (_onChange) _onChange();
+}
+/**
+* ?relay=<wss url>[&key=<relay key>] keeps the relay, then leaves the address bar
+*/
+function init$16() {
+	const params = new URLSearchParams(window.location.search);
+	const relay = params.get("relay");
+	if (!relay) return;
+	if (/^wss?:\/\/./.test(relay)) BotHall.rememberRelay(relay, params.get("key"));
+	params.delete("relay");
+	params.delete("key");
+	const search = params.toString();
+	history.replaceState(history.state, "", `${window.location.pathname}${search ? "?" + search : ""}${window.location.hash}`);
+}
+var SETTINGS_KEY, RELAY_KEY, HALL_MAX, OPEN_WAIT_MS, _room, _state, _bots, _opens, _nextOpen, _onChange, BotHall;
+var init_BotHall = __esmMin((() => {
+	init_signal();
+	init_HallMessages();
+	SETTINGS_KEY = "botHall";
+	RELAY_KEY = "botHallRelay";
+	HALL_MAX = 40;
+	OPEN_WAIT_MS = 15e3;
+	_room = null;
+	_state = "off";
+	_bots = Object.create(null);
+	_opens = Object.create(null);
+	_nextOpen = 1;
+	_onChange = null;
+	BotHall = {};
+	/**
+	* @return {?{relay: string, relayKey: string, room: string, secret: string}} the saved settings
+	*/
+	BotHall.loadSettings = function loadSettings() {
+		let s = null;
+		try {
+			s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+		} catch (_e) {
+			return null;
+		}
+		if (!s || typeof s.relay !== "string" || typeof s.room !== "string" || typeof s.secret !== "string") return null;
+		return {
+			relay: s.relay,
+			relayKey: typeof s.relayKey === "string" ? s.relayKey : "",
+			room: s.room,
+			secret: s.secret
+		};
+	};
+	/**
+	* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+	*/
+	BotHall.saveSettings = function saveSettings(settings) {
+		try {
+			localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+		} catch (_e) {}
+	};
+	/**
+	* Forget the settings and leave the hall
+	*/
+	BotHall.forgetSettings = function forgetSettings() {
+		try {
+			localStorage.removeItem(SETTINGS_KEY);
+			localStorage.removeItem(RELAY_KEY);
+		} catch (_e) {}
+		BotHall.leave();
+	};
+	/**
+	* @return {?{relay: string, relayKey: string}} the relay a page link gave
+	*/
+	BotHall.loadRelay = function loadRelay() {
+		let r = null;
+		try {
+			r = JSON.parse(localStorage.getItem(RELAY_KEY));
+		} catch (_e) {
+			return null;
+		}
+		if (!r || typeof r.relay !== "string") return null;
+		return {
+			relay: r.relay,
+			relayKey: typeof r.relayKey === "string" ? r.relayKey : ""
+		};
+	};
+	/**
+	* Keep the relay of a page link (?relay=, or a bot link): the settings start from it
+	*
+	* @param {string} relay
+	* @param {string} [relayKey]
+	*/
+	BotHall.rememberRelay = function rememberRelay(relay, relayKey) {
+		try {
+			localStorage.setItem(RELAY_KEY, JSON.stringify({
+				relay,
+				relayKey: relayKey || ""
+			}));
+		} catch (_e) {}
+	};
+	/**
+	* @param {?function} fn - called when the list or the state changes; null to stop
+	*/
+	BotHall.onChange = function onChange(fn) {
+		_onChange = fn;
+	};
+	/**
+	* @return {string} off, joining, in, or the library code that closed the hall
+	*/
+	BotHall.state = function state() {
+		return _state;
+	};
+	/**
+	* @return {Array<object>} the bots that said hello, by account then character
+	*/
+	BotHall.bots = function bots() {
+		const list = [];
+		for (const id in _bots) list.push(_bots[id]);
+		return list.sort((a, b) => label(a).localeCompare(label(b)));
+	};
+	/**
+	* @return {number} members of the hall that have not said who they are yet
+	*/
+	BotHall.waiting = function waiting() {
+		return _room ? _room.members.filter((id) => !_bots[id]).length : 0;
+	};
+	/**
+	* Join the hall, leaving the one before
+	*
+	* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
+	* @see docs/reference/network/remote-bot.md
+	*/
+	BotHall.join = function join(settings) {
+		BotHall.leave();
+		const room = joinRoom({
+			relay: settings.relay,
+			relayKey: settings.relayKey || void 0,
+			room: settings.room,
+			secret: settings.secret,
+			max: HALL_MAX,
+			connect: "manual"
+		});
+		_room = room;
+		_state = "joining";
+		room.on("members", (ids) => {
+			if (room !== _room) return;
+			for (const id in _bots) if (ids.indexOf(id) < 0) delete _bots[id];
+			for (let i = 0, count = ids.length; i < count; ++i) call(room, ids[i]);
+			changed();
+		});
+		room.on("peer", (peer) => link(room, peer));
+		room.on("leave", (peer) => {
+			if (room !== _room) return;
+			delete _bots[peer.id];
+			for (const n in _opens) if (_opens[n].peer === peer.id) settle(Number(n), null, "gone");
+			changed();
+			if (room.members.indexOf(peer.id) >= 0) call(room, peer.id);
+		});
+		room.on("error", (err) => {
+			console.warn(`[BotHall] ${err.code}: ${err.message}`);
+		});
+		room.on("close", (err) => {
+			if (room !== _room) return;
+			_state = err ? err.code : "off";
+			_bots = Object.create(null);
+			for (const n in _opens) settle(Number(n), null, "gone");
+			changed();
+		});
+		room.ready.then(() => {
+			if (room === _room) {
+				_state = "in";
+				changed();
+			}
+		}, () => {});
+		changed();
+	};
+	/**
+	* Leave the hall: once in game, or for other settings
+	*/
+	BotHall.leave = function leave() {
+		const room = _room;
+		_room = null;
+		_state = "off";
+		_bots = Object.create(null);
+		for (const id in _opens) settle(Number(id), null, "gone");
+		if (room) {
+			room.leave();
+			changed();
+		}
+	};
+	/**
+	* Ask a bot for a room of its own
+	*
+	* @param {string} id - the bot's peer id
+	* @return {Promise<{room: string, secret: string}>} rejected with an Error whose code is the bot's refusal, gone or no-answer
+	* @see docs/reference/network/remote-bot.md
+	*/
+	BotHall.open = function open(id) {
+		const bot = _bots[id];
+		const n = _nextOpen++;
+		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
+		return new Promise((resolve, reject) => {
+			_opens[n] = {
+				peer: id,
+				resolve,
+				reject,
+				timer: setTimeout(() => settle(n, null, "no-answer"), OPEN_WAIT_MS)
+			};
+			send$1(bot.peer, {
+				t: "open",
+				v: 1,
+				id: n
+			});
+		});
+	};
+	init$16();
+}));
 // src/Network/RemoteBot.js
 /**
 * Join the bot's room
@@ -207721,6 +208144,7 @@ var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _lis
 var init_RemoteBot = __esmMin((() => {
 	init_signal();
 	init_RtcSockets();
+	init_BotHall();
 	STORAGE_KEY = "remoteBot";
 	FAILURES = {
 		"no-bot": "Remote client: no remote client answered. Is it running, and is this link its current one?",
@@ -207765,6 +208189,7 @@ var init_RemoteBot = __esmMin((() => {
 		_character = null;
 		_listRoom = false;
 		join(link);
+		BotHall.rememberRelay(link.relay, link.relayKey);
 		try {
 			sessionStorage.setItem(STORAGE_KEY, JSON.stringify(link));
 		} catch (_e) {}
@@ -207956,14 +208381,14 @@ function sendPacket(Packet) {
 	}
 	console.log("%c[Network] Send:", "color:#007070", Packet);
 	if (_socket && _socket.isZone) PacketCrypt_default.process(pkt.view);
-	send$1(pkt.buffer);
+	send(pkt.buffer);
 }
 /**
 * Send buffer to the server
 *
 * @param {ArrayBuffer} buffer
 */
-function send$1(buffer) {
+function send(buffer) {
 	if (_socket) _socket.send(buffer);
 }
 /**
@@ -208296,7 +208721,7 @@ var init_NetworkManager = __esmMin((() => {
 		for (i = 0; i < count; ++i) registerPacket(keys[i], PacketRegister_default[keys[i]]);
 		return {
 			sendPacket,
-			send: send$1,
+			send,
 			setPing,
 			connect,
 			hookPacket,
@@ -250530,6 +250955,13 @@ function processText(text) {
 function _isVisible$1(el) {
 	return !!el && getComputedStyle(el).display !== "none";
 }
+/**
+* Hide the "next" button
+*/
+function hideNext() {
+	const nextBtn = NpcBox.getRoot().querySelector(".next");
+	if (nextBtn) nextBtn.style.display = "none";
+}
 var NpcBox, _needCleanUp, NpcBox_default;
 var init_NpcBox = __esmMin((() => {
 	init_KeyEventHandler();
@@ -250659,6 +251091,7 @@ var init_NpcBox = __esmMin((() => {
 		if (_needCleanUp) {
 			_needCleanUp = false;
 			content.textContent = "";
+			hideNext();
 		}
 		const div = document.createElement("div");
 		div.innerHTML = processText(text);
@@ -250683,6 +251116,13 @@ var init_NpcBox = __esmMin((() => {
 		NpcBox.ownerID = gid;
 		const closeBtn = NpcBox.getRoot().querySelector(".close");
 		if (closeBtn) closeBtn.style.display = "block";
+	};
+	/**
+	* The page is complete, its Next answered elsewhere: the next text starts a new one
+	*/
+	NpcBox.endPage = function endPage() {
+		_needCleanUp = true;
+		hideNext();
 	};
 	/**
 	* Press "next" button
@@ -333795,6 +334235,10 @@ var init_WinPopup = __esmMin((() => {
 * @param {object} pkt - PACKET.ZC.SAY_DIALOG
 */
 function onMessage(pkt) {
+	if (RemoteBot.isActive()) {
+		NpcMenu_default.remove();
+		InputBox_default.remove();
+	}
 	NpcBox_default.append();
 	NpcBox_default.setText(pkt.msg, pkt.NAID);
 }
@@ -333805,6 +334249,7 @@ function onMessage(pkt) {
 */
 function onNextAppear(pkt) {
 	NpcBox_default.append();
+	if (RemoteBot.isActive()) NpcBox_default.endPage();
 	NpcBox_default.addNext(pkt.NAID);
 }
 /**
@@ -333813,6 +334258,11 @@ function onNextAppear(pkt) {
 * @param {object} pkt - PACKET.ZC.CLOSE_DIALOG
 */
 function onCloseAppear(pkt) {
+	if (RemoteBot.isActive()) {
+		NpcBox_default.remove();
+		NpcMenu_default.remove();
+		return;
+	}
 	if (NpcBox_default.ui && NpcBox_default.ui.is(":visible")) NpcBox_default.addClose(pkt.NAID);
 }
 /**
@@ -333856,6 +334306,7 @@ function onDynamicNPCCreateRequest(pkt) {
 function onMenuAppear(pkt) {
 	NpcMenu_default.append();
 	NpcMenu_default.setMenu(pkt.msg, pkt.NAID);
+	if (RemoteBot.isActive()) NpcBox_default.endPage();
 	NpcMenu_default.onSelectMenu = function onSelectMenu(NAID, index) {
 		NpcMenu_default.remove();
 		if (index === 255) NpcBox_default.remove();
@@ -334071,6 +334522,7 @@ var init_NPC = __esmMin((() => {
 	init_Client();
 	init_SessionStorage();
 	init_NetworkManager();
+	init_RemoteBot();
 	init_PacketStructure();
 	init_Renderer();
 	init_NpcBox();
@@ -349157,383 +349609,6 @@ var init_CharEngine = __esmMin((() => {
 	};
 	retryCount = 0;
 }));
-// src/Network/HallMessages.js
-/**
-* @param {string} what
-*/
-function fail(what) {
-	throw new Error(`hall message: ${what}`);
-}
-/**
-* @param {*} value
-* @param {number} max
-* @param {string} what
-* @return {number}
-*/
-function int(value, max, what) {
-	if (!Number.isInteger(value) || value < 0 || value > max) fail(`${what} is not an integer in 0..${max}`);
-	return value;
-}
-/**
-* @param {*} value
-* @param {number} max
-* @param {string} what
-* @return {string}
-*/
-function str(value, max, what) {
-	if (typeof value !== "string" || value.length < 1 || value.length > max) fail(`${what} is not a string of 1 to ${max} characters`);
-	return value;
-}
-/**
-* @param {*} c
-* @param {string} what
-* @return {{name: string, job: number, lv: number}}
-*/
-function char(c, what) {
-	if (!c || typeof c !== "object") fail(`${what} is not an object`);
-	return {
-		name: str(c.name, MAX_NAME, `${what}.name`),
-		job: int(c.job, 9999, `${what}.job`),
-		lv: int(c.lv, 999, `${what}.lv`)
-	};
-}
-/**
-* The message with only its known fields, in a fixed order
-*
-* @param {*} m
-* @return {?object} null for an unknown type
-* @see docs/reference/network/remote-bot.md
-*/
-function normalize(m) {
-	if (!m || typeof m !== "object" || Array.isArray(m)) fail("not an object");
-	const t = str(m.t, MAX_KIND, "t");
-	const v = int(m.v, 999, "v");
-	if (v < 1) fail("v is below 1");
-	switch (t) {
-		case "who": return {
-			t,
-			v
-		};
-		case "hello": {
-			if (!Array.isArray(m.chars) || m.chars.length > 15) fail(`chars is not an array of at most 15`);
-			const chars = m.chars.map((c, i) => char(c, `chars[${i}]`));
-			let playing = null;
-			if (m.playing !== null) {
-				playing = char(m.playing, "playing");
-				playing.map = str(m.playing.map, MAX_NAME, "playing.map");
-			}
-			return {
-				t,
-				v,
-				kind: str(m.kind, MAX_KIND, "kind"),
-				account: str(m.account, MAX_NAME, "account"),
-				chars,
-				playing,
-				windows: int(m.windows, 99, "windows")
-			};
-		}
-		case "open": return {
-			t,
-			v,
-			id: int(m.id, MAX_ID, "id")
-		};
-		case "room": return {
-			t,
-			v,
-			id: int(m.id, MAX_ID, "id"),
-			room: str(m.room, MAX_ROOM, "room"),
-			secret: str(m.secret, MAX_SECRET, "secret")
-		};
-		case "no": return {
-			t,
-			v,
-			id: int(m.id, MAX_ID, "id"),
-			why: str(m.why, MAX_KIND, "why")
-		};
-		default: return null;
-	}
-}
-/**
-* @param {object} m
-* @return {string}
-*/
-function encode(m) {
-	const n = normalize(m);
-	if (!n) fail(`unknown t ${m.t}`);
-	return JSON.stringify(n);
-}
-/**
-* @param {*} data - what a peer sent
-* @return {?object} null for an unknown type; throws on anything else that is no hall message
-*/
-function parse(data) {
-	let m;
-	if (typeof data !== "string") fail("not text");
-	if (data.length > 8192) fail(`longer than ${MAX_TEXT}`);
-	try {
-		m = JSON.parse(data);
-	} catch (_e) {
-		fail("not JSON");
-	}
-	return normalize(m);
-}
-var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID;
-var init_HallMessages = __esmMin((() => {
-	MAX_TEXT = 8192;
-	MAX_NAME = 32;
-	MAX_KIND = 16;
-	MAX_ROOM = 64;
-	MAX_SECRET = 128;
-	MAX_ID = 2147483647;
-}));
-// src/Network/BotHall.js
-/**
-* @param {object} bot
-* @return {string}
-*/
-function label(bot) {
-	return `${bot.account}\u0000${bot.playing ? bot.playing.name : ""}`;
-}
-/**
-* Link to a member; a link that fails is tried again on the next members change
-*
-* @param {object} room
-* @param {string} id
-*/
-function call(room, id) {
-	room.connect(id).catch((err) => {
-		console.warn(`[BotHall] ${id}: ${err.code}`);
-	});
-}
-/**
-* A linked member: asked who it is, its answers read
-*
-* @param {object} room
-* @param {object} peer
-*/
-function link(room, peer) {
-	if (room !== _room) return;
-	peer.on("message", (data) => {
-		let m;
-		if (room !== _room) return;
-		try {
-			m = parse(data);
-		} catch (err) {
-			console.warn(`[BotHall] ${err.message}, ${peer.id} cut`);
-			delete _bots[peer.id];
-			peer.close();
-			changed();
-			return;
-		}
-		if (!m) return;
-		if (m.t === "hello") {
-			_bots[peer.id] = Object.assign(m, {
-				id: peer.id,
-				via: peer.via,
-				peer
-			});
-			changed();
-		} else if ((m.t === "room" || m.t === "no") && _opens[m.id] && _opens[m.id].peer === peer.id) settle(m.id, m.t === "room" ? {
-			room: m.room,
-			secret: m.secret
-		} : null, m.why);
-	});
-	send(peer, {
-		t: "who",
-		v: 1
-	});
-}
-/**
-* @param {object} peer
-* @param {object} m
-*/
-function send(peer, m) {
-	peer.send(encode(m)).catch(() => {});
-}
-/**
-* @param {number} n - open id
-* @param {?object} answer
-* @param {?string} code - why it failed
-*/
-function settle(n, answer, code) {
-	const pending = _opens[n];
-	if (!pending) return;
-	delete _opens[n];
-	clearTimeout(pending.timer);
-	if (answer) pending.resolve(answer);
-	else pending.reject(Object.assign(/* @__PURE__ */ new Error(`open refused: ${code}`), { code }));
-}
-/**
-* Tell the list
-*/
-function changed() {
-	if (_onChange) _onChange();
-}
-var SETTINGS_KEY, HALL_MAX, OPEN_WAIT_MS, _room, _state, _bots, _opens, _nextOpen, _onChange, BotHall;
-var init_BotHall = __esmMin((() => {
-	init_signal();
-	init_HallMessages();
-	SETTINGS_KEY = "botHall";
-	HALL_MAX = 40;
-	OPEN_WAIT_MS = 15e3;
-	_room = null;
-	_state = "off";
-	_bots = Object.create(null);
-	_opens = Object.create(null);
-	_nextOpen = 1;
-	_onChange = null;
-	BotHall = {};
-	/**
-	* @return {?{relay: string, relayKey: string, room: string, secret: string}} the saved settings
-	*/
-	BotHall.loadSettings = function loadSettings() {
-		let s = null;
-		try {
-			s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-		} catch (_e) {
-			return null;
-		}
-		if (!s || typeof s.relay !== "string" || typeof s.room !== "string" || typeof s.secret !== "string") return null;
-		return {
-			relay: s.relay,
-			relayKey: typeof s.relayKey === "string" ? s.relayKey : "",
-			room: s.room,
-			secret: s.secret
-		};
-	};
-	/**
-	* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
-	*/
-	BotHall.saveSettings = function saveSettings(settings) {
-		try {
-			localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-		} catch (_e) {}
-	};
-	/**
-	* Forget the settings and leave the hall
-	*/
-	BotHall.forgetSettings = function forgetSettings() {
-		try {
-			localStorage.removeItem(SETTINGS_KEY);
-		} catch (_e) {}
-		BotHall.leave();
-	};
-	/**
-	* @param {?function} fn - called when the list or the state changes; null to stop
-	*/
-	BotHall.onChange = function onChange(fn) {
-		_onChange = fn;
-	};
-	/**
-	* @return {string} off, joining, in, or the library code that closed the hall
-	*/
-	BotHall.state = function state() {
-		return _state;
-	};
-	/**
-	* @return {Array<object>} the bots that said hello, by account then character
-	*/
-	BotHall.bots = function bots() {
-		const list = [];
-		for (const id in _bots) list.push(_bots[id]);
-		return list.sort((a, b) => label(a).localeCompare(label(b)));
-	};
-	/**
-	* @return {number} members of the hall that have not said who they are yet
-	*/
-	BotHall.waiting = function waiting() {
-		return _room ? _room.members.filter((id) => !_bots[id]).length : 0;
-	};
-	/**
-	* Join the hall, leaving the one before
-	*
-	* @param {{relay: string, relayKey: string, room: string, secret: string}} settings
-	* @see docs/reference/network/remote-bot.md
-	*/
-	BotHall.join = function join(settings) {
-		BotHall.leave();
-		const room = joinRoom({
-			relay: settings.relay,
-			relayKey: settings.relayKey || void 0,
-			room: settings.room,
-			secret: settings.secret,
-			max: HALL_MAX,
-			connect: "manual"
-		});
-		_room = room;
-		_state = "joining";
-		room.on("members", (ids) => {
-			if (room !== _room) return;
-			for (const id in _bots) if (ids.indexOf(id) < 0) delete _bots[id];
-			for (let i = 0, count = ids.length; i < count; ++i) call(room, ids[i]);
-			changed();
-		});
-		room.on("peer", (peer) => link(room, peer));
-		room.on("leave", (peer) => {
-			if (room !== _room) return;
-			delete _bots[peer.id];
-			for (const n in _opens) if (_opens[n].peer === peer.id) settle(Number(n), null, "gone");
-			changed();
-			if (room.members.indexOf(peer.id) >= 0) call(room, peer.id);
-		});
-		room.on("error", (err) => {
-			console.warn(`[BotHall] ${err.code}: ${err.message}`);
-		});
-		room.on("close", (err) => {
-			if (room !== _room) return;
-			_state = err ? err.code : "off";
-			_bots = Object.create(null);
-			for (const n in _opens) settle(Number(n), null, "gone");
-			changed();
-		});
-		room.ready.then(() => {
-			if (room === _room) {
-				_state = "in";
-				changed();
-			}
-		}, () => {});
-		changed();
-	};
-	/**
-	* Leave the hall: once in game, or for other settings
-	*/
-	BotHall.leave = function leave() {
-		const room = _room;
-		_room = null;
-		_state = "off";
-		_bots = Object.create(null);
-		for (const id in _opens) settle(Number(id), null, "gone");
-		if (room) {
-			room.leave();
-			changed();
-		}
-	};
-	/**
-	* Ask a bot for a room of its own
-	*
-	* @param {string} id - the bot's peer id
-	* @return {Promise<{room: string, secret: string}>} rejected with an Error whose code is the bot's refusal, gone or no-answer
-	* @see docs/reference/network/remote-bot.md
-	*/
-	BotHall.open = function open(id) {
-		const bot = _bots[id];
-		const n = _nextOpen++;
-		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
-		return new Promise((resolve, reject) => {
-			_opens[n] = {
-				peer: id,
-				resolve,
-				reject,
-				timer: setTimeout(() => settle(n, null, "no-answer"), OPEN_WAIT_MS)
-			};
-			send(bot.peer, {
-				t: "open",
-				v: 1,
-				id: n
-			});
-		});
-	};
-}));
 // src/UI/Components/WinList/WinList.html?raw
 var WinList_default$2;
 var init_WinList$2 = __esmMin((() => {
@@ -350003,9 +350078,13 @@ var init_RemoteSettings = __esmMin((() => {
 	*/
 	RemoteSettings.onAppend = function onAppend() {
 		const root = this.getRoot();
-		const settings = BotHall.loadSettings() || {
+		const relay = BotHall.loadRelay() || {
 			relay: "",
-			relayKey: "",
+			relayKey: ""
+		};
+		const settings = BotHall.loadSettings() || {
+			relay: relay.relay,
+			relayKey: relay.relayKey,
 			room: "",
 			secret: ""
 		};
@@ -355454,16 +355533,18 @@ function backToLogin() {
 	showLoginScreen();
 }
 /**
-* The account's bots when a hall is set, else the login window and the way to them
+* The account's bots when a hall is set and the player did not take the login
+* window, else the login window and the way to the bots
 *
 * @see docs/reference/network/remote-bot.md
 */
 function showLoginScreen() {
-	if (BotHall.loadSettings()) RemoteCharacters_default.append();
+	if (!_manual && BotHall.loadSettings()) RemoteCharacters_default.append();
 	else {
+		BotHall.leave();
 		RemoteBot.leave();
 		Controller.append();
-		RemoteEntry_default.append();
+		if (BotHall.loadSettings() || BotHall.loadRelay()) RemoteEntry_default.append();
 	}
 }
 /**
@@ -355478,11 +355559,9 @@ function showLoginScreenFresh() {
 * The usual login window, and the way back to the bots
 */
 function showWinLogin() {
-	BotHall.leave();
-	RemoteBot.leave();
+	_manual = true;
 	RemoteCharacters_default.remove();
-	Controller.append();
-	RemoteEntry_default.append();
+	showLoginScreen();
 }
 /**
 * A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
@@ -355540,6 +355619,7 @@ function onConnectionRequest(username, password) {
 	RemoteEntry_default.remove();
 	WinLoading.append();
 	_loginID = username;
+	_manual = !RemoteBot.isActive();
 	Network.connect(_server.address, _server.port, (success) => {
 		if (!success) {
 			const remote = RemoteBot.failure();
@@ -355664,11 +355744,7 @@ function onConnectionAccepted(pkt) {
 		CharEngine.init(_charServers[0]);
 	} else {
 		WinList_default.onIndexSelected = onCharServerSelected;
-		WinList_default.onExitRequest = () => {
-			Network.close();
-			WinList_default.remove();
-			Controller.append();
-		};
+		WinList_default.onExitRequest = LoginEngine.reload;
 		WinList_default.append();
 		WinList_default.setList(list);
 	}
@@ -356117,13 +356193,12 @@ function onServerClosed(pkt) {
 		MapRenderer.free();
 		BGM.play("01.mp3");
 		AutoRetry.disarm();
-		UIManager.removeComponents();
 		Background.setLoginBackground();
-		Controller.append();
+		LoginEngine.reload();
 	});
 	Network.close();
 }
-var WinLoading, _server, _charServers, _loginID, LoginEngine;
+var WinLoading, _server, _charServers, _loginID, _manual, LoginEngine;
 var init_LoginEngine = __esmMin((() => {
 	init_CodepageManager();
 	init_DBManager();
@@ -356179,6 +356254,7 @@ var init_LoginEngine = __esmMin((() => {
 	_server = null;
 	_charServers = [];
 	_loginID = "";
+	_manual = false;
 	LoginEngine = class {
 		/**
 		* Init Game
@@ -356235,7 +356311,11 @@ var init_LoginEngine = __esmMin((() => {
 			RemoteCharacters_default.onSettingsRequest = () => RemoteSettings_default.append();
 			RemoteCharacters_default.onLoginRequest = showWinLogin;
 			RemoteCharacters_default.onRoomOpened = attachRemote;
-			RemoteEntry_default.onRequest = () => BotHall.loadSettings() ? showLoginScreenFresh() : RemoteSettings_default.append();
+			RemoteEntry_default.onRequest = () => {
+				_manual = false;
+				if (BotHall.loadSettings()) showLoginScreenFresh();
+				else RemoteSettings_default.append();
+			};
 			RemoteSettings_default.onClose = () => {
 				RemoteSettings_default.remove();
 				RemoteCharacters_default.remove();
