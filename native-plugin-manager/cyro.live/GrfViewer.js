@@ -349433,9 +349433,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "f809039a69174c7e523707e9eded7d7399cee999") {
+		if (!_buildShown && "991f48683e2ddc95bf35c16092b9b2a5bdcb46a9") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"f809039a69174c7e523707e9eded7d7399cee999".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"991f48683e2ddc95bf35c16092b9b2a5bdcb46a9".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -352774,7 +352774,7 @@ function onConnectionAccepted$1(pkt) {
 	}
 	UIManager.getComponent("WinLoading").remove();
 	_pickOnly = _repickSlot < 0 && AutoRetry.loggingIn();
-	_pickName = _repickSlot < 0 ? RemoteBot.takeCharacter() : null;
+	_pickName = _repickSlot < 0 ? RemoteBot.takeCharacter() || _pickName : null;
 	_listed = [];
 	if (_repickSlot < 0) AutoRetry.disarm();
 	Controller$2.onExitRequest = onExitRequest$1;
