@@ -70,6 +70,11 @@ address bar), or by a bot link; it is kept in `localStorage`
 way back to the login window (Cancel on the char server list, a ban) passes
 through the same screen, so the button comes back with it.
 
+The way back follows how the player logged in: through a remote client, the
+remote characters; by hand (« Normal login », or the login window with no
+hall), the login window and its button — after an exit, a disconnection or a
+ban alike. The button, or a fresh page, goes back to the list.
+
 What the hall secret gives away: whoever has it lists the account's remote
 clients **and opens any of them**. Every build served from one origin reads
 the same `localStorage`.

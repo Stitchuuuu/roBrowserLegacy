@@ -88,6 +88,11 @@ let _charServers = [];
  */
 let _loginID = '';
 
+/**
+ * @var {boolean} _manual - the player took the login window: the way back leads to it, not to the bots
+ */
+let _manual = false;
+
 class LoginEngine {
 	/**
 	 * Init Game
@@ -176,7 +181,14 @@ class LoginEngine {
 		RemoteCharacters.onSettingsRequest = () => RemoteSettings.append();
 		RemoteCharacters.onLoginRequest = showWinLogin;
 		RemoteCharacters.onRoomOpened = attachRemote;
-		RemoteEntry.onRequest = () => (BotHall.loadSettings() ? showLoginScreenFresh() : RemoteSettings.append());
+		RemoteEntry.onRequest = () => {
+			_manual = false;
+			if (BotHall.loadSettings()) {
+				showLoginScreenFresh();
+			} else {
+				RemoteSettings.append();
+			}
+		};
 		RemoteSettings.onClose = () => {
 			RemoteSettings.remove();
 			RemoteCharacters.remove();
@@ -275,19 +287,21 @@ function backToLogin() {
 }
 
 /**
- * The account's bots when a hall is set, else the login window and the way to them
+ * The account's bots when a hall is set and the player did not take the login
+ * window, else the login window and the way to the bots
  *
  * @see docs/reference/network/remote-bot.md
  */
 function showLoginScreen() {
-	if (BotHall.loadSettings()) {
+	if (!_manual && BotHall.loadSettings()) {
 		RemoteCharacters.append();
 	} else {
-		// No hall: a room the list opened before is no use for the login window
+		// A room the list opened before is no use for the login window
+		BotHall.leave();
 		RemoteBot.leave();
 		WinLogin.append();
-		// The way to the bots, once a page link gave a relay
-		if (BotHall.loadRelay()) {
+		// The way to the bots, once they are set up or a page link gave a relay
+		if (BotHall.loadSettings() || BotHall.loadRelay()) {
 			RemoteEntry.append();
 		}
 	}
@@ -306,11 +320,9 @@ function showLoginScreenFresh() {
  * The usual login window, and the way back to the bots
  */
 function showWinLogin() {
-	BotHall.leave();
-	RemoteBot.leave();
+	_manual = true;
 	RemoteCharacters.remove();
-	WinLogin.append();
-	RemoteEntry.append();
+	showLoginScreen();
 }
 
 /**
@@ -385,6 +397,7 @@ function onConnectionRequest(username, password) {
 	RemoteEntry.remove();
 	WinLoading.append();
 	_loginID = username;
+	_manual = !RemoteBot.isActive();
 
 	// Try to connect
 	Network.connect(_server.address, _server.port, success => {
