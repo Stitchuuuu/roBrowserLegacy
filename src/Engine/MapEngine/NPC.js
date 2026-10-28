@@ -17,6 +17,7 @@ import BGM from 'Audio/BGM.js';
 import Client from 'Core/Client.js';
 import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
 import NpcBox from 'UI/Components/NpcBox/NpcBox.js';
@@ -33,6 +34,11 @@ import GUIComponent from 'UI/GUIComponent.js';
  * @param {object} pkt - PACKET.ZC.SAY_DIALOG
  */
 function onMessage(pkt) {
+	// On a remote bot the bot answers: a new page is the only sign of it
+	if (RemoteBot.isActive()) {
+		NpcMenu.remove();
+		InputBox.remove();
+	}
 	NpcBox.append();
 	NpcBox.setText(pkt.msg, pkt.NAID);
 }
@@ -44,6 +50,9 @@ function onMessage(pkt) {
  */
 function onNextAppear(pkt) {
 	NpcBox.append();
+	if (RemoteBot.isActive()) {
+		NpcBox.endPage();
+	}
 	NpcBox.addNext(pkt.NAID);
 }
 
@@ -53,6 +62,12 @@ function onNextAppear(pkt) {
  * @param {object} pkt - PACKET.ZC.CLOSE_DIALOG
  */
 function onCloseAppear(pkt) {
+	// On a remote bot nobody presses Close in this window: the bot does
+	if (RemoteBot.isActive()) {
+		NpcBox.remove();
+		NpcMenu.remove();
+		return;
+	}
 	// Should not happened, but sometimes dev write a "close" in script instead of
 	// a "end" when there is no message.
 	if (NpcBox.ui && NpcBox.ui.is(':visible')) {
@@ -109,6 +124,9 @@ function onDynamicNPCCreateRequest(pkt) {
 function onMenuAppear(pkt) {
 	NpcMenu.append();
 	NpcMenu.setMenu(pkt.msg, pkt.NAID);
+	if (RemoteBot.isActive()) {
+		NpcBox.endPage();
+	}
 
 	NpcMenu.onSelectMenu = function onSelectMenu(NAID, index) {
 		NpcMenu.remove();

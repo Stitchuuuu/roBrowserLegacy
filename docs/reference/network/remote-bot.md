@@ -184,6 +184,28 @@ its own key stream, as the server expects from its session. Setting
 `packetKeys` in the config would not do it, since `Configs.get` reads the
 server entry before the globals.
 
+## NPC dialogs
+
+The bot answers its NPCs; its answers (`CZ_REQ_NEXT_SCRIPT`, `CZ_CHOOSE_MENU`,
+`CZ_CLOSE_DIALOG`, the input boxes) are client packets and never reach the
+window, which only gets the server's pages. The original client clears a page
+on its own Next click and closes on its own Close click, so a window that
+reacted only to its own clicks would pile every page up in one box that never
+closes. In the mode (`Engine/MapEngine/NPC.js`, `RemoteBot.isActive()`), the
+window reacts to the packets instead:
+
+| packet | in the mode |
+|---|---|
+| `ZC_WAIT_DIALOG`, `ZC_MENU_LIST` | the page is complete (`NpcBox.endPage`): the next text clears the box; a menu also takes the Next button away, the bot's Next it answers |
+| `ZC_SAY_DIALOG` | an open menu or input box goes away first — the bot answered it |
+| `ZC_CLOSE_DIALOG` | the box and its menu close at once, no Close button |
+
+A window that holds `@control` plays through the same box: its own Next and
+menu still send their packets. A `close` / `close2` closes its box too, without
+the `CZ_CLOSE_DIALOG` the script waits for (rathena `buildin_close`: the script
+goes on when Close is pressed) — known gap, the window cannot tell whether it
+holds control.
+
 ## When the bot cannot be reached
 
 The login failure box says why instead of the generic message:
