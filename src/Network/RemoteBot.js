@@ -8,6 +8,7 @@
 
 import { joinRoom, parseLink } from 'Vendors/signal/index.js';
 import RtcSockets from './SocketHelpers/RtcSockets.js';
+import BotHall from './BotHall.js';
 
 /**
  * sessionStorage key of the link: a reload in the tab attaches again
@@ -98,6 +99,7 @@ RemoteBot.setLink = function setLink(text) {
 	_character = null;
 	_listRoom = false;
 	join(link);
+	BotHall.rememberRelay(link.relay, link.relayKey);
 	try {
 		sessionStorage.setItem(STORAGE_KEY, JSON.stringify(link));
 	} catch (_e) {

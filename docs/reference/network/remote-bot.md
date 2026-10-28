@@ -53,7 +53,7 @@ joins it at every start, `--spectate-rtc` or not.
 |---|---|
 | **Remote connections** (`UI/Components/RemoteSettings`) | relay, relay key, hall, secret, kept in `localStorage` (`botHall`) until « Forget ». « New » draws a secret, « Copy for clients » copies `/remote <hall link>` for each bot's console |
 | **Remote characters** (`UI/Components/RemoteCharacters`) | the login screen once settings are saved: one row per remote client, « Normal login » for the usual window |
-| « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window: the list, or the settings the first time |
+| « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window, once this browser has a relay: the list, or the settings the first time |
 
 `Network/BotHall.js` joins the hall when the list shows (never at load) and
 leaves it once the login is accepted. Everyone joins with `connect: 'manual'`
@@ -62,6 +62,18 @@ are linked (a library room is otherwise a full mesh). `max` counts every
 member, linked or not, and the relay caps it (`RELAY_ROOM_MAX`); each bot
 holds one relay connection, so a machine with N bots and W open windows uses
 N + W of the relay's per-address connections (`RELAY_IP_CONN`).
+
+The button stays hidden for whoever never used the mode. A relay is given by
+a page opened with `?relay=<wss url>[&key=<relay key>]` (both leave the
+address bar), or by a bot link; it is kept in `localStorage`
+(`botHallRelay`), fills the empty settings, and goes with « Forget ». Every
+way back to the login window (Cancel on the char server list, a ban) passes
+through the same screen, so the button comes back with it.
+
+The way back follows how the player logged in: through a remote client, the
+remote characters; by hand (« Normal login », or the login window with no
+hall), the login window and its button — after an exit, a disconnection or a
+ban alike. The button, or a fresh page, goes back to the list.
 
 What the hall secret gives away: whoever has it lists the account's remote
 clients **and opens any of them**. Every build served from one origin reads
@@ -171,6 +183,28 @@ the server entry holds: the window sends in clear and the bot encrypts with
 its own key stream, as the server expects from its session. Setting
 `packetKeys` in the config would not do it, since `Configs.get` reads the
 server entry before the globals.
+
+## NPC dialogs
+
+The bot answers its NPCs; its answers (`CZ_REQ_NEXT_SCRIPT`, `CZ_CHOOSE_MENU`,
+`CZ_CLOSE_DIALOG`, the input boxes) are client packets and never reach the
+window, which only gets the server's pages. The original client clears a page
+on its own Next click and closes on its own Close click, so a window that
+reacted only to its own clicks would pile every page up in one box that never
+closes. In the mode (`Engine/MapEngine/NPC.js`, `RemoteBot.isActive()`), the
+window reacts to the packets instead:
+
+| packet | in the mode |
+|---|---|
+| `ZC_WAIT_DIALOG`, `ZC_MENU_LIST` | the page is complete (`NpcBox.endPage`): the next text clears the box; a menu also takes the Next button away, the bot's Next it answers |
+| `ZC_SAY_DIALOG` | an open menu or input box goes away first — the bot answered it |
+| `ZC_CLOSE_DIALOG` | the box and its menu close at once, no Close button |
+
+A window that holds `@control` plays through the same box: its own Next and
+menu still send their packets. A `close` / `close2` closes its box too, without
+the `CZ_CLOSE_DIALOG` the script waits for (rathena `buildin_close`: the script
+goes on when Close is pressed) — known gap, the window cannot tell whether it
+holds control.
 
 ## When the bot cannot be reached
 

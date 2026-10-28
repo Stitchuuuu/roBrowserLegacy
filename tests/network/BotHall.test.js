@@ -362,6 +362,33 @@ describe('bot hall', () => {
 		expect(localStorage.getItem('botHall')).toBe(null);
 	});
 
+	it('?relay= keeps the relay and its key, then leaves the address bar', async () => {
+		history.replaceState(null, '', '/api.html?app=ONLINE&relay=wss%3A%2F%2Fsignal.example%2F&key=k1#remote');
+		await load();
+
+		expect(BotHall.loadRelay()).toEqual({ relay: 'wss://signal.example/', relayKey: 'k1' });
+		expect(window.location.search).toBe('?app=ONLINE');
+		expect(window.location.hash).toBe('#remote');
+		history.replaceState(null, '', '/');
+	});
+
+	it('a ?relay= that is no wss address keeps nothing', async () => {
+		history.replaceState(null, '', '/?relay=nope');
+		await load();
+
+		expect(BotHall.loadRelay()).toBe(null);
+		expect(window.location.search).toBe('');
+	});
+
+	it('no relay until a page link gives one; Forget drops it with the settings', () => {
+		expect(BotHall.loadRelay()).toBe(null);
+		BotHall.rememberRelay('wss://signal.example/');
+		expect(BotHall.loadRelay()).toEqual({ relay: 'wss://signal.example/', relayKey: '' });
+
+		BotHall.forgetSettings();
+		expect(BotHall.loadRelay()).toBe(null);
+	});
+
 	it('reads no settings from a broken entry', () => {
 		localStorage.setItem('botHall', '{"relay":1}');
 		expect(BotHall.loadSettings()).toBe(null);

@@ -71,7 +71,8 @@ RemoteSettings.init = function init() {
  */
 RemoteSettings.onAppend = function onAppend() {
 	const root = this.getRoot();
-	const settings = BotHall.loadSettings() || { relay: '', relayKey: '', room: '', secret: '' };
+	const relay = BotHall.loadRelay() || { relay: '', relayKey: '' };
+	const settings = BotHall.loadSettings() || { relay: relay.relay, relayKey: relay.relayKey, room: '', secret: '' };
 
 	root.querySelector('.relay').value = settings.relay;
 	root.querySelector('.relayKey').value = settings.relayKey;

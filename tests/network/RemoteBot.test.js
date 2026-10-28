@@ -182,6 +182,16 @@ describe('remote mode', () => {
 		expect(mocks.rooms[0].leave).toHaveBeenCalledOnce();
 	});
 
+	it('a bot link keeps its relay for the settings', async () => {
+		localStorage.clear();
+		await load('');
+		const BotHall = (await import('Network/BotHall.js')).default;
+
+		expect(BotHall.loadRelay()).toBe(null);
+		RemoteBot.setLink(LINK);
+		expect(BotHall.loadRelay()).toEqual({ relay: RELAY, relayKey: 'k1' });
+	});
+
 	it('builds the game sockets on the bot peer through connect and through defaultSocketFactory', async () => {
 		await load(LINK);
 		const peer = fakePeer();
