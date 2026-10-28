@@ -322404,7 +322404,7 @@ var init_GUIComponent = __esmMin((() => {
 	_depsPromise = null;
 	_noCursorMedia = "not all";
 	_snapCache = [];
-	_frozenBy = Object.create(null);
+	_frozenBy = [];
 	MouseMode = Object.freeze({
 		CROSS: 0,
 		STOP: 1,
@@ -322525,7 +322525,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this._noCursorStyle) _trackNoCursorStyle(this._noCursorStyle);
 			if (this.onKeyDown) this._bindKeyDown();
 			if (this.mouseMode === MouseMode.FREEZE) {
-				_frozenBy[this.name] = true;
+				if (!_frozenBy.includes(this)) _frozenBy.push(this);
 				Mouse.intersect = false;
 				SessionStorage_default.FreezeUI = true;
 				_EntityManager?.setOverEntity(null);
@@ -322567,13 +322567,9 @@ var init_GUIComponent = __esmMin((() => {
 				whenDrawn.suspend(this._host);
 				if (this._noCursorStyle) _untrackNoCursorStyle(this._noCursorStyle);
 				if (this.mouseMode === MouseMode.FREEZE) {
-					delete _frozenBy[this.name];
-					let stillFrozen = false;
-					for (const _name in _frozenBy) {
-						stillFrozen = true;
-						break;
-					}
-					if (!stillFrozen) {
+					const index = _frozenBy.indexOf(this);
+					if (index !== -1) _frozenBy.splice(index, 1);
+					if (!_frozenBy.length) {
 						Mouse.intersect = true;
 						SessionStorage_default.FreezeUI = false;
 					}
