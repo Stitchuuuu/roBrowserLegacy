@@ -324,18 +324,26 @@ describe('remote mode from the bot list: the character', () => {
 		await load('');
 		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET, character: 'NodeSpectate' });
 
-		expect(RemoteBot.character()).toBe('NodeSpectate');
+		expect(RemoteBot.takeCharacter()).toBe('NodeSpectate');
+	});
+
+	it('names it once: back at the character select, the player picks', async () => {
+		await load('');
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET, character: 'NodeSpectate' });
+		RemoteBot.takeCharacter();
+
+		expect(RemoteBot.takeCharacter()).toBe(null);
 	});
 
 	it('names none for a pasted link, or once back to the server', async () => {
 		await load('');
 		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET, character: 'NodeSpectate' });
 		RemoteBot.setLink(LINK);
-		expect(RemoteBot.character()).toBe(null);
+		expect(RemoteBot.takeCharacter()).toBe(null);
 
 		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET, character: 'NodeSpectate' });
 		RemoteBot.leave();
-		expect(RemoteBot.character()).toBe(null);
+		expect(RemoteBot.takeCharacter()).toBe(null);
 		expect(RemoteBot.isActive()).toBe(false);
 	});
 

@@ -130,10 +130,16 @@ RemoteBot.useRoom = function useRoom(room) {
 };
 
 /**
- * @return {?string} the character to pick once listed, the one the bot plays
+ * The character to pick at the first character select of a room the list opened: once, so a player who goes
+ * back to the character select stays there
+ *
+ * @return {?string} the one the bot plays
  */
-RemoteBot.character = function character() {
-	return _sockets ? _character : null;
+RemoteBot.takeCharacter = function takeCharacter() {
+	const name = _sockets ? _character : null;
+
+	_character = null;
+	return name;
 };
 
 /**
