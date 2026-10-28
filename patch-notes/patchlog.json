@@ -1250,6 +1250,51 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.9.1",
+			"date": "2026-10-28",
+			"title": "Point and Click",
+			"sha": "",
+			"notes": [
+				{
+					"type": "fixed",
+					"keyword": "Cursor over windows",
+					"text": "You sell your loot to the Butcher, type a quantity, and the cursor over the sell window turns into the Butcher's talk bubble. It now stays an arrow until the store closes.",
+					"details": "After entering a quantity in an NPC store, the map was looked at again through the store window: the cursor took the shape of whatever stood behind it (a warp portal, an NPC's talk bubble, a monster) and its name showed under the window, until the store closed. Two message boxes open at once did the same when one of them closed. The map now stays frozen until the last of these windows closes.",
+					"commits": [
+						"ae1bb6e1f",
+						"c73e587df"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Stuck hand cursor",
+					"text": "You finish talking to the Kafra with Enter while the pointer rests on Close, and the hand cursor follows you around the map. It now turns back into an arrow.",
+					"details": "A window closed while the pointer rested on one of its buttons (Enter on an NPC dialog's Close, a menu choice, OK, Cancel, the NPC store's Cancel) left the cursor as a hand over the map until another button or a character was hovered. The cursor now goes back to the shape it had before the button.",
+					"commits": [
+						"3bb58dad7"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Drag and drop",
+					"text": "You drag a potion to your hotkey bar and the cursor stays behind, so you drop it blind and hope. The cursor now follows the drag.",
+					"details": "While dragging an item or a skill, the game cursor stayed where the drag began. On Firefox, which shows no icon under the pointer either, nothing moved at all and the game looked frozen until the drop, which still worked. The cursor now follows the pointer during a drag.",
+					"commits": [
+						"ba5e46381"
+					]
+				},
+				{
+					"type": "plugins",
+					"keyword": "Plugin windows",
+					"text": "Two teleports in a row, and TabTargetNative's window vanished: Tab did nothing, and the list only showed up during the loading screen. It now comes back with the map.",
+					"details": "After two map changes close together, a plugin's window (TabTargetNative's target list, for one) could stay off the screen, showing only during the next loading screens, and its keys (Tab) stopped working. It now comes back with the map.",
+					"commits": [
+						"13c26c6e6"
+					]
+				}
+			]
 		}
 	]
 }
