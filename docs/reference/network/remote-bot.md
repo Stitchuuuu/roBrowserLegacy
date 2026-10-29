@@ -176,6 +176,22 @@ format on both at once, or the vector fails.
 after the factory has returned. A socket asked for before the bot's peer is
 there waits for it, up to 15 s.
 
+## Timing of a map
+
+Each answer to a load-end ack (`CZ_NOTIFY_ACTORINIT`: the bot's snapshot, at
+attach and after every map change) is timed by the window
+(`RtcSockets.watch`): the wait from the ack to the answer, the time to handle
+its packets, and the longest frame over the next 15 s. The line goes to the
+browser console, and to the bot as a text message
+(`{t:'timing', v:1, via, wait, handled, longestFrame}`, whole ms) — the one
+text the room carries; a bot that does not know it ignores it. The bot writes
+it to its session log, next to its own line: how long the snapshot waited
+for the link before it left (`snapshot left in … ms (via …)`).
+
+A slow wait with a fast `snapshot left` is the way there and back; a slow
+`snapshot left` is the link, the relay's rate included; a long frame is this
+window's own work on what it got.
+
 ## Encryption
 
 The zone socket skips `PacketCrypt.init()` in the mode, whatever `packetKeys`
@@ -198,13 +214,15 @@ window reacts to the packets instead:
 |---|---|
 | `ZC_WAIT_DIALOG`, `ZC_MENU_LIST` | the page is complete (`NpcBox.endPage`): the next text clears the box; a menu also takes the Next button away, the bot's Next it answers |
 | `ZC_SAY_DIALOG` | an open menu or input box goes away first — the bot answered it |
-| `ZC_CLOSE_DIALOG` | the box and its menu close at once, no Close button |
+| `ZC_CLOSE_DIALOG` | the Close button shows, as in a normal window |
+| `ZC_CLOSE_SCRIPT` | the box closes: the bot's responder sends one when the bot presses Close or cancels a menu, which the server answers with nothing |
 
-A window that holds `@control` plays through the same box: its own Next and
-menu still send their packets. A `close` / `close2` closes its box too, without
-the `CZ_CLOSE_DIALOG` the script waits for (rathena `buildin_close`: the script
-goes on when Close is pressed) — known gap, the window cannot tell whether it
-holds control.
+A window that holds `@control` plays through the same box: its own Next, menu
+and Close still send their packets. The Close button stays for that reason: a
+`close` / `close2` waits for the `CZ_CLOSE_DIALOG` (rathena `buildin_close`:
+the script goes on when Close is pressed), and a box closed on
+`ZC_CLOSE_DIALOG` left the character held by a dialog nobody could end. A
+watching window's Close only closes its own box: the click goes nowhere.
 
 ## NPC shops
 

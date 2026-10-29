@@ -15,6 +15,12 @@ import { OPEN, DATA, CLOSE, Outbox, decode } from './RtcFrames.js';
 const PEER_WAIT_MS = 15000;
 
 /**
+ * How long the frames are watched once the bot answered a load-end ack
+ * @const {number}
+ */
+const WATCH_MS = 15000;
+
+/**
  * A socket with the WebSocket helper's shape
  */
 class Socket {
@@ -35,7 +41,13 @@ class Socket {
 	 */
 	send(buffer) {
 		if (this.connected) {
-			this.owner.out.write(DATA, this.sid, new Uint8Array(buffer));
+			const bytes = new Uint8Array(buffer);
+
+			// CZ_NOTIFY_ACTORINIT: the map is loaded, the bot answers with what it kept of it
+			if (bytes.length === 2 && bytes[0] === 0x7d && bytes[1] === 0) {
+				this.owner.ackAt = performance.now();
+			}
+			this.owner.out.write(DATA, this.sid, bytes);
 		}
 	}
 
@@ -73,6 +85,8 @@ class RtcSockets {
 		this.next = 1;
 		this.error = null;
 		this.lastFailure = null;
+		this.peer = null;
+		this.ackAt = 0;
 
 		room.on('error', err => {
 			console.warn(`[RemoteBot] ${err.code}: ${err.message}`);
@@ -140,9 +154,12 @@ class RtcSockets {
 	link(peer) {
 		console.log(`%c[RemoteBot] bot peer ${peer.id} via ${peer.via}`, 'font-weight:bold');
 		this.lastFailure = null;
+		this.peer = peer;
 		this.out = new Outbox(bytes => peer.send(bytes));
 
 		peer.on('message', data => {
+			const ackAt = this.ackAt;
+			const start = performance.now();
 			let records;
 
 			if (typeof data === 'string') {
@@ -170,6 +187,11 @@ class RtcSockets {
 					this.end(record.sid);
 				}
 			}
+
+			if (ackAt) {
+				this.ackAt = 0;
+				this.watch(peer, start - ackAt, performance.now() - start);
+			}
 		});
 
 		peer.on('close', reason => {
@@ -186,6 +208,47 @@ class RtcSockets {
 			clearTimeout(waiting[i].timer);
 			this.open(waiting[i]);
 		}
+	}
+
+	/**
+	 * Timing of an answer to a load-end ack, in the console and in the bot's session log: the wait is
+	 * the way there and back, the handling and the longest frame are this window's
+	 *
+	 * @param {object} peer - the bot's peer
+	 * @param {number} wait - ms from the ack to the answer
+	 * @param {number} handled - ms to handle the answer's packets
+	 * @see docs/reference/network/remote-bot.md
+	 */
+	watch(peer, wait, handled) {
+		const end = performance.now() + WATCH_MS;
+		let last = performance.now();
+		let longest = 0;
+
+		const frame = now => {
+			longest = Math.max(longest, now - last);
+			last = now;
+			if (now < end && !peer.closed) {
+				requestAnimationFrame(frame);
+				return;
+			}
+
+			const report = {
+				t: 'timing',
+				v: 1,
+				via: peer.via,
+				wait: Math.round(wait),
+				handled: Math.round(handled),
+				longestFrame: Math.round(longest)
+			};
+			console.log(
+				`[RemoteBot] map from the bot: answered in ${report.wait} ms (via ${report.via}), handled in ${report.handled} ms, longest frame ${report.longestFrame} ms over ${WATCH_MS / 1000} s`
+			);
+			if (!peer.closed) {
+				// Text: a bot that does not know it ignores it
+				peer.send(JSON.stringify(report)).catch(() => {});
+			}
+		};
+		requestAnimationFrame(frame);
 	}
 
 	/**
