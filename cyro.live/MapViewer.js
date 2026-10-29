@@ -209080,10 +209080,11 @@ var init_RtcFrames = __esmMin((() => {
 	};
 }));
 // src/Network/SocketHelpers/RtcSockets.js
-var PEER_WAIT_MS, Socket, RtcSockets;
+var PEER_WAIT_MS, WATCH_MS, Socket, RtcSockets;
 var init_RtcSockets = __esmMin((() => {
 	init_RtcFrames();
 	PEER_WAIT_MS = 15e3;
+	WATCH_MS = 15e3;
 	Socket = class {
 		/**
 		* @param {RtcSockets} owner
@@ -209100,7 +209101,11 @@ var init_RtcSockets = __esmMin((() => {
 		* @param {ArrayBuffer} buffer
 		*/
 		send(buffer) {
-			if (this.connected) this.owner.out.write(2, this.sid, new Uint8Array(buffer));
+			if (this.connected) {
+				const bytes = new Uint8Array(buffer);
+				if (bytes.length === 2 && bytes[0] === 125 && bytes[1] === 0) this.owner.ackAt = performance.now();
+				this.owner.out.write(2, this.sid, bytes);
+			}
 		}
 		/**
 		* Closing connection to the bot
@@ -209131,6 +209136,8 @@ var init_RtcSockets = __esmMin((() => {
 			this.next = 1;
 			this.error = null;
 			this.lastFailure = null;
+			this.peer = null;
+			this.ackAt = 0;
 			room.on("error", (err) => {
 				console.warn(`[RemoteBot] ${err.code}: ${err.message}`);
 			});
@@ -209186,8 +209193,11 @@ var init_RtcSockets = __esmMin((() => {
 		link(peer) {
 			console.log(`%c[RemoteBot] bot peer ${peer.id} via ${peer.via}`, "font-weight:bold");
 			this.lastFailure = null;
+			this.peer = peer;
 			this.out = new Outbox((bytes) => peer.send(bytes));
 			peer.on("message", (data) => {
+				const ackAt = this.ackAt;
+				const start = performance.now();
 				let records;
 				if (typeof data === "string") return;
 				try {
@@ -209204,6 +209214,10 @@ var init_RtcSockets = __esmMin((() => {
 					if (record.type === 2) s.onMessage(record.bytes.slice().buffer);
 					else if (record.type === 3) this.end(record.sid);
 				}
+				if (ackAt) {
+					this.ackAt = 0;
+					this.watch(peer, start - ackAt, performance.now() - start);
+				}
 			});
 			peer.on("close", (reason) => {
 				console.warn(`[RemoteBot] bot peer left (${reason})`);
@@ -209216,6 +209230,39 @@ var init_RtcSockets = __esmMin((() => {
 				clearTimeout(waiting[i].timer);
 				this.open(waiting[i]);
 			}
+		}
+		/**
+		* Timing of an answer to a load-end ack, in the console and in the bot's session log: the wait is
+		* the way there and back, the handling and the longest frame are this window's
+		*
+		* @param {object} peer - the bot's peer
+		* @param {number} wait - ms from the ack to the answer
+		* @param {number} handled - ms to handle the answer's packets
+		* @see docs/reference/network/remote-bot.md
+		*/
+		watch(peer, wait, handled) {
+			const end = performance.now() + WATCH_MS;
+			let last = performance.now();
+			let longest = 0;
+			const frame = (now) => {
+				longest = Math.max(longest, now - last);
+				last = now;
+				if (now < end && !peer.closed) {
+					requestAnimationFrame(frame);
+					return;
+				}
+				const report = {
+					t: "timing",
+					v: 1,
+					via: peer.via,
+					wait: Math.round(wait),
+					handled: Math.round(handled),
+					longestFrame: Math.round(longest)
+				};
+				console.log(`[RemoteBot] map from the bot: answered in ${report.wait} ms (via ${report.via}), handled in ${report.handled} ms, longest frame ${report.longestFrame} ms over ${WATCH_MS / 1e3} s`);
+				if (!peer.closed) peer.send(JSON.stringify(report)).catch(() => {});
+			};
+			requestAnimationFrame(frame);
 		}
 		/**
 		* @param {Socket} s
@@ -349406,9 +349453,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "d676348b29c04ef46098098522b530ea23a0d357") {
+		if (!_buildShown && "ce509beec4adce92e3dced0b49c7828b0fa469d9") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"d676348b29c04ef46098098522b530ea23a0d357".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"ce509beec4adce92e3dced0b49c7828b0fa469d9".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
