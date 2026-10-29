@@ -161,7 +161,9 @@ ChatBox.FILTER = {
 	PARTY_EXP: 18,
 	QUEST: 19,
 	BATTLEFIELD: 20,
-	CLAN: 21
+	CLAN: 21,
+	// A remote bot's log (Engine/MapEngine/RemoteBotChat.js): far from the client's own ids
+	BOT_LOG: 100
 };
 
 /**

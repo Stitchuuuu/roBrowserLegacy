@@ -241,6 +241,14 @@ describe('aliases', () => {
 		expect(sentOne().action).toBe(2);
 	});
 
+	it('knows a name a command, an alias or an emotion already answers to', () => {
+		expect(ProcessCommand.exists('noctrl')).toBe(true);
+		expect(ProcessCommand.exists('nc')).toBe(true);
+		expect(ProcessCommand.exists('sit')).toBe(true);
+		expect(ProcessCommand.exists('!')).toBe(true);
+		expect(ProcessCommand.exists('status')).toBe(false);
+	});
+
 	it('passes the alias text through to commands that parse it', () => {
 		run('mm izlude 10 20');
 
