@@ -272,4 +272,26 @@ describe('RtcSockets', () => {
 		vi.unstubAllGlobals();
 		said.mockRestore();
 	});
+
+	it('hands the bot\'s text to onText, null when its peer goes, and sends text back', () => {
+		const room = fakeRoom();
+		const sockets = new RtcSockets(room);
+		const got = [];
+		sockets.onText = text => got.push(text);
+		expect(sockets.sendText({ t: 'log', v: 1, on: true })).toBe(false);
+
+		const peer = Object.assign(fakePeer(), { closed: false });
+		const texts = [];
+		peer.send = vi.fn(data => {
+			texts.push(data);
+			return Promise.resolve();
+		});
+		room.emit('peer', peer);
+		peer.emit('message', '{"t":"cmds","v":1,"list":[]}');
+		expect(sockets.sendText({ t: 'log', v: 1, on: true })).toBe(true);
+		peer.emit('close', 'closed');
+
+		expect(got).toEqual(['{"t":"cmds","v":1,"list":[]}', null]);
+		expect(texts).toEqual(['{"t":"log","v":1,"on":true}']);
+	});
 });

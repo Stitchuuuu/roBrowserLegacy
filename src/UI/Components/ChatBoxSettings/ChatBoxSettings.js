@@ -13,6 +13,7 @@ import Client from 'Core/Client.js';
 import Mouse from 'Controls/MouseEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import htmlText from './ChatBoxSettings.html?raw';
 import cssText from './ChatBoxSettings.css?raw';
 
@@ -91,11 +92,13 @@ ChatBoxSettings.init = function init() {
 };
 
 /**
- * @returns {Array<number>} the id of every filter in the list
+ * @returns {Array<number>} the id of every filter shown in the list
  */
 function filterIds() {
 	const buttons = ChatBoxSettings.getRoot().querySelectorAll('.listoption button');
-	return Array.from(buttons, btn => parseInt(btn.getAttribute('data-id'), 10));
+	return Array.from(buttons)
+		.filter(btn => btn.style.display !== 'none')
+		.map(btn => parseInt(btn.getAttribute('data-id'), 10));
 }
 
 /**
@@ -215,6 +218,12 @@ ChatBoxSettings.updateTab = function updateTab(tabID, tabName) {
 	this.activeTab = tabID;
 
 	root.querySelector('.tabname').textContent = tabName;
+
+	// The bot's log only exists in remote mode
+	const botLog = root.querySelector('.listoption .botlog');
+	if (botLog) {
+		botLog.style.display = RemoteBot.isActive() ? '' : 'none';
+	}
 
 	buttons.forEach(btn => {
 		btn.classList.remove('on');

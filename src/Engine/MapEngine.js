@@ -120,6 +120,7 @@ import ClanEngine from './MapEngine/Clan.js';
 import CashShopEngine from './MapEngine/CashShop.js';
 import BankEngine from './MapEngine/Bank.js';
 import AchievementEngine from './MapEngine/Achievement.js';
+import RemoteBotChatEngine from './MapEngine/RemoteBotChat.js';
 
 /**
  * @type {string} mapname
@@ -338,6 +339,7 @@ class MapEngine {
 			PCGoldTimerEngine();
 			CaptchaEngine();
 			ClanEngine();
+			RemoteBotChatEngine();
 			if (Configs.get('enableCashShop')) {
 				CashShopEngine();
 			}

@@ -63,6 +63,10 @@ number of characters.
 - **Six tabs at most**, not ten.
 - **No tab drag.** The client can tear a tab off into its own chat window when
   the window's drag toggle is on. The port does not.
+- **A Bot log filter** (id 100), at the end of the filter list, only while the
+  window plays a remote bot (`RemoteBot.isActive()`): the bot's console lines
+  that `/log` asks for (`docs/reference/network/remote-bot.md`). Outside the
+  mode it is not listed, and `All on` leaves it as it is.
 
 ## Where the details come from
 
