@@ -63,12 +63,6 @@ function onNextAppear(pkt) {
  * @param {object} pkt - PACKET.ZC.CLOSE_DIALOG
  */
 function onCloseAppear(pkt) {
-	// On a remote bot nobody presses Close in this window: the bot does
-	if (RemoteBot.isActive()) {
-		NpcBox.remove();
-		NpcMenu.remove();
-		return;
-	}
 	// Should not happened, but sometimes dev write a "close" in script instead of
 	// a "end" when there is no message.
 	if (NpcBox.ui && NpcBox.ui.is(':visible')) {

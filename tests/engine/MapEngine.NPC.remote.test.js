@@ -2,7 +2,7 @@
  * tests/engine/MapEngine.NPC.remote.test.js
  *
  * On a remote bot the bot answers the NPC dialog, the window only gets the server's pages: a page after
- * a Next or a menu replaces the previous one, a menu goes away with it, and a Close closes the box.
+ * a Next or a menu replaces the previous one, a menu goes away with it, and the bot's Close closes the box.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -74,9 +74,16 @@ describe('NPC dialog on a remote bot', () => {
 		expect(lines()).toEqual(['Off you go.']);
 	});
 
-	it('closes the box at once on a Close: there is no button the bot presses', () => {
+	it("keeps a Close button for a window in control, and closes on the bot's Close", () => {
 		say('Good luck.');
+		// jsdom lays nothing out: the box counts as on screen, as it is in a browser
+		Object.defineProperty(NpcBox._host, 'offsetParent', { configurable: true, get: () => document.body });
 		deliver(PACKET.ZC.CLOSE_DIALOG, {});
+		expect(NpcBox.__active).toBe(true);
+		expect(shown('.close')).toBe(true);
+
+		// The server answers the bot's Close with nothing: the bot says it with a CLOSE_SCRIPT.
+		deliver(PACKET.ZC.CLOSE_SCRIPT, {});
 		expect(NpcBox.__active).toBe(false);
 	});
 });

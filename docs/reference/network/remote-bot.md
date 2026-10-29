@@ -198,13 +198,15 @@ window reacts to the packets instead:
 |---|---|
 | `ZC_WAIT_DIALOG`, `ZC_MENU_LIST` | the page is complete (`NpcBox.endPage`): the next text clears the box; a menu also takes the Next button away, the bot's Next it answers |
 | `ZC_SAY_DIALOG` | an open menu or input box goes away first — the bot answered it |
-| `ZC_CLOSE_DIALOG` | the box and its menu close at once, no Close button |
+| `ZC_CLOSE_DIALOG` | the Close button shows, as in a normal window |
+| `ZC_CLOSE_SCRIPT` | the box closes: the bot's responder sends one when the bot presses Close or cancels a menu, which the server answers with nothing |
 
-A window that holds `@control` plays through the same box: its own Next and
-menu still send their packets. A `close` / `close2` closes its box too, without
-the `CZ_CLOSE_DIALOG` the script waits for (rathena `buildin_close`: the script
-goes on when Close is pressed) — known gap, the window cannot tell whether it
-holds control.
+A window that holds `@control` plays through the same box: its own Next, menu
+and Close still send their packets. The Close button stays for that reason: a
+`close` / `close2` waits for the `CZ_CLOSE_DIALOG` (rathena `buildin_close`:
+the script goes on when Close is pressed), and a box closed on
+`ZC_CLOSE_DIALOG` left the character held by a dialog nobody could end. A
+watching window's Close only closes its own box: the click goes nowhere.
 
 ## NPC shops
 
