@@ -239,4 +239,37 @@ describe('RtcSockets', () => {
 		expect(s.onComplete).not.toHaveBeenCalled();
 		expect(peer.sent).toEqual([]);
 	});
+
+	it('reports how long the answer to a load-end ack took, as text to the bot', async () => {
+		const room = fakeRoom();
+		const sockets = new RtcSockets(room);
+		const peer = fakePeer();
+		const texts = [];
+		const send = peer.send;
+		peer.send = vi.fn(data => (typeof data === 'string' ? (texts.push(JSON.parse(data)), Promise.resolve()) : send(data)));
+		const frames = [];
+		vi.stubGlobal('requestAnimationFrame', fn => frames.push(fn));
+		const said = vi.spyOn(console, 'log').mockImplementation(() => {});
+		room.emit('peer', peer);
+		const s = connect(sockets);
+		await settle();
+
+		s.send(bytes(0x7d, 0).buffer);
+		peer.emit('message', encode([{ type: DATA, sid: s.sid, bytes: bytes(0x7f, 0, 1, 2, 3, 4) }]));
+		expect(s.onMessage).toHaveBeenCalledTimes(1);
+		expect(texts).toEqual([]);
+
+		// The frames are watched for a while, then the report leaves once
+		frames.shift()(performance.now() + 60000);
+		expect(texts).toHaveLength(1);
+		expect(texts[0]).toMatchObject({ t: 'timing', v: 1, via: 'direct' });
+		expect(texts[0].wait).toBeGreaterThanOrEqual(0);
+		expect(texts[0].longestFrame).toBeGreaterThan(0);
+
+		// A later message is live traffic, not an answer
+		peer.emit('message', encode([{ type: DATA, sid: s.sid, bytes: bytes(0x7f, 0, 1, 2, 3, 4) }]));
+		expect(frames).toHaveLength(0);
+		vi.unstubAllGlobals();
+		said.mockRestore();
+	});
 });
