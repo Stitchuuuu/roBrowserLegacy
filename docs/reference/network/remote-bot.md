@@ -176,6 +176,22 @@ format on both at once, or the vector fails.
 after the factory has returned. A socket asked for before the bot's peer is
 there waits for it, up to 15 s.
 
+## Timing of a map
+
+Each answer to a load-end ack (`CZ_NOTIFY_ACTORINIT`: the bot's snapshot, at
+attach and after every map change) is timed by the window
+(`RtcSockets.watch`): the wait from the ack to the answer, the time to handle
+its packets, and the longest frame over the next 15 s. The line goes to the
+browser console, and to the bot as a text message
+(`{t:'timing', v:1, via, wait, handled, longestFrame}`, whole ms) — the one
+text the room carries; a bot that does not know it ignores it. The bot writes
+it to its session log, next to its own line: how long the snapshot waited
+for the link before it left (`snapshot left in … ms (via …)`).
+
+A slow wait with a fast `snapshot left` is the way there and back; a slow
+`snapshot left` is the link, the relay's rate included; a long frame is this
+window's own work on what it got.
+
 ## Encryption
 
 The zone socket skips `PacketCrypt.init()` in the mode, whatever `packetKeys`
