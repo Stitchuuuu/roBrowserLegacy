@@ -1295,6 +1295,23 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.9.2",
+			"date": "2026-10-28",
+			"title": "Sell All, Now a Plugin",
+			"sha": "",
+			"notes": [
+				{
+					"type": "plugins",
+					"keyword": "SellAll",
+					"text": "You open the Tool Dealer's sell window and the Sell all button is gone. It moved to a plugin: type /pm, install SellAll, and it is back.",
+					"details": "The Sell all button of the NPC sell window left the client and became the SellAll plugin. Install it from the Plugin Manager (/pm) to get the button back. It still moves every listed stack to the selling list and sells nothing before you press Sell. Favorites follow the favorite tab's lock: locked, they stay out; unlocked, Sell all takes them too.",
+					"commits": [
+						"f8ef000a3"
+					]
+				}
+			]
 		}
 	]
 }
