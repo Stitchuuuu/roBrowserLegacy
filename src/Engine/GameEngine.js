@@ -167,7 +167,10 @@ class GameEngine {
 	 */
 	static reload() {
 		BGM.setAvailableExtensions(Configs.get('BGMFileExtension', ['mp3']));
-		BGM.play('01.mp3');
+		// A switch to another remote client keeps the map and its music
+		if (!RemoteBot.switching()) {
+			BGM.play('01.mp3');
+		}
 
 		UIManager.removeComponents();
 		Network.close();
@@ -183,6 +186,8 @@ class GameEngine {
 	}
 }
 function onReload() {
+	// Read before the login screen takes the switch
+	const switching = RemoteBot.switching();
 	// Display server list
 	const list = new Array(_servers.length);
 	let i;
@@ -199,7 +204,7 @@ function onReload() {
 	}
 
 	// A switch to another remote client: back to the same server, no list
-	else if (_previous_server && RemoteBot.switching()) {
+	else if (_previous_server && switching) {
 		LoginEngine.init(_previous_server);
 	} else {
 		for (i = 0; i < count; ++i) {
@@ -210,9 +215,11 @@ function onReload() {
 		WinList.setList(list);
 	}
 	Renderer.stop();
-	MapRenderer.cancelLoad();
-	MapRenderer.free();
-	BGM.play('01.mp3');
+	if (!switching) {
+		MapRenderer.cancelLoad();
+		MapRenderer.free();
+		BGM.play('01.mp3');
+	}
 }
 
 function onReadyLoginServer(index) {

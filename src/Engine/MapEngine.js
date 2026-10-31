@@ -17,6 +17,7 @@ import Events from 'Core/Events.js';
 import Session from 'Engine/SessionStorage.js';
 import AutoRetry from 'Engine/AutoRetry.js';
 import Network from 'Network/NetworkManager.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
@@ -139,6 +140,8 @@ let _buildShown = false;
 
 let _exiting = false;
 let _exitTimer = null;
+// A switch to another remote client left the map loaded: the next one on it enters without a load
+let _keptMap = false;
 
 let snCounter = 0;
 let chatLines = 0;
@@ -174,7 +177,10 @@ class MapEngine {
 			port,
 			success => {
 				// Force reloading map
-				MapRenderer.currentMap = '';
+				if (!_keptMap) {
+					MapRenderer.currentMap = '';
+				}
+				_keptMap = false;
 
 				// Fail to connect...
 				if (!success) {
@@ -928,9 +934,12 @@ function onExitSuccess() {
 	UIManager.removeComponents();
 	Network.close();
 	Renderer.stop();
-	MapRenderer.free();
 	SoundManager.stop();
-	BGM.stop();
+	_keptMap = RemoteBot.switching();
+	if (!_keptMap) {
+		MapRenderer.free();
+		BGM.stop();
+	}
 	import('Engine/GameEngine.js').then(m => m.default.reload());
 }
 
