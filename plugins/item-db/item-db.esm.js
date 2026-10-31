@@ -3,9 +3,8 @@
  *
  * Native port of `robrowser/tools/v3/libs/item-db/src/index.js`. Keeps the
  * IndexedDB cache (`ROFW_items`, stores `items`+`meta`, version-tag
- * invalidation) and the public getters, but fetches the bundle with native
- * `fetch` from a same-origin path instead of the GM-XHR cross-origin fetch —
- * no CORS, no `window.__RO_*`.
+ * invalidation) and the public getters, with native `fetch` instead of the
+ * GM-XHR cross-origin fetch — no `window.__RO_*`.
  *
  * Cross-plugin contract : `init()` returns the API object directly, so a
  * consumer declaring `deps:['ItemDb']` reads it as `deps.ItemDb` (see
@@ -13,12 +12,18 @@
  *
  *   init(pars, { ItemDb }) { await ItemDb.ready; ItemDb.get(501) }
  *
- * To refresh the bundle : re-fetch the pinned commit's `bundles/cyro.json.gz`
- * from the `Stitchuuuu/ro-item-db` repo, replace `item-db-bundle.bin` next to
- * this file, and bump DB_COMMIT below (it doubles as the IndexedDB
- * cache-invalidation key, so bumping it forces every client to re-populate).
+ * The bundles come from the `Stitchuuuu/ro-item-db` repo at the pinned
+ * DB_COMMIT, through jsDelivr, then raw.githubusercontent. A page whose CSP
+ * blocks both falls back to the copies shipped next to this file, named after
+ * the same commit (`item-db-<sha7>.bin`, `item-db-<sha7>.mobs.bin`).
  *
- * The bundle is served as `.bin`, not `.gz` : the dev server's static
+ * To publish a new database : bump DB_COMMIT below and replace both local
+ * copies with that commit's `bundles/cyro.json.gz` / `cyro.mobs.json.gz`
+ * (a test refuses a copy named after another commit). DB_COMMIT doubles as
+ * the IndexedDB cache-invalidation key, so bumping it forces every client to
+ * re-populate.
+ *
+ * The local copies are served as `.bin`, not `.gz` : the dev server's static
  * middleware auto-sets `Content-Encoding: gzip` for a `.gz`-suffixed file,
  * which transparently (and, here, unreliably — `res.arrayBuffer()` fails with
  * a generic "Failed to fetch" reading the body) decodes it before JS ever
@@ -26,10 +31,28 @@
  * neutral extension keeps the bytes opaque over the wire.
  */
 
-const DB_COMMIT = '78c8a80315ab67cca0b3c700ed224a89bfc23a7c';
+export const DB_COMMIT = 'd4e42e6991454c61f6327e13720eddbab5085763';
 const DB_VERSION_TAG = DB_COMMIT;
 
-const BUNDLE_URL = new URL('./item-db-bundle.bin', import.meta.url).pathname;
+const DB_REPO = 'Stitchuuuu/ro-item-db';
+const ITEMS_BUNDLE = 'cyro.json.gz';
+// The mob sheets of the same bundle, fetched the first time a sheet opens.
+const MOBS_BUNDLE = 'cyro.mobs.json.gz';
+
+/** Local copy of a bundle, for a page whose CSP blocks both hosts. */
+const LOCAL_COPY = {
+	[ITEMS_BUNDLE]: `item-db-${DB_COMMIT.slice(0, 7)}.bin`,
+	[MOBS_BUNDLE]: `item-db-${DB_COMMIT.slice(0, 7)}.mobs.bin`
+};
+
+/** Where a bundle is fetched from, in order : jsDelivr, raw.githubusercontent, the local copy. */
+export function bundleUrls(name) {
+	return [
+		`https://cdn.jsdelivr.net/gh/${DB_REPO}@${DB_COMMIT}/bundles/${name}`,
+		`https://raw.githubusercontent.com/${DB_REPO}/${DB_COMMIT}/bundles/${name}`,
+		new URL(`./${LOCAL_COPY[name]}`, import.meta.url).href
+	];
+}
 
 const DB_NAME = 'ROFW_items';
 const DB_VERSION = 1;
@@ -118,10 +141,18 @@ function loadAllItems(db) {
 // Network + decompression
 // ============================================================
 
-async function fetchBundle() {
-	const res = await fetch(BUNDLE_URL);
-	if (!res.ok) { throw new Error(`[ItemDb] ${BUNDLE_URL} → HTTP ${res.status}`); }
-	return await res.arrayBuffer();
+export async function fetchBundle(name) {
+	const urls = bundleUrls(name);
+	for (let i = 0; i < urls.length; i++) {
+		try {
+			const res = await fetch(urls[i]);
+			if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
+			return await res.arrayBuffer();
+		} catch (e) {
+			if (i === urls.length - 1) { throw new Error(`[ItemDb] ${urls[i]} → ${e.message}`, { cause: e }); }
+			console.warn(`[ItemDb] ${urls[i]} failed (${e.message}), trying the next source`);
+		}
+	}
 }
 
 /** Native browser gzip (Chrome/FF/Safari since 2023). No JS dependency. */
@@ -135,7 +166,7 @@ async function ungzip(arrayBuffer) {
 // ============================================================
 
 async function fetchAndPopulate(db) {
-	const buf = await fetchBundle();
+	const buf = await fetchBundle(ITEMS_BUNDLE);
 	const text = await ungzip(buf);
 	const payload = JSON.parse(text);
 	const items = payload.items;
@@ -160,8 +191,19 @@ let _skillNames = {};
 /** @type {Record<string, string>} mob id → name, kept for get()'s own fields */
 let _mobNames = {};
 
+let _dbOpen = null;
+function getDb() {
+	if (!_dbOpen) {
+		_dbOpen = openDb();
+		_dbOpen.catch(() => {
+			_dbOpen = null;
+		});
+	}
+	return _dbOpen;
+}
+
 async function _bootstrap() {
-	const db = await openDb();
+	const db = await getDb();
 	const cachedVersion = await readMeta(db, 'version');
 	if (cachedVersion !== DB_VERSION_TAG) {
 		const payload = await fetchAndPopulate(db);
@@ -213,6 +255,97 @@ function producedBy(id) { return get(id)?.producedBy || null; }
 function unlocks(id) { return get(id)?.unlocks || null; }
 function count() { return _items ? Object.keys(_items).length : 0; }
 
+/** Monster display name by id, e.g. `mobName(1002)` → `'Poring'`. */
+function mobName(id) { return _mobNames[String(id)] || null; }
+
+/** Monsters whose name matches, exact first, then prefix, then substring. */
+function searchMobs(query) {
+	const q = String(query || '').toLowerCase();
+	if (!q) { return []; }
+	const exact = [];
+	const prefix = [];
+	const substr = [];
+	for (const idStr in _mobNames) {
+		const name = _mobNames[idStr];
+		const n = name.toLowerCase();
+		const rec = { id: Number(idStr), name };
+		if (n === q) { exact.push(rec); }
+		else if (n.startsWith(q)) { prefix.push(rec); }
+		else if (n.includes(q)) { substr.push(rec); }
+	}
+	const byNameLen = (a, b) => a.name.length - b.name.length || a.id - b.id;
+	prefix.sort(byNameLen);
+	substr.sort(byNameLen);
+	return [...exact, ...prefix, ...(prefix.length ? [] : substr)];
+}
+
+/** @type {Record<string, {aegis: string, desc: string}> | null} skill id → names */
+let _skillsById = null;
+/** Skill by id, e.g. `skillById(28)` → `{ aegis: 'AL_HEAL', desc: 'Heal' }`. */
+function skillById(id) {
+	if (!_skillsById) {
+		_skillsById = {};
+		for (const aegis in _skillNames) {
+			const s = _skillNames[aegis];
+			_skillsById[s.id] = { aegis, desc: s.desc };
+		}
+	}
+	return _skillsById[id] || null;
+}
+
+// ============================================================
+// Mob sheets — the separate mobs bundle, on demand. Same cache rule as the
+// items : the pinned commit is the cache key.
+// ============================================================
+
+/** @type {Record<string, any> | null} */
+let _mobs = null;
+/** @type {Promise<Record<string, any>> | null} */
+let _mobsPending = null;
+
+async function mobsFromCacheOrNetwork() {
+	const db = await getDb();
+	let cached = null;
+	try {
+		if ((await readMeta(db, 'mobsVersion')) === DB_VERSION_TAG) {
+			cached = await readMeta(db, 'mobs');
+		}
+	} catch (e) {
+		console.warn('[ItemDb] mobs cache unreadable, refetching:', e);
+	}
+	if (cached) { return cached; }
+	const payload = JSON.parse(await ungzip(await fetchBundle(MOBS_BUNDLE)));
+	try {
+		await writeMeta(db, 'mobs', payload.mobs);
+		await writeMeta(db, 'mobsVersion', DB_VERSION_TAG);
+	} catch (e) {
+		// The sheet still opens ; the next session just downloads again.
+		console.warn('[ItemDb] mobs cache write failed:', e);
+	}
+	return payload.mobs;
+}
+
+/**
+ * Every mob sheet, `id → { name, lv, hp, …, drops, spawns, skills }`. Downloads
+ * the mobs bundle on the first call ; later calls share the same Promise, and
+ * a failed load is forgotten so the next sheet retries.
+ */
+function loadMobs() {
+	if (!_mobsPending) {
+		_mobsPending = mobsFromCacheOrNetwork().then((m) => {
+			_mobs = m;
+			return m;
+		});
+		_mobsPending.catch(() => {
+			_mobsPending = null;
+		});
+	}
+	return _mobsPending;
+}
+
+/** One mob sheet, or null when unknown or before `loadMobs()` resolved. */
+function mob(id) { return _mobs ? _mobs[String(id)] || null : null; }
+
 /** @type {import('../native-manager.d.ts').NativePlugin} */
 export default {
 	name: 'ItemDb',
@@ -233,6 +366,11 @@ export default {
 			unlocks,
 			count,
 			version: DB_VERSION_TAG,
+			mobName,
+			searchMobs,
+			skillById,
+			loadMobs,
+			mob,
 			ready,
 		};
 	},
