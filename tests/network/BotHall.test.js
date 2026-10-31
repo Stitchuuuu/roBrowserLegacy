@@ -157,6 +157,20 @@ describe('bot hall', () => {
 		expect(BotHall.bots()[0].windows).toBe(1);
 	});
 
+	it('names the bot that plays a character on a map, none on another map or for a stranger', async () => {
+		const room = await joined();
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		b1.say(HELLO);
+		const { name, map } = HELLO.playing;
+
+		expect(BotHall.playing(name, map).id).toBe('b1');
+		expect(BotHall.playing(name, map + '2')).toBe(null);
+		expect(BotHall.playing('Someone', map)).toBe(null);
+		b1.say({ ...HELLO, playing: null });
+		expect(BotHall.playing(name, map)).toBe(null);
+	});
+
 	it('counts the members that have not said who they are yet', async () => {
 		const room = await joined();
 		room.setMembers(['b1', 'b2']);
