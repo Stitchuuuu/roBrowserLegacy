@@ -1,0 +1,29 @@
+/* Over the end of a long name, left of the minimize button: see docs/reference/network/remote-bot.md */
+.topbar .remote-control {
+	position: absolute;
+	top: 2px;
+	right: 17px;
+	z-index: 2;
+	height: 12px;
+	padding: 0 5px;
+	border: 1px solid #9aa4b4;
+	border-radius: 7px;
+	background: linear-gradient(#fff, #e3e7ee);
+	box-shadow: -4px 0 3px #e3e9f4;
+	font:
+		bold 10px/12px Arial,
+		sans-serif;
+	color: #666;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.topbar .remote-control:hover {
+	border-color: #5b6f94;
+}
+
+.topbar .remote-control.on {
+	border-color: #6aa36a;
+	background: linear-gradient(#fff, #e2f2e2);
+	color: #1f7a1f;
+}

@@ -38,6 +38,7 @@ import SkillList from 'UI/Components/SkillList/SkillList.js';
 import Quest from 'UI/Components/Quest/Quest.js';
 import Achievement from 'UI/Components/Achievement/Achievement.js';
 import Reputation from 'UI/Components/Reputation/Reputation.js';
+import RemoteControlPill from './RemoteControlPill.js';
 
 export function createBasicInfo(config) {
 	const {
@@ -193,6 +194,8 @@ export function createBasicInfo(config) {
 	Component.init = function init() {
 		const root = this.getRoot();
 
+		RemoteControlPill.attach(root.querySelector('.topbar'));
+
 		root.querySelectorAll(topbarItemSelector).forEach(el => {
 			el.addEventListener('mousedown', e => e.stopImmediatePropagation());
 		});
@@ -230,6 +233,8 @@ export function createBasicInfo(config) {
 	Component.onAppend = function onAppend() {
 		const root = this.getRoot();
 		const hostRect = this._host.getBoundingClientRect();
+
+		RemoteControlPill.refresh();
 
 		this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - hostRect.height)}px`;
 		this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - hostRect.width)}px`;

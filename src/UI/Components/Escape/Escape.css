@@ -47,6 +47,12 @@
 	background-repeat: no-repeat;
 }
 
+#Escape .container ui-button.disconnect {
+	box-sizing: border-box;
+	width: 221px;
+	margin: 3px 0;
+}
+
 #Escape .version {
 	padding: 0 30px 6px 30px;
 	text-align: right;
