@@ -69,6 +69,26 @@ let _inGame = false;
  */
 let _onText = null;
 
+/**
+ * @var {boolean} _control - this window holds the bot's control, as the bot last said
+ */
+let _control = false;
+
+/**
+ * @var {number} _elapsed - ms already run of the progress bar the snapshot carries
+ */
+let _elapsed = 0;
+
+/**
+ * @var {?object} _switch - the room another bot opened, attached to once back on the login screen
+ */
+let _switch = null;
+
+/**
+ * @var {boolean} _wantControl - take the control once in game, through the room in use
+ */
+let _wantControl = false;
+
 const RemoteBot = {};
 
 /**
@@ -116,7 +136,8 @@ RemoteBot.setLink = function setLink(text) {
 /**
  * Use a room a bot opened for this window (the bot list): nothing kept, a reload goes back to the list
  *
- * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room - character: the one the bot plays
+ * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string, control: ?boolean}} room -
+ *   character: the one the bot plays; control: take its control once in game
  * @return {boolean} false once the login is over
  * @see docs/reference/network/remote-bot.md
  */
@@ -127,6 +148,7 @@ RemoteBot.useRoom = function useRoom(room) {
 
 	_character = room.character || null;
 	_listRoom = true;
+	_wantControl = !!room.control;
 	join({ relay: room.relay, relayKey: room.relayKey || undefined, room: room.room, secret: room.secret });
 	try {
 		sessionStorage.removeItem(STORAGE_KEY);
@@ -147,6 +169,65 @@ RemoteBot.takeCharacter = function takeCharacter() {
 
 	_character = null;
 	return name;
+};
+
+/**
+ * @return {boolean} the bot said this window holds its control
+ * @see docs/reference/network/remote-bot.md
+ */
+RemoteBot.hasControl = function hasControl() {
+	return !!_sockets && _control;
+};
+
+/**
+ * Whether to take the control now that the window is in game: once per room
+ *
+ * @return {boolean}
+ */
+RemoteBot.takeWantControl = function takeWantControl() {
+	const want = _wantControl;
+
+	_wantControl = false;
+	return want;
+};
+
+/**
+ * How much of the progress bar the snapshot carries has already run: once
+ *
+ * @return {number} ms
+ */
+RemoteBot.takeElapsed = function takeElapsed() {
+	const elapsed = _elapsed;
+
+	_elapsed = 0;
+	return elapsed;
+};
+
+/**
+ * Another bot opened a room for this window: attached to on the next login screen, with its control
+ *
+ * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+ * @see docs/reference/network/remote-bot.md
+ */
+RemoteBot.switchTo = function switchTo(room) {
+	_switch = { ...room, control: true };
+};
+
+/**
+ * @return {boolean} a room switchTo() kept waits for the login screen
+ */
+RemoteBot.switching = function switching() {
+	return !!_switch;
+};
+
+/**
+ * @return {?object} the room switchTo() kept, once
+ */
+RemoteBot.takeSwitch = function takeSwitch() {
+	const room = _switch;
+
+	_switch = null;
+	return room;
 };
 
 /**
@@ -239,6 +320,8 @@ function join(link) {
 		_sockets.leave();
 	}
 	_sockets = new RtcSockets(joinRoom({ ...link, max: 2 }));
+	_control = false;
+	_elapsed = 0;
 	_sockets.onText = text => {
 		let message = null;
 
@@ -251,6 +334,20 @@ function join(link) {
 			if (!message || typeof message !== 'object') {
 				return;
 			}
+			if (message.t === 'control') {
+				_control = message.on === true;
+			}
+			if (message.t === 'progress') {
+				_elapsed = Math.max(0, Number(message.elapsed) || 0);
+				return;
+			}
+			if (message.t === 'character') {
+				// The bot switched characters on its own: this character select picks the one it took
+				_character = typeof message.name === 'string' ? message.name.slice(0, 24) : null;
+				return;
+			}
+		} else {
+			_control = false;
 		}
 		if (_onText) {
 			_onText(message);

@@ -218,8 +218,9 @@ class LoginEngine {
 			Configs.set('autoLogin', null);
 		} else {
 			q.add(function () {
-				showLoginScreen();
+				// Before the screen: a room left in game is let go there
 				RemoteBot.setLoginScreen(askRemoteLink);
+				showLoginScreen();
 			});
 		}
 
@@ -257,9 +258,9 @@ class LoginEngine {
 		UIManager.removeComponents();
 		WinLogin.onConnectionRequest = onConnectionRequest;
 		WinLogin.onExitRequest = onExitRequest;
-		showLoginScreen();
 		// Back on the login screen: the remote mode takes a new room or link again
 		RemoteBot.setLoginScreen(askRemoteLink);
+		showLoginScreen();
 
 		Network.close();
 	}
@@ -293,7 +294,12 @@ function backToLogin() {
  * @see docs/reference/network/remote-bot.md
  */
 function showLoginScreen() {
-	if (!_manual && BotHall.loadSettings()) {
+	const next = RemoteBot.takeSwitch();
+
+	if (next) {
+		// Another remote client's character, taken from the map
+		attachRemote(next);
+	} else if (!_manual && BotHall.loadSettings()) {
 		RemoteCharacters.append();
 	} else {
 		// A room the list opened before is no use for the login window
@@ -537,7 +543,10 @@ function onCharServerSelected(index) {
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
 	RemoteBot.setLoginScreen(null);
-	BotHall.leave();
+	// In game, the hall names the other remote clients on the map
+	if (!RemoteBot.isActive()) {
+		BotHall.leave();
+	}
 
 	Session.AuthCode = pkt.AuthCode;
 	Session.AID = pkt.AID;

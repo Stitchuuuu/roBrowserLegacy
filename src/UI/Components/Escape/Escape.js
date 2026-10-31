@@ -87,8 +87,17 @@ Escape.init = function init() {
  */
 Escape.onAppend = function onAppend() {
 	this._host.style.display = 'none';
-	// On a remote bot the character select is the bot's: only Exit leaves
-	this.getRoot().querySelector('.charselect').style.display = RemoteBot.isActive() ? 'none' : '';
+	Escape.refreshCharSelect();
+};
+
+/**
+ * On a remote bot the character select is the bot's: offered only while this window holds its control
+ *
+ * @see docs/reference/network/remote-bot.md
+ */
+Escape.refreshCharSelect = function refreshCharSelect() {
+	const shown = !RemoteBot.isActive() || RemoteBot.hasControl();
+	this.getRoot().querySelector('.charselect').style.display = shown ? '' : 'none';
 };
 
 /**

@@ -365,3 +365,85 @@ describe('remote mode from the bot list: the character', () => {
 		expect(JSON.parse(sessionStorage.getItem('remoteBot')).secret).toBe(SECRET);
 	});
 });
+
+describe('remote mode: what the bot says of its control and its bar, and a switch to another bot', () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		mocks.rooms.length = 0;
+		mocks.joinRoom.mockReset();
+		mocks.joinRoom.mockImplementation(() => {
+			const room = fakeRoom();
+			mocks.rooms.push(room);
+			return room;
+		});
+	});
+
+	/** A list room whose bot peer is linked; returns that peer */
+	async function attached(extra) {
+		await load('');
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET, ...extra });
+		const peer = fakePeer();
+		mocks.rooms[mocks.rooms.length - 1].emit('peer', peer);
+		return peer;
+	}
+	const say = (peer, message) => peer.emit('message', JSON.stringify(message));
+
+	it('holds control as the bot last said, until its peer leaves or another room is joined', async () => {
+		const peer = await attached();
+		const heard = [];
+		RemoteBot.onText(m => heard.push(m && m.t));
+
+		expect(RemoteBot.hasControl()).toBe(false);
+		say(peer, { t: 'control', v: 1, on: true });
+		expect(RemoteBot.hasControl()).toBe(true);
+		expect(heard).toEqual(['control']); // the menus follow it too
+
+		peer.emit('close');
+		expect(RemoteBot.hasControl()).toBe(false);
+
+		const next = await attached();
+		say(next, { t: 'control', v: 1, on: true });
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'b', secret: SECRET });
+		expect(RemoteBot.hasControl()).toBe(false);
+	});
+
+	it('hands the bar time already run once, and keeps it from the listener', async () => {
+		const peer = await attached();
+		const heard = [];
+		RemoteBot.onText(m => heard.push(m));
+
+		say(peer, { t: 'progress', v: 1, elapsed: 37000 });
+		expect(heard).toEqual([]);
+		expect(RemoteBot.takeElapsed()).toBe(37000);
+		expect(RemoteBot.takeElapsed()).toBe(0);
+		say(peer, { t: 'progress', v: 1, elapsed: 'x' });
+		expect(RemoteBot.takeElapsed()).toBe(0);
+	});
+
+	it('picks the character the bot took when it switched on its own, at the next character select only', async () => {
+		const peer = await attached({ character: 'NodeSpectate' });
+		RemoteBot.takeCharacter();
+
+		say(peer, { t: 'character', v: 1, name: 'NodeSpectateTwo' });
+		expect(RemoteBot.takeCharacter()).toBe('NodeSpectateTwo');
+		expect(RemoteBot.takeCharacter()).toBe(null);
+	});
+
+	it('keeps the room another bot opened for the next login screen, with its control, once', async () => {
+		await load('');
+		const room = { relay: RELAY, relayKey: '', room: 'b', secret: SECRET, character: 'NodeLvbKWolf' };
+
+		expect(RemoteBot.switching()).toBe(false);
+		RemoteBot.switchTo(room);
+		expect(RemoteBot.switching()).toBe(true);
+		const next = RemoteBot.takeSwitch();
+		expect(next).toEqual({ ...room, control: true });
+		expect(RemoteBot.takeSwitch()).toBe(null);
+
+		RemoteBot.useRoom(next);
+		expect(RemoteBot.takeWantControl()).toBe(true);
+		expect(RemoteBot.takeWantControl()).toBe(false);
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'c', secret: SECRET });
+		expect(RemoteBot.takeWantControl()).toBe(false);
+	});
+});

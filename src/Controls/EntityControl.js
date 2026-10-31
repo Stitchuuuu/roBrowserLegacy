@@ -32,6 +32,7 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import CaptchaSelector from 'UI/Components/Captcha/CaptchaSelector.js';
 import Guild from 'Engine/MapEngine/Guild.js';
+import { controllable, takeControl } from 'Engine/MapEngine/RemoteBotChat.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Group from 'Engine/MapEngine/Group.js';
 import HomunInformations from 'UI/Components/HomunInformations/HomunInformations.js';
@@ -521,6 +522,14 @@ class EntityControl {
 					ContextMenu.nextGroup();
 					ContextMenu.addElement(DB.getMessage(88).replace('%s', this.display.name), () => {
 						Group.onRequestInvitation(entity.GID, entity.display.name);
+					});
+				}
+
+				// Another remote client of the hall: play it from this window
+				if (controllable(this.display.name)) {
+					ContextMenu.nextGroup();
+					ContextMenu.addElement('Control', () => {
+						takeControl(entity.display.name);
 					});
 				}
 

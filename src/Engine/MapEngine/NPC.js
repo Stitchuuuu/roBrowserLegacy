@@ -337,10 +337,13 @@ function onMinimapMarker(pkt) {
  * @param {object} pkt - PACKET_ZC_PROGRESS
  */
 function onProgressBar(pkt) {
-	Session.Entity.cast.onComplete = function () {
-		const _pkt = new PACKET.CZ.PROGRESS();
-		Network.sendPacket(_pkt);
-	};
+	// A remote bot answers its bar itself: one sent before the server's end cancels it
+	Session.Entity.cast.onComplete = RemoteBot.isActive()
+		? null
+		: function () {
+				const _pkt = new PACKET.CZ.PROGRESS();
+				Network.sendPacket(_pkt);
+			};
 
 	const rgb =
 		'rgb(' +
@@ -349,6 +352,8 @@ function onProgressBar(pkt) {
 
 	// Color added only if the progressbar isn't black
 	Session.Entity.cast.set(pkt.time * 1000, pkt.color ? rgb : null);
+	// A remote bot's bar already running when the window attached
+	Session.Entity.cast.tick -= RemoteBot.takeElapsed();
 }
 
 /**

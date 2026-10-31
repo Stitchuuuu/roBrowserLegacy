@@ -20,6 +20,7 @@ import Thread from 'Core/Thread.js';
 import Context from 'Core/Context.js';
 import LoginEngine from 'Engine/LoginEngine.js';
 import Network from 'Network/NetworkManager.js';
+import RemoteBot from 'Network/RemoteBot.js';
 import Renderer from 'Renderer/Renderer.js';
 import MapRenderer from 'Renderer/MapRenderer.js';
 import UIManager from 'UI/UIManager.js';
@@ -195,6 +196,11 @@ function onReload() {
 	// Just 1 server, skip the WinList
 	else if (count === 1 && Configs.get('skipServerList')) {
 		LoginEngine.init(_servers[0]);
+	}
+
+	// On to another remote client: the bot answers whatever the server
+	else if (_previous_server && RemoteBot.switching()) {
+		LoginEngine.init(_previous_server);
 	} else {
 		for (i = 0; i < count; ++i) {
 			list[i] = _servers[i].display;

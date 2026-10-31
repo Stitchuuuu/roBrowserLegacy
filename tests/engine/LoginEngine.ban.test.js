@@ -22,7 +22,14 @@ const mocks = vi.hoisted(() => {
 		winLogin: { append: record('WinLogin.append'), remove: vi.fn() },
 		remoteCharacters: { append: record('RemoteCharacters.append'), remove: vi.fn() },
 		skillTarget: { remove: vi.fn() },
-		remoteBot: { isActive: vi.fn(() => false), setLoginScreen: vi.fn(), leave: vi.fn(), failure: vi.fn() },
+		remoteBot: {
+			isActive: vi.fn(() => false),
+			setLoginScreen: vi.fn(),
+			leave: vi.fn(),
+			failure: vi.fn(),
+			takeSwitch: vi.fn(() => null),
+			useRoom: vi.fn(() => true)
+		},
 		charEngine: { init: vi.fn() },
 		remoteEntry: { append: record('RemoteEntry.append'), remove: vi.fn() },
 		botHall: { loadSettings: vi.fn(() => null), loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn() },
@@ -210,5 +217,38 @@ describe('LoginEngine login accepted', () => {
 		LoginEngine.reload();
 
 		expect(mocks.remoteBot.leave).toHaveBeenCalledOnce();
+	});
+
+	it('the remote mode is back before the screen shows: a room left from the game is let go there', () => {
+		mocks.remoteBot.leave.mockClear();
+		mocks.remoteBot.setLoginScreen.mockClear();
+		LoginEngine.reload();
+
+		const back = mocks.remoteBot.setLoginScreen.mock.invocationCallOrder[0];
+		expect(back).toBeLessThan(mocks.remoteBot.leave.mock.invocationCallOrder[0]);
+	});
+
+	it('a switch from the map logs in through the room the other bot opened, without the list', () => {
+		const room = { relay: 'wss://r/', relayKey: '', room: 'fresh', secret: 's', character: 'B', control: true };
+		mocks.botHall.loadSettings.mockReturnValue({ relay: 'wss://r/', relayKey: '', room: 'hall', secret: 's' });
+		mocks.remoteBot.takeSwitch.mockReturnValueOnce(room);
+		mocks.remoteBot.useRoom.mockClear();
+		mocks.calls.length = 0;
+		LoginEngine.reload();
+		mocks.botHall.loadSettings.mockReturnValue(null);
+
+		expect(mocks.remoteBot.useRoom).toHaveBeenCalledWith(room);
+		expect(mocks.calls).not.toContain('RemoteCharacters.append');
+	});
+
+	it('in the remote mode the hall stays joined once logged in: it names the other remote clients on the map', () => {
+		mocks.botHall.leave.mockClear();
+		mocks.remoteBot.isActive.mockReturnValue(true);
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+		mocks.remoteBot.isActive.mockReturnValue(false);
+		expect(mocks.botHall.leave).not.toHaveBeenCalled();
+
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+		expect(mocks.botHall.leave).toHaveBeenCalledOnce();
 	});
 });
