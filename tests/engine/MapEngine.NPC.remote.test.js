@@ -126,13 +126,13 @@ describe('progress bar', () => {
 	it("on a remote bot, starts from what has run of the bot's bar, and never answers it: the bot does", () => {
 		mocks.active = true;
 		mocks.elapsed = 37000;
-		const before = Date.now();
 		deliver(PACKET.ZC.PROGRESS, { color: 0x00b5ff, time: 120 });
 		const cast = Session.Entity.cast;
+		const run = Date.now() - cast.tick;
 
 		expect(cast.delay).toBe(120000);
-		expect(before - cast.tick).toBeGreaterThanOrEqual(37000);
-		expect(before - cast.tick).toBeLessThan(38000);
+		expect(run).toBeGreaterThanOrEqual(37000);
+		expect(run).toBeLessThan(38000);
 		cast.clean();
 		expect(Network.sendPacket).not.toHaveBeenCalled();
 	});

@@ -418,6 +418,11 @@ describe('remote mode: what the bot says of its control and its bar, and a switc
 		expect(RemoteBot.takeElapsed()).toBe(0);
 		say(peer, { t: 'progress', v: 1, elapsed: 'x' });
 		expect(RemoteBot.takeElapsed()).toBe(0);
+
+		// Told, then the peer left before the bar came: a later bar starts from 0
+		say(peer, { t: 'progress', v: 1, elapsed: 8000 });
+		peer.emit('close');
+		expect(RemoteBot.takeElapsed()).toBe(0);
 	});
 
 	it('picks the character the bot took when it switched on its own, at the next character select only', async () => {
@@ -433,17 +438,31 @@ describe('remote mode: what the bot says of its control and its bar, and a switc
 		await load('');
 		const room = { relay: RELAY, relayKey: '', room: 'b', secret: SECRET, character: 'NodeLvbKWolf' };
 
+		expect(RemoteBot.switchTo(room)).toBe(false); // not from the login screen
+		RemoteBot.setLoginScreen(null);
 		expect(RemoteBot.switching()).toBe(false);
-		RemoteBot.switchTo(room);
+		expect(RemoteBot.switchTo(room)).toBe(true);
 		expect(RemoteBot.switching()).toBe(true);
 		const next = RemoteBot.takeSwitch();
 		expect(next).toEqual({ ...room, control: true });
 		expect(RemoteBot.takeSwitch()).toBe(null);
 
+		RemoteBot.setLoginScreen(() => {});
 		RemoteBot.useRoom(next);
 		expect(RemoteBot.takeWantControl()).toBe(true);
 		expect(RemoteBot.takeWantControl()).toBe(false);
 		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'c', secret: SECRET });
+		expect(RemoteBot.takeWantControl()).toBe(false);
+	});
+
+	it('takes no control for a room the switch did not open: a failed switch, then a pasted link', async () => {
+		await load('');
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'b', secret: SECRET, control: true });
+		RemoteBot.setLink(LINK);
+		expect(RemoteBot.takeWantControl()).toBe(false);
+
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'b', secret: SECRET, control: true });
+		RemoteBot.leave();
 		expect(RemoteBot.takeWantControl()).toBe(false);
 	});
 });

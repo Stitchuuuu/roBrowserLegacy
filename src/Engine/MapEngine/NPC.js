@@ -335,6 +335,7 @@ function onMinimapMarker(pkt) {
  * Receive progressbar
  *
  * @param {object} pkt - PACKET_ZC_PROGRESS
+ * @see docs/reference/network/remote-bot.md
  */
 function onProgressBar(pkt) {
 	// A remote bot answers its bar itself: one sent before the server's end cancels it

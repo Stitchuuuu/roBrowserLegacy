@@ -16,7 +16,7 @@ import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
 import Escape from 'UI/Components/Escape/Escape.js';
 
 /**
- * Why « Control » did not switch, by BotHall.open() error code
+ * Why 'Control' did not switch, by BotHall.open() error code
  * @const {object}
  */
 const CONTROL_FAILURES = {
@@ -24,6 +24,11 @@ const CONTROL_FAILURES = {
 	gone: 'this remote client left the hall.',
 	'no-answer': 'this remote client did not answer.'
 };
+
+/**
+ * @var {boolean} _opening - a 'Control' waits for the other bot's room
+ */
+let _opening = false;
 
 /**
  * @var {Array<string>} _added - the commands this module put in the chat
@@ -134,7 +139,7 @@ function onText(message) {
 }
 
 /**
- * Another remote client of the hall plays this character here: « Control » in its context menu
+ * Another remote client of the hall plays this character here: 'Control' in its context menu
  *
  * @param {string} name - a character on the map
  * @return {?object} the bot's hall row, null for anyone else and for this window's own bot
@@ -148,38 +153,41 @@ export function controllable(name) {
 }
 
 /**
- * « Control »: the other bot opens a room, this window lets go of its bot (as Exit does) and plays the other one
+ * 'Control': the other bot opens a room, this window lets go of its bot (as Exit does) and plays the other one
  *
  * @param {string} name - a controllable() character
  * @see docs/reference/network/remote-bot.md
  */
 export function takeControl(name) {
 	const bot = controllable(name);
+	const settings = BotHall.loadSettings();
+	// An answer that comes once this character left the map is no use
+	const entity = Session.Entity;
 
-	if (!bot) {
+	if (_opening) {
+		return;
+	}
+	if (!bot || !settings) {
 		ChatBox.addText('Control: ' + CONTROL_FAILURES.gone, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 
+	_opening = true;
 	BotHall.open(bot.id).then(
 		answer => {
-			const settings = BotHall.loadSettings();
+			_opening = false;
+			const room = { ...settings, room: answer.room, secret: answer.secret, character: name };
 
-			if (!settings) {
-				return;
+			if (Session.Entity === entity && RemoteBot.switchTo(room)) {
+				Escape.onExitRequest();
 			}
-			RemoteBot.switchTo({
-				relay: settings.relay,
-				relayKey: settings.relayKey,
-				room: answer.room,
-				secret: answer.secret,
-				character: name
-			});
-			Escape.onExitRequest();
 		},
 		err => {
-			const why = CONTROL_FAILURES[err.code] || 'this remote client could not open a room.';
-			ChatBox.addText('Control: ' + why, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+			_opening = false;
+			if (Session.Entity === entity) {
+				const why = CONTROL_FAILURES[err.code] || 'this remote client could not open a room.';
+				ChatBox.addText('Control: ' + why, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+			}
 		}
 	);
 }

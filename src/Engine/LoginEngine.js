@@ -218,7 +218,7 @@ class LoginEngine {
 			Configs.set('autoLogin', null);
 		} else {
 			q.add(function () {
-				// Before the screen: a room left in game is let go there
+				// Before the screen, which lets go of a room left from the game
 				RemoteBot.setLoginScreen(askRemoteLink);
 				showLoginScreen();
 			});
@@ -334,7 +334,7 @@ function showWinLogin() {
 /**
  * A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
  *
- * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+ * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string, control: ?boolean}} room
  * @see docs/reference/network/remote-bot.md
  */
 function attachRemote(room) {

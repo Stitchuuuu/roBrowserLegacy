@@ -198,7 +198,7 @@ function onReload() {
 		LoginEngine.init(_servers[0]);
 	}
 
-	// On to another remote client: the bot answers whatever the server
+	// A switch to another remote client: back to the same server, no list
 	else if (_previous_server && RemoteBot.switching()) {
 		LoginEngine.init(_previous_server);
 	} else {

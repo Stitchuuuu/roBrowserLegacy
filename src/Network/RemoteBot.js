@@ -123,6 +123,7 @@ RemoteBot.setLink = function setLink(text) {
 
 	_character = null;
 	_listRoom = false;
+	_wantControl = false;
 	join(link);
 	BotHall.rememberRelay(link.relay, link.relayKey);
 	try {
@@ -207,10 +208,15 @@ RemoteBot.takeElapsed = function takeElapsed() {
  * Another bot opened a room for this window: attached to on the next login screen, with its control
  *
  * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+ * @return {boolean} false out of the game: no switch from the login screen
  * @see docs/reference/network/remote-bot.md
  */
 RemoteBot.switchTo = function switchTo(room) {
+	if (!_inGame) {
+		return false;
+	}
 	_switch = { ...room, control: true };
+	return true;
 };
 
 /**
@@ -264,6 +270,7 @@ RemoteBot.leave = function leave() {
 		_sockets = null;
 	}
 	_character = null;
+	_wantControl = false;
 };
 
 /**
@@ -334,20 +341,20 @@ function join(link) {
 			if (!message || typeof message !== 'object') {
 				return;
 			}
-			if (message.t === 'control') {
+			const t = message.t;
+			if (t === 'control') {
 				_control = message.on === true;
-			}
-			if (message.t === 'progress') {
+			} else if (t === 'progress') {
 				_elapsed = Math.max(0, Number(message.elapsed) || 0);
 				return;
-			}
-			if (message.t === 'character') {
+			} else if (t === 'character') {
 				// The bot switched characters on its own: this character select picks the one it took
 				_character = typeof message.name === 'string' ? message.name.slice(0, 24) : null;
 				return;
 			}
 		} else {
 			_control = false;
+			_elapsed = 0;
 		}
 		if (_onText) {
 			_onText(message);

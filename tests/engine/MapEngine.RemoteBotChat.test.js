@@ -24,7 +24,9 @@ const mocks = vi.hoisted(() => ({
 	exits: 0,
 	refreshes: 0,
 	bots: [],
-	open: null
+	open: null,
+	hall: { relay: 'wss://relay.game.invalid/', relayKey: 'k1', room: 'hall', secret: 's' },
+	session: { Entity: { display: { name: 'NodeSpectate' } } }
 }));
 
 vi.mock('Network/RemoteBot.js', () => ({
@@ -44,10 +46,10 @@ vi.mock('Network/BotHall.js', () => ({
 	default: {
 		playing: (name, map) => mocks.bots.find(b => b.playing.name === name && b.playing.map === map) || null,
 		open: id => mocks.open(id),
-		loadSettings: () => ({ relay: 'wss://relay.game.invalid/', relayKey: 'k1', room: 'hall', secret: 's' })
+		loadSettings: () => mocks.hall
 	}
 }));
-vi.mock('Engine/SessionStorage.js', () => ({ default: { Entity: { display: { name: 'NodeSpectate' } } } }));
+vi.mock('Engine/SessionStorage.js', () => ({ default: mocks.session }));
 vi.mock('Renderer/MapRenderer.js', () => ({ default: { currentMap: 'prontera.gat' } }));
 vi.mock('UI/Components/Escape/Escape.js', () => ({
 	default: {
@@ -158,7 +160,7 @@ describe('RemoteBotChat: another remote client taken from the map', () => {
 	const WOLF = { id: 'b2', playing: { name: 'NodeLvbKWolf', map: 'prontera' } };
 	const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
-	it('offers « Control » on a character another bot of the hall plays here only', () => {
+	it("offers 'Control' on a character another bot of the hall plays here only", () => {
 		mocks.bots = [WOLF, { id: 'b1', playing: { name: 'NodeSpectate', map: 'prontera' } }];
 
 		expect(controllable('NodeLvbKWolf')).toBe(WOLF);
@@ -189,6 +191,44 @@ describe('RemoteBotChat: another remote client taken from the map', () => {
 		expect(mocks.switched).toEqual([]);
 		expect(mocks.exits).toBe(0);
 		expect(mocks.lines).toEqual([['Control: this remote client has too many windows open.', 0]]);
+	});
+
+	it('one open at a time: a second click while the bot answers opens nothing', async () => {
+		mocks.bots = [WOLF];
+		let opens = 0;
+		let answer;
+		mocks.open = () => (++opens, new Promise((resolve, reject) => (answer = reject)));
+		takeControl('NodeLvbKWolf');
+		takeControl('NodeLvbKWolf');
+		answer(Object.assign(new Error('busy'), { code: 'busy' }));
+		await settle();
+
+		expect(opens).toBe(1);
+	});
+
+	it('an answer that comes once this character left the map switches nothing and says nothing', async () => {
+		mocks.bots = [WOLF];
+		let answer;
+		mocks.open = () => new Promise((resolve, reject) => (answer = { resolve, reject }));
+		const before = mocks.session.Entity;
+		takeControl('NodeLvbKWolf');
+		mocks.session.Entity = null; // back to the character select, or out of the game
+		answer.resolve({ room: 'late', secret: 'x' });
+		await settle();
+		mocks.session.Entity = before;
+
+		expect(mocks.switched).toEqual([]);
+		expect(mocks.exits).toBe(0);
+	});
+
+	it('says so when the hall settings are gone', () => {
+		mocks.bots = [WOLF];
+		const kept = mocks.hall;
+		mocks.hall = null;
+		takeControl('NodeLvbKWolf');
+		mocks.hall = kept;
+
+		expect(mocks.lines).toEqual([['Control: this remote client left the hall.', 0]]);
 	});
 
 	it('takes the control once in game after a switch, not on the next map', () => {
