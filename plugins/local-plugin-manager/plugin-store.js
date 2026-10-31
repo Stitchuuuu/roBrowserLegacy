@@ -163,6 +163,11 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 	 * A bad module (missing/invalid default export) still throws here.
 	 */
 	async function exec(source) {
+		return register(await importSource(source))
+	}
+
+	/** The import half of exec : the module namespace, its default export checked. */
+	async function importSource(source) {
 		const blob = new Blob([source], { type: 'application/javascript' })
 		const blobUrl = URL.createObjectURL(blob)
 		try {
@@ -170,13 +175,39 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 			if (!mod || !mod.default || typeof mod.default.name !== 'string') {
 				throw new Error('[plugin-store] module has no valid default export ({ name, init, ... })')
 			}
-			await PluginManager.register(mod.default, mod.default.pars || null, mod)
-			const entry = PluginManager.list().find(p => p.name === mod.default.name)
-			const error = entry && entry.status === 'failed' ? entry.error : null
-			return { manifest: mod.default, error }
+			return mod
 		} finally {
 			URL.revokeObjectURL(blobUrl)
 		}
+	}
+
+	/** The register half of exec. */
+	async function register(mod) {
+		await PluginManager.register(mod.default, mod.default.pars || null, mod)
+		const entry = PluginManager.list().find(p => p.name === mod.default.name)
+		const error = entry && entry.status === 'failed' ? entry.error : null
+		return { manifest: mod.default, error }
+	}
+
+	/**
+	 * Producers before their consumers : a module is placed once every module of
+	 * the batch it names in `deps` is placed. Storage order (by slug) otherwise —
+	 * and for a cycle, which is left in that order rather than dropped.
+	 * @param {Array<{ rec: object, mod: object }>} batch
+	 */
+	function depsFirst(batch) {
+		const pending = batch.slice()
+		const ordered = []
+		const placed = Object.create(null)
+		const inBatch = Object.create(null)
+		for (const b of pending) inBatch[b.mod.default.name] = true
+		while (pending.length) {
+			const i = pending.findIndex(b => (b.mod.default.deps || []).every(d => !inBatch[d] || placed[d]))
+			const next = pending.splice(i === -1 ? 0 : i, 1)[0]
+			placed[next.mod.default.name] = true
+			ordered.push(next)
+		}
+		return ordered
 	}
 
 	/**
@@ -433,8 +464,10 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 	/**
 	 * Boot-load — exec every enabled record straight from IndexedDB. No network.
-	 * Failures are isolated (one broken plugin doesn't block the rest). Returns
-	 * a summary `{ loaded, failed }`.
+	 * Every module is imported first, then registered producers first, so a
+	 * consumer gets its stored deps whatever the slugs (`dropnotifier` sorts
+	 * before `item-db`). Failures are isolated (one broken plugin doesn't block
+	 * the rest). Returns a summary `{ loaded, failed }`.
 	 */
 	async function bootLoad() {
 		let records
@@ -446,9 +479,18 @@ export function createPluginStore({ W, PluginManager, logger, registries = [] })
 
 		log(`[plugin-store] boot-load: ${enabled.length} enabled plugin(s) from IndexedDB`)
 		let loaded = 0, failed = 0
+		const imported = []
 		for (const rec of enabled) {
 			try {
-				const { manifest, error } = await exec(rec.source)
+				imported.push({ rec, mod: await importSource(rec.source) })
+			} catch (e) {
+				failed++
+				err(`[plugin-store]   ✗ ${rec.name}: ${e.message}`)
+			}
+		}
+		for (const { rec, mod } of depsFirst(imported)) {
+			try {
+				const { manifest, error } = await register(mod)
 				if (error) {
 					failed++
 					err(`[plugin-store]   ✗ ${rec.name}: ${error}`)

@@ -123,9 +123,11 @@ export interface ItemDbRecord {
 }
 
 /** ItemDb's `init()`-return — the pre-renewal item database, keyed under
- *  `ItemDb` in a consumer's DI map. `ready` resolves once the IndexedDB cache
- *  (`ROFW_items`) is populated from the pinned bundle fetch; getters are
- *  safe to call before `ready` resolves (they return `null`/`[]`/`0`). */
+ *  `ItemDb` in a consumer's DI map. ItemDb is a registry plugin the player
+ *  installs ; without it the key is absent. `ready` resolves once the IndexedDB
+ *  cache (`ROFW_items`) is populated from the pinned bundle fetch or a loaded
+ *  file; getters are safe to call before `ready` resolves (they return
+ *  `null`/`[]`/`0`). */
 export interface ItemDbApi {
 	get(id: number | string): ItemDbRecord | null;
 	search(query: string): Array<{ id: number; name: string }>;
@@ -142,6 +144,12 @@ export interface ItemDbApi {
 	loadMobs(): Promise<Record<string, unknown>>;
 	/** One mob sheet, or null when unknown or before `loadMobs()` resolved. */
 	mob(id: number | string): unknown | null;
+	/** Uses a bundle file (`cyro.json.gz` or `cyro.mobs.json.gz`) until `useOnline()`. */
+	loadFile(file: Blob & { name?: string }): Promise<{ kind: 'items' | 'mobs'; count: number }>;
+	/** Drops any loaded file and refetches the pinned online bundle. */
+	useOnline(): Promise<void>;
+	/** Where the items come from. */
+	source(): { kind: 'online'; commit: string } | { kind: 'file'; name: string; loadedAt: string; builtAt: string | null } | null;
 	ready: Promise<Record<string, ItemDbRecord>>;
 }
 
