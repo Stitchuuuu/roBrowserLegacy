@@ -262,7 +262,10 @@ another remote client of the hall says it plays, on this map: the hall's
    the map is dropped; one click at a time.
 3. Back on the login screen, `GameEngine` skips the server list
    (`RemoteBot.switching()`) and `LoginEngine.showLoginScreen()` attaches to
-   the kept room (`takeSwitch`) instead of showing the list.
+   the kept room (`takeSwitch`) instead of showing the list. The map and its
+   music stay loaded through the switch (`MapEngine.onExitSuccess`,
+   `GameEngine.reload`): the other bot plays on this map, so its zone entry
+   takes the same-map path of `MapRenderer.setMap`, as a teleport does.
 4. Once in game, the bot's first `{t:'cmds'}` makes the window say
    `@control on` (`RemoteBot.takeWantControl()`), once.
 
