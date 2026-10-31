@@ -548,9 +548,14 @@ function receive(buf) {
 
 			_flushLogs();
 
-			// Call controller
+			// Call controller. A handler that throws must not leave the packets
+			// after it waiting in the ring until the server sends something else.
 			if (packet.callback) {
-				packet.callback(packet.instance);
+				try {
+					packet.callback(packet.instance);
+				} catch (err) {
+					console.error(`[Network] ${packet.name} handler threw:`, err);
+				}
 			}
 		} else {
 			// Grab the slot BEFORE bumping tail. If the queue is full, this slot is the
