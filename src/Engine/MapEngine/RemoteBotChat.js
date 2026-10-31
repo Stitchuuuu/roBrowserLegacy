@@ -1,15 +1,34 @@
 /**
  * Engine/MapEngine/RemoteBotChat.js
  *
- * A remote bot's slash commands and its log, in the chat
+ * A remote bot's slash commands and its log, in the chat; its control taken after a switch
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
  */
 
 import RemoteBot from 'Network/RemoteBot.js';
+import BotHall from 'Network/BotHall.js';
+import Session from 'Engine/SessionStorage.js';
+import MapRenderer from 'Renderer/MapRenderer.js';
 import Commands from 'Controls/ProcessCommand.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
+import Escape from 'UI/Components/Escape/Escape.js';
+
+/**
+ * Why 'Control' did not switch, by BotHall.open() error code
+ * @const {object}
+ */
+const CONTROL_FAILURES = {
+	busy: 'this remote client has too many windows open.',
+	gone: 'this remote client left the hall.',
+	'no-answer': 'this remote client did not answer.'
+};
+
+/**
+ * @var {boolean} _opening - a 'Control' waits for the other bot's room
+ */
+let _opening = false;
 
 /**
  * @var {Array<string>} _added - the commands this module put in the chat
@@ -76,6 +95,12 @@ function toggleLog() {
 function onText(message) {
 	if (!message) {
 		clear();
+		Escape.refreshCharSelect();
+		return;
+	}
+
+	if (message.t === 'control') {
+		Escape.refreshCharSelect();
 		return;
 	}
 
@@ -97,6 +122,10 @@ function onText(message) {
 			Commands.add('log', "show the bot's log in the chat", toggleLog);
 			_added.push('log');
 		}
+		// The bot says it once the window is in game: a switch takes its control then
+		if (RemoteBot.takeWantControl()) {
+			ChatBox.onRequestTalk('', '@control on', ChatBox.TYPE.PUBLIC);
+		}
 		return;
 	}
 
@@ -107,6 +136,60 @@ function onText(message) {
 			}
 		});
 	}
+}
+
+/**
+ * Another remote client of the hall plays this character here: 'Control' in its context menu
+ *
+ * @param {string} name - a character on the map
+ * @return {?object} the bot's hall row, null for anyone else and for this window's own bot
+ * @see docs/reference/network/remote-bot.md
+ */
+export function controllable(name) {
+	if (!RemoteBot.isActive() || name === Session.Entity.display.name) {
+		return null;
+	}
+	return BotHall.playing(name, MapRenderer.currentMap.replace(/\.[^.]*$/, ''));
+}
+
+/**
+ * 'Control': the other bot opens a room, this window lets go of its bot (as Exit does) and plays the other one
+ *
+ * @param {string} name - a controllable() character
+ * @see docs/reference/network/remote-bot.md
+ */
+export function takeControl(name) {
+	const bot = controllable(name);
+	const settings = BotHall.loadSettings();
+	// An answer that comes once this character left the map is no use
+	const entity = Session.Entity;
+
+	if (_opening) {
+		return;
+	}
+	if (!bot || !settings) {
+		ChatBox.addText('Control: ' + CONTROL_FAILURES.gone, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		return;
+	}
+
+	_opening = true;
+	BotHall.open(bot.id).then(
+		answer => {
+			_opening = false;
+			const room = { ...settings, room: answer.room, secret: answer.secret, character: name };
+
+			if (Session.Entity === entity && RemoteBot.switchTo(room)) {
+				Escape.onExitRequest();
+			}
+		},
+		err => {
+			_opening = false;
+			if (Session.Entity === entity) {
+				const why = CONTROL_FAILURES[err.code] || 'this remote client could not open a room.';
+				ChatBox.addText('Control: ' + why, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+			}
+		}
+	);
 }
 
 /**

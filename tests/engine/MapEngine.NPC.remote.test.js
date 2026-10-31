@@ -6,7 +6,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ hooks: new Map(), active: true }));
+const mocks = vi.hoisted(() => ({ hooks: new Map(), active: true, elapsed: 0 }));
 
 vi.mock('Network/NetworkManager.js', () => ({
 	default: {
@@ -14,13 +14,25 @@ vi.mock('Network/NetworkManager.js', () => ({
 		sendPacket: vi.fn()
 	}
 }));
-vi.mock('Network/RemoteBot.js', () => ({ default: { isActive: () => mocks.active } }));
+vi.mock('Network/RemoteBot.js', () => ({
+	default: {
+		isActive: () => mocks.active,
+		takeElapsed: () => {
+			const elapsed = mocks.elapsed;
+			mocks.elapsed = 0;
+			return elapsed;
+		}
+	}
+}));
 vi.mock('Core/Client.js', () => ({ default: { loadFile: vi.fn(), loadFiles: vi.fn() } }));
 
 const NPCEngine = (await import('Engine/MapEngine/NPC.js')).default;
 const PACKET = (await import('Network/PacketStructure.js')).default;
 const NpcBox = (await import('UI/Components/NpcBox/NpcBox.js')).default;
 const NpcMenu = (await import('UI/Components/NpcMenu/NpcMenu.js')).default;
+const Session = (await import('Engine/SessionStorage.js')).default;
+const Network = (await import('Network/NetworkManager.js')).default;
+const EntityCastInit = (await import('Renderer/Entity/EntityCast.js')).default;
 
 const NAID = 110000123;
 
@@ -101,5 +113,37 @@ describe('NPC dialog in a normal window', () => {
 
 		deliver(PACKET.ZC.CLOSE_DIALOG, {});
 		expect(NpcBox.__active).toBe(true);
+	});
+});
+
+describe('progress bar', () => {
+	beforeEach(() => {
+		Session.Entity = {};
+		EntityCastInit.call(Session.Entity);
+		Network.sendPacket.mockClear();
+	});
+
+	it("on a remote bot, starts from what has run of the bot's bar, and never answers it: the bot does", () => {
+		mocks.active = true;
+		mocks.elapsed = 37000;
+		deliver(PACKET.ZC.PROGRESS, { color: 0x00b5ff, time: 120 });
+		const cast = Session.Entity.cast;
+		const run = Date.now() - cast.tick;
+
+		expect(cast.delay).toBe(120000);
+		expect(run).toBeGreaterThanOrEqual(37000);
+		expect(run).toBeLessThan(38000);
+		cast.clean();
+		expect(Network.sendPacket).not.toHaveBeenCalled();
+	});
+
+	it('in a normal window, starts now and answers at the end', () => {
+		mocks.active = false;
+		const before = Date.now();
+		deliver(PACKET.ZC.PROGRESS, { color: 0, time: 5 });
+
+		expect(Session.Entity.cast.tick).toBeGreaterThanOrEqual(before);
+		Session.Entity.cast.clean();
+		expect(Network.sendPacket).toHaveBeenCalledTimes(1);
 	});
 });

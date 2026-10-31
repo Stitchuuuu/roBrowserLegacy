@@ -232,6 +232,27 @@ describe('bootLoad', () => {
 		const summary = await store.bootLoad();
 		expect(summary).toEqual({ loaded: 1, failed: 1 });
 	});
+
+	it('registers a stored producer before its consumer, whatever the slugs', async () => {
+		// `a-consumer` sorts before `z-producer` in storage, like dropnotifier before item-db.
+		await store.installFromSource(
+			"export default { name: 'Consumer', version: '1.0.0', deps: ['Producer'], init() { return true } }",
+			'a-consumer'
+		);
+		await store.installFromSource(sourceFor('Producer'), 'z-producer');
+
+		PluginManager = createFakePluginManager();
+		const order = [];
+		const register = PluginManager.register;
+		PluginManager.register = (def, pars, mod) => {
+			order.push(def.name);
+			return register(def, pars, mod);
+		};
+		store = createPluginStore({ W, PluginManager, logger: { log() {}, warn() {}, error() {} } });
+
+		expect(await store.bootLoad()).toEqual({ loaded: 2, failed: 0 });
+		expect(order).toEqual(['Producer', 'Consumer']);
+	});
 });
 
 describe('listInstalled', () => {

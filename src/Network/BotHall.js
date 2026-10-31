@@ -169,6 +169,21 @@ BotHall.bots = function bots() {
 };
 
 /**
+ * @param {string} name - a character
+ * @param {string} map - without its extension
+ * @return {?object} the bot that says it plays this character on this map
+ */
+BotHall.playing = function playing(name, map) {
+	for (const id in _bots) {
+		const p = _bots[id].playing;
+		if (p && p.name === name && p.map === map) {
+			return _bots[id];
+		}
+	}
+	return null;
+};
+
+/**
  * @return {number} members of the hall that have not said who they are yet
  */
 BotHall.waiting = function waiting() {

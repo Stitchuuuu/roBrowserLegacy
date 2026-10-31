@@ -55,8 +55,10 @@ joins it at every start, `--spectate-rtc` or not.
 | **Remote characters** (`UI/Components/RemoteCharacters`) | the login screen once settings are saved: one row per remote client, « Normal login » for the usual window |
 | « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window, once this browser has a relay: the list, or the settings the first time |
 
-`Network/BotHall.js` joins the hall when the list shows (never at load) and
-leaves it once the login is accepted. Everyone joins with `connect: 'manual'`
+`Network/BotHall.js` joins the hall when the list shows (never at load). It
+leaves it once a login by hand is accepted; logged in through a remote client,
+the window stays in the hall: it names the other remote clients on the map
+(« Control », below), at one more relay connection per window. Everyone joins with `connect: 'manual'`
 and `max: 40`: the page calls each member, bots call nobody, so no two bots
 are linked (a library room is otherwise a full mesh). `max` counts every
 member, linked or not, and the relay caps it (`RELAY_ROOM_MAX`); each bot
@@ -203,6 +205,12 @@ Beside the records, the room carries JSON text both ways
 | `{t:'cmds', v:1, list:[{name, aliases, help}]}` | bot → window | once the window is in game: each name and alias becomes a slash command of the chat, plus `/log` |
 | `{t:'log', v:1, on}` | window → bot | `/log`, then `/log` again |
 | `{t:'log', v:1, lines:[…]}` | bot → window | its console's last 50 lines at once, then what comes, every 500 ms at most, 200 lines a batch at most |
+| `{t:'control', v:1, on}` | bot → window | whether this window holds the bot's control: on every `@control`, and each time the window is in game, so a control the bot let go of meanwhile reads off (`RemoteBot.hasControl()`) |
+| `{t:'progress', v:1, elapsed}` | bot → window | before the records of a snapshot that carries a progress bar: the ms it has already run (`RemoteBot.takeElapsed()`) |
+| `{t:'character', v:1, name}` | bot → window | before the char list, when the bot switched characters on its own: the one the window picks (`RemoteBot.takeCharacter()`) |
+
+`RemoteBot` keeps `control`, `progress` and `character` itself;
+`RemoteBotChat` also hears `control`, to show or hide « Character select ».
 
 - A bot command typed in the chat (`/status 2`) is sent as public chat
   `@@status 2`. The bot's responder takes any chat line starting with `@@`,
@@ -222,6 +230,59 @@ Beside the records, the room carries JSON text both ways
 - Only the WebRTC mode has the text: the WebSocket attach of the dev page
   (`#spectate`) gets no commands and no `/log`, though `@@<command>` typed in
   its chat still reaches the bot.
+
+## Control, and another remote client
+
+A window watches until `@control on` (typed in the chat or a whisper; the
+bot's responder takes it, the line never reaches the server). The bot then
+says `{t:'control', on}` and the window shows **Character select** in its
+Escape menu again (`Escape.refreshCharSelect`): with the control, the
+character select lists every character of the bot's account, and picking
+another one makes the bot switch first (`/charselect <slot>`), then answers
+the window. Without it, the character select would be the bot's only.
+
+When the bot switches characters on its own (a routine, its console), its
+responder sends every window in game to the character select (a
+`ZC_RESTART_ACK`, once the server agreed: it refuses during a fight), keeps a
+window's control there, and names the character the bot took before the list
+(`{t:'character'}`): the window enters it with its own look, not the one it
+had.
+
+**« Control »** in a player's context menu (`Controls/EntityControl.js`,
+`RemoteBotChat.controllable` / `takeControl`) shows on a character that
+another remote client of the hall says it plays, on this map: the hall's
+`hello` names it (`BotHall.playing(name, map)`). Clicked:
+
+1. `BotHall.open()` asks that bot for a room, as the list does. A refusal
+   (busy, gone, no answer) is a chat line, and the window stays where it is.
+2. `RemoteBot.switchTo(room)` keeps the room, then the window leaves as
+   **Exit to Windows** does (its `CZ_REQUEST_QUIT` is answered by the bot,
+   never forwarded): the bot it leaves gives the control back and its routine
+   resumes, as on `@control off`. An answer that comes once the character left
+   the map is dropped; one click at a time.
+3. Back on the login screen, `GameEngine` skips the server list
+   (`RemoteBot.switching()`) and `LoginEngine.showLoginScreen()` attaches to
+   the kept room (`takeSwitch`) instead of showing the list. The map and its
+   music stay loaded through the switch (`MapEngine.onExitSuccess`,
+   `GameEngine.reload`): the other bot plays on this map, so its zone entry
+   takes the same-map path of `MapRenderer.setMap`, as a teleport does.
+4. Once in game, the bot's first `{t:'cmds'}` makes the window say
+   `@control on` (`RemoteBot.takeWantControl()`), once.
+
+The login screen re-arms the mode (`RemoteBot.setLoginScreen`) before it
+shows, so a room left from the game is let go there, not at the next attach.
+
+## Progress bars
+
+A server progress bar (`ZC_PROGRESS`: a color and seconds, the `progressbar`
+script command) is answered by the bot: its client sends `CZ_PROGRESS` once
+the time is over. An answer before the server's own end **cancels** the bar —
+the script ENDs and what it was to give is lost — so the window never sends
+one in the mode (`NPC.js` arms no `onComplete`), and the bot's uplink drops
+one from an older window anyway. A window that attaches during a bar is told
+how long it has run before the snapshot, and draws it from there
+(`Entity.cast.tick` moved back by that time). Once the bot answers, the
+snapshot no longer carries the bar.
 
 ## Encryption
 
