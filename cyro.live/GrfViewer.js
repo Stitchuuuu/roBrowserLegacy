@@ -209331,6 +209331,14 @@ function str(value, max, what) {
 	return value;
 }
 /**
+* @param {*} value
+* @return {string}
+*/
+function callName(value) {
+	if (typeof value !== "string" || !CALL_NAME.test(value)) fail("name is not 1 to 32 of a-z 0-9 . _ - starting with a letter");
+	return value;
+}
+/**
 * @param {*} c
 * @param {string} what
 * @return {{name: string, job: number, lv: number}}
@@ -209396,17 +209404,50 @@ function normalize(m) {
 			id: int(m.id, MAX_ID, "id"),
 			why: str(m.why, MAX_KIND, "why")
 		};
+		case "call": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id"),
+			name: callName(m.name),
+			data: m.data ?? null
+		};
+		case "ret": {
+			const id = int(m.id, MAX_ID, "id");
+			if (m.ok === true) return {
+				t,
+				v,
+				id,
+				ok: true,
+				data: m.data ?? null
+			};
+			if (m.ok !== false) fail("ok is not a boolean");
+			return {
+				t,
+				v,
+				id,
+				ok: false,
+				why: str(m.why, MAX_KIND, "why")
+			};
+		}
+		case "ev": return {
+			t,
+			v,
+			name: callName(m.name),
+			data: m.data ?? null
+		};
 		default: return null;
 	}
 }
 /**
 * @param {object} m
-* @return {string}
+* @return {string} throws on an unknown or malformed message, or one longer than MAX_TEXT
 */
 function encode(m) {
 	const n = normalize(m);
 	if (!n) fail(`unknown t ${m.t}`);
-	return JSON.stringify(n);
+	const text = JSON.stringify(n);
+	if (text.length > 8192) fail(`longer than ${MAX_TEXT}`);
+	return text;
 }
 /**
 * @param {*} data - what a peer sent
@@ -209423,7 +209464,7 @@ function parse(data) {
 	}
 	return normalize(m);
 }
-var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID;
+var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID, CALL_NAME;
 var init_HallMessages = __esmMin((() => {
 	MAX_TEXT = 8192;
 	MAX_NAME = 32;
@@ -209431,6 +209472,7 @@ var init_HallMessages = __esmMin((() => {
 	MAX_ROOM = 64;
 	MAX_SECRET = 128;
 	MAX_ID = 2147483647;
+	CALL_NAME = /^[a-z][a-z0-9._-]{0,31}$/;
 }));
 // src/Network/BotHall.js
 /**
@@ -209479,15 +209521,27 @@ function link(room, peer) {
 				peer
 			});
 			changed();
-		} else if ((m.t === "room" || m.t === "no") && _opens[m.id] && _opens[m.id].peer === peer.id) settle(m.id, m.t === "room" ? {
+		} else if (m.t === "ev") tell("ev", peer.id, m.name, m.data);
+		else if (asked(m, peer) === "room") settle(m.id, m.t === "room" ? {
 			room: m.room,
 			secret: m.secret
 		} : null, m.why);
+		else if (asked(m, peer) === "ret") settle(m.id, m.ok ? { data: m.data } : null, m.why);
 	});
 	send$1(peer, {
 		t: "who",
 		v: 1
 	});
+}
+/**
+* @param {object} m - an answer
+* @param {object} peer - who sent it
+* @return {?string} the answer awaited under its id from that peer, if it is one
+*/
+function asked(m, peer) {
+	const pending = _asked[m.id];
+	const t = m.t === "no" ? "room" : m.t;
+	return pending && pending.peer === peer.id && pending.t === t ? t : null;
 }
 /**
 * @param {object} peer
@@ -209497,23 +209551,37 @@ function send$1(peer, m) {
 	peer.send(encode(m)).catch(() => {});
 }
 /**
-* @param {number} n - open id
-* @param {?object} answer
+* @param {number} n - open or call id
+* @param {?object} answer - a call's is {data}
 * @param {?string} code - why it failed
 */
 function settle(n, answer, code) {
-	const pending = _opens[n];
+	const pending = _asked[n];
 	if (!pending) return;
-	delete _opens[n];
+	delete _asked[n];
 	clearTimeout(pending.timer);
-	if (answer) pending.resolve(answer);
-	else pending.reject(Object.assign(/* @__PURE__ */ new Error(`open refused: ${code}`), { code }));
+	if (!answer) {
+		const what = pending.t === "room" ? "open" : "call";
+		pending.reject(Object.assign(/* @__PURE__ */ new Error(`${what} refused: ${code}`), { code }));
+	} else if (pending.t === "ret") pending.resolve(answer.data);
+	else pending.resolve(answer);
 }
 /**
-* Tell the list
+* Tell the list and the watchers
 */
 function changed() {
 	if (_onChange) _onChange();
+	tell("change");
+}
+/**
+* @param {...*} args - what the watchers are told
+*/
+function tell(...args) {
+	for (const fn of _watchers) try {
+		fn(...args);
+	} catch (err) {
+		console.warn(`[BotHall] a watcher failed: ${err.message}`);
+	}
 }
 /**
 * ?relay=<wss url>[&key=<relay key>] keeps the relay, then leaves the address bar
@@ -209528,7 +209596,7 @@ function init$17() {
 	const search = params.toString();
 	history.replaceState(history.state, "", `${window.location.pathname}${search ? "?" + search : ""}${window.location.hash}`);
 }
-var SETTINGS_KEY, RELAY_KEY, HALL_MAX, OPEN_WAIT_MS, _room, _state, _bots, _opens, _nextOpen, _onChange, BotHall;
+var SETTINGS_KEY, RELAY_KEY, HALL_MAX, OPEN_WAIT_MS, CALL_WAIT_MS, _room, _state, _bots, _asked, _nextId, _onChange, _watchers, _keep, BotHall;
 var init_BotHall = __esmMin((() => {
 	init_signal();
 	init_HallMessages();
@@ -209536,12 +209604,15 @@ var init_BotHall = __esmMin((() => {
 	RELAY_KEY = "botHallRelay";
 	HALL_MAX = 40;
 	OPEN_WAIT_MS = 15e3;
+	CALL_WAIT_MS = 1e4;
 	_room = null;
 	_state = "off";
 	_bots = Object.create(null);
-	_opens = Object.create(null);
-	_nextOpen = 1;
+	_asked = Object.create(null);
+	_nextId = 1;
 	_onChange = null;
+	_watchers = [];
+	_keep = false;
 	BotHall = {};
 	/**
 	* @return {?{relay: string, relayKey: string, room: string, secret: string}} the saved settings
@@ -209616,6 +209687,29 @@ var init_BotHall = __esmMin((() => {
 		_onChange = fn;
 	};
 	/**
+	* @param {function(string, ...*)} fn - called with ('change') when the list or the state changes, and with
+	*  ('ev', botId, name, data) for each event a bot sends
+	* @return {function} stops it
+	*/
+	BotHall.watch = function watch(fn) {
+		_watchers.push(fn);
+		return () => {
+			_watchers = _watchers.filter((w) => w !== fn);
+		};
+	};
+	/**
+	* @param {boolean} on - the hall stays joined in game while on
+	*/
+	BotHall.keep = function keep(on) {
+		_keep = !!on;
+	};
+	/**
+	* @return {boolean} the hall stays joined in game
+	*/
+	BotHall.kept = function kept() {
+		return _keep;
+	};
+	/**
 	* @return {string} off, joining, in, or the library code that closed the hall
 	*/
 	BotHall.state = function state() {
@@ -209628,6 +209722,18 @@ var init_BotHall = __esmMin((() => {
 		const list = [];
 		for (const id in _bots) list.push(_bots[id]);
 		return list.sort((a, b) => label(a).localeCompare(label(b)));
+	};
+	/**
+	* @param {string} name - a character
+	* @param {string} map - without its extension
+	* @return {?object} the bot that says it plays this character on this map
+	*/
+	BotHall.playing = function playing(name, map) {
+		for (const id in _bots) {
+			const p = _bots[id].playing;
+			if (p && p.name === name && p.map === map) return _bots[id];
+		}
+		return null;
 	};
 	/**
 	* @return {number} members of the hall that have not said who they are yet
@@ -209663,7 +209769,7 @@ var init_BotHall = __esmMin((() => {
 		room.on("leave", (peer) => {
 			if (room !== _room) return;
 			delete _bots[peer.id];
-			for (const n in _opens) if (_opens[n].peer === peer.id) settle(Number(n), null, "gone");
+			for (const n in _asked) if (_asked[n].peer === peer.id) settle(Number(n), null, "gone");
 			changed();
 			if (room.members.indexOf(peer.id) >= 0) call(room, peer.id);
 		});
@@ -209674,7 +209780,7 @@ var init_BotHall = __esmMin((() => {
 			if (room !== _room) return;
 			_state = err ? err.code : "off";
 			_bots = Object.create(null);
-			for (const n in _opens) settle(Number(n), null, "gone");
+			for (const n in _asked) settle(Number(n), null, "gone");
 			changed();
 		});
 		room.ready.then(() => {
@@ -209693,7 +209799,7 @@ var init_BotHall = __esmMin((() => {
 		_room = null;
 		_state = "off";
 		_bots = Object.create(null);
-		for (const id in _opens) settle(Number(id), null, "gone");
+		for (const id in _asked) settle(Number(id), null, "gone");
 		if (room) {
 			room.leave();
 			changed();
@@ -209708,10 +209814,11 @@ var init_BotHall = __esmMin((() => {
 	*/
 	BotHall.open = function open(id) {
 		const bot = _bots[id];
-		const n = _nextOpen++;
+		const n = _nextId++;
 		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
 		return new Promise((resolve, reject) => {
-			_opens[n] = {
+			_asked[n] = {
+				t: "room",
 				peer: id,
 				resolve,
 				reject,
@@ -209723,6 +209830,67 @@ var init_BotHall = __esmMin((() => {
 				id: n
 			});
 		});
+	};
+	/**
+	* Ask a bot for one of the names it serves
+	*
+	* @param {string} id - the bot's peer id
+	* @param {string} name - a-z first, then a-z 0-9 . _ -
+	* @param {*} data - any JSON value
+	* @param {number} [ms] - how long it has to answer
+	* @return {Promise<*>} what it returned; rejected with an Error whose code is the bot's why, gone, no-answer or big
+	* @see docs/reference/network/remote-bot.md
+	*/
+	BotHall.call = function callName(id, name, data, ms) {
+		const bot = _bots[id];
+		const n = _nextId++;
+		let text;
+		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
+		try {
+			text = encode({
+				t: "call",
+				v: 1,
+				id: n,
+				name,
+				data
+			});
+		} catch (err) {
+			return Promise.reject(Object.assign(err, { code: "big" }));
+		}
+		return new Promise((resolve, reject) => {
+			_asked[n] = {
+				t: "ret",
+				peer: id,
+				resolve,
+				reject,
+				timer: setTimeout(() => settle(n, null, "no-answer"), ms || CALL_WAIT_MS)
+			};
+			bot.peer.send(text).catch(() => {});
+		});
+	};
+	/**
+	* Send a bot an event; nothing comes back
+	*
+	* @param {string} id - the bot's peer id
+	* @param {string} name
+	* @param {*} data
+	* @return {boolean} sent: the bot is listed and the event fits
+	*/
+	BotHall.emit = function emit(id, name, data) {
+		const bot = _bots[id];
+		if (!bot) return false;
+		try {
+			send$1(bot.peer, {
+				t: "ev",
+				v: 1,
+				name,
+				data
+			});
+		} catch (err) {
+			console.warn(`[BotHall] ${err.message}, event ${name} not sent`);
+			return false;
+		}
+		return true;
 	};
 	init$17();
 }));
@@ -209738,6 +209906,8 @@ function join(link) {
 		...link,
 		max: 2
 	}));
+	_control = false;
+	_elapsed = 0;
 	_sockets$1.onText = (text) => {
 		let message = null;
 		if (text !== null) {
@@ -209747,6 +209917,18 @@ function join(link) {
 				return;
 			}
 			if (!message || typeof message !== "object") return;
+			const t = message.t;
+			if (t === "control") _control = message.on === true;
+			else if (t === "progress") {
+				_elapsed = Math.max(0, Number(message.elapsed) || 0);
+				return;
+			} else if (t === "character") {
+				_character = typeof message.name === "string" ? message.name.slice(0, 24) : null;
+				return;
+			}
+		} else {
+			_control = false;
+			_elapsed = 0;
 		}
 		if (_onText) _onText(message);
 	};
@@ -209785,7 +209967,7 @@ function init$16() {
 	if (stored) join(stored);
 	else _asking = true;
 }
-var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, _onText, RemoteBot;
+var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, _onText, _control, _elapsed, _switch, _wantControl, RemoteBot;
 var init_RemoteBot = __esmMin((() => {
 	init_signal();
 	init_RtcSockets();
@@ -209807,6 +209989,10 @@ var init_RemoteBot = __esmMin((() => {
 	_listRoom = false;
 	_inGame = false;
 	_onText = null;
+	_control = false;
+	_elapsed = 0;
+	_switch = null;
+	_wantControl = false;
 	RemoteBot = {};
 	/**
 	* @return {boolean} the game sockets go to the bot
@@ -209834,6 +210020,7 @@ var init_RemoteBot = __esmMin((() => {
 		if (_inGame || !link || !link.relay) return false;
 		_character = null;
 		_listRoom = false;
+		_wantControl = false;
 		join(link);
 		BotHall.rememberRelay(link.relay, link.relayKey);
 		try {
@@ -209844,7 +210031,8 @@ var init_RemoteBot = __esmMin((() => {
 	/**
 	* Use a room a bot opened for this window (the bot list): nothing kept, a reload goes back to the list
 	*
-	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room - character: the one the bot plays
+	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string, control: ?boolean}} room -
+	*   character: the one the bot plays; control: take its control once in game
 	* @return {boolean} false once the login is over
 	* @see docs/reference/network/remote-bot.md
 	*/
@@ -209852,6 +210040,7 @@ var init_RemoteBot = __esmMin((() => {
 		if (_inGame) return false;
 		_character = room.character || null;
 		_listRoom = true;
+		_wantControl = !!room.control;
 		join({
 			relay: room.relay,
 			relayKey: room.relayKey || void 0,
@@ -209873,6 +210062,62 @@ var init_RemoteBot = __esmMin((() => {
 		const name = _sockets$1 ? _character : null;
 		_character = null;
 		return name;
+	};
+	/**
+	* @return {boolean} the bot said this window holds its control
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteBot.hasControl = function hasControl() {
+		return !!_sockets$1 && _control;
+	};
+	/**
+	* Whether to take the control now that the window is in game: once per room
+	*
+	* @return {boolean}
+	*/
+	RemoteBot.takeWantControl = function takeWantControl() {
+		const want = _wantControl;
+		_wantControl = false;
+		return want;
+	};
+	/**
+	* How much of the progress bar the snapshot carries has already run: once
+	*
+	* @return {number} ms
+	*/
+	RemoteBot.takeElapsed = function takeElapsed() {
+		const elapsed = _elapsed;
+		_elapsed = 0;
+		return elapsed;
+	};
+	/**
+	* Another bot opened a room for this window: attached to on the next login screen, with its control
+	*
+	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+	* @return {boolean} false out of the game: no switch from the login screen
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteBot.switchTo = function switchTo(room) {
+		if (!_inGame) return false;
+		_switch = {
+			...room,
+			control: true
+		};
+		return true;
+	};
+	/**
+	* @return {boolean} a room switchTo() kept waits for the login screen
+	*/
+	RemoteBot.switching = function switching() {
+		return !!_switch;
+	};
+	/**
+	* @return {?object} the room switchTo() kept, once
+	*/
+	RemoteBot.takeSwitch = function takeSwitch() {
+		const room = _switch;
+		_switch = null;
+		return room;
 	};
 	/**
 	* Who takes the bot's text messages (its commands, its log)
@@ -209903,6 +210148,7 @@ var init_RemoteBot = __esmMin((() => {
 			_sockets$1 = null;
 		}
 		_character = null;
+		_wantControl = false;
 	};
 	/**
 	* The login screen is shown (with its paste box), or left for good
@@ -239193,12 +239439,12 @@ var init_PatchNotes = __esmMin((() => {
 // src/UI/Components/Escape/Escape.html?raw
 var Escape_default$2;
 var init_Escape$2 = __esmMin((() => {
-	Escape_default$2 = "<div id=\"Escape\" data-background=\"basic_interface/titlebar_fix.bmp\">\r\n	<div class=\"top\">\r\n		<button\r\n			class=\"node\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-hover=\"basic_interface/sys_base_on.bmp\"\r\n		></button>\r\n		<div class=\"title\" data-text=\"1483\">Select Option</div>\r\n	</div>\r\n\r\n	<div class=\"container\">\r\n		<button\r\n			class=\"resurection\"\r\n			data-background=\"esc_05a.bmp\"\r\n			data-hover=\"esc_05b.bmp\"\r\n			data-down=\"esc_05c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"savepoint\"\r\n			data-background=\"esc_04a.bmp\"\r\n			data-hover=\"esc_04b.bmp\"\r\n			data-down=\"esc_04c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"charselect\"\r\n			data-background=\"esc_01a.bmp\"\r\n			data-hover=\"esc_01b.bmp\"\r\n			data-down=\"esc_01c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"graphics\"\r\n			data-background=\"esc_06a.bmp\"\r\n			data-hover=\"esc_06b.bmp\"\r\n			data-down=\"esc_06c.bmp\"\r\n		></button>\r\n		<button class=\"sound\" data-background=\"esc_07a.bmp\" data-hover=\"esc_07b.bmp\" data-down=\"esc_07c.bmp\"></button>\r\n		<button class=\"hotkey\" data-background=\"esc_08a.bmp\" data-hover=\"esc_08b.bmp\" data-down=\"esc_08c.bmp\"></button>\r\n		<button class=\"exit\" data-background=\"esc_03a.bmp\" data-hover=\"esc_03b.bmp\" data-down=\"esc_03c.bmp\"></button>\r\n		<button class=\"cancel\" data-background=\"esc_02a.bmp\" data-hover=\"esc_02b.bmp\" data-down=\"esc_02c.bmp\"></button>\r\n	</div>\r\n	<div class=\"version\"></div>\r\n</div>\r\n";
+	Escape_default$2 = "<div id=\"Escape\" data-background=\"basic_interface/titlebar_fix.bmp\">\r\n	<div class=\"top\">\r\n		<button\r\n			class=\"node\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-hover=\"basic_interface/sys_base_on.bmp\"\r\n		></button>\r\n		<div class=\"title\" data-text=\"1483\">Select Option</div>\r\n	</div>\r\n\r\n	<div class=\"container\">\r\n		<button\r\n			class=\"resurection\"\r\n			data-background=\"esc_05a.bmp\"\r\n			data-hover=\"esc_05b.bmp\"\r\n			data-down=\"esc_05c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"savepoint\"\r\n			data-background=\"esc_04a.bmp\"\r\n			data-hover=\"esc_04b.bmp\"\r\n			data-down=\"esc_04c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"charselect\"\r\n			data-background=\"esc_01a.bmp\"\r\n			data-hover=\"esc_01b.bmp\"\r\n			data-down=\"esc_01c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"graphics\"\r\n			data-background=\"esc_06a.bmp\"\r\n			data-hover=\"esc_06b.bmp\"\r\n			data-down=\"esc_06c.bmp\"\r\n		></button>\r\n		<button class=\"sound\" data-background=\"esc_07a.bmp\" data-hover=\"esc_07b.bmp\" data-down=\"esc_07c.bmp\"></button>\r\n		<button class=\"hotkey\" data-background=\"esc_08a.bmp\" data-hover=\"esc_08b.bmp\" data-down=\"esc_08c.bmp\"></button>\r\n		<button class=\"exit\" data-background=\"esc_03a.bmp\" data-hover=\"esc_03b.bmp\" data-down=\"esc_03c.bmp\"></button>\r\n		<ui-button class=\"disconnect\" skin=\"basic_interface/btn\">Disconnect &amp; Exit</ui-button>\r\n		<button class=\"cancel\" data-background=\"esc_02a.bmp\" data-hover=\"esc_02b.bmp\" data-down=\"esc_02c.bmp\"></button>\r\n	</div>\r\n	<div class=\"version\"></div>\r\n</div>\r\n";
 }));
 // src/UI/Components/Escape/Escape.css?raw
 var Escape_default$1;
 var init_Escape$1 = __esmMin((() => {
-	Escape_default$1 = ":host {\r\n	width: 280px;\r\n	height: auto;\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n#Escape {\r\n	width: 280px;\r\n	height: auto;\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .node {\r\n	width: 11px;\r\n	height: 11px;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 4px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .title {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 18px;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#Escape .container {\r\n	width: 220px;\r\n	height: auto;\r\n	padding: 20px 30px 6px 30px;\r\n}\r\n\r\n#Escape .container button {\r\n	width: 221px;\r\n	height: 20px;\r\n	margin-top: 3px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .version {\r\n	padding: 0 30px 6px 30px;\r\n	text-align: right;\r\n	font-size: 11px;\r\n	color: #666;\r\n	cursor: pointer;\r\n}\r\n#Escape .version:hover {\r\n	text-decoration: underline;\r\n}\r\n";
+	Escape_default$1 = ":host {\r\n	width: 280px;\r\n	height: auto;\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n#Escape {\r\n	width: 280px;\r\n	height: auto;\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .node {\r\n	width: 11px;\r\n	height: 11px;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 4px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .title {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 18px;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#Escape .container {\r\n	width: 220px;\r\n	height: auto;\r\n	padding: 20px 30px 6px 30px;\r\n}\r\n\r\n#Escape .container button {\r\n	width: 221px;\r\n	height: 20px;\r\n	margin-top: 3px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .container ui-button.disconnect {\r\n	box-sizing: border-box;\r\n	width: 221px;\r\n	margin: 3px 0;\r\n}\r\n\r\n#Escape .version {\r\n	padding: 0 30px 6px 30px;\r\n	text-align: right;\r\n	font-size: 11px;\r\n	color: #666;\r\n	cursor: pointer;\r\n}\r\n#Escape .version:hover {\r\n	text-decoration: underline;\r\n}\r\n";
 }));
 // src/UI/Components/Escape/Escape.js
 /**
@@ -239221,6 +239467,20 @@ function onToggleGraphicUI() {
 function onToggleShortcutUI() {
 	if (!ShortCutOption_default._host || !ShortCutOption_default._host.parentNode) ShortCutOption_default.append();
 	else ShortCutOption_default.remove();
+}
+/**
+* Disconnect & Exit, on a remote bot: once confirmed, the bot logs out, then the window quits
+*
+* @see docs/reference/network/remote-bot.md
+*/
+function onDisconnectRequest() {
+	UIManager.showPromptBox("The bot logs out and its routine stops. Continue?", "ok", "cancel", function() {
+		RemoteBot.sendText({
+			t: "logout",
+			v: 1
+		});
+		Escape.onExitRequest();
+	});
 }
 var Escape, Escape_default;
 var init_Escape = __esmMin((() => {
@@ -239275,6 +239535,7 @@ var init_Escape = __esmMin((() => {
 		root.querySelector(".exit").addEventListener("click", function() {
 			Escape.onExitRequest();
 		});
+		root.querySelector(".disconnect").addEventListener("click", onDisconnectRequest);
 		root.querySelector(".cancel").addEventListener("click", function() {
 			Escape._host.style.display = "none";
 		});
@@ -239287,7 +239548,17 @@ var init_Escape = __esmMin((() => {
 	*/
 	Escape.onAppend = function onAppend() {
 		this._host.style.display = "none";
-		this.getRoot().querySelector(".charselect").style.display = RemoteBot.isActive() ? "none" : "";
+		Escape.refreshCharSelect();
+		this.getRoot().querySelector(".disconnect").style.display = RemoteBot.isActive() ? "" : "none";
+	};
+	/**
+	* On a remote bot the character select is the bot's: offered only while this window holds its control
+	*
+	* @see docs/reference/network/remote-bot.md
+	*/
+	Escape.refreshCharSelect = function refreshCharSelect() {
+		const shown = !RemoteBot.isActive() || RemoteBot.hasControl();
+		this.getRoot().querySelector(".charselect").style.display = shown ? "" : "none";
 	};
 	/**
 	* Reset buttons once UI is removed
@@ -242765,6 +243036,55 @@ var init_Reputation = __esmMin((() => {
 	Network.hookPacket(PACKET.ZC_REPUTE_OPEN, onReputeOpen);
 	Reputation_default = UIManager.addComponent(Reputation);
 }));
+// src/UI/Components/BasicInfo/RemoteControlPill.css?raw
+var RemoteControlPill_default;
+var init_RemoteControlPill$1 = __esmMin((() => {
+	RemoteControlPill_default = "/* Over the end of a long name, left of the minimize button: see docs/reference/network/remote-bot.md */\r\n.topbar .remote-control {\r\n	position: absolute;\r\n	top: 2px;\r\n	right: 17px;\r\n	z-index: 2;\r\n	height: 12px;\r\n	padding: 0 5px;\r\n	border: 1px solid #9aa4b4;\r\n	border-radius: 7px;\r\n	background: linear-gradient(#fff, #e3e7ee);\r\n	box-shadow: -4px 0 3px #e3e9f4;\r\n	font:\r\n		bold 10px/12px Arial,\r\n		sans-serif;\r\n	color: #666;\r\n	white-space: nowrap;\r\n	cursor: pointer;\r\n}\r\n\r\n.topbar .remote-control:hover {\r\n	border-color: #5b6f94;\r\n}\r\n\r\n.topbar .remote-control.on {\r\n	border-color: #6aa36a;\r\n	background: linear-gradient(#fff, #e2f2e2);\r\n	color: #1f7a1f;\r\n}\r\n";
+}));
+// src/UI/Components/BasicInfo/RemoteControlPill.js
+var _pills, RemoteControlPill;
+var init_RemoteControlPill = __esmMin((() => {
+	init_RemoteBot();
+	init_ChatBox();
+	init_RemoteControlPill$1();
+	_pills = [];
+	RemoteControlPill = {};
+	/**
+	* Put the pill in an info window's title bar, once
+	*
+	* @param {HTMLElement} topbar
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteControlPill.attach = function attach(topbar) {
+		if (topbar.querySelector(".remote-control")) return;
+		const style = document.createElement("style");
+		style.textContent = RemoteControlPill_default;
+		topbar.getRootNode().appendChild(style);
+		const pill = document.createElement("button");
+		pill.className = "remote-control";
+		pill.addEventListener("mousedown", (event) => event.stopImmediatePropagation());
+		pill.addEventListener("click", () => {
+			ChatBox_default.onRequestTalk("", RemoteBot.hasControl() ? "@control off" : "@control on", ChatBox_default.TYPE.PUBLIC);
+		});
+		topbar.appendChild(pill);
+		_pills.push(pill);
+		RemoteControlPill.refresh();
+	};
+	/**
+	* Show the control the bot last said this window holds
+	*/
+	RemoteControlPill.refresh = function refresh() {
+		const active = RemoteBot.isActive();
+		const on = RemoteBot.hasControl();
+		for (let i = 0; i < _pills.length; ++i) {
+			const pill = _pills[i];
+			pill.style.display = active ? "" : "none";
+			pill.classList.toggle("on", on);
+			pill.textContent = on ? "● Control" : "○ Watching";
+			pill.title = on ? "You play this character: click to give it back to the bot" : "The bot plays: click to take control";
+		}
+	};
+}));
 // src/UI/Components/BasicInfo/BasicInfoCommon.js
 function createBasicInfo(config) {
 	const { name, htmlText, cssText, prefKey, reduceDefault = true, innerId, topbarItemSelector = ".topbar button", topbarDblClick = false, toggleButtonsEvent = "mousedown", buttonsSelector = ".buttons button", buttonsEvent = "mousedown", buttonKeyBy = "class", infoOpensWinStats = true, hasToolbarToggle = false, miniLayout = false, hideIds = [], barScale = 1.27, hasApBar = false } = config;
@@ -242879,6 +243199,7 @@ function createBasicInfo(config) {
 	*/
 	Component.init = function init() {
 		const root = this.getRoot();
+		RemoteControlPill.attach(root.querySelector(".topbar"));
 		root.querySelectorAll(topbarItemSelector).forEach((el) => {
 			el.addEventListener("mousedown", (e) => e.stopImmediatePropagation());
 		});
@@ -242905,6 +243226,7 @@ function createBasicInfo(config) {
 	Component.onAppend = function onAppend() {
 		const root = this.getRoot();
 		const hostRect = this._host.getBoundingClientRect();
+		RemoteControlPill.refresh();
 		this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - hostRect.height)}px`;
 		this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - hostRect.width)}px`;
 		this.magnet.TOP = _preferences.magnet_top;
@@ -243161,6 +243483,7 @@ var init_BasicInfoCommon = __esmMin((() => {
 	init_Quest$1();
 	init_Achievement$1();
 	init_Reputation();
+	init_RemoteControlPill();
 }));
 // src/UI/Components/BasicInfo/BasicInfoV1/BasicInfoV1.js
 var BasicInfoV1_default;
@@ -318545,6 +318868,156 @@ var init_Trade$1 = __esmMin((() => {
 	Trade.mouseMode = GUIComponent.MouseMode.STOP;
 	Trade_default = UIManager.addComponent(Trade);
 }));
+// src/Engine/MapEngine/RemoteBotChat.js
+/**
+* Take the bot's commands out of the chat
+*/
+function clear() {
+	for (let i = 0; i < _added.length; ++i) ProcessCommand_default.remove(_added[i]);
+	_added = [];
+	_log = false;
+}
+/**
+* A bot command typed in the chat: the bot runs it in its console
+*
+* @param {string} text - the line without its slash
+*/
+function runOnBot(text) {
+	ChatBox_default.onRequestTalk("", "@@" + text, ChatBox_default.TYPE.PUBLIC);
+}
+/**
+* /log: the bot's log in the chat, or not any more
+*/
+function toggleLog() {
+	_log = !_log;
+	if (!RemoteBot.sendText({
+		t: "log",
+		v: 1,
+		on: _log
+	})) {
+		_log = false;
+		ChatBox_default.addText("Bot log: the bot cannot be reached.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	if (!_log) {
+		ChatBox_default.addText("Bot log: off.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	const options = ChatBoxSettings_default.tabOption;
+	if (!options.some((list) => list && list.includes(ChatBox_default.FILTER.BOT_LOG))) {
+		options[ChatBox_default.activeTab] = options[ChatBox_default.activeTab] || [];
+		options[ChatBox_default.activeTab].push(ChatBox_default.FILTER.BOT_LOG);
+	}
+	ChatBox_default.addText("Bot log: on. /log again to stop it.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+}
+/**
+* A text message from the bot
+*
+* @param {?object} message - null when the bot's peer left
+* @see docs/reference/network/remote-bot.md
+*/
+function onText(message) {
+	if (!message) {
+		clear();
+		Escape_default.refreshCharSelect();
+		RemoteControlPill.refresh();
+		return;
+	}
+	if (message.t === "control") {
+		Escape_default.refreshCharSelect();
+		RemoteControlPill.refresh();
+		return;
+	}
+	if (message.t === "cmds" && Array.isArray(message.list)) {
+		clear();
+		message.list.forEach((cmd) => {
+			[cmd.name].concat(Array.isArray(cmd.aliases) ? cmd.aliases : []).forEach((name) => {
+				if (typeof name !== "string" || !/^[\w-]+$/.test(name) || ProcessCommand_default.exists(name)) return;
+				ProcessCommand_default.add(name, typeof cmd.help === "string" ? cmd.help : "", runOnBot);
+				_added.push(name);
+			});
+		});
+		if (!ProcessCommand_default.exists("log")) {
+			ProcessCommand_default.add("log", "show the bot's log in the chat", toggleLog);
+			_added.push("log");
+		}
+		if (RemoteBot.takeWantControl()) ChatBox_default.onRequestTalk("", "@control on", ChatBox_default.TYPE.PUBLIC);
+		return;
+	}
+	if (message.t === "log" && Array.isArray(message.lines) && _log) message.lines.forEach((line) => {
+		if (typeof line === "string") ChatBox_default.addText(line, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.BOT_LOG);
+	});
+}
+/**
+* Another remote client of the hall plays this character here: 'Control' in its context menu
+*
+* @param {string} name - a character on the map
+* @return {?object} the bot's hall row, null for anyone else and for this window's own bot
+* @see docs/reference/network/remote-bot.md
+*/
+function controllable(name) {
+	if (!RemoteBot.isActive() || name === SessionStorage_default.Entity.display.name) return null;
+	return BotHall.playing(name, MapRenderer.currentMap.replace(/\.[^.]*$/, ""));
+}
+/**
+* 'Control': the other bot opens a room, this window lets go of its bot (as Exit does) and plays the other one
+*
+* @param {string} name - a controllable() character
+* @see docs/reference/network/remote-bot.md
+*/
+function takeControl(name) {
+	const bot = controllable(name);
+	const settings = BotHall.loadSettings();
+	const entity = SessionStorage_default.Entity;
+	if (_opening$1) return;
+	if (!bot || !settings) {
+		ChatBox_default.addText("Control: " + CONTROL_FAILURES.gone, ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	_opening$1 = true;
+	BotHall.open(bot.id).then((answer) => {
+		_opening$1 = false;
+		const room = {
+			...settings,
+			room: answer.room,
+			secret: answer.secret,
+			character: name
+		};
+		if (SessionStorage_default.Entity === entity && RemoteBot.switchTo(room)) Escape_default.onExitRequest();
+	}, (err) => {
+		_opening$1 = false;
+		if (SessionStorage_default.Entity === entity) {
+			const why = CONTROL_FAILURES[err.code] || "this remote client could not open a room.";
+			ChatBox_default.addText("Control: " + why, ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		}
+	});
+}
+/**
+* Initialize
+*/
+function RemoteBotChatEngine() {
+	RemoteBot.onText(onText);
+}
+var CONTROL_FAILURES, _opening$1, _added, _log;
+var init_RemoteBotChat = __esmMin((() => {
+	init_RemoteBot();
+	init_BotHall();
+	init_SessionStorage();
+	init_MapRenderer();
+	init_ProcessCommand();
+	init_ChatBox();
+	init_ChatBoxSettings();
+	init_Escape();
+	init_RemoteControlPill();
+	CONTROL_FAILURES = {
+		busy: "this remote client has too many windows open.",
+		gone: "this remote client left the hall.",
+		"no-answer": "this remote client did not answer."
+	};
+	_opening$1 = false;
+	_added = [];
+	_log = false;
+}));
 // src/Controls/EntityControl.js
 /**
 * Export
@@ -318586,6 +319059,7 @@ var init_EntityControl = __esmMin((() => {
 	init_Equipment();
 	init_CaptchaSelector();
 	init_Guild();
+	init_RemoteBotChat();
 	init_PartyFriends();
 	init_Group();
 	init_HomunInformations();
@@ -318905,6 +319379,12 @@ var init_EntityControl = __esmMin((() => {
 						ContextMenu_default.nextGroup();
 						ContextMenu_default.addElement(DB.getMessage(88).replace("%s", this.display.name), () => {
 							GroupEngine.onRequestInvitation(entity.GID, entity.display.name);
+						});
+					}
+					if (controllable(this.display.name)) {
+						ContextMenu_default.nextGroup();
+						ContextMenu_default.addElement("Control", () => {
+							takeControl(entity.display.name);
 						});
 					}
 					break;
@@ -339111,9 +339591,10 @@ function onMinimapMarker(pkt) {
 * Receive progressbar
 *
 * @param {object} pkt - PACKET_ZC_PROGRESS
+* @see docs/reference/network/remote-bot.md
 */
 function onProgressBar(pkt) {
-	SessionStorage_default.Entity.cast.onComplete = function() {
+	SessionStorage_default.Entity.cast.onComplete = RemoteBot.isActive() ? null : function() {
 		const _pkt = new PACKET.CZ.PROGRESS();
 		Network.sendPacket(_pkt);
 	};
@@ -339123,6 +339604,7 @@ function onProgressBar(pkt) {
 		pkt.color & 255
 	].join(",") + ")";
 	SessionStorage_default.Entity.cast.set(pkt.time * 1e3, pkt.color ? rgb : null);
+	SessionStorage_default.Entity.cast.tick -= RemoteBot.takeElapsed();
 }
 /**
 * Stop Progressbar
@@ -349292,93 +349774,6 @@ var init_Achievement = __esmMin((() => {
 	init_EffectConst();
 	init_EffectManager();
 }));
-// src/Engine/MapEngine/RemoteBotChat.js
-/**
-* Take the bot's commands out of the chat
-*/
-function clear() {
-	for (let i = 0; i < _added.length; ++i) ProcessCommand_default.remove(_added[i]);
-	_added = [];
-	_log = false;
-}
-/**
-* A bot command typed in the chat: the bot runs it in its console
-*
-* @param {string} text - the line without its slash
-*/
-function runOnBot(text) {
-	ChatBox_default.onRequestTalk("", "@@" + text, ChatBox_default.TYPE.PUBLIC);
-}
-/**
-* /log: the bot's log in the chat, or not any more
-*/
-function toggleLog() {
-	_log = !_log;
-	if (!RemoteBot.sendText({
-		t: "log",
-		v: 1,
-		on: _log
-	})) {
-		_log = false;
-		ChatBox_default.addText("Bot log: the bot cannot be reached.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
-		return;
-	}
-	if (!_log) {
-		ChatBox_default.addText("Bot log: off.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
-		return;
-	}
-	const options = ChatBoxSettings_default.tabOption;
-	if (!options.some((list) => list && list.includes(ChatBox_default.FILTER.BOT_LOG))) {
-		options[ChatBox_default.activeTab] = options[ChatBox_default.activeTab] || [];
-		options[ChatBox_default.activeTab].push(ChatBox_default.FILTER.BOT_LOG);
-	}
-	ChatBox_default.addText("Bot log: on. /log again to stop it.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
-}
-/**
-* A text message from the bot
-*
-* @param {?object} message - null when the bot's peer left
-* @see docs/reference/network/remote-bot.md
-*/
-function onText(message) {
-	if (!message) {
-		clear();
-		return;
-	}
-	if (message.t === "cmds" && Array.isArray(message.list)) {
-		clear();
-		message.list.forEach((cmd) => {
-			[cmd.name].concat(Array.isArray(cmd.aliases) ? cmd.aliases : []).forEach((name) => {
-				if (typeof name !== "string" || !/^[\w-]+$/.test(name) || ProcessCommand_default.exists(name)) return;
-				ProcessCommand_default.add(name, typeof cmd.help === "string" ? cmd.help : "", runOnBot);
-				_added.push(name);
-			});
-		});
-		if (!ProcessCommand_default.exists("log")) {
-			ProcessCommand_default.add("log", "show the bot's log in the chat", toggleLog);
-			_added.push("log");
-		}
-		return;
-	}
-	if (message.t === "log" && Array.isArray(message.lines) && _log) message.lines.forEach((line) => {
-		if (typeof line === "string") ChatBox_default.addText(line, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.BOT_LOG);
-	});
-}
-/**
-* Initialize
-*/
-function RemoteBotChatEngine() {
-	RemoteBot.onText(onText);
-}
-var _added, _log;
-var init_RemoteBotChat = __esmMin((() => {
-	init_RemoteBot();
-	init_ProcessCommand();
-	init_ChatBox();
-	init_ChatBoxSettings();
-	_added = [];
-	_log = false;
-}));
 // src/Engine/MapEngine.js
 /**
 * Pong from server
@@ -349619,9 +350014,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "0c95559c6b45eb0dada60804ab80b2f705d8eca1") {
+		if (!_buildShown && "a503ff42575d7c71d94746c68a35c138841e86d5") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"0c95559c6b45eb0dada60804ab80b2f705d8eca1".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"a503ff42575d7c71d94746c68a35c138841e86d5".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -349695,9 +350090,12 @@ function onExitSuccess() {
 	UIManager.removeComponents();
 	Network.close();
 	Renderer.stop();
-	MapRenderer.free();
 	SoundManager.stop();
-	BGM.stop();
+	_keptMap = RemoteBot.switching();
+	if (!_keptMap) {
+		MapRenderer.free();
+		BGM.stop();
+	}
 	__vitePreload(() => Promise.resolve().then(() => (init_GameEngine(), GameEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
 }
 /**
@@ -350011,7 +350409,7 @@ function onReassemblyAuth(pkt) {
 		return;
 	}
 }
-var _mapName, _isInitialised, _buildShown, _exiting, _exitTimer, snCounter, chatLines, packetMap, MapEngine, _walkTimer, _walkLastTick;
+var _mapName, _isInitialised, _buildShown, _exiting, _exitTimer, _keptMap, snCounter, chatLines, packetMap, MapEngine, _walkTimer, _walkLastTick;
 var init_MapEngine = __esmMin((() => {
 	init_DBManager();
 	init_Configs();
@@ -350021,6 +350419,7 @@ var init_MapEngine = __esmMin((() => {
 	init_SessionStorage();
 	init_AutoRetry();
 	init_NetworkManager();
+	init_RemoteBot();
 	init_PacketVerManager();
 	init_PacketStructure();
 	init_Renderer();
@@ -350130,6 +350529,7 @@ var init_MapEngine = __esmMin((() => {
 	_buildShown = false;
 	_exiting = false;
 	_exitTimer = null;
+	_keptMap = false;
 	snCounter = 0;
 	chatLines = 0;
 	packetMap = /* @__PURE__ */ new Map();
@@ -350153,7 +350553,8 @@ var init_MapEngine = __esmMin((() => {
 			const server_info = Configs.getServer();
 			const current_ip = forceAddress ? server_info.address : Network.utils.longToIP(ip);
 			Network.connect(current_ip, port, (success) => {
-				MapRenderer.currentMap = "";
+				if (!_keptMap) MapRenderer.currentMap = "";
+				_keptMap = false;
 				if (!success) {
 					if (AutoRetry.armed()) {
 						const box = UIManager.showMessageBox(DB.getMessage(1), "ok", () => {
@@ -359469,7 +359870,9 @@ function backToLogin() {
 * @see docs/reference/network/remote-bot.md
 */
 function showLoginScreen() {
-	if (!_manual && BotHall.loadSettings()) RemoteCharacters_default.append();
+	const next = RemoteBot.takeSwitch();
+	if (next) attachRemote(next);
+	else if (!_manual && BotHall.loadSettings()) RemoteCharacters_default.append();
 	else {
 		BotHall.leave();
 		RemoteBot.leave();
@@ -359496,7 +359899,7 @@ function showWinLogin() {
 /**
 * A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
 *
-* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string, control: ?boolean}} room
 * @see docs/reference/network/remote-bot.md
 */
 function attachRemote(room) {
@@ -359652,7 +360055,7 @@ function onCharServerSelected(index) {
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
 	RemoteBot.setLoginScreen(null);
-	BotHall.leave();
+	if (!RemoteBot.isActive() && !BotHall.kept()) BotHall.leave();
 	SessionStorage_default.AuthCode = pkt.AuthCode;
 	SessionStorage_default.AID = pkt.AID;
 	SessionStorage_default.UserLevel = pkt.userLevel;
@@ -360267,8 +360670,8 @@ var init_LoginEngine = __esmMin((() => {
 				onConnectionRequest.apply(null, autoLogin);
 				Configs.set("autoLogin", null);
 			} else q.add(function() {
-				showLoginScreen();
 				RemoteBot.setLoginScreen(askRemoteLink);
+				showLoginScreen();
 			});
 			if (PacketVerManager_default.value < 20170315) Network.hookPacket(PACKET.AC.ACCEPT_LOGIN, onConnectionAccepted);
 			else Network.hookPacket(PACKET.AC.ACCEPT_LOGIN3, onConnectionAccepted);
@@ -360289,8 +360692,8 @@ var init_LoginEngine = __esmMin((() => {
 			UIManager.removeComponents();
 			Controller.onConnectionRequest = onConnectionRequest;
 			Controller.onExitRequest = onExitRequest;
-			showLoginScreen();
 			RemoteBot.setLoginScreen(askRemoteLink);
+			showLoginScreen();
 			Network.close();
 		}
 		/**
@@ -361113,20 +361516,24 @@ function loadFiles(callback) {
 	q.run();
 }
 function onReload() {
+	const switching = RemoteBot.switching();
 	const list = new Array(_servers.length);
 	let i;
 	const count = list.length;
 	if (count === 0) UIManager.showMessageBox("Sorry, no server found.", "ok", GameEngine.init);
 	else if (count === 1 && Configs.get("skipServerList")) LoginEngine.init(_servers[0]);
+	else if (_previous_server && switching) LoginEngine.init(_previous_server);
 	else {
 		for (i = 0; i < count; ++i) list[i] = _servers[i].display;
 		WinList_default.append();
 		WinList_default.setList(list);
 	}
 	Renderer.stop();
-	MapRenderer.cancelLoad();
-	MapRenderer.free();
-	BGM.play("01.mp3");
+	if (!switching) {
+		MapRenderer.cancelLoad();
+		MapRenderer.free();
+		BGM.play("01.mp3");
+	}
 }
 function onReadyLoginServer(index) {
 	_previous_server = _servers[index];
@@ -361240,6 +361647,7 @@ var init_GameEngine = __esmMin((() => {
 	init_Context();
 	init_LoginEngine();
 	init_NetworkManager();
+	init_RemoteBot();
 	init_Renderer();
 	init_MapRenderer();
 	init_UIManager();
@@ -361288,7 +361696,7 @@ var init_GameEngine = __esmMin((() => {
 		*/
 		static reload() {
 			BGM.setAvailableExtensions(Configs.get("BGMFileExtension", ["mp3"]));
-			BGM.play("01.mp3");
+			if (!RemoteBot.switching()) BGM.play("01.mp3");
 			UIManager.removeComponents();
 			Network.close();
 			Background.init();
