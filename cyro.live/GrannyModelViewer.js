@@ -209102,6 +209102,7 @@ var init_RtcSockets = __esmMin((() => {
 			this.lastFailure = null;
 			this.peer = null;
 			this.ackAt = 0;
+			this.onText = null;
 			room.on("error", (err) => {
 				console.warn(`[RemoteBot] ${err.code}: ${err.message}`);
 			});
@@ -209144,6 +209145,18 @@ var init_RtcSockets = __esmMin((() => {
 			return this.error || this.lastFailure;
 		}
 		/**
+		* Text to the bot, beside the sockets
+		*
+		* @param {object} message - sent as JSON
+		* @return {boolean} false without the bot's peer
+		*/
+		sendText(message) {
+			const peer = this.peer;
+			if (!peer || peer.closed) return false;
+			peer.send(JSON.stringify(message)).catch(() => {});
+			return true;
+		}
+		/**
 		* Leave the room, for another link
 		*/
 		leave() {
@@ -209163,7 +209176,10 @@ var init_RtcSockets = __esmMin((() => {
 				const ackAt = this.ackAt;
 				const start = performance.now();
 				let records;
-				if (typeof data === "string") return;
+				if (typeof data === "string") {
+					if (this.onText) this.onText(data);
+					return;
+				}
 				try {
 					records = decode(data);
 				} catch (err) {
@@ -209188,6 +209204,7 @@ var init_RtcSockets = __esmMin((() => {
 				this.out.close();
 				this.out = null;
 				for (const sid in this.socks) this.end(sid);
+				if (this.onText) this.onText(null);
 			});
 			const waiting = this.waiting.splice(0);
 			for (let i = 0, count = waiting.length; i < count; ++i) {
@@ -209699,6 +209716,18 @@ function join(link) {
 		...link,
 		max: 2
 	}));
+	_sockets$1.onText = (text) => {
+		let message = null;
+		if (text !== null) {
+			try {
+				message = JSON.parse(text);
+			} catch (_e) {
+				return;
+			}
+			if (!message || typeof message !== "object") return;
+		}
+		if (_onText) _onText(message);
+	};
 }
 /**
 * Paste box: now on the login screen, before it once it is there, never in game
@@ -209734,7 +209763,7 @@ function init$16() {
 	if (stored) join(stored);
 	else _asking = true;
 }
-var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, RemoteBot;
+var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, _onText, RemoteBot;
 var init_RemoteBot = __esmMin((() => {
 	init_signal();
 	init_RtcSockets();
@@ -209755,6 +209784,7 @@ var init_RemoteBot = __esmMin((() => {
 	_character = null;
 	_listRoom = false;
 	_inGame = false;
+	_onText = null;
 	RemoteBot = {};
 	/**
 	* @return {boolean} the game sockets go to the bot
@@ -209821,6 +209851,24 @@ var init_RemoteBot = __esmMin((() => {
 		const name = _sockets$1 ? _character : null;
 		_character = null;
 		return name;
+	};
+	/**
+	* Who takes the bot's text messages (its commands, its log)
+	*
+	* @param {?function(?object)} fn - a parsed message, or null when the bot's peer left
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteBot.onText = function onText(fn) {
+		_onText = fn;
+	};
+	/**
+	* Text to the bot, beside the sockets
+	*
+	* @param {object} message
+	* @return {boolean} false without the bot's peer
+	*/
+	RemoteBot.sendText = function sendText(message) {
+		return !!_sockets$1 && _sockets$1.sendText(message);
 	};
 	/**
 	* Back to the server from a room the bot list opened; a link stays
@@ -219987,7 +220035,7 @@ function spawnMany(path, n, opts) {
 * clear() — dev: drop every instance (GL type resources stay cached for re-spawn; the map
 * unload frees them via free(gl)).
 */
-function clear() {
+function clear$1() {
 	const insts = _instances.slice();
 	for (let i = 0; i < insts.length; i++) detach(insts[i]);
 	_poseCache = {};
@@ -220140,7 +220188,7 @@ var init_GR2ModelRenderer = __esmMin((() => {
 		},
 		spawn,
 		spawnMany,
-		clear,
+		clear: clear$1,
 		FADE: FADE$1,
 		get debugCell() {
 			return _debugCell;
@@ -225504,7 +225552,7 @@ var init_ChatBox$1 = __esmMin((() => {
 // src/UI/Components/ChatBoxSettings/ChatBoxSettings.html?raw
 var ChatBoxSettings_default$2;
 var init_ChatBoxSettings$2 = __esmMin((() => {
-	ChatBoxSettings_default$2 = "<div id=\"ChatBoxSettings\">\r\n	<div class=\"titlebar\" data-background=\"basic_interface/titlebar_mid.bmp\">\r\n		<div class=\"left\">\r\n			<button\r\n				class=\"base\"\r\n				data-background=\"basic_interface/sys_base_off.bmp\"\r\n				data-hover=\"basic_interface/sys_base_on.bmp\"\r\n			></button>\r\n			<span class=\"title\"><span class=\"tabname\"></span> message log settings</span>\r\n		</div>\r\n		<div class=\"right\">\r\n			<button\r\n				class=\"base close\"\r\n				data-background=\"basic_interface/sys_close_off.bmp\"\r\n				data-hover=\"basic_interface/sys_close_on.bmp\"\r\n			></button>\r\n		</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n	<div class=\"panel\" data-background=\"basic_interface/chatwin1_mid.bmp\">\r\n		<div class=\"content resize\">\r\n			<div class=\"listoption\">\r\n				<button data-id=\"0\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1291\">\r\n					Public Log\r\n				</button>\r\n				<button data-id=\"1\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1277\">\r\n					Public Chat\r\n				</button>\r\n				<button data-id=\"2\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1278\">Whisper</button>\r\n				<button data-id=\"3\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1279\">Party</button>\r\n				<button data-id=\"4\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1280\">Guild</button>\r\n				<button data-id=\"5\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1281\">Item</button>\r\n				<button data-id=\"6\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1282\">\r\n					Equipment on/off\r\n				</button>\r\n				<button data-id=\"7\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1283\">\r\n					Abnormal Status\r\n				</button>\r\n				<button data-id=\"8\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1284\">\r\n					Party Item\r\n				</button>\r\n				<button data-id=\"9\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1285\">\r\n					Party Status\r\n				</button>\r\n				<button data-id=\"10\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1286\">\r\n					Skill Fail\r\n				</button>\r\n				<button data-id=\"11\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1287\">\r\n					Party Setup\r\n				</button>\r\n				<button data-id=\"12\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1288\">\r\n					Equip Damage\r\n				</button>\r\n				<button data-id=\"13\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1289\">WOE</button>\r\n				<button data-id=\"14\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1549\">\r\n					Party Search\r\n				</button>\r\n				<button data-id=\"15\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1618\">Battle</button>\r\n				<button data-id=\"16\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1619\">\r\n					Party Battle\r\n				</button>\r\n				<button data-id=\"17\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1620\">EXP</button>\r\n				<button data-id=\"18\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1621\">\r\n					Party EXP\r\n				</button>\r\n				<button data-id=\"19\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1622\">Quest</button>\r\n				<button data-id=\"20\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1623\">\r\n					Battlefield\r\n				</button>\r\n				<button data-id=\"21\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"2365\">Clan</button>\r\n				<!--<button data-id=\"22\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"\">Call</button>-->\r\n			</div>\r\n			<div class=\"clear\"></div>\r\n			<div class=\"footer-opt\">\r\n				<button class=\"allon\" data-background=\"checkbox_0.bmp\" data-preload=\"checkbox_1.bmp\"></button>\r\n				All on\r\n			</div>\r\n		</div>\r\n	</div>\r\n	<button class=\"extend\"></button>\r\n</div>\r\n";
+	ChatBoxSettings_default$2 = "<div id=\"ChatBoxSettings\">\r\n	<div class=\"titlebar\" data-background=\"basic_interface/titlebar_mid.bmp\">\r\n		<div class=\"left\">\r\n			<button\r\n				class=\"base\"\r\n				data-background=\"basic_interface/sys_base_off.bmp\"\r\n				data-hover=\"basic_interface/sys_base_on.bmp\"\r\n			></button>\r\n			<span class=\"title\"><span class=\"tabname\"></span> message log settings</span>\r\n		</div>\r\n		<div class=\"right\">\r\n			<button\r\n				class=\"base close\"\r\n				data-background=\"basic_interface/sys_close_off.bmp\"\r\n				data-hover=\"basic_interface/sys_close_on.bmp\"\r\n			></button>\r\n		</div>\r\n		<div class=\"clear\"></div>\r\n	</div>\r\n	<div class=\"panel\" data-background=\"basic_interface/chatwin1_mid.bmp\">\r\n		<div class=\"content resize\">\r\n			<div class=\"listoption\">\r\n				<button data-id=\"0\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1291\">\r\n					Public Log\r\n				</button>\r\n				<button data-id=\"1\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1277\">\r\n					Public Chat\r\n				</button>\r\n				<button data-id=\"2\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1278\">Whisper</button>\r\n				<button data-id=\"3\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1279\">Party</button>\r\n				<button data-id=\"4\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1280\">Guild</button>\r\n				<button data-id=\"5\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1281\">Item</button>\r\n				<button data-id=\"6\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1282\">\r\n					Equipment on/off\r\n				</button>\r\n				<button data-id=\"7\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1283\">\r\n					Abnormal Status\r\n				</button>\r\n				<button data-id=\"8\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1284\">\r\n					Party Item\r\n				</button>\r\n				<button data-id=\"9\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1285\">\r\n					Party Status\r\n				</button>\r\n				<button data-id=\"10\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1286\">\r\n					Skill Fail\r\n				</button>\r\n				<button data-id=\"11\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1287\">\r\n					Party Setup\r\n				</button>\r\n				<button data-id=\"12\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1288\">\r\n					Equip Damage\r\n				</button>\r\n				<button data-id=\"13\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1289\">WOE</button>\r\n				<button data-id=\"14\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1549\">\r\n					Party Search\r\n				</button>\r\n				<button data-id=\"15\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1618\">Battle</button>\r\n				<button data-id=\"16\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1619\">\r\n					Party Battle\r\n				</button>\r\n				<button data-id=\"17\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1620\">EXP</button>\r\n				<button data-id=\"18\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1621\">\r\n					Party EXP\r\n				</button>\r\n				<button data-id=\"19\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1622\">Quest</button>\r\n				<button data-id=\"20\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"1623\">\r\n					Battlefield\r\n				</button>\r\n				<button data-id=\"21\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"2365\">Clan</button>\r\n				<!-- Shown only in remote mode. See docs/reference/chat/tabs.md -->\r\n				<button class=\"botlog\" data-id=\"100\" data-background=\"basic_interface/grp_offline.bmp\">Bot log</button>\r\n				<!--<button data-id=\"22\" data-background=\"basic_interface/grp_offline.bmp\" data-text=\"\">Call</button>-->\r\n			</div>\r\n			<div class=\"clear\"></div>\r\n			<div class=\"footer-opt\">\r\n				<button class=\"allon\" data-background=\"checkbox_0.bmp\" data-preload=\"checkbox_1.bmp\"></button>\r\n				All on\r\n			</div>\r\n		</div>\r\n	</div>\r\n	<button class=\"extend\"></button>\r\n</div>\r\n";
 }));
 // src/UI/Components/ChatBoxSettings/ChatBoxSettings.css?raw
 var ChatBoxSettings_default$1;
@@ -225513,11 +225561,11 @@ var init_ChatBoxSettings$1 = __esmMin((() => {
 }));
 // src/UI/Components/ChatBoxSettings/ChatBoxSettings.js
 /**
-* @returns {Array<number>} the id of every filter in the list
+* @returns {Array<number>} the id of every filter shown in the list
 */
 function filterIds() {
 	const buttons = ChatBoxSettings.getRoot().querySelectorAll(".listoption button");
-	return Array.from(buttons, (btn) => parseInt(btn.getAttribute("data-id"), 10));
+	return Array.from(buttons).filter((btn) => btn.style.display !== "none").map((btn) => parseInt(btn.getAttribute("data-id"), 10));
 }
 /**
 * @returns {boolean} every filter of the active tab is on
@@ -225605,6 +225653,7 @@ var init_ChatBoxSettings = __esmMin((() => {
 	init_MouseEventHandler();
 	init_UIManager();
 	init_GUIComponent();
+	init_RemoteBot();
 	init_ChatBoxSettings$2();
 	init_ChatBoxSettings$1();
 	ChatBoxSettings = new GUIComponent("ChatBoxSettings", ChatBoxSettings_default$1);
@@ -225671,6 +225720,8 @@ var init_ChatBoxSettings = __esmMin((() => {
 		const buttons = root.querySelectorAll(".content .listoption button");
 		this.activeTab = tabID;
 		root.querySelector(".tabname").textContent = tabName;
+		const botLog = root.querySelector(".listoption .botlog");
+		if (botLog) botLog.style.display = RemoteBot.isActive() ? "" : "none";
 		buttons.forEach((btn) => {
 			btn.classList.remove("on");
 			Client.loadFile(DB.INTERFACE_PATH + "basic_interface/grp_offline.bmp", (data) => {
@@ -226055,7 +226106,8 @@ var init_ChatBox = __esmMin((() => {
 		PARTY_EXP: 18,
 		QUEST: 19,
 		BATTLEFIELD: 20,
-		CLAN: 21
+		CLAN: 21,
+		BOT_LOG: 100
 	};
 	/**
 	* @var {number} target message ?
@@ -258760,6 +258812,7 @@ var init_ProcessCommand = __esmMin((() => {
 		add: addCommand,
 		remove: removeCommand,
 		isEnabled: (name) => name in CommandStore,
+		exists: (name) => name in CommandStore || name in aliases || name in Emotions_default.commands,
 		reloadAliases
 	};
 }));
@@ -349224,6 +349277,93 @@ var init_Achievement = __esmMin((() => {
 	init_EffectConst();
 	init_EffectManager();
 }));
+// src/Engine/MapEngine/RemoteBotChat.js
+/**
+* Take the bot's commands out of the chat
+*/
+function clear() {
+	for (let i = 0; i < _added.length; ++i) ProcessCommand_default.remove(_added[i]);
+	_added = [];
+	_log = false;
+}
+/**
+* A bot command typed in the chat: the bot runs it in its console
+*
+* @param {string} text - the line without its slash
+*/
+function runOnBot(text) {
+	ChatBox_default.onRequestTalk("", "@@" + text, ChatBox_default.TYPE.PUBLIC);
+}
+/**
+* /log: the bot's log in the chat, or not any more
+*/
+function toggleLog() {
+	_log = !_log;
+	if (!RemoteBot.sendText({
+		t: "log",
+		v: 1,
+		on: _log
+	})) {
+		_log = false;
+		ChatBox_default.addText("Bot log: the bot cannot be reached.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	if (!_log) {
+		ChatBox_default.addText("Bot log: off.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	const options = ChatBoxSettings_default.tabOption;
+	if (!options.some((list) => list && list.includes(ChatBox_default.FILTER.BOT_LOG))) {
+		options[ChatBox_default.activeTab] = options[ChatBox_default.activeTab] || [];
+		options[ChatBox_default.activeTab].push(ChatBox_default.FILTER.BOT_LOG);
+	}
+	ChatBox_default.addText("Bot log: on. /log again to stop it.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+}
+/**
+* A text message from the bot
+*
+* @param {?object} message - null when the bot's peer left
+* @see docs/reference/network/remote-bot.md
+*/
+function onText(message) {
+	if (!message) {
+		clear();
+		return;
+	}
+	if (message.t === "cmds" && Array.isArray(message.list)) {
+		clear();
+		message.list.forEach((cmd) => {
+			[cmd.name].concat(Array.isArray(cmd.aliases) ? cmd.aliases : []).forEach((name) => {
+				if (typeof name !== "string" || !/^[\w-]+$/.test(name) || ProcessCommand_default.exists(name)) return;
+				ProcessCommand_default.add(name, typeof cmd.help === "string" ? cmd.help : "", runOnBot);
+				_added.push(name);
+			});
+		});
+		if (!ProcessCommand_default.exists("log")) {
+			ProcessCommand_default.add("log", "show the bot's log in the chat", toggleLog);
+			_added.push("log");
+		}
+		return;
+	}
+	if (message.t === "log" && Array.isArray(message.lines) && _log) message.lines.forEach((line) => {
+		if (typeof line === "string") ChatBox_default.addText(line, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.BOT_LOG);
+	});
+}
+/**
+* Initialize
+*/
+function RemoteBotChatEngine() {
+	RemoteBot.onText(onText);
+}
+var _added, _log;
+var init_RemoteBotChat = __esmMin((() => {
+	init_RemoteBot();
+	init_ProcessCommand();
+	init_ChatBox();
+	init_ChatBoxSettings();
+	_added = [];
+	_log = false;
+}));
 // src/Engine/MapEngine.js
 /**
 * Pong from server
@@ -349464,9 +349604,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "ce509beec4adce92e3dced0b49c7828b0fa469d9") {
+		if (!_buildShown && "0eac84eaeb6ceabdf61cda29bc56162e7b368131") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"ce509beec4adce92e3dced0b49c7828b0fa469d9".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"0eac84eaeb6ceabdf61cda29bc56162e7b368131".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -349968,6 +350108,7 @@ var init_MapEngine = __esmMin((() => {
 	init_CashShop();
 	init_Bank();
 	init_Achievement();
+	init_RemoteBotChat();
 	init_preload_helper();
 	_mapName = "";
 	_isInitialised = false;
@@ -350104,6 +350245,7 @@ var init_MapEngine = __esmMin((() => {
 				MainEngine$4();
 				MainEngine$3();
 				MainEngine$2();
+				RemoteBotChatEngine();
 				if (Configs.get("enableCashShop")) MainEngine$1();
 				if (Configs.get("enableAchievements") && PacketVerManager_default.value >= 20150513) MainEngine();
 				if (Configs.get("enableBank")) BankEngine.init();

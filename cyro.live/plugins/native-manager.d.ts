@@ -124,7 +124,7 @@ export interface ItemDbRecord {
 
 /** ItemDb's `init()`-return — the pre-renewal item database, keyed under
  *  `ItemDb` in a consumer's DI map. `ready` resolves once the IndexedDB cache
- *  (`ROFW_items`) is populated from the same-origin bundle fetch; getters are
+ *  (`ROFW_items`) is populated from the pinned bundle fetch; getters are
  *  safe to call before `ready` resolves (they return `null`/`[]`/`0`). */
 export interface ItemDbApi {
 	get(id: number | string): ItemDbRecord | null;
@@ -135,6 +135,13 @@ export interface ItemDbApi {
 	unlocks(id: number | string): unknown | null;
 	count(): number;
 	version: string;
+	mobName(id: number | string): string | null;
+	searchMobs(query: string): Array<{ id: number; name: string }>;
+	skillById(id: number): { aegis: string; desc: string } | null;
+	/** Every mob sheet ; downloads the mobs bundle on the first call. */
+	loadMobs(): Promise<Record<string, unknown>>;
+	/** One mob sheet, or null when unknown or before `loadMobs()` resolved. */
+	mob(id: number | string): unknown | null;
 	ready: Promise<Record<string, ItemDbRecord>>;
 }
 
