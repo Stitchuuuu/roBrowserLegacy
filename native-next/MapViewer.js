@@ -209644,6 +209644,18 @@ var init_BotHall = __esmMin((() => {
 		return list.sort((a, b) => label(a).localeCompare(label(b)));
 	};
 	/**
+	* @param {string} name - a character
+	* @param {string} map - without its extension
+	* @return {?object} the bot that says it plays this character on this map
+	*/
+	BotHall.playing = function playing(name, map) {
+		for (const id in _bots) {
+			const p = _bots[id].playing;
+			if (p && p.name === name && p.map === map) return _bots[id];
+		}
+		return null;
+	};
+	/**
 	* @return {number} members of the hall that have not said who they are yet
 	*/
 	BotHall.waiting = function waiting() {
@@ -209752,6 +209764,8 @@ function join(link) {
 		...link,
 		max: 2
 	}));
+	_control = false;
+	_elapsed = 0;
 	_sockets$1.onText = (text) => {
 		let message = null;
 		if (text !== null) {
@@ -209761,6 +209775,18 @@ function join(link) {
 				return;
 			}
 			if (!message || typeof message !== "object") return;
+			const t = message.t;
+			if (t === "control") _control = message.on === true;
+			else if (t === "progress") {
+				_elapsed = Math.max(0, Number(message.elapsed) || 0);
+				return;
+			} else if (t === "character") {
+				_character = typeof message.name === "string" ? message.name.slice(0, 24) : null;
+				return;
+			}
+		} else {
+			_control = false;
+			_elapsed = 0;
 		}
 		if (_onText) _onText(message);
 	};
@@ -209799,7 +209825,7 @@ function init$14() {
 	if (stored) join(stored);
 	else _asking = true;
 }
-var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, _onText, RemoteBot;
+var STORAGE_KEY, FAILURES, _sockets$1, _ask, _asking, _badLink, _character, _listRoom, _inGame, _onText, _control, _elapsed, _switch, _wantControl, RemoteBot;
 var init_RemoteBot = __esmMin((() => {
 	init_signal();
 	init_RtcSockets();
@@ -209821,6 +209847,10 @@ var init_RemoteBot = __esmMin((() => {
 	_listRoom = false;
 	_inGame = false;
 	_onText = null;
+	_control = false;
+	_elapsed = 0;
+	_switch = null;
+	_wantControl = false;
 	RemoteBot = {};
 	/**
 	* @return {boolean} the game sockets go to the bot
@@ -209848,6 +209878,7 @@ var init_RemoteBot = __esmMin((() => {
 		if (_inGame || !link || !link.relay) return false;
 		_character = null;
 		_listRoom = false;
+		_wantControl = false;
 		join(link);
 		BotHall.rememberRelay(link.relay, link.relayKey);
 		try {
@@ -209858,7 +209889,8 @@ var init_RemoteBot = __esmMin((() => {
 	/**
 	* Use a room a bot opened for this window (the bot list): nothing kept, a reload goes back to the list
 	*
-	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room - character: the one the bot plays
+	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string, control: ?boolean}} room -
+	*   character: the one the bot plays; control: take its control once in game
 	* @return {boolean} false once the login is over
 	* @see docs/reference/network/remote-bot.md
 	*/
@@ -209866,6 +209898,7 @@ var init_RemoteBot = __esmMin((() => {
 		if (_inGame) return false;
 		_character = room.character || null;
 		_listRoom = true;
+		_wantControl = !!room.control;
 		join({
 			relay: room.relay,
 			relayKey: room.relayKey || void 0,
@@ -209887,6 +209920,62 @@ var init_RemoteBot = __esmMin((() => {
 		const name = _sockets$1 ? _character : null;
 		_character = null;
 		return name;
+	};
+	/**
+	* @return {boolean} the bot said this window holds its control
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteBot.hasControl = function hasControl() {
+		return !!_sockets$1 && _control;
+	};
+	/**
+	* Whether to take the control now that the window is in game: once per room
+	*
+	* @return {boolean}
+	*/
+	RemoteBot.takeWantControl = function takeWantControl() {
+		const want = _wantControl;
+		_wantControl = false;
+		return want;
+	};
+	/**
+	* How much of the progress bar the snapshot carries has already run: once
+	*
+	* @return {number} ms
+	*/
+	RemoteBot.takeElapsed = function takeElapsed() {
+		const elapsed = _elapsed;
+		_elapsed = 0;
+		return elapsed;
+	};
+	/**
+	* Another bot opened a room for this window: attached to on the next login screen, with its control
+	*
+	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+	* @return {boolean} false out of the game: no switch from the login screen
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteBot.switchTo = function switchTo(room) {
+		if (!_inGame) return false;
+		_switch = {
+			...room,
+			control: true
+		};
+		return true;
+	};
+	/**
+	* @return {boolean} a room switchTo() kept waits for the login screen
+	*/
+	RemoteBot.switching = function switching() {
+		return !!_switch;
+	};
+	/**
+	* @return {?object} the room switchTo() kept, once
+	*/
+	RemoteBot.takeSwitch = function takeSwitch() {
+		const room = _switch;
+		_switch = null;
+		return room;
 	};
 	/**
 	* Who takes the bot's text messages (its commands, its log)
@@ -209917,6 +210006,7 @@ var init_RemoteBot = __esmMin((() => {
 			_sockets$1 = null;
 		}
 		_character = null;
+		_wantControl = false;
 	};
 	/**
 	* The login screen is shown (with its paste box), or left for good
@@ -239297,7 +239387,16 @@ var init_Escape = __esmMin((() => {
 	*/
 	Escape.onAppend = function onAppend() {
 		this._host.style.display = "none";
-		this.getRoot().querySelector(".charselect").style.display = RemoteBot.isActive() ? "none" : "";
+		Escape.refreshCharSelect();
+	};
+	/**
+	* On a remote bot the character select is the bot's: offered only while this window holds its control
+	*
+	* @see docs/reference/network/remote-bot.md
+	*/
+	Escape.refreshCharSelect = function refreshCharSelect() {
+		const shown = !RemoteBot.isActive() || RemoteBot.hasControl();
+		this.getRoot().querySelector(".charselect").style.display = shown ? "" : "none";
 	};
 	/**
 	* Reset buttons once UI is removed
@@ -318555,6 +318654,153 @@ var init_Trade$1 = __esmMin((() => {
 	Trade.mouseMode = GUIComponent.MouseMode.STOP;
 	Trade_default = UIManager.addComponent(Trade);
 }));
+// src/Engine/MapEngine/RemoteBotChat.js
+/**
+* Take the bot's commands out of the chat
+*/
+function clear() {
+	for (let i = 0; i < _added.length; ++i) ProcessCommand_default.remove(_added[i]);
+	_added = [];
+	_log = false;
+}
+/**
+* A bot command typed in the chat: the bot runs it in its console
+*
+* @param {string} text - the line without its slash
+*/
+function runOnBot(text) {
+	ChatBox_default.onRequestTalk("", "@@" + text, ChatBox_default.TYPE.PUBLIC);
+}
+/**
+* /log: the bot's log in the chat, or not any more
+*/
+function toggleLog() {
+	_log = !_log;
+	if (!RemoteBot.sendText({
+		t: "log",
+		v: 1,
+		on: _log
+	})) {
+		_log = false;
+		ChatBox_default.addText("Bot log: the bot cannot be reached.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	if (!_log) {
+		ChatBox_default.addText("Bot log: off.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	const options = ChatBoxSettings_default.tabOption;
+	if (!options.some((list) => list && list.includes(ChatBox_default.FILTER.BOT_LOG))) {
+		options[ChatBox_default.activeTab] = options[ChatBox_default.activeTab] || [];
+		options[ChatBox_default.activeTab].push(ChatBox_default.FILTER.BOT_LOG);
+	}
+	ChatBox_default.addText("Bot log: on. /log again to stop it.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+}
+/**
+* A text message from the bot
+*
+* @param {?object} message - null when the bot's peer left
+* @see docs/reference/network/remote-bot.md
+*/
+function onText(message) {
+	if (!message) {
+		clear();
+		Escape_default.refreshCharSelect();
+		return;
+	}
+	if (message.t === "control") {
+		Escape_default.refreshCharSelect();
+		return;
+	}
+	if (message.t === "cmds" && Array.isArray(message.list)) {
+		clear();
+		message.list.forEach((cmd) => {
+			[cmd.name].concat(Array.isArray(cmd.aliases) ? cmd.aliases : []).forEach((name) => {
+				if (typeof name !== "string" || !/^[\w-]+$/.test(name) || ProcessCommand_default.exists(name)) return;
+				ProcessCommand_default.add(name, typeof cmd.help === "string" ? cmd.help : "", runOnBot);
+				_added.push(name);
+			});
+		});
+		if (!ProcessCommand_default.exists("log")) {
+			ProcessCommand_default.add("log", "show the bot's log in the chat", toggleLog);
+			_added.push("log");
+		}
+		if (RemoteBot.takeWantControl()) ChatBox_default.onRequestTalk("", "@control on", ChatBox_default.TYPE.PUBLIC);
+		return;
+	}
+	if (message.t === "log" && Array.isArray(message.lines) && _log) message.lines.forEach((line) => {
+		if (typeof line === "string") ChatBox_default.addText(line, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.BOT_LOG);
+	});
+}
+/**
+* Another remote client of the hall plays this character here: 'Control' in its context menu
+*
+* @param {string} name - a character on the map
+* @return {?object} the bot's hall row, null for anyone else and for this window's own bot
+* @see docs/reference/network/remote-bot.md
+*/
+function controllable(name) {
+	if (!RemoteBot.isActive() || name === SessionStorage_default.Entity.display.name) return null;
+	return BotHall.playing(name, MapRenderer.currentMap.replace(/\.[^.]*$/, ""));
+}
+/**
+* 'Control': the other bot opens a room, this window lets go of its bot (as Exit does) and plays the other one
+*
+* @param {string} name - a controllable() character
+* @see docs/reference/network/remote-bot.md
+*/
+function takeControl(name) {
+	const bot = controllable(name);
+	const settings = BotHall.loadSettings();
+	const entity = SessionStorage_default.Entity;
+	if (_opening$1) return;
+	if (!bot || !settings) {
+		ChatBox_default.addText("Control: " + CONTROL_FAILURES.gone, ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		return;
+	}
+	_opening$1 = true;
+	BotHall.open(bot.id).then((answer) => {
+		_opening$1 = false;
+		const room = {
+			...settings,
+			room: answer.room,
+			secret: answer.secret,
+			character: name
+		};
+		if (SessionStorage_default.Entity === entity && RemoteBot.switchTo(room)) Escape_default.onExitRequest();
+	}, (err) => {
+		_opening$1 = false;
+		if (SessionStorage_default.Entity === entity) {
+			const why = CONTROL_FAILURES[err.code] || "this remote client could not open a room.";
+			ChatBox_default.addText("Control: " + why, ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
+		}
+	});
+}
+/**
+* Initialize
+*/
+function RemoteBotChatEngine() {
+	RemoteBot.onText(onText);
+}
+var CONTROL_FAILURES, _opening$1, _added, _log;
+var init_RemoteBotChat = __esmMin((() => {
+	init_RemoteBot();
+	init_BotHall();
+	init_SessionStorage();
+	init_MapRenderer();
+	init_ProcessCommand();
+	init_ChatBox();
+	init_ChatBoxSettings();
+	init_Escape();
+	CONTROL_FAILURES = {
+		busy: "this remote client has too many windows open.",
+		gone: "this remote client left the hall.",
+		"no-answer": "this remote client did not answer."
+	};
+	_opening$1 = false;
+	_added = [];
+	_log = false;
+}));
 // src/Controls/EntityControl.js
 /**
 * Export
@@ -318596,6 +318842,7 @@ var init_EntityControl = __esmMin((() => {
 	init_Equipment();
 	init_CaptchaSelector();
 	init_Guild();
+	init_RemoteBotChat();
 	init_PartyFriends();
 	init_Group();
 	init_HomunInformations();
@@ -318915,6 +319162,12 @@ var init_EntityControl = __esmMin((() => {
 						ContextMenu_default.nextGroup();
 						ContextMenu_default.addElement(DB.getMessage(88).replace("%s", this.display.name), () => {
 							GroupEngine.onRequestInvitation(entity.GID, entity.display.name);
+						});
+					}
+					if (controllable(this.display.name)) {
+						ContextMenu_default.nextGroup();
+						ContextMenu_default.addElement("Control", () => {
+							takeControl(entity.display.name);
 						});
 					}
 					break;
@@ -339085,9 +339338,10 @@ function onMinimapMarker(pkt) {
 * Receive progressbar
 *
 * @param {object} pkt - PACKET_ZC_PROGRESS
+* @see docs/reference/network/remote-bot.md
 */
 function onProgressBar(pkt) {
-	SessionStorage_default.Entity.cast.onComplete = function() {
+	SessionStorage_default.Entity.cast.onComplete = RemoteBot.isActive() ? null : function() {
 		const _pkt = new PACKET.CZ.PROGRESS();
 		Network.sendPacket(_pkt);
 	};
@@ -339097,6 +339351,7 @@ function onProgressBar(pkt) {
 		pkt.color & 255
 	].join(",") + ")";
 	SessionStorage_default.Entity.cast.set(pkt.time * 1e3, pkt.color ? rgb : null);
+	SessionStorage_default.Entity.cast.tick -= RemoteBot.takeElapsed();
 }
 /**
 * Stop Progressbar
@@ -349266,93 +349521,6 @@ var init_Achievement = __esmMin((() => {
 	init_EffectConst();
 	init_EffectManager();
 }));
-// src/Engine/MapEngine/RemoteBotChat.js
-/**
-* Take the bot's commands out of the chat
-*/
-function clear() {
-	for (let i = 0; i < _added.length; ++i) ProcessCommand_default.remove(_added[i]);
-	_added = [];
-	_log = false;
-}
-/**
-* A bot command typed in the chat: the bot runs it in its console
-*
-* @param {string} text - the line without its slash
-*/
-function runOnBot(text) {
-	ChatBox_default.onRequestTalk("", "@@" + text, ChatBox_default.TYPE.PUBLIC);
-}
-/**
-* /log: the bot's log in the chat, or not any more
-*/
-function toggleLog() {
-	_log = !_log;
-	if (!RemoteBot.sendText({
-		t: "log",
-		v: 1,
-		on: _log
-	})) {
-		_log = false;
-		ChatBox_default.addText("Bot log: the bot cannot be reached.", ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.PUBLIC_LOG);
-		return;
-	}
-	if (!_log) {
-		ChatBox_default.addText("Bot log: off.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
-		return;
-	}
-	const options = ChatBoxSettings_default.tabOption;
-	if (!options.some((list) => list && list.includes(ChatBox_default.FILTER.BOT_LOG))) {
-		options[ChatBox_default.activeTab] = options[ChatBox_default.activeTab] || [];
-		options[ChatBox_default.activeTab].push(ChatBox_default.FILTER.BOT_LOG);
-	}
-	ChatBox_default.addText("Bot log: on. /log again to stop it.", ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
-}
-/**
-* A text message from the bot
-*
-* @param {?object} message - null when the bot's peer left
-* @see docs/reference/network/remote-bot.md
-*/
-function onText(message) {
-	if (!message) {
-		clear();
-		return;
-	}
-	if (message.t === "cmds" && Array.isArray(message.list)) {
-		clear();
-		message.list.forEach((cmd) => {
-			[cmd.name].concat(Array.isArray(cmd.aliases) ? cmd.aliases : []).forEach((name) => {
-				if (typeof name !== "string" || !/^[\w-]+$/.test(name) || ProcessCommand_default.exists(name)) return;
-				ProcessCommand_default.add(name, typeof cmd.help === "string" ? cmd.help : "", runOnBot);
-				_added.push(name);
-			});
-		});
-		if (!ProcessCommand_default.exists("log")) {
-			ProcessCommand_default.add("log", "show the bot's log in the chat", toggleLog);
-			_added.push("log");
-		}
-		return;
-	}
-	if (message.t === "log" && Array.isArray(message.lines) && _log) message.lines.forEach((line) => {
-		if (typeof line === "string") ChatBox_default.addText(line, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.BOT_LOG);
-	});
-}
-/**
-* Initialize
-*/
-function RemoteBotChatEngine() {
-	RemoteBot.onText(onText);
-}
-var _added, _log;
-var init_RemoteBotChat = __esmMin((() => {
-	init_RemoteBot();
-	init_ProcessCommand();
-	init_ChatBox();
-	init_ChatBoxSettings();
-	_added = [];
-	_log = false;
-}));
 // src/Engine/MapEngine.js
 /**
 * Pong from server
@@ -349593,9 +349761,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "cc374d3a2f25edca61ac17b4120544df028c4f05") {
+		if (!_buildShown && "315cc92d5fd57c1a34de5ea3f7c935d1e9cb5a58") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"cc374d3a2f25edca61ac17b4120544df028c4f05".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"315cc92d5fd57c1a34de5ea3f7c935d1e9cb5a58".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -349669,9 +349837,12 @@ function onExitSuccess() {
 	UIManager.removeComponents();
 	Network.close();
 	Renderer.stop();
-	MapRenderer.free();
 	SoundManager.stop();
-	BGM.stop();
+	_keptMap = RemoteBot.switching();
+	if (!_keptMap) {
+		MapRenderer.free();
+		BGM.stop();
+	}
 	__vitePreload(() => Promise.resolve().then(() => (init_GameEngine(), GameEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
 }
 /**
@@ -349985,7 +350156,7 @@ function onReassemblyAuth(pkt) {
 		return;
 	}
 }
-var _mapName, _isInitialised, _buildShown, _exiting, _exitTimer, snCounter, chatLines, packetMap, MapEngine, _walkTimer, _walkLastTick;
+var _mapName, _isInitialised, _buildShown, _exiting, _exitTimer, _keptMap, snCounter, chatLines, packetMap, MapEngine, _walkTimer, _walkLastTick;
 var init_MapEngine = __esmMin((() => {
 	init_DBManager();
 	init_Configs();
@@ -349995,6 +350166,7 @@ var init_MapEngine = __esmMin((() => {
 	init_SessionStorage();
 	init_AutoRetry();
 	init_NetworkManager();
+	init_RemoteBot();
 	init_PacketVerManager();
 	init_PacketStructure();
 	init_Renderer();
@@ -350104,6 +350276,7 @@ var init_MapEngine = __esmMin((() => {
 	_buildShown = false;
 	_exiting = false;
 	_exitTimer = null;
+	_keptMap = false;
 	snCounter = 0;
 	chatLines = 0;
 	packetMap = /* @__PURE__ */ new Map();
@@ -350127,7 +350300,8 @@ var init_MapEngine = __esmMin((() => {
 			const server_info = Configs.getServer();
 			const current_ip = forceAddress ? server_info.address : Network.utils.longToIP(ip);
 			Network.connect(current_ip, port, (success) => {
-				MapRenderer.currentMap = "";
+				if (!_keptMap) MapRenderer.currentMap = "";
+				_keptMap = false;
 				if (!success) {
 					if (AutoRetry.armed()) {
 						const box = UIManager.showMessageBox(DB.getMessage(1), "ok", () => {
@@ -359443,7 +359617,9 @@ function backToLogin() {
 * @see docs/reference/network/remote-bot.md
 */
 function showLoginScreen() {
-	if (!_manual && BotHall.loadSettings()) RemoteCharacters_default.append();
+	const next = RemoteBot.takeSwitch();
+	if (next) attachRemote(next);
+	else if (!_manual && BotHall.loadSettings()) RemoteCharacters_default.append();
 	else {
 		BotHall.leave();
 		RemoteBot.leave();
@@ -359470,7 +359646,7 @@ function showWinLogin() {
 /**
 * A bot opened a room for this window: log in through it (any credentials, the bot answers with its own)
 *
-* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
+* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string, control: ?boolean}} room
 * @see docs/reference/network/remote-bot.md
 */
 function attachRemote(room) {
@@ -359626,7 +359802,7 @@ function onCharServerSelected(index) {
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
 	RemoteBot.setLoginScreen(null);
-	BotHall.leave();
+	if (!RemoteBot.isActive()) BotHall.leave();
 	SessionStorage_default.AuthCode = pkt.AuthCode;
 	SessionStorage_default.AID = pkt.AID;
 	SessionStorage_default.UserLevel = pkt.userLevel;
@@ -360241,8 +360417,8 @@ var init_LoginEngine = __esmMin((() => {
 				onConnectionRequest.apply(null, autoLogin);
 				Configs.set("autoLogin", null);
 			} else q.add(function() {
-				showLoginScreen();
 				RemoteBot.setLoginScreen(askRemoteLink);
+				showLoginScreen();
 			});
 			if (PacketVerManager_default.value < 20170315) Network.hookPacket(PACKET.AC.ACCEPT_LOGIN, onConnectionAccepted);
 			else Network.hookPacket(PACKET.AC.ACCEPT_LOGIN3, onConnectionAccepted);
@@ -360263,8 +360439,8 @@ var init_LoginEngine = __esmMin((() => {
 			UIManager.removeComponents();
 			Controller.onConnectionRequest = onConnectionRequest;
 			Controller.onExitRequest = onExitRequest;
-			showLoginScreen();
 			RemoteBot.setLoginScreen(askRemoteLink);
+			showLoginScreen();
 			Network.close();
 		}
 		/**
@@ -361087,20 +361263,24 @@ function loadFiles(callback) {
 	q.run();
 }
 function onReload() {
+	const switching = RemoteBot.switching();
 	const list = new Array(_servers.length);
 	let i;
 	const count = list.length;
 	if (count === 0) UIManager.showMessageBox("Sorry, no server found.", "ok", GameEngine.init);
 	else if (count === 1 && Configs.get("skipServerList")) LoginEngine.init(_servers[0]);
+	else if (_previous_server && switching) LoginEngine.init(_previous_server);
 	else {
 		for (i = 0; i < count; ++i) list[i] = _servers[i].display;
 		WinList_default.append();
 		WinList_default.setList(list);
 	}
 	Renderer.stop();
-	MapRenderer.cancelLoad();
-	MapRenderer.free();
-	BGM.play("01.mp3");
+	if (!switching) {
+		MapRenderer.cancelLoad();
+		MapRenderer.free();
+		BGM.play("01.mp3");
+	}
 }
 function onReadyLoginServer(index) {
 	_previous_server = _servers[index];
@@ -361214,6 +361394,7 @@ var init_GameEngine = __esmMin((() => {
 	init_Context();
 	init_LoginEngine();
 	init_NetworkManager();
+	init_RemoteBot();
 	init_Renderer();
 	init_MapRenderer();
 	init_UIManager();
@@ -361262,7 +361443,7 @@ var init_GameEngine = __esmMin((() => {
 		*/
 		static reload() {
 			BGM.setAvailableExtensions(Configs.get("BGMFileExtension", ["mp3"]));
-			BGM.play("01.mp3");
+			if (!RemoteBot.switching()) BGM.play("01.mp3");
 			UIManager.removeComponents();
 			Network.close();
 			Background.init();
