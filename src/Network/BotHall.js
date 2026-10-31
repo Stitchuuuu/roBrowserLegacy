@@ -34,6 +34,12 @@ const HALL_MAX = 40;
 const OPEN_WAIT_MS = 15000;
 
 /**
+ * How long a bot has to answer a call, unless the caller says otherwise
+ * @const {number}
+ */
+const CALL_WAIT_MS = 10000;
+
+/**
  * @var {?object} _room - the hall, once joined
  */
 let _room = null;
@@ -49,19 +55,29 @@ let _state = 'off';
 let _bots = Object.create(null);
 
 /**
- * @var {object} _opens - open id -> {peer, resolve, reject, timer}
+ * @var {object} _asked - open or call id -> {t, peer, resolve, reject, timer}, t being the answer awaited (room or ret)
  */
-const _opens = Object.create(null);
+const _asked = Object.create(null);
 
 /**
- * @var {number} _nextOpen
+ * @var {number} _nextId
  */
-let _nextOpen = 1;
+let _nextId = 1;
 
 /**
  * @var {?function} _onChange
  */
 let _onChange = null;
+
+/**
+ * @var {Array<function>} _watchers - told of every change and of each bot's event
+ */
+let _watchers = [];
+
+/**
+ * @var {boolean} _keep - the hall stays joined in game
+ */
+let _keep = false;
 
 const BotHall = {};
 
@@ -150,6 +166,32 @@ BotHall.onChange = function onChange(fn) {
 };
 
 /**
+ * @param {function(string, ...*)} fn - called with ('change') when the list or the state changes, and with
+ *  ('ev', botId, name, data) for each event a bot sends
+ * @return {function} stops it
+ */
+BotHall.watch = function watch(fn) {
+	_watchers.push(fn);
+	return () => {
+		_watchers = _watchers.filter(w => w !== fn);
+	};
+};
+
+/**
+ * @param {boolean} on - the hall stays joined in game while on
+ */
+BotHall.keep = function keep(on) {
+	_keep = !!on;
+};
+
+/**
+ * @return {boolean} the hall stays joined in game
+ */
+BotHall.kept = function kept() {
+	return _keep;
+};
+
+/**
  * @return {string} off, joining, in, or the library code that closed the hall
  */
 BotHall.state = function state() {
@@ -231,8 +273,8 @@ BotHall.join = function join(settings) {
 			return;
 		}
 		delete _bots[peer.id];
-		for (const n in _opens) {
-			if (_opens[n].peer === peer.id) {
+		for (const n in _asked) {
+			if (_asked[n].peer === peer.id) {
 				settle(Number(n), null, 'gone');
 			}
 		}
@@ -251,7 +293,7 @@ BotHall.join = function join(settings) {
 		}
 		_state = err ? err.code : 'off';
 		_bots = Object.create(null);
-		for (const n in _opens) {
+		for (const n in _asked) {
 			settle(Number(n), null, 'gone');
 		}
 		changed();
@@ -279,7 +321,7 @@ BotHall.leave = function leave() {
 	_room = null;
 	_state = 'off';
 	_bots = Object.create(null);
-	for (const id in _opens) {
+	for (const id in _asked) {
 		settle(Number(id), null, 'gone');
 	}
 	if (room) {
@@ -297,14 +339,15 @@ BotHall.leave = function leave() {
  */
 BotHall.open = function open(id) {
 	const bot = _bots[id];
-	const n = _nextOpen++;
+	const n = _nextId++;
 
 	if (!bot) {
 		return Promise.reject(Object.assign(new Error('the bot left the hall'), { code: 'gone' }));
 	}
 
 	return new Promise((resolve, reject) => {
-		_opens[n] = {
+		_asked[n] = {
+			t: 'room',
 			peer: id,
 			resolve,
 			reject,
@@ -312,6 +355,67 @@ BotHall.open = function open(id) {
 		};
 		send(bot.peer, { t: 'open', v: VERSION, id: n });
 	});
+};
+
+/**
+ * Ask a bot for one of the names it serves
+ *
+ * @param {string} id - the bot's peer id
+ * @param {string} name - a-z first, then a-z 0-9 . _ -
+ * @param {*} data - any JSON value
+ * @param {number} [ms] - how long it has to answer
+ * @return {Promise<*>} what it returned; rejected with an Error whose code is the bot's why, gone, no-answer or big
+ * @see docs/reference/network/remote-bot.md
+ */
+BotHall.call = function callName(id, name, data, ms) {
+	const bot = _bots[id];
+	const n = _nextId++;
+	let text;
+
+	if (!bot) {
+		return Promise.reject(Object.assign(new Error('the bot left the hall'), { code: 'gone' }));
+	}
+	try {
+		text = encode({ t: 'call', v: VERSION, id: n, name, data });
+	} catch (err) {
+		return Promise.reject(Object.assign(err, { code: 'big' }));
+	}
+
+	return new Promise((resolve, reject) => {
+		_asked[n] = {
+			t: 'ret',
+			peer: id,
+			resolve,
+			reject,
+			timer: setTimeout(() => settle(n, null, 'no-answer'), ms || CALL_WAIT_MS)
+		};
+		bot.peer.send(text).catch(() => {
+			// A peer gone meanwhile: its leave says so
+		});
+	});
+};
+
+/**
+ * Send a bot an event; nothing comes back
+ *
+ * @param {string} id - the bot's peer id
+ * @param {string} name
+ * @param {*} data
+ * @return {boolean} sent: the bot is listed and the event fits
+ */
+BotHall.emit = function emit(id, name, data) {
+	const bot = _bots[id];
+
+	if (!bot) {
+		return false;
+	}
+	try {
+		send(bot.peer, { t: 'ev', v: VERSION, name, data });
+	} catch (err) {
+		console.warn(`[BotHall] ${err.message}, event ${name} not sent`);
+		return false;
+	}
+	return true;
 };
 
 /**
@@ -367,12 +471,28 @@ function link(room, peer) {
 		if (m.t === 'hello') {
 			_bots[peer.id] = Object.assign(m, { id: peer.id, via: peer.via, peer: peer });
 			changed();
-		} else if ((m.t === 'room' || m.t === 'no') && _opens[m.id] && _opens[m.id].peer === peer.id) {
+		} else if (m.t === 'ev') {
+			tell('ev', peer.id, m.name, m.data);
+		} else if (asked(m, peer) === 'room') {
 			settle(m.id, m.t === 'room' ? { room: m.room, secret: m.secret } : null, m.why);
+		} else if (asked(m, peer) === 'ret') {
+			settle(m.id, m.ok ? { data: m.data } : null, m.why);
 		}
 	});
 
 	send(peer, { t: 'who', v: VERSION });
+}
+
+/**
+ * @param {object} m - an answer
+ * @param {object} peer - who sent it
+ * @return {?string} the answer awaited under its id from that peer, if it is one
+ */
+function asked(m, peer) {
+	const pending = _asked[m.id];
+	const t = m.t === 'no' ? 'room' : m.t;
+
+	return pending && pending.peer === peer.id && pending.t === t ? t : null;
 }
 
 /**
@@ -386,31 +506,48 @@ function send(peer, m) {
 }
 
 /**
- * @param {number} n - open id
- * @param {?object} answer
+ * @param {number} n - open or call id
+ * @param {?object} answer - a call's is {data}
  * @param {?string} code - why it failed
  */
 function settle(n, answer, code) {
-	const pending = _opens[n];
+	const pending = _asked[n];
 
 	if (!pending) {
 		return;
 	}
-	delete _opens[n];
+	delete _asked[n];
 	clearTimeout(pending.timer);
-	if (answer) {
-		pending.resolve(answer);
+	if (!answer) {
+		const what = pending.t === 'room' ? 'open' : 'call';
+		pending.reject(Object.assign(new Error(`${what} refused: ${code}`), { code }));
+	} else if (pending.t === 'ret') {
+		pending.resolve(answer.data);
 	} else {
-		pending.reject(Object.assign(new Error(`open refused: ${code}`), { code }));
+		pending.resolve(answer);
 	}
 }
 
 /**
- * Tell the list
+ * Tell the list and the watchers
  */
 function changed() {
 	if (_onChange) {
 		_onChange();
+	}
+	tell('change');
+}
+
+/**
+ * @param {...*} args - what the watchers are told
+ */
+function tell(...args) {
+	for (const fn of _watchers) {
+		try {
+			fn(...args);
+		} catch (err) {
+			console.warn(`[BotHall] a watcher failed: ${err.message}`);
+		}
 	}
 }
 

@@ -56,7 +56,8 @@ joins it at every start, `--spectate-rtc` or not.
 | « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window, once this browser has a relay: the list, or the settings the first time |
 
 `Network/BotHall.js` joins the hall when the list shows (never at load). It
-leaves it once a login by hand is accepted; logged in through a remote client,
+leaves it once a login by hand is accepted, unless something asked to keep it
+(`BotHall.keep(true)`: a plugin that talks to the bots in game); logged in through a remote client,
 the window stays in the hall: it names the other remote clients on the map
 (« Control », below), at one more relay connection per window. Everyone joins with `connect: 'manual'`
 and `max: 40`: the page calls each member, bots call nobody, so no two bots
@@ -90,6 +91,8 @@ in roBrowserLegacy-Node:
 |---|---|
 | `{t:'who', v:1}` | `{t:'hello', v:1, kind:'node', account, chars:[{name, job, lv}], playing:{name, job, lv, map} \| null, windows}` |
 | `{t:'open', v:1, id}` | `{t:'room', v:1, id, room, secret}` or `{t:'no', v:1, id, why}` (`busy`, `error`) |
+| `{t:'call', v:1, id, name, data}` | `{t:'ret', v:1, id, ok:true, data}` or `{t:'ret', v:1, id, ok:false, why}` (`unknown`, `error`, `big`, or the name's own) |
+| `{t:'ev', v:1, name, data}` | `{t:'ev', v:1, name, data}` |
 
 - The bot sends `hello` again, unasked, when its map or character changes.
 - Every field is bounded (names 32 characters, 15 characters per account,
@@ -100,6 +103,14 @@ in roBrowserLegacy-Node:
 - The page calls every member on each change of the member list; a link that
   fails is tried again on the next change, a cut link is called again while
   its bot is still a member, and every new link is asked `who`.
+- `call` asks a bot for a name it serves (`BotHall.call(id, name, data, ms)`);
+  `ev` goes either way and is not answered (`BotHall.emit`, and
+  `BotHall.watch(fn)` hears `('ev', botId, name, data)` as well as each
+  `('change')`). A name is `a-z` then `a-z 0-9 . _ -`, 32 at most; `data` is
+  any JSON value, bounded only by the 8 KiB of the message, refused before it
+  goes (`big`). A `ret` settles its call only from the bot asked; none in
+  10 s (or the time given) rejects it `no-answer`, as a bot that does not know
+  `call` yet does. The bot serves `lots.list` (its lots, holder by name).
 - One vector pins the format on both sides: `tests/fixtures/hall-vector.json`
   here, `tests/node/fixtures/hall-vector.json` there.
 
@@ -208,9 +219,11 @@ Beside the records, the room carries JSON text both ways
 | `{t:'control', v:1, on}` | bot → window | whether this window holds the bot's control: on every `@control`, and each time the window is in game, so a control the bot let go of meanwhile reads off (`RemoteBot.hasControl()`) |
 | `{t:'progress', v:1, elapsed}` | bot → window | before the records of a snapshot that carries a progress bar: the ms it has already run (`RemoteBot.takeElapsed()`) |
 | `{t:'character', v:1, name}` | bot → window | before the char list, when the bot switched characters on its own: the one the window picks (`RemoteBot.takeCharacter()`) |
+| `{t:'logout', v:1}` | window → bot | **Disconnect & Exit**, confirmed: the bot runs its `/logout` (below) |
 
 `RemoteBot` keeps `control`, `progress` and `character` itself;
-`RemoteBotChat` also hears `control`, to show or hide « Character select ».
+`RemoteBotChat` also hears `control`, to show or hide « Character select »
+and to turn the control pill.
 
 - A bot command typed in the chat (`/status 2`) is sent as public chat
   `@@status 2`. The bot's responder takes any chat line starting with `@@`,
@@ -234,7 +247,17 @@ Beside the records, the room carries JSON text both ways
 ## Control, and another remote client
 
 A window watches until `@control on` (typed in the chat or a whisper; the
-bot's responder takes it, the line never reaches the server). The bot then
+bot's responder takes it, the line never reaches the server).
+
+The info window's title bar says which (`UI/Components/BasicInfo/RemoteControlPill.js`,
+put in `.topbar` by `createBasicInfo().init()`, so every version has it):
+**● Control** in green, **○ Watching** in grey, at the right of the bar left
+of the minimize button, over the end of a long name. It reads
+`RemoteBot.hasControl()`, so it follows what the bot last said, not the click;
+a click sends `@control on` or `@control off` as the chat would. Outside the
+mode it is hidden.
+
+The bot then
 says `{t:'control', on}` and the window shows **Character select** in its
 Escape menu again (`Escape.refreshCharSelect`): with the control, the
 character select lists every character of the bot's account, and picking
@@ -271,6 +294,50 @@ another remote client of the hall says it plays, on this map: the hall's
 
 The login screen re-arms the mode (`RemoteBot.setLoginScreen`) before it
 shows, so a room left from the game is let go there, not at the next attach.
+
+## Disconnect & Exit
+
+**Exit to Windows** closes the window and the bot plays on. **Disconnect &
+Exit**, under it in the Escape menu of any window in the mode (held control or
+not), parks the character offline instead: after a confirmation box (« The bot
+logs out and its routine stops »), the window sends `{t:'logout'}`, then quits
+as Exit to Windows does. The use is a buff with time left (Bubble Gum is
+`SC_ITEMBOOST`, Fireproof Potion `SC_ARMOR_ELEMENT_FIRE`): neither is `NoSave`
+in rathena's `db/pre-re/status.yml`, so the server saves them with their time
+frozen until the next login.
+
+The button is the client's own text button (`<ui-button
+skin="basic_interface/btn">`), as no `esc_*.bmp` carries that label.
+
+On the bot's side the text runs its `/logout`: its routines stop, no automatic
+relogin follows. Before that, the responder drops the control without
+resuming anything, so the window's `CZ_REQUEST_QUIT` that follows does not
+wake the routine the logout stops. The bot's own `CZ_REQ_DISCONNECT` puts its
+recorder offline: every other window in game is disconnected (« Disconnected »
+box); the one that asked is left to quit on its own, its quit answered as
+usual. The hall says `hello` again, the bot now « not in game ».
+
+## Attaching to a logged-out bot
+
+A bot that logged out keeps its account's login and character bytes. A window
+that attaches then (from the list: « not in game ») gets the login answered
+and **every** character of the account, as a window in control would; the bot
+picks none for it. The character the player picks:
+
+1. holds the window's char socket, and gives the control to this window at
+   once — nothing runs on a logged-out bot, so nothing races it;
+2. logs the bot in with that character (its operator login, the same as
+   `/login` with that slot);
+3. once the bot is on the map, answers the window as a character switch does;
+   the window enters with the pill on **● Control**, no `@control` typed.
+
+A login that fails (the bot holds no password: an « alt » account is handed
+back at `/logout`), or a bot not on a map 45 s later, closes the window's
+socket (« Disconnected ») and gives the control back; the bot's log says why.
+
+Only the WebRTC mode has this: the WebSocket attach of the dev page has no
+text, and gives each socket a window of its own, so its control would not
+follow it from the character select to the map.
 
 ## Progress bars
 

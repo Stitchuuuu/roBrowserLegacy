@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 	switched: [],
 	exits: 0,
 	refreshes: 0,
+	pills: 0,
 	bots: [],
 	open: null,
 	hall: { relay: 'wss://relay.game.invalid/', relayKey: 'k1', room: 'hall', secret: 's' },
@@ -57,6 +58,7 @@ vi.mock('UI/Components/Escape/Escape.js', () => ({
 		onExitRequest: () => ++mocks.exits
 	}
 }));
+vi.mock('UI/Components/BasicInfo/RemoteControlPill.js', () => ({ default: { refresh: () => ++mocks.pills } }));
 vi.mock('Controls/ProcessCommand.js', () => ({
 	default: {
 		add: (name, description, callback) => (mocks.commands[name] = { description, callback }),
@@ -239,11 +241,13 @@ describe('RemoteBotChat: another remote client taken from the map', () => {
 		expect(mocks.talk).toEqual([['', '@control on', 2]]);
 	});
 
-	it('shows or hides Character select when the bot says who holds the control, or leaves', () => {
+	it('shows or hides Character select and turns the control pill when the bot says who holds the control, or leaves', () => {
 		const before = mocks.refreshes;
+		const pills = mocks.pills;
 		mocks.onText({ t: 'control', v: 1, on: true });
 		mocks.onText(null);
 
 		expect(mocks.refreshes - before).toBe(2);
+		expect(mocks.pills - pills).toBe(2);
 	});
 });

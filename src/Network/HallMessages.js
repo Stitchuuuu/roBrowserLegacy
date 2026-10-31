@@ -36,6 +36,12 @@ const MAX_SECRET = 128;
 const MAX_ID = 0x7fffffff;
 
 /**
+ * Name of a call or an event: a-z first, then a-z 0-9 . _ -, 32 at most
+ * @const {RegExp}
+ */
+const CALL_NAME = /^[a-z][a-z0-9._-]{0,31}$/;
+
+/**
  * @param {string} what
  */
 function fail(what) {
@@ -64,6 +70,17 @@ function int(value, max, what) {
 function str(value, max, what) {
 	if (typeof value !== 'string' || value.length < 1 || value.length > max) {
 		fail(`${what} is not a string of 1 to ${max} characters`);
+	}
+	return value;
+}
+
+/**
+ * @param {*} value
+ * @return {string}
+ */
+function callName(value) {
+	if (typeof value !== 'string' || !CALL_NAME.test(value)) {
+		fail('name is not 1 to 32 of a-z 0-9 . _ - starting with a letter');
 	}
 	return value;
 }
@@ -143,6 +160,24 @@ function normalize(m) {
 		case 'no':
 			return { t, v, id: int(m.id, MAX_ID, 'id'), why: str(m.why, MAX_KIND, 'why') };
 
+		case 'call':
+			return { t, v, id: int(m.id, MAX_ID, 'id'), name: callName(m.name), data: m.data ?? null };
+
+		case 'ret': {
+			const id = int(m.id, MAX_ID, 'id');
+
+			if (m.ok === true) {
+				return { t, v, id, ok: true, data: m.data ?? null };
+			}
+			if (m.ok !== false) {
+				fail('ok is not a boolean');
+			}
+			return { t, v, id, ok: false, why: str(m.why, MAX_KIND, 'why') };
+		}
+
+		case 'ev':
+			return { t, v, name: callName(m.name), data: m.data ?? null };
+
 		default:
 			return null;
 	}
@@ -150,7 +185,7 @@ function normalize(m) {
 
 /**
  * @param {object} m
- * @return {string}
+ * @return {string} throws on an unknown or malformed message, or one longer than MAX_TEXT
  */
 export function encode(m) {
 	const n = normalize(m);
@@ -158,7 +193,12 @@ export function encode(m) {
 	if (!n) {
 		fail(`unknown t ${m.t}`);
 	}
-	return JSON.stringify(n);
+	const text = JSON.stringify(n);
+
+	if (text.length > MAX_TEXT) {
+		fail(`longer than ${MAX_TEXT}`);
+	}
+	return text;
 }
 
 /**
