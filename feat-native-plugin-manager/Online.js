@@ -210220,7 +210220,11 @@ function receive(buf) {
 			entry.instance = packet.instance;
 			entry.hasCallback = !!packet.callback;
 			_flushLogs();
-			if (packet.callback) packet.callback(packet.instance);
+			if (packet.callback) try {
+				packet.callback(packet.instance);
+			} catch (err) {
+				console.error(`[Network] ${packet.name} handler threw:`, err);
+			}
 		} else {
 			const entry = _logPool[_logTail & LOG_QUEUE_MASK];
 			_logTail++;
@@ -350326,9 +350330,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "0eac84eaeb6ceabdf61cda29bc56162e7b368131") {
+		if (!_buildShown && "0c95559c6b45eb0dada60804ab80b2f705d8eca1") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"0eac84eaeb6ceabdf61cda29bc56162e7b368131".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"0c95559c6b45eb0dada60804ab80b2f705d8eca1".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
