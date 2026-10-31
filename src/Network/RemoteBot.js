@@ -64,6 +64,11 @@ let _listRoom = false;
  */
 let _inGame = false;
 
+/**
+ * @var {?function(?object)} _onText - takes the bot's text messages, null when its peer left
+ */
+let _onText = null;
+
 const RemoteBot = {};
 
 /**
@@ -145,6 +150,26 @@ RemoteBot.takeCharacter = function takeCharacter() {
 };
 
 /**
+ * Who takes the bot's text messages (its commands, its log)
+ *
+ * @param {?function(?object)} fn - a parsed message, or null when the bot's peer left
+ * @see docs/reference/network/remote-bot.md
+ */
+RemoteBot.onText = function onText(fn) {
+	_onText = fn;
+};
+
+/**
+ * Text to the bot, beside the sockets
+ *
+ * @param {object} message
+ * @return {boolean} false without the bot's peer
+ */
+RemoteBot.sendText = function sendText(message) {
+	return !!_sockets && _sockets.sendText(message);
+};
+
+/**
  * Back to the server from a room the bot list opened; a link stays
  */
 RemoteBot.leave = function leave() {
@@ -214,6 +239,23 @@ function join(link) {
 		_sockets.leave();
 	}
 	_sockets = new RtcSockets(joinRoom({ ...link, max: 2 }));
+	_sockets.onText = text => {
+		let message = null;
+
+		if (text !== null) {
+			try {
+				message = JSON.parse(text);
+			} catch (_e) {
+				return;
+			}
+			if (!message || typeof message !== 'object') {
+				return;
+			}
+		}
+		if (_onText) {
+			_onText(message);
+		}
+	};
 }
 
 /**

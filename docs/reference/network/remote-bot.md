@@ -160,8 +160,8 @@ three sockets share the reliable stream as records
 - One message is in flight at a time; what is written meanwhile leaves in the
   next one. A message never exceeds 1 MiB (the library's limit); a larger
   payload is split into several DATA records, in order.
-- A truncated record cuts the peer. A record for an unknown socket id, or a
-  text message, is dropped.
+- A truncated record cuts the peer. A record for an unknown socket id is
+  dropped. A text message is no record: it goes to the bot's text below.
 - A gone peer ends every socket (`onClose`), as a closed WebSocket would. If
   the peer refuses a send, the writes stop until its `close` comes.
 
@@ -183,14 +183,45 @@ attach and after every map change) is timed by the window
 (`RtcSockets.watch`): the wait from the ack to the answer, the time to handle
 its packets, and the longest frame over the next 15 s. The line goes to the
 browser console, and to the bot as a text message
-(`{t:'timing', v:1, via, wait, handled, longestFrame}`, whole ms) — the one
-text the room carries; a bot that does not know it ignores it. The bot writes
+(`{t:'timing', v:1, via, wait, handled, longestFrame}`, whole ms); a bot that
+does not know it ignores it. The bot writes
 it to its session log, next to its own line: how long the snapshot waited
 for the link before it left (`snapshot left in … ms (via …)`).
 
 A slow wait with a fast `snapshot left` is the way there and back; a slow
 `snapshot left` is the link, the relay's rate included; a long frame is this
 window's own work on what it got.
+
+## The bot's commands and its log
+
+Beside the records, the room carries JSON text both ways
+(`RtcSockets.sendText` / `onText`, through `RemoteBot.sendText` /
+`RemoteBot.onText`). `Engine/MapEngine/RemoteBotChat.js` reads it:
+
+| message | way | what it does |
+|---|---|---|
+| `{t:'cmds', v:1, list:[{name, aliases, help}]}` | bot → window | once the window is in game: each name and alias becomes a slash command of the chat, plus `/log` |
+| `{t:'log', v:1, on}` | window → bot | `/log`, then `/log` again |
+| `{t:'log', v:1, lines:[…]}` | bot → window | its console's last 50 lines at once, then what comes, every 500 ms at most, 200 lines a batch at most |
+
+- A bot command typed in the chat (`/status 2`) is sent as public chat
+  `@@status 2`. The bot's responder takes any chat line starting with `@@`,
+  runs it in its console without the `@@`, and answers « [spectate] /status
+  - output in the REPL » in this window's chat; the line never reaches the server, held
+  `@control` or not. Its output stays in the bot's console: `/log` is the
+  way to see it here. A single `@` is still the server's (`@storage`).
+- A name the client already answers to (its own command, an alias, an
+  emotion) keeps the client's meaning: `/sit`, `/help`, `/h`, `/w`,
+  `/guild` stay the client's, and `@@sit` reaches the bot's.
+- The log lines go to the chat under the **Bot log** filter
+  (`ChatBox.FILTER.BOT_LOG`, 100: far from the client's own ids), a filter of
+  each tab like the others, listed in the tab settings only in the mode
+  (`docs/reference/chat/tabs.md`). `/log` turns it on in the current tab when
+  no tab shows it.
+- When the bot's peer goes, its commands leave the chat and `/log` is off.
+- Only the WebRTC mode has the text: the WebSocket attach of the dev page
+  (`#spectate`) gets no commands and no `/log`, though `@@<command>` typed in
+  its chat still reaches the bot.
 
 ## Encryption
 

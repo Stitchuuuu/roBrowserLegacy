@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => {
 	}
 	MockGUIComponent.MouseMode = { STOP: 'stop' };
 
-	return { MockGUIComponent };
+	return { MockGUIComponent, remote: false };
 });
 
 vi.mock('DB/DBManager.js', () => ({ default: { INTERFACE_PATH: '' } }));
@@ -36,6 +36,7 @@ vi.mock('Core/Client.js', () => ({
 vi.mock('Controls/MouseEventHandler.js', () => ({ default: { screen: { x: 0, y: 0 } } }));
 vi.mock('UI/UIManager.js', () => ({ default: { addComponent: c => c } }));
 vi.mock('UI/GUIComponent.js', () => ({ default: mocks.MockGUIComponent }));
+vi.mock('Network/RemoteBot.js', () => ({ default: { isActive: () => mocks.remote } }));
 
 const ChatBoxSettings = (await import('UI/Components/ChatBoxSettings/ChatBoxSettings.js')).default;
 
@@ -45,7 +46,7 @@ ChatBoxSettings.init();
 
 const allOn = () => host.querySelector('.footer-opt');
 const box = () => host.querySelector('.footer-opt .allon').style.backgroundImage;
-const filters = () => [...host.querySelectorAll('.listoption button')];
+const filters = () => [...host.querySelectorAll('.listoption button')].filter(btn => btn.style.display !== 'none');
 
 describe('ChatBoxSettings - All on', () => {
 	beforeEach(() => {
@@ -77,5 +78,33 @@ describe('ChatBoxSettings - All on', () => {
 		filters()[0].click();
 
 		expect(box()).toContain('checkbox_0.bmp');
+	});
+
+	describe('Bot log', () => {
+		const botLog = () => host.querySelector('.listoption .botlog');
+
+		it('is not shown outside remote mode, and All on leaves it off', () => {
+			mocks.remote = false;
+			ChatBoxSettings.updateTab(0, 'Public');
+			allOn().click();
+
+			expect(botLog().style.display).toBe('none');
+			expect(ChatBoxSettings.tabOption[0]).not.toContain(100);
+		});
+
+		it('is a filter of the tab in remote mode, All on included', () => {
+			mocks.remote = true;
+			ChatBoxSettings.updateTab(0, 'Public');
+			expect(botLog().style.display).toBe('');
+
+			botLog().click();
+			expect(ChatBoxSettings.tabOption[0]).toEqual([1, 2, 100]);
+			expect(box()).toContain('checkbox_0.bmp');
+
+			allOn().click();
+			expect(ChatBoxSettings.tabOption[0]).toContain(100);
+			expect(box()).toContain('checkbox_1.bmp');
+			mocks.remote = false;
+		});
 	});
 });

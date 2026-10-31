@@ -87,6 +87,7 @@ class RtcSockets {
 		this.lastFailure = null;
 		this.peer = null;
 		this.ackAt = 0;
+		this.onText = null;
 
 		room.on('error', err => {
 			console.warn(`[RemoteBot] ${err.code}: ${err.message}`);
@@ -140,6 +141,22 @@ class RtcSockets {
 	}
 
 	/**
+	 * Text to the bot, beside the sockets
+	 *
+	 * @param {object} message - sent as JSON
+	 * @return {boolean} false without the bot's peer
+	 */
+	sendText(message) {
+		const peer = this.peer;
+
+		if (!peer || peer.closed) {
+			return false;
+		}
+		peer.send(JSON.stringify(message)).catch(() => {});
+		return true;
+	}
+
+	/**
 	 * Leave the room, for another link
 	 */
 	leave() {
@@ -163,6 +180,9 @@ class RtcSockets {
 			let records;
 
 			if (typeof data === 'string') {
+				if (this.onText) {
+					this.onText(data);
+				}
 				return;
 			}
 
@@ -200,6 +220,9 @@ class RtcSockets {
 			this.out = null;
 			for (const sid in this.socks) {
 				this.end(sid);
+			}
+			if (this.onText) {
+				this.onText(null);
 			}
 		});
 

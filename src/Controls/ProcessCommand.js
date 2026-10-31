@@ -1208,5 +1208,7 @@ export default {
 	add: addCommand,
 	remove: removeCommand,
 	isEnabled: name => name in CommandStore,
+	// A command, an alias or an emotion already answers to it
+	exists: name => name in CommandStore || name in aliases || name in Emotions.commands,
 	reloadAliases: reloadAliases
 };
