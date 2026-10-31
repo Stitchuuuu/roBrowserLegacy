@@ -1,7 +1,7 @@
 /**
  * Engine/MapEngine/RemoteBotChat.js
  *
- * A remote bot's slash commands and its log, in the chat; its control taken after a switch
+ * A remote bot's slash commands and its log, in the chat; its control taken after a switch, and shown
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
  */
@@ -14,6 +14,7 @@ import Commands from 'Controls/ProcessCommand.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
 import Escape from 'UI/Components/Escape/Escape.js';
+import RemoteControlPill from 'UI/Components/BasicInfo/RemoteControlPill.js';
 
 /**
  * Why 'Control' did not switch, by BotHall.open() error code
@@ -96,11 +97,13 @@ function onText(message) {
 	if (!message) {
 		clear();
 		Escape.refreshCharSelect();
+		RemoteControlPill.refresh();
 		return;
 	}
 
 	if (message.t === 'control') {
 		Escape.refreshCharSelect();
+		RemoteControlPill.refresh();
 		return;
 	}
 

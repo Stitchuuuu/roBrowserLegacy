@@ -71,6 +71,7 @@ Escape.init = function init() {
 	root.querySelector('.exit').addEventListener('click', function () {
 		Escape.onExitRequest();
 	});
+	root.querySelector('.disconnect').addEventListener('click', onDisconnectRequest);
 	root.querySelector('.cancel').addEventListener('click', function () {
 		Escape._host.style.display = 'none';
 	});
@@ -88,6 +89,7 @@ Escape.init = function init() {
 Escape.onAppend = function onAppend() {
 	this._host.style.display = 'none';
 	Escape.refreshCharSelect();
+	this.getRoot().querySelector('.disconnect').style.display = RemoteBot.isActive() ? '' : 'none';
 };
 
 /**
@@ -162,6 +164,18 @@ function onToggleShortcutUI() {
 	} else {
 		ShortCutOption.remove();
 	}
+}
+
+/**
+ * Disconnect & Exit, on a remote bot: once confirmed, the bot logs out, then the window quits
+ *
+ * @see docs/reference/network/remote-bot.md
+ */
+function onDisconnectRequest() {
+	UIManager.showPromptBox('The bot logs out and its routine stops. Continue?', 'ok', 'cancel', function () {
+		RemoteBot.sendText({ t: 'logout', v: 1 });
+		Escape.onExitRequest();
+	});
 }
 
 /**
