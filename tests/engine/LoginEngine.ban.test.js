@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => {
 		},
 		charEngine: { init: vi.fn() },
 		remoteEntry: { append: record('RemoteEntry.append'), remove: vi.fn() },
-		botHall: { loadSettings: vi.fn(() => null), loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn() },
+		botHall: { loadSettings: vi.fn(() => null), loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn(), kept: vi.fn(() => false) },
 		winList: { append: vi.fn(), setList: vi.fn() },
 		uiManager: {
 			removeComponents: record('UIManager.removeComponents'),
@@ -148,6 +148,17 @@ describe('LoginEngine login accepted', () => {
 		mocks.remoteBot.isActive.mockReturnValue(false);
 
 		expect(mocks.charEngine.init).toHaveBeenCalledWith(SERVER);
+	});
+
+	it('leaves the hall after a login by hand, unless it is kept', () => {
+		mocks.botHall.leave.mockClear();
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+		expect(mocks.botHall.leave).toHaveBeenCalledOnce();
+
+		mocks.botHall.leave.mockClear();
+		mocks.botHall.kept.mockReturnValueOnce(true);
+		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
+		expect(mocks.botHall.leave).not.toHaveBeenCalled();
 	});
 
 	it('shows the server list otherwise', () => {

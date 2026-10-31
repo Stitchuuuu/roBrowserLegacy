@@ -543,8 +543,8 @@ function onCharServerSelected(index) {
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
 	RemoteBot.setLoginScreen(null);
-	// In game, the hall names the other remote clients on the map
-	if (!RemoteBot.isActive()) {
+	// In game, the hall names the other remote clients on the map; kept, it serves a plugin
+	if (!RemoteBot.isActive() && !BotHall.kept()) {
 		BotHall.leave();
 	}
 
