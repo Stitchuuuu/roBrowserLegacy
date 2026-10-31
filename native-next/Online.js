@@ -209345,6 +209345,14 @@ function str(value, max, what) {
 	return value;
 }
 /**
+* @param {*} value
+* @return {string}
+*/
+function callName(value) {
+	if (typeof value !== "string" || !CALL_NAME.test(value)) fail("name is not 1 to 32 of a-z 0-9 . _ - starting with a letter");
+	return value;
+}
+/**
 * @param {*} c
 * @param {string} what
 * @return {{name: string, job: number, lv: number}}
@@ -209410,17 +209418,50 @@ function normalize(m) {
 			id: int(m.id, MAX_ID, "id"),
 			why: str(m.why, MAX_KIND, "why")
 		};
+		case "call": return {
+			t,
+			v,
+			id: int(m.id, MAX_ID, "id"),
+			name: callName(m.name),
+			data: m.data ?? null
+		};
+		case "ret": {
+			const id = int(m.id, MAX_ID, "id");
+			if (m.ok === true) return {
+				t,
+				v,
+				id,
+				ok: true,
+				data: m.data ?? null
+			};
+			if (m.ok !== false) fail("ok is not a boolean");
+			return {
+				t,
+				v,
+				id,
+				ok: false,
+				why: str(m.why, MAX_KIND, "why")
+			};
+		}
+		case "ev": return {
+			t,
+			v,
+			name: callName(m.name),
+			data: m.data ?? null
+		};
 		default: return null;
 	}
 }
 /**
 * @param {object} m
-* @return {string}
+* @return {string} throws on an unknown or malformed message, or one longer than MAX_TEXT
 */
 function encode(m) {
 	const n = normalize(m);
 	if (!n) fail(`unknown t ${m.t}`);
-	return JSON.stringify(n);
+	const text = JSON.stringify(n);
+	if (text.length > 8192) fail(`longer than ${MAX_TEXT}`);
+	return text;
 }
 /**
 * @param {*} data - what a peer sent
@@ -209437,7 +209478,7 @@ function parse(data) {
 	}
 	return normalize(m);
 }
-var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID;
+var MAX_TEXT, MAX_NAME, MAX_KIND, MAX_ROOM, MAX_SECRET, MAX_ID, CALL_NAME;
 var init_HallMessages = __esmMin((() => {
 	MAX_TEXT = 8192;
 	MAX_NAME = 32;
@@ -209445,6 +209486,7 @@ var init_HallMessages = __esmMin((() => {
 	MAX_ROOM = 64;
 	MAX_SECRET = 128;
 	MAX_ID = 2147483647;
+	CALL_NAME = /^[a-z][a-z0-9._-]{0,31}$/;
 }));
 // src/Network/BotHall.js
 /**
@@ -209493,15 +209535,27 @@ function link(room, peer) {
 				peer
 			});
 			changed();
-		} else if ((m.t === "room" || m.t === "no") && _opens[m.id] && _opens[m.id].peer === peer.id) settle(m.id, m.t === "room" ? {
+		} else if (m.t === "ev") tell("ev", peer.id, m.name, m.data);
+		else if (asked(m, peer) === "room") settle(m.id, m.t === "room" ? {
 			room: m.room,
 			secret: m.secret
 		} : null, m.why);
+		else if (asked(m, peer) === "ret") settle(m.id, m.ok ? { data: m.data } : null, m.why);
 	});
 	send$1(peer, {
 		t: "who",
 		v: 1
 	});
+}
+/**
+* @param {object} m - an answer
+* @param {object} peer - who sent it
+* @return {?string} the answer awaited under its id from that peer, if it is one
+*/
+function asked(m, peer) {
+	const pending = _asked[m.id];
+	const t = m.t === "no" ? "room" : m.t;
+	return pending && pending.peer === peer.id && pending.t === t ? t : null;
 }
 /**
 * @param {object} peer
@@ -209511,23 +209565,37 @@ function send$1(peer, m) {
 	peer.send(encode(m)).catch(() => {});
 }
 /**
-* @param {number} n - open id
-* @param {?object} answer
+* @param {number} n - open or call id
+* @param {?object} answer - a call's is {data}
 * @param {?string} code - why it failed
 */
 function settle(n, answer, code) {
-	const pending = _opens[n];
+	const pending = _asked[n];
 	if (!pending) return;
-	delete _opens[n];
+	delete _asked[n];
 	clearTimeout(pending.timer);
-	if (answer) pending.resolve(answer);
-	else pending.reject(Object.assign(/* @__PURE__ */ new Error(`open refused: ${code}`), { code }));
+	if (!answer) {
+		const what = pending.t === "room" ? "open" : "call";
+		pending.reject(Object.assign(/* @__PURE__ */ new Error(`${what} refused: ${code}`), { code }));
+	} else if (pending.t === "ret") pending.resolve(answer.data);
+	else pending.resolve(answer);
 }
 /**
-* Tell the list
+* Tell the list and the watchers
 */
 function changed() {
 	if (_onChange) _onChange();
+	tell("change");
+}
+/**
+* @param {...*} args - what the watchers are told
+*/
+function tell(...args) {
+	for (const fn of _watchers) try {
+		fn(...args);
+	} catch (err) {
+		console.warn(`[BotHall] a watcher failed: ${err.message}`);
+	}
 }
 /**
 * ?relay=<wss url>[&key=<relay key>] keeps the relay, then leaves the address bar
@@ -209542,7 +209610,7 @@ function init$16() {
 	const search = params.toString();
 	history.replaceState(history.state, "", `${window.location.pathname}${search ? "?" + search : ""}${window.location.hash}`);
 }
-var SETTINGS_KEY, RELAY_KEY, HALL_MAX, OPEN_WAIT_MS, _room, _state, _bots, _opens, _nextOpen, _onChange, BotHall;
+var SETTINGS_KEY, RELAY_KEY, HALL_MAX, OPEN_WAIT_MS, CALL_WAIT_MS, _room, _state, _bots, _asked, _nextId, _onChange, _watchers, _keep, BotHall;
 var init_BotHall = __esmMin((() => {
 	init_signal();
 	init_HallMessages();
@@ -209550,12 +209618,15 @@ var init_BotHall = __esmMin((() => {
 	RELAY_KEY = "botHallRelay";
 	HALL_MAX = 40;
 	OPEN_WAIT_MS = 15e3;
+	CALL_WAIT_MS = 1e4;
 	_room = null;
 	_state = "off";
 	_bots = Object.create(null);
-	_opens = Object.create(null);
-	_nextOpen = 1;
+	_asked = Object.create(null);
+	_nextId = 1;
 	_onChange = null;
+	_watchers = [];
+	_keep = false;
 	BotHall = {};
 	/**
 	* @return {?{relay: string, relayKey: string, room: string, secret: string}} the saved settings
@@ -209630,6 +209701,29 @@ var init_BotHall = __esmMin((() => {
 		_onChange = fn;
 	};
 	/**
+	* @param {function(string, ...*)} fn - called with ('change') when the list or the state changes, and with
+	*  ('ev', botId, name, data) for each event a bot sends
+	* @return {function} stops it
+	*/
+	BotHall.watch = function watch(fn) {
+		_watchers.push(fn);
+		return () => {
+			_watchers = _watchers.filter((w) => w !== fn);
+		};
+	};
+	/**
+	* @param {boolean} on - the hall stays joined in game while on
+	*/
+	BotHall.keep = function keep(on) {
+		_keep = !!on;
+	};
+	/**
+	* @return {boolean} the hall stays joined in game
+	*/
+	BotHall.kept = function kept() {
+		return _keep;
+	};
+	/**
 	* @return {string} off, joining, in, or the library code that closed the hall
 	*/
 	BotHall.state = function state() {
@@ -209689,7 +209783,7 @@ var init_BotHall = __esmMin((() => {
 		room.on("leave", (peer) => {
 			if (room !== _room) return;
 			delete _bots[peer.id];
-			for (const n in _opens) if (_opens[n].peer === peer.id) settle(Number(n), null, "gone");
+			for (const n in _asked) if (_asked[n].peer === peer.id) settle(Number(n), null, "gone");
 			changed();
 			if (room.members.indexOf(peer.id) >= 0) call(room, peer.id);
 		});
@@ -209700,7 +209794,7 @@ var init_BotHall = __esmMin((() => {
 			if (room !== _room) return;
 			_state = err ? err.code : "off";
 			_bots = Object.create(null);
-			for (const n in _opens) settle(Number(n), null, "gone");
+			for (const n in _asked) settle(Number(n), null, "gone");
 			changed();
 		});
 		room.ready.then(() => {
@@ -209719,7 +209813,7 @@ var init_BotHall = __esmMin((() => {
 		_room = null;
 		_state = "off";
 		_bots = Object.create(null);
-		for (const id in _opens) settle(Number(id), null, "gone");
+		for (const id in _asked) settle(Number(id), null, "gone");
 		if (room) {
 			room.leave();
 			changed();
@@ -209734,10 +209828,11 @@ var init_BotHall = __esmMin((() => {
 	*/
 	BotHall.open = function open(id) {
 		const bot = _bots[id];
-		const n = _nextOpen++;
+		const n = _nextId++;
 		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
 		return new Promise((resolve, reject) => {
-			_opens[n] = {
+			_asked[n] = {
+				t: "room",
 				peer: id,
 				resolve,
 				reject,
@@ -209749,6 +209844,67 @@ var init_BotHall = __esmMin((() => {
 				id: n
 			});
 		});
+	};
+	/**
+	* Ask a bot for one of the names it serves
+	*
+	* @param {string} id - the bot's peer id
+	* @param {string} name - a-z first, then a-z 0-9 . _ -
+	* @param {*} data - any JSON value
+	* @param {number} [ms] - how long it has to answer
+	* @return {Promise<*>} what it returned; rejected with an Error whose code is the bot's why, gone, no-answer or big
+	* @see docs/reference/network/remote-bot.md
+	*/
+	BotHall.call = function callName(id, name, data, ms) {
+		const bot = _bots[id];
+		const n = _nextId++;
+		let text;
+		if (!bot) return Promise.reject(Object.assign(/* @__PURE__ */ new Error("the bot left the hall"), { code: "gone" }));
+		try {
+			text = encode({
+				t: "call",
+				v: 1,
+				id: n,
+				name,
+				data
+			});
+		} catch (err) {
+			return Promise.reject(Object.assign(err, { code: "big" }));
+		}
+		return new Promise((resolve, reject) => {
+			_asked[n] = {
+				t: "ret",
+				peer: id,
+				resolve,
+				reject,
+				timer: setTimeout(() => settle(n, null, "no-answer"), ms || CALL_WAIT_MS)
+			};
+			bot.peer.send(text).catch(() => {});
+		});
+	};
+	/**
+	* Send a bot an event; nothing comes back
+	*
+	* @param {string} id - the bot's peer id
+	* @param {string} name
+	* @param {*} data
+	* @return {boolean} sent: the bot is listed and the event fits
+	*/
+	BotHall.emit = function emit(id, name, data) {
+		const bot = _bots[id];
+		if (!bot) return false;
+		try {
+			send$1(bot.peer, {
+				t: "ev",
+				v: 1,
+				name,
+				data
+			});
+		} catch (err) {
+			console.warn(`[BotHall] ${err.message}, event ${name} not sent`);
+			return false;
+		}
+		return true;
 	};
 	init$16();
 }));
@@ -239110,12 +239266,12 @@ var init_PatchNotes = __esmMin((() => {
 // src/UI/Components/Escape/Escape.html?raw
 var Escape_default$2;
 var init_Escape$2 = __esmMin((() => {
-	Escape_default$2 = "<div id=\"Escape\" data-background=\"basic_interface/titlebar_fix.bmp\">\r\n	<div class=\"top\">\r\n		<button\r\n			class=\"node\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-hover=\"basic_interface/sys_base_on.bmp\"\r\n		></button>\r\n		<div class=\"title\" data-text=\"1483\">Select Option</div>\r\n	</div>\r\n\r\n	<div class=\"container\">\r\n		<button\r\n			class=\"resurection\"\r\n			data-background=\"esc_05a.bmp\"\r\n			data-hover=\"esc_05b.bmp\"\r\n			data-down=\"esc_05c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"savepoint\"\r\n			data-background=\"esc_04a.bmp\"\r\n			data-hover=\"esc_04b.bmp\"\r\n			data-down=\"esc_04c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"charselect\"\r\n			data-background=\"esc_01a.bmp\"\r\n			data-hover=\"esc_01b.bmp\"\r\n			data-down=\"esc_01c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"graphics\"\r\n			data-background=\"esc_06a.bmp\"\r\n			data-hover=\"esc_06b.bmp\"\r\n			data-down=\"esc_06c.bmp\"\r\n		></button>\r\n		<button class=\"sound\" data-background=\"esc_07a.bmp\" data-hover=\"esc_07b.bmp\" data-down=\"esc_07c.bmp\"></button>\r\n		<button class=\"hotkey\" data-background=\"esc_08a.bmp\" data-hover=\"esc_08b.bmp\" data-down=\"esc_08c.bmp\"></button>\r\n		<button class=\"exit\" data-background=\"esc_03a.bmp\" data-hover=\"esc_03b.bmp\" data-down=\"esc_03c.bmp\"></button>\r\n		<button class=\"cancel\" data-background=\"esc_02a.bmp\" data-hover=\"esc_02b.bmp\" data-down=\"esc_02c.bmp\"></button>\r\n	</div>\r\n	<div class=\"version\"></div>\r\n</div>\r\n";
+	Escape_default$2 = "<div id=\"Escape\" data-background=\"basic_interface/titlebar_fix.bmp\">\r\n	<div class=\"top\">\r\n		<button\r\n			class=\"node\"\r\n			data-background=\"basic_interface/sys_base_off.bmp\"\r\n			data-hover=\"basic_interface/sys_base_on.bmp\"\r\n		></button>\r\n		<div class=\"title\" data-text=\"1483\">Select Option</div>\r\n	</div>\r\n\r\n	<div class=\"container\">\r\n		<button\r\n			class=\"resurection\"\r\n			data-background=\"esc_05a.bmp\"\r\n			data-hover=\"esc_05b.bmp\"\r\n			data-down=\"esc_05c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"savepoint\"\r\n			data-background=\"esc_04a.bmp\"\r\n			data-hover=\"esc_04b.bmp\"\r\n			data-down=\"esc_04c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"charselect\"\r\n			data-background=\"esc_01a.bmp\"\r\n			data-hover=\"esc_01b.bmp\"\r\n			data-down=\"esc_01c.bmp\"\r\n		></button>\r\n		<button\r\n			class=\"graphics\"\r\n			data-background=\"esc_06a.bmp\"\r\n			data-hover=\"esc_06b.bmp\"\r\n			data-down=\"esc_06c.bmp\"\r\n		></button>\r\n		<button class=\"sound\" data-background=\"esc_07a.bmp\" data-hover=\"esc_07b.bmp\" data-down=\"esc_07c.bmp\"></button>\r\n		<button class=\"hotkey\" data-background=\"esc_08a.bmp\" data-hover=\"esc_08b.bmp\" data-down=\"esc_08c.bmp\"></button>\r\n		<button class=\"exit\" data-background=\"esc_03a.bmp\" data-hover=\"esc_03b.bmp\" data-down=\"esc_03c.bmp\"></button>\r\n		<ui-button class=\"disconnect\" skin=\"basic_interface/btn\">Disconnect &amp; Exit</ui-button>\r\n		<button class=\"cancel\" data-background=\"esc_02a.bmp\" data-hover=\"esc_02b.bmp\" data-down=\"esc_02c.bmp\"></button>\r\n	</div>\r\n	<div class=\"version\"></div>\r\n</div>\r\n";
 }));
 // src/UI/Components/Escape/Escape.css?raw
 var Escape_default$1;
 var init_Escape$1 = __esmMin((() => {
-	Escape_default$1 = ":host {\r\n	width: 280px;\r\n	height: auto;\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n#Escape {\r\n	width: 280px;\r\n	height: auto;\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .node {\r\n	width: 11px;\r\n	height: 11px;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 4px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .title {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 18px;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#Escape .container {\r\n	width: 220px;\r\n	height: auto;\r\n	padding: 20px 30px 6px 30px;\r\n}\r\n\r\n#Escape .container button {\r\n	width: 221px;\r\n	height: 20px;\r\n	margin-top: 3px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .version {\r\n	padding: 0 30px 6px 30px;\r\n	text-align: right;\r\n	font-size: 11px;\r\n	color: #666;\r\n	cursor: pointer;\r\n}\r\n#Escape .version:hover {\r\n	text-decoration: underline;\r\n}\r\n";
+	Escape_default$1 = ":host {\r\n	width: 280px;\r\n	height: auto;\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n#Escape {\r\n	width: 280px;\r\n	height: auto;\r\n	border-radius: 5px;\r\n	background-color: white;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .node {\r\n	width: 11px;\r\n	height: 11px;\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 4px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .top .title {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 18px;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#Escape .container {\r\n	width: 220px;\r\n	height: auto;\r\n	padding: 20px 30px 6px 30px;\r\n}\r\n\r\n#Escape .container button {\r\n	width: 221px;\r\n	height: 20px;\r\n	margin-top: 3px;\r\n	border: none;\r\n	background-color: transparent;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#Escape .container ui-button.disconnect {\r\n	box-sizing: border-box;\r\n	width: 221px;\r\n	margin: 3px 0;\r\n}\r\n\r\n#Escape .version {\r\n	padding: 0 30px 6px 30px;\r\n	text-align: right;\r\n	font-size: 11px;\r\n	color: #666;\r\n	cursor: pointer;\r\n}\r\n#Escape .version:hover {\r\n	text-decoration: underline;\r\n}\r\n";
 }));
 // src/UI/Components/Escape/Escape.js
 /**
@@ -239138,6 +239294,20 @@ function onToggleGraphicUI() {
 function onToggleShortcutUI() {
 	if (!ShortCutOption_default._host || !ShortCutOption_default._host.parentNode) ShortCutOption_default.append();
 	else ShortCutOption_default.remove();
+}
+/**
+* Disconnect & Exit, on a remote bot: once confirmed, the bot logs out, then the window quits
+*
+* @see docs/reference/network/remote-bot.md
+*/
+function onDisconnectRequest() {
+	UIManager.showPromptBox("The bot logs out and its routine stops. Continue?", "ok", "cancel", function() {
+		RemoteBot.sendText({
+			t: "logout",
+			v: 1
+		});
+		Escape.onExitRequest();
+	});
 }
 var Escape, Escape_default;
 var init_Escape = __esmMin((() => {
@@ -239192,6 +239362,7 @@ var init_Escape = __esmMin((() => {
 		root.querySelector(".exit").addEventListener("click", function() {
 			Escape.onExitRequest();
 		});
+		root.querySelector(".disconnect").addEventListener("click", onDisconnectRequest);
 		root.querySelector(".cancel").addEventListener("click", function() {
 			Escape._host.style.display = "none";
 		});
@@ -239205,6 +239376,7 @@ var init_Escape = __esmMin((() => {
 	Escape.onAppend = function onAppend() {
 		this._host.style.display = "none";
 		Escape.refreshCharSelect();
+		this.getRoot().querySelector(".disconnect").style.display = RemoteBot.isActive() ? "" : "none";
 	};
 	/**
 	* On a remote bot the character select is the bot's: offered only while this window holds its control
@@ -242691,6 +242863,55 @@ var init_Reputation = __esmMin((() => {
 	Network.hookPacket(PACKET$1.ZC_REPUTE_OPEN, onReputeOpen);
 	Reputation_default = UIManager.addComponent(Reputation);
 }));
+// src/UI/Components/BasicInfo/RemoteControlPill.css?raw
+var RemoteControlPill_default;
+var init_RemoteControlPill$1 = __esmMin((() => {
+	RemoteControlPill_default = "/* Over the end of a long name, left of the minimize button: see docs/reference/network/remote-bot.md */\r\n.topbar .remote-control {\r\n	position: absolute;\r\n	top: 2px;\r\n	right: 17px;\r\n	z-index: 2;\r\n	height: 12px;\r\n	padding: 0 5px;\r\n	border: 1px solid #9aa4b4;\r\n	border-radius: 7px;\r\n	background: linear-gradient(#fff, #e3e7ee);\r\n	box-shadow: -4px 0 3px #e3e9f4;\r\n	font:\r\n		bold 10px/12px Arial,\r\n		sans-serif;\r\n	color: #666;\r\n	white-space: nowrap;\r\n	cursor: pointer;\r\n}\r\n\r\n.topbar .remote-control:hover {\r\n	border-color: #5b6f94;\r\n}\r\n\r\n.topbar .remote-control.on {\r\n	border-color: #6aa36a;\r\n	background: linear-gradient(#fff, #e2f2e2);\r\n	color: #1f7a1f;\r\n}\r\n";
+}));
+// src/UI/Components/BasicInfo/RemoteControlPill.js
+var _pills, RemoteControlPill;
+var init_RemoteControlPill = __esmMin((() => {
+	init_RemoteBot();
+	init_ChatBox();
+	init_RemoteControlPill$1();
+	_pills = [];
+	RemoteControlPill = {};
+	/**
+	* Put the pill in an info window's title bar, once
+	*
+	* @param {HTMLElement} topbar
+	* @see docs/reference/network/remote-bot.md
+	*/
+	RemoteControlPill.attach = function attach(topbar) {
+		if (topbar.querySelector(".remote-control")) return;
+		const style = document.createElement("style");
+		style.textContent = RemoteControlPill_default;
+		topbar.getRootNode().appendChild(style);
+		const pill = document.createElement("button");
+		pill.className = "remote-control";
+		pill.addEventListener("mousedown", (event) => event.stopImmediatePropagation());
+		pill.addEventListener("click", () => {
+			ChatBox_default.onRequestTalk("", RemoteBot.hasControl() ? "@control off" : "@control on", ChatBox_default.TYPE.PUBLIC);
+		});
+		topbar.appendChild(pill);
+		_pills.push(pill);
+		RemoteControlPill.refresh();
+	};
+	/**
+	* Show the control the bot last said this window holds
+	*/
+	RemoteControlPill.refresh = function refresh() {
+		const active = RemoteBot.isActive();
+		const on = RemoteBot.hasControl();
+		for (let i = 0; i < _pills.length; ++i) {
+			const pill = _pills[i];
+			pill.style.display = active ? "" : "none";
+			pill.classList.toggle("on", on);
+			pill.textContent = on ? "● Control" : "○ Watching";
+			pill.title = on ? "You play this character: click to give it back to the bot" : "The bot plays: click to take control";
+		}
+	};
+}));
 // src/UI/Components/BasicInfo/BasicInfoCommon.js
 function createBasicInfo(config) {
 	const { name, htmlText, cssText, prefKey, reduceDefault = true, innerId, topbarItemSelector = ".topbar button", topbarDblClick = false, toggleButtonsEvent = "mousedown", buttonsSelector = ".buttons button", buttonsEvent = "mousedown", buttonKeyBy = "class", infoOpensWinStats = true, hasToolbarToggle = false, miniLayout = false, hideIds = [], barScale = 1.27, hasApBar = false } = config;
@@ -242805,6 +243026,7 @@ function createBasicInfo(config) {
 	*/
 	Component.init = function init() {
 		const root = this.getRoot();
+		RemoteControlPill.attach(root.querySelector(".topbar"));
 		root.querySelectorAll(topbarItemSelector).forEach((el) => {
 			el.addEventListener("mousedown", (e) => e.stopImmediatePropagation());
 		});
@@ -242831,6 +243053,7 @@ function createBasicInfo(config) {
 	Component.onAppend = function onAppend() {
 		const root = this.getRoot();
 		const hostRect = this._host.getBoundingClientRect();
+		RemoteControlPill.refresh();
 		this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - hostRect.height)}px`;
 		this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - hostRect.width)}px`;
 		this.magnet.TOP = _preferences.magnet_top;
@@ -243087,6 +243310,7 @@ var init_BasicInfoCommon = __esmMin((() => {
 	init_Quest$1();
 	init_Achievement$1();
 	init_Reputation();
+	init_RemoteControlPill();
 }));
 // src/UI/Components/BasicInfo/BasicInfoV1/BasicInfoV1.js
 var BasicInfoV1_default;
@@ -318523,10 +318747,12 @@ function onText(message) {
 	if (!message) {
 		clear();
 		Escape_default.refreshCharSelect();
+		RemoteControlPill.refresh();
 		return;
 	}
 	if (message.t === "control") {
 		Escape_default.refreshCharSelect();
+		RemoteControlPill.refresh();
 		return;
 	}
 	if (message.t === "cmds" && Array.isArray(message.list)) {
@@ -318609,6 +318835,7 @@ var init_RemoteBotChat = __esmMin((() => {
 	init_ChatBox();
 	init_ChatBoxSettings();
 	init_Escape();
+	init_RemoteControlPill();
 	CONTROL_FAILURES = {
 		busy: "this remote client has too many windows open.",
 		gone: "this remote client left the hall.",
@@ -350494,9 +350721,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "315cc92d5fd57c1a34de5ea3f7c935d1e9cb5a58") {
+		if (!_buildShown && "e4cc6c94ad0345e475cbc78e0a495af7a5e5a0fd") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"315cc92d5fd57c1a34de5ea3f7c935d1e9cb5a58".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"e4cc6c94ad0345e475cbc78e0a495af7a5e5a0fd".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -360535,7 +360762,7 @@ function onCharServerSelected(index) {
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
 	RemoteBot.setLoginScreen(null);
-	if (!RemoteBot.isActive()) BotHall.leave();
+	if (!RemoteBot.isActive() && !BotHall.kept()) BotHall.leave();
 	SessionStorage_default.AuthCode = pkt.AuthCode;
 	SessionStorage_default.AID = pkt.AID;
 	SessionStorage_default.UserLevel = pkt.userLevel;
@@ -362383,6 +362610,7 @@ var plugin_api_exports = /* @__PURE__ */ __exportAll({
 	Altitude: () => Altitude,
 	BGM: () => BGM,
 	Background: () => Background,
+	BotHall: () => BotHall,
 	Camera: () => Camera,
 	ChatBox: () => ChatBox,
 	Client: () => Client,
@@ -362447,6 +362675,7 @@ init_BGM();
 init_SoundManager();
 init_PathFinding();
 init_Configs();
+init_BotHall();
 var PACKET = ENGINE.PACKET;
 var ChatBox = ENGINE.ChatBox;
 var UIComponent = ENGINE.UIComponent;
