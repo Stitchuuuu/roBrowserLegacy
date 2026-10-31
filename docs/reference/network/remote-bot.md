@@ -56,7 +56,8 @@ joins it at every start, `--spectate-rtc` or not.
 | « Remote characters » button (`UI/Components/RemoteEntry`) | above the usual login window, once this browser has a relay: the list, or the settings the first time |
 
 `Network/BotHall.js` joins the hall when the list shows (never at load). It
-leaves it once a login by hand is accepted; logged in through a remote client,
+leaves it once a login by hand is accepted, unless something asked to keep it
+(`BotHall.keep(true)`: a plugin that talks to the bots in game); logged in through a remote client,
 the window stays in the hall: it names the other remote clients on the map
 (« Control », below), at one more relay connection per window. Everyone joins with `connect: 'manual'`
 and `max: 40`: the page calls each member, bots call nobody, so no two bots
@@ -90,6 +91,8 @@ in roBrowserLegacy-Node:
 |---|---|
 | `{t:'who', v:1}` | `{t:'hello', v:1, kind:'node', account, chars:[{name, job, lv}], playing:{name, job, lv, map} \| null, windows}` |
 | `{t:'open', v:1, id}` | `{t:'room', v:1, id, room, secret}` or `{t:'no', v:1, id, why}` (`busy`, `error`) |
+| `{t:'call', v:1, id, name, data}` | `{t:'ret', v:1, id, ok:true, data}` or `{t:'ret', v:1, id, ok:false, why}` (`unknown`, `error`, `big`, or the name's own) |
+| `{t:'ev', v:1, name, data}` | `{t:'ev', v:1, name, data}` |
 
 - The bot sends `hello` again, unasked, when its map or character changes.
 - Every field is bounded (names 32 characters, 15 characters per account,
@@ -100,6 +103,14 @@ in roBrowserLegacy-Node:
 - The page calls every member on each change of the member list; a link that
   fails is tried again on the next change, a cut link is called again while
   its bot is still a member, and every new link is asked `who`.
+- `call` asks a bot for a name it serves (`BotHall.call(id, name, data, ms)`);
+  `ev` goes either way and is not answered (`BotHall.emit`, and
+  `BotHall.watch(fn)` hears `('ev', botId, name, data)` as well as each
+  `('change')`). A name is `a-z` then `a-z 0-9 . _ -`, 32 at most; `data` is
+  any JSON value, bounded only by the 8 KiB of the message, refused before it
+  goes (`big`). A `ret` settles its call only from the bot asked; none in
+  10 s (or the time given) rejects it `no-answer`, as a bot that does not know
+  `call` yet does. The bot serves `lots.list` (its lots, holder by name).
 - One vector pins the format on both sides: `tests/fixtures/hall-vector.json`
   here, `tests/node/fixtures/hall-vector.json` there.
 

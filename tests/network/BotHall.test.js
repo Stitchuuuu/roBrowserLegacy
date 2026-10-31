@@ -366,6 +366,112 @@ describe('bot hall', () => {
 		expect(old.called).toEqual([]);
 	});
 
+	it('call → the data its bot returned; a refusal rejects with its why', async () => {
+		const room = await joined();
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		b1.say(HELLO);
+		const listed = BotHall.call('b1', 'lots.list', null);
+		const nope = BotHall.call('b1', 'nope', 3);
+		const [ask, ask2] = b1.sent.slice(1);
+		b1.say({ t: 'ret', v: 1, id: ask2.id, ok: false, why: 'unknown' });
+		b1.say({ t: 'ret', v: 1, id: ask.id, ok: true, data: [{ name: 'Kit' }] });
+
+		expect(ask).toEqual({ t: 'call', v: 1, id: ask.id, name: 'lots.list', data: null });
+		expect(ask2).toMatchObject({ t: 'call', name: 'nope', data: 3 });
+		await expect(listed).resolves.toEqual([{ name: 'Kit' }]);
+		await expect(nope).rejects.toMatchObject({ code: 'unknown' });
+	});
+
+	it('a call with no answer in its time rejects; a bot that leaves rejects at once', async () => {
+		vi.useFakeTimers();
+		try {
+			BotHall.join(SETTINGS);
+			const room = mocks.rooms[0];
+			room.enter();
+			const b1 = fakePeer('b1');
+			const b2 = fakePeer('b2');
+			room.link(b1);
+			room.link(b2);
+			b1.say(HELLO);
+			b2.say({ ...HELLO, account: 'other' });
+			const slow = BotHall.call('b1', 'a', null, 500);
+			const left = BotHall.call('b2', 'a', null, 500);
+			slow.catch(() => {
+				// checked below
+			});
+			room.emit('leave', b2, 'closed');
+			await expect(left).rejects.toMatchObject({ code: 'gone' });
+			await vi.advanceTimersByTimeAsync(500);
+			await expect(slow).rejects.toMatchObject({ code: 'no-answer' });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('a call too big for the hall, or to a bot not listed, rejects at once', async () => {
+		const room = await joined();
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		b1.say(HELLO);
+
+		await expect(BotHall.call('b1', 'a', 'x'.repeat(9000))).rejects.toMatchObject({ code: 'big' });
+		await expect(BotHall.call('b9', 'a', null)).rejects.toMatchObject({ code: 'gone' });
+		expect(b1.sent.length).toBe(1);
+	});
+
+	it('a ret from another member, or for an open, settles nothing', async () => {
+		const room = await joined();
+		const b1 = fakePeer('b1');
+		const b2 = fakePeer('b2');
+		room.link(b1);
+		room.link(b2);
+		b1.say(HELLO);
+		let done = false;
+		BotHall.call('b1', 'a', null).then(
+			() => (done = true),
+			() => (done = true)
+		);
+		const id = b1.sent[1].id;
+		b2.say({ t: 'ret', v: 1, id, ok: true, data: 1 });
+		const opened = BotHall.open('b1');
+		b1.say({ t: 'ret', v: 1, id: b1.sent[2].id, ok: true, data: 1 });
+		await tick();
+
+		expect(done).toBe(false);
+		b1.say({ t: 'no', v: 1, id: b1.sent[2].id, why: 'busy' });
+		await expect(opened).rejects.toMatchObject({ code: 'busy' });
+	});
+
+	it('watchers hear every change and each event, with its bot; emit sends one', async () => {
+		const room = await joined();
+		const heard = [];
+		const unwatch = BotHall.watch((what, ...args) => heard.push([what, ...args]));
+		BotHall.watch(() => {
+			throw new Error('a broken watcher');
+		});
+		const b1 = fakePeer('b1');
+		room.link(b1);
+		b1.say(HELLO);
+		b1.say({ t: 'ev', v: 1, name: 'lots.changed', data: { name: 'Kit' } });
+
+		expect(heard).toEqual([['change'], ['ev', 'b1', 'lots.changed', { name: 'Kit' }]]);
+		expect(BotHall.emit('b1', 'page.hi', 1)).toBe(true);
+		expect(BotHall.emit('b9', 'page.hi', 1)).toBe(false);
+		expect(b1.sent[1]).toEqual({ t: 'ev', v: 1, name: 'page.hi', data: 1 });
+		unwatch();
+		b1.say(HELLO);
+		expect(heard.length).toBe(2);
+	});
+
+	it('keep holds the hall in game until let go', async () => {
+		expect(BotHall.kept()).toBe(false);
+		BotHall.keep(true);
+		expect(BotHall.kept()).toBe(true);
+		BotHall.keep(false);
+		expect(BotHall.kept()).toBe(false);
+	});
+
 	it('keeps the settings until forgotten', async () => {
 		BotHall.saveSettings(SETTINGS);
 		await load();

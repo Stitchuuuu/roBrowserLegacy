@@ -47,6 +47,7 @@ import BGM from 'Audio/BGM.js';
 import SoundManager from 'Audio/SoundManager.js';
 import PathFinding from 'Utils/PathFinding.js';
 import Configs from 'Core/Configs.js';
+import BotHall from 'Network/BotHall.js';
 
 // ── Group 1 : the 6 engine modules (re-exported from the session-1 ENGINE map;
 // ENGINE.UIComponent is GUIComponent — the shadow-DOM base class). ──
@@ -64,7 +65,7 @@ export { Network, Session, Background, UIManager, PacketLength };
 export { Altitude, Camera, DB, Client, MapRenderer, MiniMap, EffectManager, WebGL, Texture };
 export { SkillInfo, SkillConst, SkillEffect, SkillAction, SkillDescription, SkillTargetSelection };
 export { ItemInfo, ShortCut, StatusInfo, StatusIcons, EffectTable, AIDriver };
-export { BGM, SoundManager, PathFinding, Configs };
+export { BGM, SoundManager, PathFinding, Configs, BotHall };
 
 // No native module behind this name.
 export const PluginManager = undefined;
