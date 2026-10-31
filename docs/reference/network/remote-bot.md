@@ -205,7 +205,7 @@ Beside the records, the room carries JSON text both ways
 | `{t:'cmds', v:1, list:[{name, aliases, help}]}` | bot → window | once the window is in game: each name and alias becomes a slash command of the chat, plus `/log` |
 | `{t:'log', v:1, on}` | window → bot | `/log`, then `/log` again |
 | `{t:'log', v:1, lines:[…]}` | bot → window | its console's last 50 lines at once, then what comes, every 500 ms at most, 200 lines a batch at most |
-| `{t:'control', v:1, on}` | bot → window | whether this window holds the bot's control: on every `@control`, and when a window in control is in game again (`RemoteBot.hasControl()`) |
+| `{t:'control', v:1, on}` | bot → window | whether this window holds the bot's control: on every `@control`, and each time the window is in game, so a control the bot let go of meanwhile reads off (`RemoteBot.hasControl()`) |
 | `{t:'progress', v:1, elapsed}` | bot → window | before the records of a snapshot that carries a progress bar: the ms it has already run (`RemoteBot.takeElapsed()`) |
 | `{t:'character', v:1, name}` | bot → window | before the char list, when the bot switched characters on its own: the one the window picks (`RemoteBot.takeCharacter()`) |
 
@@ -243,9 +243,10 @@ the window. Without it, the character select would be the bot's only.
 
 When the bot switches characters on its own (a routine, its console), its
 responder sends every window in game to the character select (a
-`ZC_RESTART_ACK`), keeps a window's control there, and names the character
-the bot took before the list (`{t:'character'}`): the window enters it with
-its own look, not the one it had.
+`ZC_RESTART_ACK`, once the server agreed: it refuses during a fight), keeps a
+window's control there, and names the character the bot took before the list
+(`{t:'character'}`): the window enters it with its own look, not the one it
+had.
 
 **« Control »** in a player's context menu (`Controls/EntityControl.js`,
 `RemoteBotChat.controllable` / `takeControl`) shows on a character that
@@ -255,8 +256,10 @@ another remote client of the hall says it plays, on this map: the hall's
 1. `BotHall.open()` asks that bot for a room, as the list does. A refusal
    (busy, gone, no answer) is a chat line, and the window stays where it is.
 2. `RemoteBot.switchTo(room)` keeps the room, then the window leaves as
-   **Exit to Windows** does: the bot it leaves gives the control back and its
-   routine resumes, as on `@control off`.
+   **Exit to Windows** does (its `CZ_REQUEST_QUIT` is answered by the bot,
+   never forwarded): the bot it leaves gives the control back and its routine
+   resumes, as on `@control off`. An answer that comes once the character left
+   the map is dropped; one click at a time.
 3. Back on the login screen, `GameEngine` skips the server list
    (`RemoteBot.switching()`) and `LoginEngine.showLoginScreen()` attaches to
    the kept room (`takeSwitch`) instead of showing the list.
