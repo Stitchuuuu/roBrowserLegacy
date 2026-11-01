@@ -54,7 +54,8 @@ const entryMap = {
 	ModelViewer: 'src/App/ModelViewer.js',
 	Online: 'src/App/Online.js',
 	StrViewer: 'src/App/StrViewer.js',
-	EffectViewer: 'src/App/EffectViewer.js'
+	EffectViewer: 'src/App/EffectViewer.js',
+	Camera: 'src/App/Camera.js'
 };
 
 (async function build() {
@@ -68,6 +69,7 @@ const entryMap = {
 		O: { path: '/Online.js', action: () => compile('Online', args['m']) },
 		S: { path: '/StrViewer.js', action: () => compile('StrViewer', args['m']) },
 		E: { path: '/EffectViewer.js', action: () => compile('EffectViewer', args['m']) },
+		C: { path: '/Camera.js', action: () => compile('Camera', args['m']) },
 		T: { path: '/ThreadEventHandler.js', action: () => compile('ThreadEventHandler', args['m']) },
 		H: { path: '/index.html', action: () => createHTML(false, args, isAll) },
 		PWA: {
@@ -610,9 +612,10 @@ function createApiHTML() {
                 MODELVIEWER: 'ModelViewer.js',    
                 STRVIEWER: 'StrViewer.js',    
                 GRANNYMODELVIEWER: 'GrannyModelViewer.js',    
-                EFFECTVIEWER: 'EffectViewer.js'    
+                EFFECTVIEWER: 'EffectViewer.js',    
+                CAMERA: 'Camera.js'    
             };    
-            var APP_IDS = { 1: 'ONLINE', 2: 'MAPVIEWER', 3: 'GRFVIEWER', 4: 'MODELVIEWER', 5: 'STRVIEWER', 6: 'GRANNYMODELVIEWER', 7: 'EFFECTVIEWER' };    
+            var APP_IDS = { 1: 'ONLINE', 2: 'MAPVIEWER', 3: 'GRFVIEWER', 4: 'MODELVIEWER', 5: 'STRVIEWER', 6: 'GRANNYMODELVIEWER', 7: 'EFFECTVIEWER', 8: 'CAMERA' };    
     
             function loadApp(appName, extraConfig) {    
                 var scriptFile = APP_SCRIPTS[appName] || 'Online.js';    
