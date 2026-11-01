@@ -7,7 +7,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ hooks: new Map(), active: true, sent: [] }));
+const mocks = vi.hoisted(() => ({ hooks: new Map(), active: true, control: false, sent: [] }));
 
 vi.mock('Network/NetworkManager.js', () => ({
 	default: {
@@ -15,7 +15,9 @@ vi.mock('Network/NetworkManager.js', () => ({
 		sendPacket: pkt => mocks.sent.push(pkt)
 	}
 }));
-vi.mock('Network/RemoteBot.js', () => ({ default: { isActive: () => mocks.active } }));
+vi.mock('Network/RemoteBot.js', () => ({
+	default: { isActive: () => mocks.active, hasControl: () => mocks.control }
+}));
 vi.mock('Core/Client.js', () => ({ default: { loadFile: vi.fn(), loadFiles: vi.fn() } }));
 
 const NPCEngine = (await import('Engine/MapEngine/NPC.js')).default;
@@ -49,6 +51,7 @@ beforeEach(() => {
 describe('NPC shop on a remote bot', () => {
 	beforeEach(() => {
 		mocks.active = true;
+		mocks.control = false;
 	});
 
 	it('opens no Buy / Sell chooser: the bot picks, the list that follows shows which', () => {
@@ -71,6 +74,27 @@ describe('NPC shop on a remote bot', () => {
 		deliver(PACKET.ZC.CLOSE_SCRIPT, {});
 		expect(NpcStore.__active).toBe(false);
 		expect(quits()).toBe(0);
+	});
+});
+
+describe('NPC shop on a remote bot this window holds the control of', () => {
+	beforeEach(() => {
+		mocks.active = true;
+		mocks.control = true;
+	});
+
+	it('opens the Buy / Sell chooser: the player picks', () => {
+		const clone = vi.spyOn(WinPopup, 'clone');
+		deliver(PACKET.ZC.SELECT_DEALTYPE, {});
+		expect(clone).toHaveBeenCalledWith('WinDeal');
+		clone.mockRestore();
+	});
+
+	it('closes the store with its own close packet after a buy', () => {
+		buyList();
+		deliver(PACKET.ZC.PC_PURCHASE_RESULT, { result: 0 });
+		expect(NpcStore.__active).toBe(false);
+		expect(quits()).toBe(1);
 	});
 });
 

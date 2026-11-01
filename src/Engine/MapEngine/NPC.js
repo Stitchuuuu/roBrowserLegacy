@@ -77,7 +77,7 @@ function onCloseAppear(pkt) {
  */
 function onCloseScript(pkt) {
 	// On a remote bot the bot leaving a shop is said with this packet: the server says nothing
-	if (RemoteBot.isActive()) {
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		NpcStore.setClosePacketSent(true);
 		NpcStore.remove();
 	}
@@ -181,8 +181,8 @@ function onInputAppear(pkt) {
  * @param {object} pkt - PACKET.ZC.SELECT_DEALTYPE
  */
 function onDealSelection(pkt) {
-	// On a remote bot the bot picks Buy or Sell: the list that follows shows which
-	if (RemoteBot.isActive()) {
+	// On a remote bot the bot picks Buy or Sell, unless this window holds its control
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		return;
 	}
 	const WinDeal = WinPopup.clone('WinDeal');
