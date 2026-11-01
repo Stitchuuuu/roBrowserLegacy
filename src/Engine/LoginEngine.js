@@ -22,6 +22,7 @@ import CharEngine from 'Engine/CharEngine.js';
 import Network from 'Network/NetworkManager.js';
 import RemoteBot from 'Network/RemoteBot.js';
 import BotHall from 'Network/BotHall.js';
+import CameraTile from 'Network/CameraTile.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PluginManager from 'Plugins/PluginManager.js';
@@ -288,12 +289,18 @@ function backToLogin() {
 }
 
 /**
- * The account's bots when a hall is set and the player did not take the login
- * window, else the login window and the way to the bots
+ * A camera tile's bot; the account's bots when a hall is set and the player did
+ * not take the login window, else the login window and the way to the bots
  *
  * @see docs/reference/network/remote-bot.md
  */
 function showLoginScreen() {
+	if (CameraTile.active) {
+		// The camera page holds the hall: a tile only attaches to the room it is given
+		CameraTile.wait(attachRemote);
+		return;
+	}
+
 	const next = RemoteBot.takeSwitch();
 
 	if (next) {

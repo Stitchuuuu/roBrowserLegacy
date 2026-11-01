@@ -3,8 +3,6 @@
  * Entry point for roBrowserLegacy (ES6 version)
  * Centralized loader for all applications.
  */
-// eslint-disable-next-line
-import Online from 'App/Online.js';
 import { roInitSpinner } from 'App/PreLoader.js';
 import Configs from 'Core/Configs.js';
 
@@ -15,7 +13,8 @@ const APP = {
 	MODELVIEWER: 4,
 	STRVIEWER: 5,
 	GRANNYMODELVIEWER: 6,
-	EFFECTVIEWER: 7
+	EFFECTVIEWER: 7,
+	CAMERA: 8
 };
 
 /**
@@ -26,6 +25,7 @@ async function launch(config) {
 
 	switch (appId) {
 		case APP.ONLINE:
+			await import('App/Online.js');
 			break;
 
 		case APP.MAPVIEWER:
@@ -52,9 +52,19 @@ async function launch(config) {
 			await import('App/EffectViewer.js');
 			break;
 
+		case APP.CAMERA:
+			await import('App/Camera.js');
+			break;
+
 		default:
 			console.error('Unknown application ID:', appId);
 			break;
+	}
+
+	// Online lets go of the preloader once its files are loaded; the other applications show at once
+	if (appId !== APP.ONLINE) {
+		roInitSpinner.add();
+		roInitSpinner.remove();
 	}
 
 	window.dispatchEvent(new Event('robrowser-ready'));

@@ -236,3 +236,45 @@ describe('Remote characters search', () => {
 		expect(mocks.hall.open).toHaveBeenCalledWith('p1');
 	});
 });
+
+describe('Remote characters opened by the camera page: #control=<account>', () => {
+	const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+	let Opened;
+
+	beforeEach(async () => {
+		history.replaceState(null, '', '/api.html?app=ONLINE#control=bob_kvm');
+		vi.resetModules();
+		Opened = (await import('UI/Components/RemoteCharacters/RemoteCharacters.js')).default;
+		mocks.hall.bots = [ALICE];
+		mocks.hall.open = vi.fn(() => Promise.resolve({ room: 'fresh', secret: 'x' }));
+		Opened.onRoomOpened = vi.fn();
+		Opened.onAppend();
+	});
+
+	it('takes the order out of the address bar', () => {
+		expect(window.location.hash).toBe('');
+		expect(window.location.search).toBe('?app=ONLINE');
+	});
+
+	it("opens that account's bot with its control as soon as its hello comes, once", async () => {
+		expect(mocks.hall.open).not.toHaveBeenCalled();
+
+		mocks.hall.bots = [ALICE, BOB];
+		mocks.hall.onChange();
+		await settle();
+		expect(mocks.hall.open).toHaveBeenCalledWith('p2');
+		expect(Opened.onRoomOpened).toHaveBeenCalledWith(expect.objectContaining({ room: 'fresh', control: true }));
+
+		mocks.hall.onChange();
+		await settle();
+		expect(mocks.hall.open).toHaveBeenCalledTimes(1);
+	});
+
+	it('takes no control for a row opened by hand', async () => {
+		Opened.getRoot().querySelector('.bot').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		await settle();
+
+		expect(mocks.hall.open).toHaveBeenCalledWith('p1');
+		expect(Opened.onRoomOpened).toHaveBeenCalledWith(expect.objectContaining({ control: false }));
+	});
+});

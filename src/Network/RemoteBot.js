@@ -9,6 +9,7 @@
 import { joinRoom, parseLink } from 'Vendors/signal/index.js';
 import RtcSockets from './SocketHelpers/RtcSockets.js';
 import BotHall from './BotHall.js';
+import CameraTile from './CameraTile.js';
 
 /**
  * sessionStorage key of the link: a reload in the tab attaches again
@@ -186,7 +187,7 @@ RemoteBot.hasControl = function hasControl() {
  * @return {boolean}
  */
 RemoteBot.takeWantControl = function takeWantControl() {
-	const want = _wantControl;
+	const want = _wantControl && !CameraTile.active;
 
 	_wantControl = false;
 	return want;
@@ -208,11 +209,11 @@ RemoteBot.takeElapsed = function takeElapsed() {
  * Another bot opened a room for this window: attached to on the next login screen, with its control
  *
  * @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
- * @return {boolean} false out of the game: no switch from the login screen
+ * @return {boolean} false out of the game (no switch from the login screen), and in a camera tile
  * @see docs/reference/network/remote-bot.md
  */
 RemoteBot.switchTo = function switchTo(room) {
-	if (!_inGame) {
+	if (!_inGame || CameraTile.active) {
 		return false;
 	}
 	_switch = { ...room, control: true };
@@ -363,12 +364,12 @@ function join(link) {
 }
 
 /**
- * Paste box: now on the login screen, before it once it is there, never in game
+ * Paste box: now on the login screen, before it once it is there, never in game nor in a camera tile
  *
  * @param {KeyboardEvent} event
  */
 function onKeyDown(event) {
-	if (_inGame || !event.altKey || !event.shiftKey || event.code !== 'KeyR') {
+	if (_inGame || CameraTile.active || !event.altKey || !event.shiftKey || event.code !== 'KeyR') {
 		return;
 	}
 

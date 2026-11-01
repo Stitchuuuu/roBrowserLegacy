@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 	settings: { tabOption: [[0, 1], [2]] },
 	wantControl: false,
 	active: true,
+	camera: { active: false },
 	switched: [],
 	exits: 0,
 	refreshes: 0,
@@ -51,6 +52,7 @@ vi.mock('Network/BotHall.js', () => ({
 	}
 }));
 vi.mock('Engine/SessionStorage.js', () => ({ default: mocks.session }));
+vi.mock('Network/CameraTile.js', () => ({ default: mocks.camera }));
 vi.mock('Renderer/MapRenderer.js', () => ({ default: { currentMap: 'prontera.gat' } }));
 vi.mock('UI/Components/Escape/Escape.js', () => ({
 	default: {
@@ -170,6 +172,22 @@ describe('RemoteBotChat: another remote client taken from the map', () => {
 		expect(controllable('Stranger')).toBe(null);
 		mocks.active = false;
 		expect(controllable('NodeLvbKWolf')).toBe(null);
+	});
+
+	it("offers no 'Control' in a camera tile, and a click there opens nothing", async () => {
+		mocks.bots = [WOLF];
+		mocks.active = true;
+		mocks.camera.active = true;
+		let opens = 0;
+		mocks.open = () => ++opens && new Promise(() => {});
+
+		expect(controllable('NodeLvbKWolf')).toBe(null);
+		takeControl('NodeLvbKWolf');
+		await settle();
+		mocks.camera.active = false;
+
+		expect(opens).toBe(0);
+		expect(mocks.switched).toEqual([]);
 	});
 
 	it("keeps the room the other bot opened, then leaves this one as Exit does", async () => {

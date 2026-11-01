@@ -73,6 +73,11 @@ let _shown = 0;
 let _search = '';
 
 /**
+ * @var {?string} _controlAccount - #control=<account> (the camera page's Control): opened with its control once listed
+ */
+let _controlAccount = takeControlHash();
+
+/**
  * Initialize UI
  */
 RemoteCharacters.init = function init() {
@@ -214,9 +219,11 @@ function mark() {
 
 /**
  * Ask the selected bot for a room of its own
+ *
+ * @param {boolean} [control] - take its control once in game
  * @see docs/reference/network/remote-bot.md
  */
-function open() {
+function open(control = false) {
 	const settings = BotHall.loadSettings();
 	const bot = BotHall.bots().find(b => b.id === _selected);
 	const shown = _shown;
@@ -240,7 +247,8 @@ function open() {
 				relayKey: settings.relayKey,
 				room: answer.room,
 				secret: answer.secret,
-				character: bot.playing ? bot.playing.name : null
+				character: bot.playing ? bot.playing.name : null,
+				control
 			});
 		},
 		err => {
@@ -378,6 +386,28 @@ function update() {
 	}
 
 	mark();
+
+	const wanted = _controlAccount && bots.find(bot => bot.account === _controlAccount);
+
+	if (wanted && !_opening) {
+		_controlAccount = null;
+		_selected = wanted.id;
+		open(true);
+	}
+}
+
+/**
+ * #control=<account>, once: the address bar keeps no order
+ *
+ * @return {?string}
+ */
+function takeControlHash() {
+	const account = new URLSearchParams(window.location.hash.slice(1)).get('control');
+
+	if (account) {
+		history.replaceState(history.state, '', `${window.location.pathname}${window.location.search}`);
+	}
+	return account || null;
 }
 
 /**

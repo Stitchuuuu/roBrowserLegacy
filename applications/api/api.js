@@ -39,7 +39,8 @@
 		MODELVIEWER: 4,
 		STRVIEWER: 5,
 		GRANNYMODELVIEWER: 6, //sound weird O_o
-		EFFECTVIEWER: 7
+		EFFECTVIEWER: 7,
+		CAMERA: 8
 	};
 
 	/**
