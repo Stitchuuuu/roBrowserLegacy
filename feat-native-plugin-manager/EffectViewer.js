@@ -340678,7 +340678,7 @@ function onCloseAppear(pkt) {
 * @param {object} pkt - PACKET.ZC.CLOSE_SCRIPT
 */
 function onCloseScript(pkt) {
-	if (RemoteBot.isActive()) {
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		NpcStore_default.setClosePacketSent(true);
 		NpcStore_default.remove();
 	}
@@ -340759,7 +340759,7 @@ function onInputAppear(pkt) {
 * @param {object} pkt - PACKET.ZC.SELECT_DEALTYPE
 */
 function onDealSelection(pkt) {
-	if (RemoteBot.isActive()) return;
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) return;
 	const WinDeal = WinPopup_default.clone("WinDeal");
 	const NAID = pkt.NAID;
 	WinDeal.init = function Init() {
@@ -349188,7 +349188,7 @@ function onExpandedBarterBuyList(pkt) {
 * @param {object} pkt - PACKET_ZC_PC_PURCHASE_RESULT
 */
 function onBuyResult(pkt) {
-	if (RemoteBot.isActive()) NpcStore_default.setClosePacketSent(true);
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) NpcStore_default.setClosePacketSent(true);
 	NpcStore_default.remove();
 	switch (pkt.result) {
 		case 0:
@@ -351312,9 +351312,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "22e1eec589c6ef87cbc486efbb82f3f4216c44dc") {
+		if (!_buildShown && "b801ab367f482017d5055af47c6145b68d5a55cb") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"22e1eec589c6ef87cbc486efbb82f3f4216c44dc".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"b801ab367f482017d5055af47c6145b68d5a55cb".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
