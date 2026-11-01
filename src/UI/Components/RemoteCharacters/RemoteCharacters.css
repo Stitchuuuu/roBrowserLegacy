@@ -1,12 +1,12 @@
 :host {
 	width: 280px;
-	height: 200px;
+	height: 222px;
 }
 
 #RemoteCharacters {
 	position: relative;
 	width: 280px;
-	height: 200px;
+	height: 222px;
 	background-color: white;
 	box-shadow: 0 0 0 1px #8c97a6;
 	color: black;
@@ -50,9 +50,20 @@
 	white-space: nowrap;
 }
 
-#RemoteCharacters .list {
+#RemoteCharacters .search {
 	position: absolute;
 	top: 22px;
+	left: 6px;
+	width: 268px;
+	height: 18px;
+	box-sizing: border-box;
+	padding: 0 4px;
+	border: 1px solid #d4d9e0;
+	font-size: 12px;
+}
+#RemoteCharacters .list {
+	position: absolute;
+	top: 44px;
 	left: 6px;
 	width: 266px;
 	height: 140px;
@@ -62,8 +73,7 @@
 }
 #RemoteCharacters .bot {
 	position: relative;
-	height: 31px;
-	padding: 3px 6px 0 20px;
+	padding: 3px 6px 3px 20px;
 	border-bottom: 1px solid #e3e7ec;
 }
 #RemoteCharacters .bot.selected {
@@ -71,7 +81,7 @@
 }
 #RemoteCharacters .bot .dot {
 	position: absolute;
-	top: 8px;
+	top: 4px;
 	left: 7px;
 	font-size: 10px;
 	color: #3b7d3b;
@@ -79,8 +89,29 @@
 #RemoteCharacters .bot .name {
 	font-weight: bold;
 }
+#RemoteCharacters .bot .chars {
+	margin-top: 1px;
+	font-size: 11px;
+	line-height: 14px;
+}
+#RemoteCharacters .bot .char {
+	display: flex;
+	white-space: nowrap;
+}
+#RemoteCharacters .bot .char.playing {
+	font-weight: bold;
+}
+#RemoteCharacters .bot .char.playing::before {
+	content: '▸';
+	margin-right: 3px;
+}
+#RemoteCharacters .bot .char.match {
+	background-color: #ffe48a;
+}
 #RemoteCharacters .bot .job {
-	margin-left: 6px;
+	margin-left: auto;
+	padding-left: 6px;
+	font-weight: normal;
 	color: #4a5f7f;
 }
 #RemoteCharacters .bot .map {
@@ -89,15 +120,7 @@
 	right: 6px;
 	color: #666666;
 }
-#RemoteCharacters .bot .sub {
-	margin-top: 2px;
-	font-size: 11px;
-	color: #888888;
-}
 #RemoteCharacters .bot .state {
-	position: absolute;
-	top: 18px;
-	right: 6px;
 	font-size: 11px;
 	color: #2a5db0;
 }

@@ -68,18 +68,34 @@ let _failure = null;
 let _shown = 0;
 
 /**
+ * @var {string} _search - the search field, trimmed and lower case
+ */
+let _search = '';
+
+/**
  * Initialize UI
  */
 RemoteCharacters.init = function init() {
 	const root = this.getRoot();
+	const search = root.querySelector('.search');
 
-	this._host.style.top = `${(Renderer.height - 200) / 1.5}px`;
+	this._host.style.top = `${(Renderer.height - 222) / 1.5}px`;
 	this._host.style.left = `${(Renderer.width - 280) / 2}px`;
 	this.draggable(root.querySelector('.titlebar'));
 
 	root.querySelector('.settings').addEventListener('click', () => RemoteCharacters.onSettingsRequest());
 	root.querySelector('.login').addEventListener('click', () => RemoteCharacters.onLoginRequest());
 	root.querySelector('.connect').addEventListener('click', () => open());
+	search.addEventListener('input', () => {
+		_search = search.value.trim().toLowerCase();
+		update();
+	});
+	// Enter, up and down go on to onKeyDown: the rest is typing
+	search.addEventListener('keydown', event => {
+		if (event.which !== KEYS.ENTER && event.which !== KEYS.UP && event.which !== KEYS.DOWN) {
+			event.stopPropagation();
+		}
+	});
 	// On the list, not the rows: a row is rebuilt when the hall changes
 	root.querySelector('.list').addEventListener('dblclick', event => {
 		if (event.target.closest('.bot')) {
@@ -97,6 +113,8 @@ RemoteCharacters.onAppend = function onAppend() {
 	_selected = null;
 	_opening = null;
 	_failure = null;
+	_search = '';
+	this.getRoot().querySelector('.search').value = '';
 	BotHall.onChange(update);
 	if (settings && BotHall.state() === 'off') {
 		BotHall.join(settings);
@@ -119,7 +137,7 @@ RemoteCharacters.onRemove = function onRemove() {
  * @return {boolean}
  */
 RemoteCharacters.onKeyDown = function onKeyDown(event) {
-	const bots = BotHall.bots();
+	const bots = filter(BotHall.bots());
 	const at = bots.findIndex(bot => bot.id === _selected);
 
 	switch (event.which) {
@@ -151,6 +169,25 @@ RemoteCharacters.onLoginRequest = function onLoginRequest() {
 RemoteCharacters.onRoomOpened = function onRoomOpened() {
 	// Set by LoginEngine
 };
+
+/**
+ * @param {string} text
+ * @return {boolean} the search is in it
+ */
+function matches(text) {
+	return !!_search && text.toLowerCase().includes(_search);
+}
+
+/**
+ * @param {Array<object>} bots
+ * @return {Array<object>} the bots whose account or one character matches the search
+ */
+function filter(bots) {
+	if (!_search) {
+		return bots;
+	}
+	return bots.filter(bot => matches(bot.account) || bot.chars.some(char => matches(char.name)));
+}
 
 /**
  * @param {?object} bot
@@ -231,6 +268,25 @@ function message(text, error) {
 }
 
 /**
+ * @param {object} char - {name, job, lv}
+ * @param {?object} play - the character the bot plays
+ * @return {HTMLElement}
+ */
+function character(char, play) {
+	const node = document.createElement('span');
+	const job = document.createElement('span');
+
+	node.className = 'char';
+	node.classList.toggle('playing', !!play && play.name === char.name);
+	node.classList.toggle('match', matches(char.name));
+	node.textContent = char.name;
+	job.className = 'job';
+	job.textContent = `${MonsterTable[char.job] || ''} ${char.lv}`.trim();
+	node.appendChild(job);
+	return node;
+}
+
+/**
  * @param {object} bot
  * @return {HTMLElement}
  */
@@ -239,9 +295,8 @@ function row(bot) {
 	const play = bot.playing;
 	const parts = [
 		['dot', bot.id === _opening ? '◷' : '●'],
-		['name', play ? play.name : bot.account],
-		['job', play ? `${MonsterTable[play.job] || ''} ${play.lv}`.trim() : 'not in game'],
-		['map', play ? play.map : '']
+		['name', bot.account],
+		['map', play ? play.map : 'not in game']
 	];
 
 	node.className = bot.id === _selected ? 'bot selected' : 'bot';
@@ -253,12 +308,14 @@ function row(bot) {
 		node.appendChild(span);
 	}
 
-	const sub = document.createElement('div');
-	sub.className = 'sub';
-	sub.textContent = `${bot.account} · ${bot.chars.length} character${bot.chars.length === 1 ? '' : 's'}`;
-	node.appendChild(sub);
+	const chars = document.createElement('div');
+	chars.className = 'chars';
+	for (let i = 0; i < bot.chars.length; ++i) {
+		chars.appendChild(character(bot.chars[i], play));
+	}
+	node.appendChild(chars);
 
-	const state = document.createElement('span');
+	const state = document.createElement('div');
 	state.className = 'state';
 	if (bot.id === _opening) {
 		state.textContent = 'Opening…';
@@ -267,7 +324,9 @@ function row(bot) {
 	} else if (bot.windows) {
 		state.textContent = `${bot.windows} window${bot.windows === 1 ? '' : 's'} open`;
 	}
-	node.appendChild(state);
+	if (state.textContent) {
+		node.appendChild(state);
+	}
 
 	node.addEventListener('mousedown', event => {
 		select(bot);
@@ -284,16 +343,17 @@ function update() {
 	const list = root && root.querySelector('.list');
 	const state = BotHall.state();
 	const bots = BotHall.bots();
+	const rows = filter(bots);
 
 	if (!list) {
 		return;
 	}
 
-	if (_selected && !bots.some(bot => bot.id === _selected)) {
+	if (_selected && !rows.some(bot => bot.id === _selected)) {
 		_selected = null;
 	}
-	if (!_selected && bots.length) {
-		_selected = bots[0].id;
+	if (!_selected && rows.length) {
+		_selected = rows[0].id;
 	}
 
 	list.textContent = '';
@@ -309,9 +369,11 @@ function update() {
 				'No remote client in this hall. Are your remote clients running with --spectate-rtc, and the same hall and secret?'
 			)
 		);
+	} else if (!rows.length) {
+		list.appendChild(message('No account or character matches this search.'));
 	} else {
-		for (let i = 0; i < bots.length; ++i) {
-			list.appendChild(row(bots[i]));
+		for (let i = 0; i < rows.length; ++i) {
+			list.appendChild(row(rows[i]));
 		}
 	}
 
