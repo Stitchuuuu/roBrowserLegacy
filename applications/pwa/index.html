@@ -138,11 +138,15 @@
 					baseConfig = deepMerge(baseConfig, window.ROConfigLocal);
 				}
 
+				// ?app=<NAME> picks another application, as the built api.html does
+				var app = new URLSearchParams(location.search).get('app');
+
 				// Build ROConfig with dynamic values
 				var ROConfig = Object.assign({}, baseConfig, {
 					target: document.getElementById('robrowser'),
 					type: ROBrowser.TYPE[baseConfig.type || 'FRAME'],
-					application: ROBrowser.APP[baseConfig.application || 'ONLINE'],
+					application:
+						ROBrowser.APP[ROBrowser.APP.hasOwnProperty(app) ? app : baseConfig.application || 'ONLINE'],
 					version: gitHash
 				});
 				var RO = new ROBrowser(ROConfig);

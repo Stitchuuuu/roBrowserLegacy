@@ -1,0 +1,299 @@
+/* See docs/reference/network/remote-bot.md (Camera page). The skin bitmaps come from the GRF as --skin-* */
+html,
+body {
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+#Camera,
+#Camera * {
+	box-sizing: border-box;
+}
+
+#Camera {
+	position: absolute;
+	inset: 0;
+	background: #10131a;
+	font:
+		12px Arial,
+		Helvetica,
+		sans-serif;
+	color: #000;
+	user-select: none;
+}
+
+/* Page head: the button bar skin */
+#Camera .head {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	height: 29px;
+	background: #e9edf2 var(--skin-btnbar-mid) repeat-x;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 10px;
+}
+#Camera .head::before,
+#Camera .head::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	width: 21px;
+	height: 29px;
+}
+#Camera .head::before {
+	left: 0;
+	background: var(--skin-btnbar-left);
+}
+#Camera .head::after {
+	right: 0;
+	background: var(--skin-btnbar-right);
+}
+#Camera .head > * {
+	position: relative;
+	z-index: 1;
+}
+#Camera .head .title {
+	font-weight: bold;
+	margin-right: 10px;
+}
+#Camera .head .count {
+	margin-left: auto;
+	color: #4a5f7f;
+}
+#Camera .btn {
+	height: 20px;
+	border: 0;
+	padding: 0 8px;
+	background: #dfe3e8 var(--skin-btn) 0 0 / 100% 100%;
+	font:
+		12px Arial,
+		sans-serif;
+	color: #000;
+	cursor: pointer;
+}
+#Camera .btn.on {
+	background-image: var(--skin-btn-press);
+	font-weight: bold;
+}
+#Camera .btn:disabled {
+	color: #9aa3ae;
+	cursor: default;
+}
+
+/* Grid */
+#Camera .grid {
+	position: absolute;
+	left: 0;
+	top: 29px;
+	right: 0;
+	bottom: 0;
+	display: grid;
+	gap: 3px;
+	grid-template-rows: 1fr 1fr;
+}
+#Camera .grid > .message {
+	grid-column: 1 / -1;
+	grid-row: 1 / -1;
+	align-self: center;
+	text-align: center;
+	color: #dfe5ee;
+}
+#Camera .tile {
+	position: relative;
+	background: #000;
+	overflow: hidden;
+	box-shadow: inset 0 0 0 1px #3a4250;
+}
+#Camera .tile.hidden {
+	display: none;
+}
+#Camera .tile iframe {
+	position: absolute;
+	left: 0;
+	top: 20px;
+	width: 100%;
+	height: calc(100% - 20px);
+	border: 0;
+	background: #000;
+}
+
+/* Tile bar: the title bar skin */
+#Camera .bar {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	height: 20px;
+	z-index: 3;
+	background: #dfe5ee var(--skin-titlebar) 0 0 / 12px 20px repeat-x;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 3px 0 4px;
+	box-shadow: inset 0 -1px 0 #8c97a6;
+}
+#Camera .select {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	height: 17px;
+	background: #fff;
+	border: 1px solid #8c97a6;
+	padding: 1px 20px 0 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	font-size: 11px;
+	line-height: 14px;
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+#Camera .select::after {
+	content: '';
+	position: absolute;
+	right: -1px;
+	top: -1px;
+	width: 17px;
+	height: 17px;
+	background: var(--skin-combo) 0 0 / 17px 17px;
+}
+#Camera .select b {
+	font-weight: bold;
+}
+#Camera .select .account {
+	color: #6b7686;
+}
+#Camera .select .placeholder {
+	color: #8a93a0;
+	font-style: italic;
+}
+#Camera .toggle {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 11px;
+	white-space: nowrap;
+	cursor: pointer;
+}
+#Camera .toggle i {
+	width: 10px;
+	height: 10px;
+	background: #fff var(--skin-checkbox-off);
+	box-shadow: inset 0 0 0 1px #8c97a6;
+}
+#Camera .toggle.on i {
+	background-image: var(--skin-checkbox-on);
+}
+#Camera .bar .btn {
+	height: 17px;
+	font-size: 11px;
+	padding: 0 9px;
+	margin-left: 6px;
+}
+
+/* Empty, offline, busy */
+#Camera .msg {
+	position: absolute;
+	inset: 20px 0 0 0;
+	z-index: 1; /* over a game window kept at its login screen */
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	text-align: center;
+	background: radial-gradient(#252b36, #12151c);
+	color: #dfe5ee;
+	font-size: 12px;
+	padding: 0 16px;
+}
+#Camera .msg .big {
+	font-weight: bold;
+	font-size: 13px;
+}
+#Camera .msg .small {
+	color: #9aa6b6;
+	font-size: 11px;
+}
+#Camera .msg svg {
+	width: 26px;
+	height: 26px;
+	color: #7d8898;
+	margin-bottom: 4px;
+}
+
+/* The bot list, opened from a tile's select */
+#Camera .drop {
+	position: absolute;
+	left: 4px;
+	top: 19px;
+	z-index: 6;
+	width: 300px;
+	max-width: calc(100% - 8px);
+	max-height: calc(100% - 24px);
+	overflow-y: auto;
+	background: #f7f7f7;
+	border: 1px solid #8c97a6;
+	font-size: 11px;
+	box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.5);
+}
+#Camera .drop .row {
+	position: relative;
+	padding: 2px 6px 3px 18px;
+	border-bottom: 1px solid #e3e7ec;
+	cursor: pointer;
+}
+#Camera .drop .row:hover,
+#Camera .drop .row.sel {
+	background: #cfdcf0;
+}
+#Camera .drop .row .dot {
+	position: absolute;
+	left: 6px;
+	top: 3px;
+	font-size: 9px;
+	color: #3b7d3b;
+}
+#Camera .drop .row .name {
+	font-weight: bold;
+}
+#Camera .drop .row .map {
+	position: absolute;
+	right: 6px;
+	top: 2px;
+	color: #4a5f7f;
+}
+#Camera .drop .row .char {
+	display: flex;
+}
+#Camera .drop .row .char::before {
+	content: '▸';
+	margin-right: 3px;
+}
+#Camera .drop .row .job {
+	margin-left: auto;
+	color: #4a5f7f;
+}
+#Camera .drop .row.off,
+#Camera .drop .row.busy {
+	color: #8a93a0;
+}
+#Camera .drop .row.off .dot {
+	color: #a0a7b1;
+}
+#Camera .drop .row.off .map,
+#Camera .drop .row.busy .map {
+	color: #a5562f;
+}
+#Camera .drop .row.busy {
+	cursor: default;
+	background: none;
+}
+#Camera .drop .empty {
+	padding: 4px 6px;
+	color: #8a93a0;
+}

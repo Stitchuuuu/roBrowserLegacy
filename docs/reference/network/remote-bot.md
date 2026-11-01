@@ -66,6 +66,22 @@ member, linked or not, and the relay caps it (`RELAY_ROOM_MAX`); each bot
 holds one relay connection, so a machine with N bots and W open windows uses
 N + W of the relay's per-address connections (`RELAY_IP_CONN`).
 
+Each row is one remote client: its account, the map it plays on (or « not in
+game »), then the account's characters from its `hello`, one per line with job
+and level (`MonsterTable`), the one it plays (`playing.name`) marked ▸ and in
+bold. One line per character rather than wrapped: a wrapped list of 15
+characters reads ragged, and the list scrolls anyway.
+
+The field above the list filters it as the player types: a row stays when its
+account or one of its characters contains the text, case aside (spaces around
+it are dropped), and the characters that match are highlighted. An empty field
+shows every row. The hall's own messages (below) come first, search or not;
+« No account or character matches this search. » only shows once bots are
+listed. The selection stays on the rows kept: a selected row filtered out
+gives way to the first one kept. In the field, Enter opens the selected row and
+up / down move within the rows kept; every other key stays in the field, so it
+reaches no window shortcut. A double click opens a row, as before.
+
 The button stays hidden for whoever never used the mode. A relay is given by
 a page opened with `?relay=<wss url>[&key=<relay key>]` (both leave the
 address bar), or by a bot link; it is kept in `localStorage`
@@ -134,6 +150,7 @@ What the list says when it cannot show remote clients, or one does not open:
 |---|---|
 | Entering the hall… | the hall is being joined |
 | Calling the remote clients of the hall… | members are there, none has said `hello` yet |
+| No account or character matches this search. | bots are listed, the search keeps none |
 | No remote client in this hall… | nobody else in the room: no bot runs, or the hall or secret differ (a wrong secret leads to another room) |
 | The relay refused the key / The hall secret is not valid / These settings are not valid | `key` / `secret` / `options` closed the hall |
 | The hall is full / The relay cut this window | `room-full` / `rate` |
@@ -294,6 +311,76 @@ another remote client of the hall says it plays, on this map: the hall's
 
 The login screen re-arms the mode (`RemoteBot.setLoginScreen`) before it
 shows, so a room left from the game is let go there, not at the next attach.
+
+## The camera page
+
+A page of 4, 6 or 8 tiles, each one a game window watching a bot of the hall
+(`UI/Components/Camera`, `App/Camera.js`). It runs no game of its own: it
+joins the hall, lists its bots, and gives each tile a room.
+
+| page | what it is |
+|---|---|
+| `api.html?app=CAMERA` (a build) · `applications/pwa/index.html?app=CAMERA` (the dev page, whose `?app=` picks the application) | the camera page |
+| `api.html#camera`, in an iframe of the camera page | a tile |
+| `…?app=ONLINE#control=<account>` | the tab Control opens |
+
+**The page.** It alone joins the hall (`BotHall.join`, as Remote characters
+does): N tiles cost the relay 1 + 2N connections, the page's and, per tile,
+the tile's and the bot's in their room. Each tile has a bar above its game:
+the bot list (account, the character it plays, map, job and level; a bot with
+its four windows open is greyed « full · 4 windows » and cannot be picked),
+« Scene only », and Control. The page keeps the tile count and each slot's
+pick (account, character name, scene only) in `localStorage` (`cameraTiles`);
+picking a bot ticks « Scene only ».
+
+What a tile shows besides the game:
+
+| state | when |
+|---|---|
+| No bot on this tile | nothing picked |
+| X is offline | the bot left the hall, or it is in the hall but not in game (attaching to it would show its character select, and a pick there logs it in) — the pick stays, and the tile watches again once the bot plays |
+| X already has 4 windows open | the hall says it holds four windows, or the bot refused one more (`busy`) — asked again at the next change of the hall |
+
+**A tile.** The page creates the iframe and posts it the page's own config
+(`postMessage`, to this origin only): the first server of the list, without
+the list nor the intro. Once the tile's login screen shows, it tells the page
+(`{t:'camera-ready'}`); the page then asks the bot for a room (`BotHall.open`)
+and posts it (`{t:'camera-room', room}`); `LoginEngine.showLoginScreen()`
+attaches to it before anything else (`Network/CameraTile.js`). The room is
+asked only then, so a bot's fresh room never waits for a window still loading
+(the bot leaves it after a minute with nobody). The secret never goes through
+an address. One tile loads at a time, the next once the last one is at its
+login screen: eight engines loading at once starve the page of requests (the
+dev server serves each module apart) and of its thread. A tile not at its
+login screen within a minute is loaded again.
+
+A tile never joins the hall, never shows the login window nor Remote
+characters, and never changes bot: no « Control » in a player's context menu
+(`controllable()`), no switch (`RemoteBot.switchTo()`), no control taken on
+entry (`RemoteBot.takeWantControl()`). Picking another bot replaces the
+tile's iframe.
+
+Every tile shares the page's thread and the `localStorage` every tab reads,
+so it lightens itself **in memory only**, never with `.save()`: no music nor
+sound (`AudioPrefs.BGM.play`, `.Sound.play`; not through `BGM.setVolume` /
+`SoundManager.setVolume`, which save), 15 frames a second
+(`GraphicsSettings.fpslimit`, followed by `Renderer.frameLimit` once in game),
+quality 50 (`Configs`, read by `Renderer.resize()`).
+
+**Scene only** is a class on the tile's `body`: every child of `body` is
+hidden but those of `SCENE_KEEP` (the scene's canvas, the labels over it, the
+cursor). Among the labels, `SCENE_HIDE_OVERLAY` hides the names and the chat
+bubbles; the HP/SP bars stay (chosen on captures, 2026-11-01). Shop and chat
+room signs are windows: hidden. Nothing is closed, so turning it off brings
+every window back where it was. A host that must stay (the alert icons) is one
+more entry of `SCENE_KEEP`.
+
+**Control** (greyed unless the tile watches) opens the top page again as
+`?app=ONLINE#control=<account>`. That tab's Remote characters takes the
+account out of the address and, as soon as that account's bot is listed,
+opens it with `control: true`: once in game the window says `@control on`
+(« Control », above). The tile keeps watching in its own room. A build with
+several servers shows the server list first, as any tab.
 
 ## Disconnect & Exit
 
