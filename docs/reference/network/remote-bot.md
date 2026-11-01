@@ -66,6 +66,22 @@ member, linked or not, and the relay caps it (`RELAY_ROOM_MAX`); each bot
 holds one relay connection, so a machine with N bots and W open windows uses
 N + W of the relay's per-address connections (`RELAY_IP_CONN`).
 
+Each row is one remote client: its account, the map it plays on (or « not in
+game »), then the account's characters from its `hello`, one per line with job
+and level (`MonsterTable`), the one it plays (`playing.name`) marked ▸ and in
+bold. One line per character rather than wrapped: a wrapped list of 15
+characters reads ragged, and the list scrolls anyway.
+
+The field above the list filters it as the player types: a row stays when its
+account or one of its characters contains the text, case aside (spaces around
+it are dropped), and the characters that match are highlighted. An empty field
+shows every row. The hall's own messages (below) come first, search or not;
+« No account or character matches this search. » only shows once bots are
+listed. The selection stays on the rows kept: a selected row filtered out
+gives way to the first one kept. In the field, Enter opens the selected row and
+up / down move within the rows kept; every other key stays in the field, so it
+reaches no window shortcut. A double click opens a row, as before.
+
 The button stays hidden for whoever never used the mode. A relay is given by
 a page opened with `?relay=<wss url>[&key=<relay key>]` (both leave the
 address bar), or by a bot link; it is kept in `localStorage`
@@ -134,6 +150,7 @@ What the list says when it cannot show remote clients, or one does not open:
 |---|---|
 | Entering the hall… | the hall is being joined |
 | Calling the remote clients of the hall… | members are there, none has said `hello` yet |
+| No account or character matches this search. | bots are listed, the search keeps none |
 | No remote client in this hall… | nobody else in the room: no bot runs, or the hall or secret differ (a wrong secret leads to another room) |
 | The relay refused the key / The hall secret is not valid / These settings are not valid | `key` / `secret` / `options` closed the hall |
 | The hall is full / The relay cut this window | `room-full` / `rate` |
