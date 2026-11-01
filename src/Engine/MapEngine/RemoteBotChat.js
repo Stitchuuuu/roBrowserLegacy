@@ -8,6 +8,7 @@
 
 import RemoteBot from 'Network/RemoteBot.js';
 import BotHall from 'Network/BotHall.js';
+import CameraTile from 'Network/CameraTile.js';
 import Session from 'Engine/SessionStorage.js';
 import MapRenderer from 'Renderer/MapRenderer.js';
 import Commands from 'Controls/ProcessCommand.js';
@@ -145,11 +146,11 @@ function onText(message) {
  * Another remote client of the hall plays this character here: 'Control' in its context menu
  *
  * @param {string} name - a character on the map
- * @return {?object} the bot's hall row, null for anyone else and for this window's own bot
+ * @return {?object} the bot's hall row, null for anyone else, for this window's own bot, and in a camera tile
  * @see docs/reference/network/remote-bot.md
  */
 export function controllable(name) {
-	if (!RemoteBot.isActive() || name === Session.Entity.display.name) {
+	if (!RemoteBot.isActive() || CameraTile.active || name === Session.Entity.display.name) {
 		return null;
 	}
 	return BotHall.playing(name, MapRenderer.currentMap.replace(/\.[^.]*$/, ''));

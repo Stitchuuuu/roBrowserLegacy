@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => {
 		remoteEntry: { append: record('RemoteEntry.append'), remove: vi.fn() },
 		botHall: { loadSettings: vi.fn(() => null), loadRelay: vi.fn(() => ({ relay: 'wss://r/', relayKey: '' })), leave: vi.fn(), kept: vi.fn(() => false) },
 		winList: { append: vi.fn(), setList: vi.fn() },
+		cameraTile: { active: false, wait: vi.fn() },
 		uiManager: {
 			removeComponents: record('UIManager.removeComponents'),
 			showErrorBox: vi.fn(),
@@ -87,6 +88,7 @@ vi.mock('UI/Components/RemoteCharacters/RemoteCharacters.js', () => ({ default: 
 vi.mock('UI/Components/RemoteSettings/RemoteSettings.js', () => ({ default: { append: vi.fn(), remove: vi.fn() } }));
 vi.mock('UI/Components/RemoteEntry/RemoteEntry.js', () => ({ default: mocks.remoteEntry }));
 vi.mock('Network/BotHall.js', () => ({ default: mocks.botHall }));
+vi.mock('Network/CameraTile.js', () => ({ default: mocks.cameraTile }));
 vi.mock('UI/Components/SkillTargetSelection/SkillTargetSelection.js', () => ({ default: mocks.skillTarget }));
 vi.mock('Vendors/spark-md5.min.js', () => ({ default: {} }));
 vi.mock('Utils/Rijndael.js', () => ({ default: {} }));
@@ -261,5 +263,44 @@ describe('LoginEngine login accepted', () => {
 
 		mocks.hooks['AC.ACCEPT_LOGIN3']({ ServerList: [SERVER] });
 		expect(mocks.botHall.leave).toHaveBeenCalledOnce();
+	});
+});
+
+describe('LoginEngine in a camera tile', () => {
+	const ROOM = { relay: 'wss://r/', relayKey: '', room: 'fresh', secret: 's', character: 'B' };
+
+	beforeEach(() => {
+		vi.spyOn(console, 'log').mockImplementation(() => {});
+		LoginEngine.init({ address: '127.0.0.1', port: 6900 });
+		mocks.cameraTile.active = true;
+		mocks.botHall.loadSettings.mockReturnValue({ relay: 'wss://r/', relayKey: '', room: 'hall', secret: 's' });
+		mocks.remoteBot.useRoom.mockClear();
+		mocks.remoteBot.takeSwitch.mockClear();
+		mocks.cameraTile.wait.mockClear();
+		mocks.calls.length = 0;
+	});
+
+	afterEach(() => {
+		mocks.cameraTile.active = false;
+		mocks.botHall.loadSettings.mockReturnValue(null);
+	});
+
+	it('waits for the room of the camera page, before a switch or the hall list, then logs in through it', () => {
+		LoginEngine.reload();
+
+		expect(mocks.cameraTile.wait).toHaveBeenCalledOnce();
+		expect(mocks.remoteBot.takeSwitch).not.toHaveBeenCalled();
+		expect(mocks.remoteBot.useRoom).not.toHaveBeenCalled();
+
+		mocks.cameraTile.wait.mock.calls[0][0](ROOM);
+		expect(mocks.remoteBot.useRoom).toHaveBeenCalledWith(ROOM);
+	});
+
+	it('never joins the hall nor shows the login window', () => {
+		LoginEngine.reload();
+
+		expect(mocks.calls).not.toContain('RemoteCharacters.append');
+		expect(mocks.calls).not.toContain('WinLogin.append');
+		expect(mocks.calls).not.toContain('RemoteEntry.append');
 	});
 });
