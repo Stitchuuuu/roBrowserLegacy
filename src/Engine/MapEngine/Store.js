@@ -173,7 +173,7 @@ function onExpandedBarterBuyList(pkt) {
  */
 function onBuyResult(pkt) {
 	// On a remote bot the window sends nothing: its close would go to the server under the bot
-	if (RemoteBot.isActive()) {
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		NpcStore.setClosePacketSent(true);
 	}
 	NpcStore.remove();

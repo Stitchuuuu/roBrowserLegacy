@@ -487,6 +487,11 @@ The bot's responder also writes the batch in the window's chat
 (« [spectate] the bot buys Butterfly Wing x8, Fly Wing x81 »): no server packet
 carries it.
 
+A window that holds `@control` (`RemoteBot.hasControl()`) shops as a normal
+window: the bot's routines are paused and the window's packets go through, so
+the chooser shows, the window picks Buy or Sell, and it sends its own close
+packet. Without that the player in control got no Buy / Sell chooser at all.
+
 ## When the bot cannot be reached
 
 The login failure box says why instead of the generic message:
