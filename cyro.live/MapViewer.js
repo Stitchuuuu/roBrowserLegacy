@@ -84087,7 +84087,7 @@ var init_VerticalFlip = __esmMin((() => {
 	};
 }));
 // src/Renderer/Map/Altitude.js
-var _cells, _types$1, mat4$24, vec3$7, vec4$8, _from, _to, _unit, _matrix$8, buffer1x1, buffer5x5, buffer7x7, buffer13x13, tmp, Altitude, TYPE_TABLE;
+var _cells, _types$1, mat4$24, vec3$7, vec4$8, _from, _to, _unit, _matrix$7, buffer1x1, buffer5x5, buffer7x7, buffer13x13, tmp, Altitude, TYPE_TABLE;
 var init_Altitude = __esmMin((() => {
 	init_gl_matrix$1();
 	init_PathFinding();
@@ -84099,7 +84099,7 @@ var init_Altitude = __esmMin((() => {
 	_from = vec3$7.create();
 	_to = vec4$8.create();
 	_unit = vec3$7.create();
-	_matrix$8 = mat4$24.create();
+	_matrix$7 = mat4$24.create();
 	buffer1x1 = /* @__PURE__ */ new Float32Array(30);
 	buffer5x5 = /* @__PURE__ */ new Float32Array(750);
 	buffer7x7 = /* @__PURE__ */ new Float32Array(1470);
@@ -84196,18 +84196,18 @@ var init_Altitude = __esmMin((() => {
 		static intersect(modelView, projection, out) {
 			let i;
 			const count = Altitude.MAX_INTERSECT_COUNT;
-			mat4$24.invert(_matrix$8, modelView);
-			_from[0] = _matrix$8[12];
-			_from[1] = _matrix$8[13];
-			_from[2] = _matrix$8[14];
+			mat4$24.invert(_matrix$7, modelView);
+			_from[0] = _matrix$7[12];
+			_from[1] = _matrix$7[13];
+			_from[2] = _matrix$7[14];
 			_to[0] = Mouse.screen.x / Mouse.screen.width * 2 - 1;
 			_to[1] = -(Mouse.screen.y / Mouse.screen.height) * 2 + 1;
 			if (VerticalFlip.isActive()) _to[1] = -_to[1];
 			_to[2] = 1;
 			_to[3] = 1;
-			mat4$24.multiply(_matrix$8, projection, modelView);
-			mat4$24.invert(_matrix$8, _matrix$8);
-			vec4$8.transformMat4(_to, _to, _matrix$8);
+			mat4$24.multiply(_matrix$7, projection, modelView);
+			mat4$24.invert(_matrix$7, _matrix$7);
+			vec4$8.transformMat4(_to, _to, _matrix$7);
 			_to[0] /= _to[3];
 			_to[1] /= _to[3];
 			_to[2] /= _to[3];
@@ -84257,7 +84257,7 @@ var init_Altitude = __esmMin((() => {
 					break;
 				default: buffer = new Float32Array(size * size * 30);
 			}
-			for (x = -middle; x <= middle; ++x) for (y = -middle; y <= middle; ++y, i += 30) {
+			for (x = -middle; x < size - middle; ++x) for (y = -middle; y < size - middle; ++y, i += 30) {
 				const gx = pos_x + x;
 				const gy = pos_y + y;
 				const oob = gx < 0 || gy < 0 || gx >= Altitude.width || gy >= Altitude.height;
@@ -142256,6 +142256,84 @@ var init_TownInfo = __esmMin((() => {
 		}
 	];
 }));
+// src/DB/Map/PrivateAirship.js
+/**
+* Map name as the tables hold it: lower case, no extension.
+*
+* @param {string} mapName
+* @return {string}
+*/
+function normalize$1(mapName) {
+	return String(mapName || "").trim().toLowerCase().replace(/\.(gat|rsw|gnd)$/, "");
+}
+var DEFAULT_NEED_ITEMS, _startable, _endable, _needItems, _loaded, PrivateAirship$1;
+var init_PrivateAirship$3 = __esmMin((() => {
+	DEFAULT_NEED_ITEMS = [6909, 25464];
+	_startable = /* @__PURE__ */ new Set();
+	_endable = /* @__PURE__ */ new Set();
+	_needItems = [];
+	_loaded = false;
+	PrivateAirship$1 = {
+		normalize: normalize$1,
+		/**
+		* Forget everything loaded so far.
+		*/
+		reset() {
+			_startable.clear();
+			_endable.clear();
+			_needItems.length = 0;
+			_loaded = false;
+		},
+		/**
+		* @param {string} mapName - a map a flight may start from
+		*/
+		addStartableMap(mapName) {
+			_startable.add(normalize$1(mapName));
+			_loaded = true;
+		},
+		/**
+		* @param {string} mapName - a map a flight may land on
+		*/
+		addEndableMap(mapName) {
+			_endable.add(normalize$1(mapName));
+			_loaded = true;
+		},
+		/**
+		* @param {number} itemId - an item that pays for a flight
+		*/
+		addNeedItem(itemId) {
+			itemId = Number(itemId);
+			if (itemId > 0 && _needItems.indexOf(itemId) === -1) _needItems.push(itemId);
+			_loaded = true;
+		},
+		/**
+		* @return {boolean} whether the client's table was read
+		*/
+		isLoaded() {
+			return _loaded;
+		},
+		/**
+		* @param {string} mapName
+		* @return {boolean} whether a flight may start on this map
+		*/
+		isStartableMap(mapName) {
+			return !_startable.size || _startable.has(normalize$1(mapName));
+		},
+		/**
+		* @param {string} mapName
+		* @return {boolean} whether a flight may land on this map
+		*/
+		isEndableMap(mapName) {
+			return !_endable.size || _endable.has(normalize$1(mapName));
+		},
+		/**
+		* @return {Array<number>} the items that pay for a flight, in the file's order
+		*/
+		getNeedItems() {
+			return _needItems.length ? _needItems.slice() : DEFAULT_NEED_ITEMS.slice();
+		}
+	};
+}));
 // src/DB/Status/StatusConst.js
 var StatusConst_default;
 var init_StatusConst = __esmMin((() => {
@@ -168998,6 +169076,22 @@ var init_PacketStructure = __esmMin((() => {
 		})();
 	};
 	PACKET.ZC.GROUP_LIST2.size = -1;
+	PACKET.CZ.PRIVATE_AIRSHIP_REQUEST = function PACKET_CZ_PRIVATE_AIRSHIP_REQUEST() {
+		this.mapName = "";
+		this.ItemID = 0;
+	};
+	PACKET.CZ.PRIVATE_AIRSHIP_REQUEST.prototype.build = function() {
+		const pkt_buf = new BinaryWriter(18 + (PacketVerManager_default.value >= 20181121 ? 4 : 2));
+		pkt_buf.writeShort(2633);
+		pkt_buf.writeString(this.mapName, 16);
+		if (PacketVerManager_default.value >= 20181121) pkt_buf.writeULong(this.ItemID);
+		else pkt_buf.writeUShort(this.ItemID);
+		return pkt_buf;
+	};
+	PACKET.ZC.PRIVATE_AIRSHIP_RESPONSE = function PACKET_ZC_PRIVATE_AIRSHIP_RESPONSE(fp, end) {
+		this.result = fp.readULong();
+	};
+	PACKET.ZC.PRIVATE_AIRSHIP_RESPONSE.size = 6;
 	PACKET.ZC.RANDOM_COMBINE_ITEM_UI_OPEN = function PACKET_ZC_RANDOM_COMBINE_ITEM_UI_OPEN(fp, end) {
 		this.itemId = PacketVerManager_default.value >= 20181121 ? fp.readLong() : fp.readShort();
 	};
@@ -205034,6 +205128,8 @@ var init_PacketRegister = __esmMin((() => {
 		2625: PACKET.ZC.SKILL_SCALE,
 		2627: PACKET.ZC.ADD_MEMBER_TO_GROUP3,
 		2628: PACKET.ZC.GROUP_LIST2,
+		2633: PACKET.CZ.PRIVATE_AIRSHIP_REQUEST,
+		2634: PACKET.ZC.PRIVATE_AIRSHIP_RESPONSE,
 		2638: PACKET.ZC.RANDOM_COMBINE_ITEM_UI_OPEN,
 		2639: PACKET.CZ.REQ_RANDOM_COMBINE_ITEM,
 		2640: PACKET.ZC.ACK_RANDOM_COMBINE_ITEM,
@@ -209908,6 +210004,94 @@ var init_BotHall = __esmMin((() => {
 	};
 	init$15();
 }));
+// src/Preferences/Audio.js
+var Audio_default;
+var init_Audio = __esmMin((() => {
+	init_Preferences$1();
+	Audio_default = Preferences.get("Audio", {
+		BGM: {
+			play: true,
+			volume: .5
+		},
+		Sound: {
+			play: true,
+			volume: .5
+		}
+	}, 1);
+}));
+// src/Network/CameraTile.js
+/**
+* @return {boolean} #camera in a frame of a page of this origin
+*/
+function isTile() {
+	if (!new URLSearchParams(window.location.hash.slice(1)).has("camera")) return false;
+	try {
+		return window.parent !== window && window.parent.location.origin === window.location.origin;
+	} catch (_e) {
+		return false;
+	}
+}
+/**
+* The CSS of « Scene only », a class on body
+*
+* @return {string}
+*/
+function sceneRule() {
+	let css = `body.scene-only > *${SCENE_KEEP.map((selector) => `:not(${selector})`).join("")} { display: none !important; }`;
+	if (SCENE_HIDE_OVERLAY.length) css += `\nbody.scene-only .entity-overlay > :is(${SCENE_HIDE_OVERLAY.join(", ")}) { display: none !important; }`;
+	return css;
+}
+/**
+* The room, from the camera page only
+*
+* @param {MessageEvent} event
+*/
+function onMessage$2(event) {
+	const attach = _attach;
+	if (!attach || event.source !== window.parent || event.origin !== window.location.origin) return;
+	if (event.data && event.data.t === "camera-room" && event.data.room) {
+		_attach = null;
+		attach(event.data.room);
+	}
+}
+/**
+* N tiles share the page's thread and the localStorage of every tab: lighter settings, in memory only
+*/
+function apply$1() {
+	const style = document.createElement("style");
+	Audio_default.BGM.play = false;
+	Audio_default.Sound.play = false;
+	GraphicsSettings.fpslimit = 15;
+	Configs.set("quality", 50);
+	style.textContent = sceneRule();
+	document.head.appendChild(style);
+	window.addEventListener("message", onMessage$2);
+}
+var SCENE_KEEP, SCENE_HIDE_OVERLAY, CameraTile, _attach;
+var init_CameraTile = __esmMin((() => {
+	init_Configs();
+	init_Audio();
+	init_Graphics();
+	SCENE_KEEP = [
+		"canvas.ro-scene",
+		".entity-overlay",
+		".cursor"
+	];
+	SCENE_HIDE_OVERLAY = [".entity-display", ".entity-dialog"];
+	CameraTile = { active: isTile() };
+	_attach = null;
+	/**
+	* Ready for a room: the camera page asks the bot for one now, so the bot's fresh room never waits for a
+	* window still loading
+	*
+	* @param {function({relay: string, relayKey: string, room: string, secret: string, character: ?string})} attach
+	*/
+	CameraTile.wait = function wait(attach) {
+		_attach = attach;
+		window.parent.postMessage({ t: "camera-ready" }, window.location.origin);
+	};
+	if (CameraTile.active) apply$1();
+}));
 // src/Network/RemoteBot.js
 /**
 * Join the bot's room
@@ -209948,12 +210132,12 @@ function join(link) {
 	};
 }
 /**
-* Paste box: now on the login screen, before it once it is there, never in game
+* Paste box: now on the login screen, before it once it is there, never in game nor in a camera tile
 *
 * @param {KeyboardEvent} event
 */
 function onKeyDown(event) {
-	if (_inGame || !event.altKey || !event.shiftKey || event.code !== "KeyR") return;
+	if (_inGame || CameraTile.active || !event.altKey || !event.shiftKey || event.code !== "KeyR") return;
 	event.preventDefault();
 	event.stopPropagation();
 	if (_ask) _ask(false);
@@ -209986,6 +210170,7 @@ var init_RemoteBot = __esmMin((() => {
 	init_signal();
 	init_RtcSockets();
 	init_BotHall();
+	init_CameraTile();
 	STORAGE_KEY = "remoteBot";
 	FAILURES = {
 		"no-bot": "Remote client: no remote client answered. Is it running, and is this link its current one?",
@@ -210090,7 +210275,7 @@ var init_RemoteBot = __esmMin((() => {
 	* @return {boolean}
 	*/
 	RemoteBot.takeWantControl = function takeWantControl() {
-		const want = _wantControl;
+		const want = _wantControl && !CameraTile.active;
 		_wantControl = false;
 		return want;
 	};
@@ -210108,11 +210293,11 @@ var init_RemoteBot = __esmMin((() => {
 	* Another bot opened a room for this window: attached to on the next login screen, with its control
 	*
 	* @param {{relay: string, relayKey: string, room: string, secret: string, character: ?string}} room
-	* @return {boolean} false out of the game: no switch from the login screen
+	* @return {boolean} false out of the game (no switch from the login screen), and in a camera tile
 	* @see docs/reference/network/remote-bot.md
 	*/
 	RemoteBot.switchTo = function switchTo(room) {
-		if (!_inGame) return false;
+		if (!_inGame || CameraTile.active) return false;
 		_switch = {
 			...room,
 			control: true
@@ -212713,21 +212898,6 @@ var init_Camera$1 = __esmMin((() => {
 		zoom: 125
 	}, 1.1);
 }));
-// src/Preferences/Audio.js
-var Audio_default;
-var init_Audio = __esmMin((() => {
-	init_Preferences$1();
-	Audio_default = Preferences.get("Audio", {
-		BGM: {
-			play: true,
-			volume: .5
-		},
-		Sound: {
-			play: true,
-			volume: .5
-		}
-	}, 1);
-}));
 // src/Audio/SoundManager.js
 function getContext() {
 	if (!_context) {
@@ -214282,9 +214452,9 @@ function RenderCanvas3D(isBlendModeOne) {
 	gl.uniform1f(uniform.uSpriteRendererZindex, this.zIndex++);
 	if (this.angle !== _angle) {
 		_angle = this.angle;
-		mat4$22.identity(_matrix$7);
-		if (_angle) mat4$22.rotateZ(_matrix$7, _matrix$7, -_angle / 180 * Math.PI);
-		gl.uniformMatrix4fv(uniform.uSpriteRendererAngle, false, _matrix$7);
+		mat4$22.identity(_matrix$6);
+		if (_angle) mat4$22.rotateZ(_matrix$6, _matrix$6, -_angle / 180 * Math.PI);
+		gl.uniformMatrix4fv(uniform.uSpriteRendererAngle, false, _matrix$6);
 	}
 	_offset[0] = this.offset[0] / 175 * this.xSize;
 	_offset[1] = this.offset[1] / 175 * this.ySize - .5;
@@ -214487,7 +214657,7 @@ function syncAfterBatch() {
 	_texture$5 = null;
 	_groupId++;
 }
-var mat4$22, MAX_COLORS_PER_PALETTE, RenderCanvas2D, _program$30, _buffer$18, _ctx$4, _gl$3, _groupId, _lastGroupId, _shadow, _angle, _depth, _disableDepthCorrection, _depthMask, _depthTest, _blendOne, _texture$5, _usepal, _pos$8, _matrix$7, _size$7, _offset, SpriteRenderer;
+var mat4$22, MAX_COLORS_PER_PALETTE, RenderCanvas2D, _program$30, _buffer$18, _ctx$4, _gl$3, _groupId, _lastGroupId, _shadow, _angle, _depth, _disableDepthCorrection, _depthMask, _depthTest, _blendOne, _texture$5, _usepal, _pos$8, _matrix$6, _size$7, _offset, SpriteRenderer;
 var init_SpriteRenderer = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
@@ -214545,7 +214715,7 @@ var init_SpriteRenderer = __esmMin((() => {
 	_texture$5 = null;
 	_usepal = null;
 	_pos$8 = /* @__PURE__ */ new Int16Array(2);
-	_matrix$7 = /* @__PURE__ */ new Float32Array(16);
+	_matrix$6 = /* @__PURE__ */ new Float32Array(16);
 	_size$7 = /* @__PURE__ */ new Float32Array(2);
 	_offset = /* @__PURE__ */ new Float32Array(2);
 	SpriteRenderer = class {
@@ -214689,7 +214859,7 @@ var init_SpriteRenderer = __esmMin((() => {
 			gl.useProgram(_program$30);
 			gl.uniformMatrix4fv(uniform.uProjectionMat, false, projection);
 			gl.uniformMatrix4fv(uniform.uModelViewMat, false, modelView);
-			gl.uniformMatrix4fv(uniform.uViewModelMat, false, mat4$22.invert(_matrix$7, modelView));
+			gl.uniformMatrix4fv(uniform.uViewModelMat, false, mat4$22.invert(_matrix$6, modelView));
 			gl.uniform1i(uniform.uFogUse, fog.use && fog.exist);
 			gl.uniform1f(uniform.uFogNear, fog.near);
 			gl.uniform1f(uniform.uFogFar, fog.far);
@@ -216129,7 +216299,7 @@ function f(a) {
 		byteReversed: !1,
 		pointerSize: 32
 	};
-	if (u(s, r)) return {
+	if (u(s, r$1)) return {
 		ok: !0,
 		byteReversed: !1,
 		pointerSize: 64
@@ -218555,7 +218725,7 @@ function _r(e, t, n) {
 	if (!r) throw Error(`poseAt: parsed.skeletons[0] is missing`);
 	return ir(r, (e.animations ?? [])[t] ?? null, n);
 }
-var e, t, n, r, i$1, s, c, _, v, y, b, E, D, k, A, te, N, F, ie, ae, oe, se, ge, et, tt, V, rt, it, gt, Tt, Et, Pt, Ft, It, Lt, Rt, zt, Zt, Qt, q, $t, cn, ln, Q, vn, yn, $, bn, Qn, $n, cr;
+var e, t, n, r$1, i$1, s, c, _, v, y, b, E, D, k, A, te, N, F, ie, ae, oe, se, ge, et, tt, V, rt, it, gt, Tt, Et, Pt, Ft, It, Lt, Rt, zt, Zt, Qt, q, $t, cn, ln, Q, vn, yn, $, bn, Qn, $n, cr;
 var init_granny_ro_wasm_esm = __esmMin((() => {
 	e = [
 		3400558520,
@@ -218575,7 +218745,7 @@ var init_granny_ro_wasm_esm = __esmMin((() => {
 		1344809195,
 		78870565
 	];
-	r = [
+	r$1 = [
 		1581882341,
 		337601391,
 		2850755358,
@@ -220528,16 +220698,13 @@ var init_SkillEffect = __esmMin((() => {
 		JobConst_default.INQUISITOR
 	]);
 	SkillEffect = {};
-	SkillEffect[SkillConst_default.SM_BASH] = {
-		beginCastEffectId: 16,
-		hitEffectId: 1
-	};
+	SkillEffect[SkillConst_default.SM_BASH] = { hitEffectId: [0, 1] };
 	SkillEffect[SkillConst_default.SM_PROVOKE] = { successEffectId: 67 };
 	SkillEffect[SkillConst_default.SM_MAGNUM] = {
-		effectIdOnCaster: 17,
-		effectId: "quake_magnum"
+		successEffectIdOnCaster: 17,
+		hitEffectId: [49, 17]
 	};
-	SkillEffect[SkillConst_default.SM_ENDURE] = { effectId: 11 };
+	SkillEffect[SkillConst_default.SM_ENDURE] = { successEffectIdOnCaster: 11 };
 	SkillEffect[SkillConst_default.MG_SIGHT] = {};
 	SkillEffect[SkillConst_default.MG_NAPALMBEAT] = { hitEffectId: 1 };
 	SkillEffect[SkillConst_default.MG_SAFETYWALL] = {};
@@ -220592,15 +220759,17 @@ var init_SkillEffect = __esmMin((() => {
 	SkillEffect[SkillConst_default.MC_IDENTIFY] = {};
 	SkillEffect[SkillConst_default.MC_VENDING] = {};
 	SkillEffect[SkillConst_default.MC_MAMMONITE] = { effectId: 10 };
-	SkillEffect[SkillConst_default.AC_CONCENTRATION] = { effectId: 153 };
+	SkillEffect[SkillConst_default.AC_CONCENTRATION] = { successEffectIdOnCaster: 153 };
 	SkillEffect[SkillConst_default.AC_DOUBLE] = {
-		beginCastEffectId: 16,
-		beforeHitEffectId: "ef_arrow_projectile",
-		hitEffectId: 1
+		damageEffectIdOnCaster: 16,
+		damageEffectIdOnTarget: "ef_arrow_projectile",
+		hitEffectId: 0,
+		firstHitEffectId: 1
 	};
 	SkillEffect[SkillConst_default.AC_SHOWER] = {
-		effectId: "ef_arrow_shower_projectile",
-		hitEffectId: 1
+		damageEffectIdOnTarget: "ef_arrow_shower_target",
+		releaseEffectId: "ef_arrow_projectile",
+		hitEffectId: [0, 1]
 	};
 	SkillEffect[SkillConst_default.TF_STEAL] = { successEffectId: 18 };
 	SkillEffect[SkillConst_default.TF_HIDING] = {};
@@ -220745,7 +220914,7 @@ var init_SkillEffect = __esmMin((() => {
 		groundEffectId: 171
 	};
 	SkillEffect[SkillConst_default.AS_SPLASHER] = { effectId: 129 };
-	SkillEffect[SkillConst_default.NV_FIRSTAID] = { effectId: 309 };
+	SkillEffect[SkillConst_default.NV_FIRSTAID] = { successEffectIdOnCaster: 309 };
 	SkillEffect[SkillConst_default.NV_TRICKDEAD] = {};
 	SkillEffect[SkillConst_default.HN_DOUBLEBOWLINGBASH] = {
 		effectId: "ef_hn_doublebowlingbash",
@@ -220794,7 +220963,8 @@ var init_SkillEffect = __esmMin((() => {
 	SkillEffect[SkillConst_default.AC_MAKINGARROW] = {};
 	SkillEffect[SkillConst_default.AC_CHARGEARROW] = {
 		hideCastAura: true,
-		beforeHitEffectId: "ef_arrow_projectile"
+		damageEffectIdOnCaster: 16,
+		hitEffectId: [0]
 	};
 	SkillEffect[SkillConst_default.TF_SPRINKLESAND] = { effectId: 310 };
 	SkillEffect[SkillConst_default.TF_BACKSLIDING] = {};
@@ -222896,7 +223066,409 @@ var init_SkillEffect = __esmMin((() => {
 	SkillEffect[SkillConst_default.SP_SOULGOLEM] = { effectId: "ef_sp_soulgolem" };
 	SkillEffect[SkillConst_default.SP_SOULCURSE] = { effectId: "ef_sp_soulcurse" };
 	SkillEffect[SkillConst_default.SP_SOULREVOLVE] = { effectId: "ef_sp_soulrevolve" };
-	SkillEffect[SkillConst_default.NV_HELPANGEL] = { effectId: "ef_nv_helpangel" };
+	SkillEffect[SkillConst_default.NV_HELPANGEL] = { successEffectIdOnCaster: "ef_nv_helpangel" };
+}));
+// src/DB/Skills/SkillMotionEffect.js
+/**
+* The skill's motion effect, or null when it has none (or roBrowser does not know it).
+*
+* @param {number} skillId
+* @return {?number}
+*/
+function getMotionEffect(skillId) {
+	if (!(skillId > 0) || inRanges(UNKNOWN_RANGES, skillId) || inRanges(NONE_RANGES, skillId)) return null;
+	for (const [effectId, ranges] of Object.entries(MOTION_EFFECT_RANGES)) if (inRanges(ranges, skillId)) return Number(effectId);
+	return 16;
+}
+/**
+* The motion effect this damage packet launches on the caster, or null.
+*
+* @param {number} skillId
+* @param {number} damageType the packet's action field
+* @param {number} level the packet's level field
+* @param {boolean} targetFound is the packet's target a known actor
+* @return {?number}
+*/
+function motionEffectForPacket(skillId, damageType, level, targetFound) {
+	if (!MOTION_DAMAGE_TYPES.includes(damageType)) return null;
+	if (SPLASH_DAMAGE_TYPES.includes(damageType)) {
+		if (targetFound && !SPLASH_AS_NORMAL.includes(skillId)) return null;
+		const stops = SPLASH_STOP_WITHOUT_TARGET[skillId];
+		if (!targetFound && stops && stops.includes(damageType)) return null;
+	}
+	if (level === -2 || inRanges(NO_MOTION_EFFECT_RANGES, skillId)) return null;
+	return getMotionEffect(skillId);
+}
+var MOTION_DAMAGE_TYPES, SPLASH_DAMAGE_TYPES, SPLASH_AS_NORMAL, SPLASH_STOP_WITHOUT_TARGET, NO_MOTION_EFFECT_RANGES, UNKNOWN_RANGES, NONE_RANGES, MOTION_EFFECT_RANGES, inRanges;
+var init_SkillMotionEffect = __esmMin((() => {
+	MOTION_DAMAGE_TYPES = [
+		4,
+		5,
+		6,
+		8,
+		9,
+		13,
+		14
+	];
+	SPLASH_DAMAGE_TYPES = [5, 14];
+	SPLASH_AS_NORMAL = [
+		11,
+		47,
+		273,
+		413,
+		732,
+		2258,
+		2284,
+		2307,
+		2317,
+		2328,
+		2329,
+		2332,
+		2337,
+		2476,
+		2519,
+		2576,
+		3006,
+		3007,
+		5026,
+		5046,
+		5230,
+		5235,
+		5243,
+		5244,
+		5245,
+		5248,
+		5252,
+		5283,
+		5284,
+		5316
+	];
+	SPLASH_STOP_WITHOUT_TARGET = {
+		739: [5, 14],
+		2450: [5, 14],
+		2477: [5],
+		5030: [5]
+	};
+	NO_MOTION_EFFECT_RANGES = [
+		[11, 21],
+		[27, 27],
+		[29, 30],
+		[32, 33],
+		[77, 77],
+		[86, 86],
+		[340, 340],
+		[690, 690],
+		[731, 731],
+		[2008, 2008],
+		[2533, 2534],
+		[2536, 2536],
+		[5004, 5004]
+	];
+	UNKNOWN_RANGES = [
+		[275, 275],
+		[292, 293],
+		[722, 722],
+		[751, 751],
+		[754, 755],
+		[786, 791],
+		[793, 793],
+		[1014, 1014],
+		[1172, 1175],
+		[1178, 1178],
+		[1192, 1193],
+		[1202, 1204],
+		[1217, 1217],
+		[1220, 1222],
+		[1226, 1226],
+		[1252, 1252],
+		[1256, 1257],
+		[1259, 1260],
+		[1262, 1263],
+		[1345, 1346],
+		[1354, 1354],
+		[1360, 1368],
+		[1377, 1377],
+		[1383, 1393],
+		[1395, 1395],
+		[1420, 1424],
+		[1453, 1456],
+		[1559, 1559],
+		[1665, 1665],
+		[2552, 2552],
+		[2554, 2558],
+		[2560, 2562],
+		[2564, 2564],
+		[2566, 2570],
+		[2574, 2574],
+		[2576, 2577],
+		[2579, 2579],
+		[2582, 2582],
+		[2586, 2586],
+		[2588, 2588],
+		[2590, 2590],
+		[2592, 2592],
+		[2594, 2594],
+		[2600, 2600],
+		[2602, 2603],
+		[2606, 2607],
+		[2609, 2610],
+		[3004, 3009],
+		[3011, 3011],
+		[3013, 3027],
+		[3029, 3029],
+		[3031, 3034],
+		[5002, 5002],
+		[5050, 5051],
+		[5053, 5053],
+		[5202, 5206],
+		[5208, 5209],
+		[5211, 5213],
+		[5255, 5257],
+		[5260, 5267],
+		[5285, 5286],
+		[5291, 5293],
+		[5328, 5328],
+		[5330, 5330],
+		[5334, 5334],
+		[5351, 5356],
+		[5358, 5360],
+		[5362, 5362],
+		[5364, 5364],
+		[5403, 5507],
+		[6001, 6006],
+		[6502, 6522]
+	];
+	NONE_RANGES = [
+		[28, 29],
+		[34, 34],
+		[47, 47],
+		[51, 51],
+		[55, 56],
+		[58, 64],
+		[93, 114],
+		[126, 141],
+		[149, 149],
+		[151, 153],
+		[156, 192],
+		[196, 196],
+		[209, 209],
+		[212, 212],
+		[214, 214],
+		[219, 219],
+		[229, 232],
+		[234, 237],
+		[243, 244],
+		[247, 247],
+		[249, 253],
+		[257, 258],
+		[263, 264],
+		[266, 268],
+		[271, 273],
+		[304, 304],
+		[306, 313],
+		[316, 317],
+		[319, 322],
+		[324, 325],
+		[327, 330],
+		[334, 335],
+		[337, 338],
+		[344, 346],
+		[349, 350],
+		[356, 356],
+		[364, 365],
+		[367, 368],
+		[370, 375],
+		[379, 384],
+		[387, 387],
+		[389, 389],
+		[394, 399],
+		[402, 403],
+		[406, 406],
+		[408, 408],
+		[411, 421],
+		[425, 434],
+		[444, 465],
+		[467, 472],
+		[478, 480],
+		[484, 490],
+		[493, 495],
+		[500, 506],
+		[508, 508],
+		[512, 521],
+		[523, 532],
+		[534, 544],
+		[572, 575],
+		[654, 654],
+		[661, 661],
+		[663, 663],
+		[666, 668],
+		[674, 676],
+		[678, 678],
+		[689, 690],
+		[712, 712],
+		[720, 721],
+		[724, 724],
+		[728, 728],
+		[731, 732],
+		[735, 742],
+		[744, 745],
+		[757, 760],
+		[762, 762],
+		[780, 780],
+		[783, 783],
+		[1001, 1001],
+		[1004, 1005],
+		[1011, 1011],
+		[1013, 1013],
+		[1016, 1016],
+		[2001, 2002],
+		[2004, 2006],
+		[2008, 2009],
+		[2012, 2015],
+		[2017, 2023],
+		[2030, 2031],
+		[2033, 2033],
+		[2036, 2038],
+		[2040, 2040],
+		[2051, 2051],
+		[2055, 2056],
+		[2202, 2204],
+		[2211, 2212],
+		[2214, 2215],
+		[2217, 2221],
+		[2230, 2231],
+		[2233, 2233],
+		[2236, 2237],
+		[2240, 2244],
+		[2246, 2246],
+		[2256, 2256],
+		[2258, 2261],
+		[2271, 2272],
+		[2280, 2280],
+		[2284, 2304],
+		[2307, 2330],
+		[2332, 2333],
+		[2335, 2338],
+		[2340, 2348],
+		[2350, 2352],
+		[2381, 2383],
+		[2413, 2420],
+		[2422, 2422],
+		[2426, 2426],
+		[2429, 2429],
+		[2443, 2444],
+		[2446, 2460],
+		[2476, 2486],
+		[2490, 2490],
+		[2492, 2493],
+		[2516, 2516],
+		[2518, 2519],
+		[2576, 2576],
+		[2580, 2581],
+		[2584, 2584],
+		[2592, 2593],
+		[2596, 2599],
+		[2602, 2602],
+		[2604, 2604],
+		[3006, 3008],
+		[5004, 5004],
+		[5021, 5021],
+		[5023, 5023],
+		[5030, 5030],
+		[5036, 5036],
+		[5043, 5043],
+		[5063, 5065],
+		[5078, 5078],
+		[5205, 5205],
+		[5210, 5210],
+		[5214, 5214],
+		[5219, 5220],
+		[5223, 5224],
+		[5226, 5226],
+		[5230, 5231],
+		[5233, 5237],
+		[5243, 5245],
+		[5248, 5253],
+		[5265, 5265],
+		[5273, 5274],
+		[5277, 5277],
+		[5283, 5284],
+		[5287, 5287],
+		[5289, 5290],
+		[5294, 5296],
+		[5314, 5316],
+		[5320, 5320],
+		[5322, 5322],
+		[5326, 5326],
+		[5329, 5330],
+		[5336, 5336],
+		[5338, 5348],
+		[5356, 5357],
+		[5369, 5369],
+		[5373, 5373],
+		[5380, 5380],
+		[5382, 5382],
+		[5389, 5393],
+		[5401, 5507],
+		[6001, 6006],
+		[8009, 8009],
+		[8012, 8012],
+		[8204, 8204],
+		[8219, 8220],
+		[8401, 8401],
+		[8425, 8426],
+		[8428, 8428],
+		[8430, 8431],
+		[8433, 8435],
+		[8442, 8457],
+		[8601, 8605]
+	];
+	MOTION_EFFECT_RANGES = {
+		12: [
+			[9, 27],
+			[30, 33],
+			[35, 35],
+			[54, 54],
+			[65, 92],
+			[340, 342],
+			[400, 400],
+			[483, 483],
+			[669, 669],
+			[694, 694],
+			[723, 723],
+			[769, 770],
+			[1006, 1006],
+			[2278, 2279],
+			[2533, 2534],
+			[2536, 2537],
+			[8222, 8222]
+		],
+		43: [[45, 45]],
+		49: [[719, 719]],
+		56: [[8410, 8410]],
+		58: [[2275, 2275]],
+		144: [[57, 57]],
+		441: [
+			[2034, 2034],
+			[2257, 2257],
+			[2262, 2265],
+			[2267, 2269],
+			[2273, 2274],
+			[2445, 2445],
+			[8404, 8404],
+			[8406, 8406]
+		],
+		454: [[347, 347]],
+		548: [[2270, 2270], [2520, 2520]],
+		768: [[2027, 2027], [2029, 2029]],
+		771: [[2032, 2032]],
+		911: [
+			[2494, 2497],
+			[8407, 8407],
+			[8409, 8409]
+		]
+	};
+	inRanges = (ranges, id) => ranges.some(([first, last]) => id >= first && id <= last);
 }));
 // src/DB/Items/ItemEffect.js
 var ItemEffect;
@@ -229560,12 +230132,12 @@ var init_WorldMap$1 = __esmMin((() => {
 // src/UI/Components/Navigation/Navigation.html?raw
 var Navigation_default$2;
 var init_Navigation$2 = __esmMin((() => {
-	Navigation_default$2 = "<div class=\"Navigation\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"left\" data-background=\"basic_interface/titlebar_left.bmp\"></div>\r\n		<div class=\"center\" data-background=\"basic_interface/titlebar_mid.bmp\"></div>\r\n		<div class=\"right\" data-background=\"basic_interface/titlebar_right.bmp\"></div>\r\n		<div class=\"title\">Navigation</div>\r\n		<ui-button\r\n			class=\"close\"\r\n			bg=\"basic_interface/sys_close_off.bmp\"\r\n			hover=\"basic_interface/sys_close_on.bmp\"\r\n		></ui-button>\r\n	</div>\r\n	<div class=\"content\">\r\n		<div class=\"search-container\">\r\n			<select class=\"search-type\">\r\n				<option value=\"ALL\">ALL</option>\r\n				<option value=\"NPC\">NPC</option>\r\n				<option value=\"MOB\">MOB</option>\r\n			</select>\r\n			<div class=\"search-left\" data-background=\"basic_interface/txtbox_l.bmp\"></div>\r\n			<div class=\"search-middle\" data-background=\"basic_interface/txtbox_m.bmp\"></div>\r\n			<div class=\"search-right\" data-background=\"basic_interface/txtbox_r.bmp\"></div>\r\n			<input type=\"text\" class=\"search-input\" placeholder=\"Search...\" />\r\n			<ui-button\r\n				class=\"search-button\"\r\n				bg=\"navigation_interface/navisearch_a.bmp\"\r\n				hover=\"navigation_interface/navisearch_b.bmp\"\r\n				down=\"navigation_interface/navisearch_c.bmp\"\r\n			></ui-button>\r\n		</div>\r\n		<div class=\"map-container\">\r\n			<div class=\"services-toggle-container\">\r\n				<label class=\"services-checkbox\"> <input type=\"checkbox\" class=\"services-toggle\" /> Services </label>\r\n			</div>\r\n			<div class=\"location-title\"></div>\r\n			<div class=\"map-display\">\r\n				<!-- Map will be displayed here -->\r\n			</div>\r\n		</div>\r\n	</div>\r\n	<div class=\"footer\">\r\n		<div class=\"coordinates-bar\">\r\n			<div class=\"map-name\"></div>\r\n			<div class=\"mouse-info\">\r\n				<span class=\"mouse-label\">Mouse:</span>\r\n				<span class=\"mouse-coordinates\"></span>\r\n			</div>\r\n			<div class=\"target-info\">\r\n				<span class=\"target-label\">Target:</span>\r\n				<span class=\"target-coordinates\"></span>\r\n			</div>\r\n		</div>\r\n	</div>\r\n</div>\r\n";
+	Navigation_default$2 = "<div class=\"Navigation\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"left\" data-background=\"basic_interface/titlebar_left.bmp\"></div>\r\n		<div class=\"center\" data-background=\"basic_interface/titlebar_mid.bmp\"></div>\r\n		<div class=\"right\" data-background=\"basic_interface/titlebar_right.bmp\"></div>\r\n		<div class=\"title\">Navigation</div>\r\n		<ui-button\r\n			class=\"close\"\r\n			bg=\"basic_interface/sys_close_off.bmp\"\r\n			hover=\"basic_interface/sys_close_on.bmp\"\r\n		></ui-button>\r\n	</div>\r\n	<div class=\"content\">\r\n		<div class=\"search-container\">\r\n			<select class=\"search-type\">\r\n				<option value=\"ALL\">ALL</option>\r\n				<option value=\"NPC\">NPC</option>\r\n				<option value=\"MOB\">MOB</option>\r\n			</select>\r\n			<div class=\"search-left\" data-background=\"basic_interface/txtbox_l.bmp\"></div>\r\n			<div class=\"search-middle\" data-background=\"basic_interface/txtbox_m.bmp\"></div>\r\n			<div class=\"search-right\" data-background=\"basic_interface/txtbox_r.bmp\"></div>\r\n			<input type=\"text\" class=\"search-input\" placeholder=\"Search...\" />\r\n			<ui-button\r\n				class=\"search-button\"\r\n				bg=\"navigation_interface/navisearch_a.bmp\"\r\n				hover=\"navigation_interface/navisearch_b.bmp\"\r\n				down=\"navigation_interface/navisearch_c.bmp\"\r\n			></ui-button>\r\n		</div>\r\n		<div class=\"map-container\">\r\n			<div class=\"services-toggle-container\">\r\n				<label class=\"services-checkbox\"> <input type=\"checkbox\" class=\"services-toggle\" /> Services </label>\r\n			</div>\r\n			<div class=\"location-title\"></div>\r\n			<div class=\"map-display\">\r\n				<!-- Map will be displayed here -->\r\n			</div>\r\n		</div>\r\n		<div class=\"airship-bar\">\r\n			<ui-button\r\n				class=\"airship-move\"\r\n				bg=\"private_airplane/btn_move_normal.bmp\"\r\n				hover=\"private_airplane/btn_move_over.bmp\"\r\n				down=\"private_airplane/btn_move_press.bmp\"\r\n				disabled\r\n			></ui-button>\r\n		</div>\r\n	</div>\r\n	<div class=\"footer\">\r\n		<div class=\"coordinates-bar\">\r\n			<div class=\"map-name\"></div>\r\n			<div class=\"mouse-info\">\r\n				<span class=\"mouse-label\">Mouse:</span>\r\n				<span class=\"mouse-coordinates\"></span>\r\n			</div>\r\n			<div class=\"target-info\">\r\n				<span class=\"target-label\">Target:</span>\r\n				<span class=\"target-coordinates\"></span>\r\n			</div>\r\n		</div>\r\n	</div>\r\n</div>\r\n";
 }));
 // src/UI/Components/Navigation/Navigation.css?raw
 var Navigation_default$1;
 var init_Navigation$1 = __esmMin((() => {
-	Navigation_default$1 = ":host {\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n.Navigation {\r\n	width: 300px;\r\n	height: 300px;\r\n	z-index: 50;\r\n	background-repeat: repeat-y;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .titlebar {\r\n	width: 100%;\r\n	height: 17px;\r\n	position: relative;\r\n	z-index: 2;\r\n	cursor: move;\r\n}\r\n\r\n.Navigation .titlebar .left {\r\n	width: 15px;\r\n	height: 17px;\r\n	background-repeat: no-repeat;\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 0px;\r\n}\r\n\r\n.Navigation .titlebar .center {\r\n	width: calc(100% - 20px);\r\n	height: 17px;\r\n	background-repeat: repeat-x;\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 12px;\r\n}\r\n\r\n.Navigation .titlebar .right {\r\n	width: 12px;\r\n	height: 17px;\r\n	background-repeat: no-repeat;\r\n	position: absolute;\r\n	top: 0px;\r\n	right: 0px;\r\n}\r\n\r\n.Navigation .titlebar .title {\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 10px;\r\n	height: 17px;\r\n	line-height: 17px;\r\n	white-space: nowrap;\r\n	text-shadow: 1px 1px white;\r\n	color: #000000;\r\n	font-size: 11px;\r\n	font-weight: bold;\r\n}\r\n\r\n.Navigation .titlebar .close {\r\n	position: absolute;\r\n	top: 2px;\r\n	right: 2px;\r\n	width: 13px;\r\n	height: 13px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n	cursor: pointer;\r\n}\r\n\r\n.Navigation .content {\r\n	width: 100%;\r\n	height: calc(100% - 17px);\r\n	position: relative;\r\n	display: flex;\r\n	flex-direction: column;\r\n	background-color: #f7f7f7;\r\n	border: 1px solid #d4d4d4;\r\n	border-top: none;\r\n	box-sizing: border-box;\r\n}\r\n\r\n.Navigation .search-container {\r\n	width: 100%;\r\n	height: 25px;\r\n	position: relative;\r\n	display: flex;\r\n	align-items: center;\r\n	padding: 5px 10px;\r\n	box-sizing: border-box;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .services-toggle-container {\r\n	display: flex;\r\n	align-items: center;\r\n	padding: 0;\r\n	margin: 0;\r\n	background-color: #f7f7f7;\r\n	position: absolute;\r\n	left: 6px;\r\n}\r\n\r\n.Navigation .services-checkbox {\r\n	color: #000;\r\n	display: flex;\r\n	align-items: center;\r\n}\r\n\r\n.Navigation .services-toggle {\r\n	margin-right: 4px;\r\n	margin-top: 3px;\r\n}\r\n\r\n.Navigation .search-type {\r\n	top: 3px;\r\n	height: 20px;\r\n	margin-right: 5px;\r\n	border: 1px solid #ccc;\r\n	background-color: #fff;\r\n	padding: 0 2px;\r\n	cursor: pointer;\r\n	width: 50px;\r\n	z-index: 2;\r\n	position: relative;\r\n}\r\n\r\n.Navigation .search-left {\r\n	position: absolute;\r\n	top: 5px;\r\n	left: 65px;\r\n	width: 3px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .search-middle {\r\n	position: absolute;\r\n	top: 5px;\r\n	left: 68px;\r\n	right: 38px;\r\n	height: 20px;\r\n	background-repeat: repeat-x;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .search-right {\r\n	position: absolute;\r\n	top: 5px;\r\n	right: 35px;\r\n	width: 3px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .search-input {\r\n	position: absolute;\r\n	top: 5px;\r\n	left: 68px;\r\n	right: 38px;\r\n	height: 20px;\r\n	border: none;\r\n	background-color: transparent;\r\n	padding: 0 5px;\r\n	z-index: 1;\r\n}\r\n\r\n.Navigation .search-button {\r\n	position: absolute;\r\n	top: 7px;\r\n	right: 5px;\r\n	width: 33px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n	cursor: pointer;\r\n}\r\n\r\n.Navigation .map-container {\r\n	width: 100%;\r\n	flex: 1;\r\n	position: relative;\r\n	display: flex;\r\n	flex-direction: column;\r\n	align-items: center;\r\n	padding: 0 10px 10px 10px;\r\n	box-sizing: border-box;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .location-title {\r\n	width: 100%;\r\n	height: 16px;\r\n	line-height: 16px;\r\n	text-align: center;\r\n	color: #000000;\r\n	text-shadow: none;\r\n	margin-bottom: 2px;\r\n	font-weight: bold;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .map-display {\r\n	width: 280px;\r\n	height: 230px;\r\n	margin: 0 auto;\r\n	position: relative;\r\n	background-color: #000000;\r\n	border: 1px solid #666666;\r\n	box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);\r\n}\r\n\r\n.Navigation .footer {\r\n	width: 100%;\r\n	position: relative;\r\n	height: 20px;\r\n	background-color: #f7f7f7;\r\n	border-top: 1px solid #d4d4d4;\r\n	box-sizing: border-box;\r\n}\r\n\r\n.Navigation .coordinates-bar {\r\n	position: relative;\r\n	width: 100%;\r\n	padding: 1px 5px;\r\n	box-sizing: border-box;\r\n	display: flex;\r\n	justify-content: space-between;\r\n	align-items: center;\r\n	height: 20px;\r\n	overflow: hidden;\r\n}\r\n\r\n.Navigation .map-name {\r\n	font-weight: bold;\r\n	color: #000;\r\n	flex: 1;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	text-overflow: ellipsis;\r\n}\r\n\r\n.Navigation .mouse-info,\r\n.Navigation .target-info {\r\n	display: none;\r\n	align-items: center;\r\n	color: #000;\r\n	margin-left: 8px;\r\n	white-space: nowrap;\r\n}\r\n\r\n.Navigation .mouse-label,\r\n.Navigation .target-label {\r\n	margin-right: 2px;\r\n}\r\n\r\n/* Path marker styles */\r\n.Navigation .start-marker,\r\n.Navigation .end-marker {\r\n	position: absolute;\r\n	width: 16px;\r\n	height: 16px;\r\n	transform: translate(-50%, -50%);\r\n}\r\n\r\n.Navigation .start-marker {\r\n	background-color: blue;\r\n}\r\n\r\n.Navigation .end-marker {\r\n	background-color: red;\r\n}\r\n\r\n.Navigation .path-line {\r\n	stroke: yellow;\r\n	stroke-width: 2;\r\n	fill: none;\r\n}\r\n\r\n.Navigation .search-results {\r\n	position: absolute;\r\n	top: 30px;\r\n	left: 10px;\r\n	right: 10px;\r\n	max-height: 200px;\r\n	background-color: #fff;\r\n	border: 1px solid #ccc;\r\n	z-index: 100;\r\n	overflow-y: auto;\r\n	display: none;\r\n	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);\r\n}\r\n\r\n.Navigation .no-results {\r\n	padding: 10px;\r\n	text-align: center;\r\n	color: #666;\r\n}\r\n\r\n.Navigation .results-list {\r\n	list-style: none;\r\n	margin: 0;\r\n	padding: 0;\r\n}\r\n\r\n.Navigation .result-item {\r\n	padding: 5px 10px;\r\n	border-bottom: 1px solid #eee;\r\n	cursor: pointer;\r\n	display: flex;\r\n	align-items: center;\r\n}\r\n\r\n.Navigation .result-item:last-child {\r\n	border-bottom: none;\r\n}\r\n\r\n.Navigation .result-item:hover {\r\n	background-color: #f0f0f0;\r\n}\r\n\r\n.Navigation .result-type {\r\n	margin-right: 5px;\r\n	font-weight: bold;\r\n	color: #666;\r\n	width: 30px;\r\n}\r\n\r\n.Navigation .npc_icon {\r\n	color: #0066cc;\r\n}\r\n\r\n.Navigation .mob_icon {\r\n	color: #cc0000;\r\n}\r\n\r\n.Navigation .result-name {\r\n	flex: 1;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	text-overflow: ellipsis;\r\n}\r\n\r\n.Navigation .result-map {\r\n	color: #666;\r\n	margin-left: 5px;\r\n}\r\n";
+	Navigation_default$1 = ":host {\r\n	top: 200px;\r\n	left: 200px;\r\n}\r\n\r\n.Navigation {\r\n	width: 300px;\r\n	height: 324px;\r\n	z-index: 50;\r\n	background-repeat: repeat-y;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .titlebar {\r\n	width: 100%;\r\n	height: 17px;\r\n	position: relative;\r\n	z-index: 2;\r\n	cursor: move;\r\n}\r\n\r\n.Navigation .titlebar .left {\r\n	width: 15px;\r\n	height: 17px;\r\n	background-repeat: no-repeat;\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 0px;\r\n}\r\n\r\n.Navigation .titlebar .center {\r\n	width: calc(100% - 20px);\r\n	height: 17px;\r\n	background-repeat: repeat-x;\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 12px;\r\n}\r\n\r\n.Navigation .titlebar .right {\r\n	width: 12px;\r\n	height: 17px;\r\n	background-repeat: no-repeat;\r\n	position: absolute;\r\n	top: 0px;\r\n	right: 0px;\r\n}\r\n\r\n.Navigation .titlebar .title {\r\n	position: absolute;\r\n	top: 0px;\r\n	left: 10px;\r\n	height: 17px;\r\n	line-height: 17px;\r\n	white-space: nowrap;\r\n	text-shadow: 1px 1px white;\r\n	color: #000000;\r\n	font-size: 11px;\r\n	font-weight: bold;\r\n}\r\n\r\n.Navigation .titlebar .close {\r\n	position: absolute;\r\n	top: 2px;\r\n	right: 2px;\r\n	width: 13px;\r\n	height: 13px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n	cursor: pointer;\r\n}\r\n\r\n.Navigation .content {\r\n	width: 100%;\r\n	height: calc(100% - 17px);\r\n	position: relative;\r\n	display: flex;\r\n	flex-direction: column;\r\n	background-color: #f7f7f7;\r\n	border: 1px solid #d4d4d4;\r\n	border-top: none;\r\n	box-sizing: border-box;\r\n}\r\n\r\n.Navigation .search-container {\r\n	width: 100%;\r\n	height: 25px;\r\n	position: relative;\r\n	display: flex;\r\n	align-items: center;\r\n	padding: 5px 10px;\r\n	box-sizing: border-box;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .services-toggle-container {\r\n	display: flex;\r\n	align-items: center;\r\n	padding: 0;\r\n	margin: 0;\r\n	background-color: #f7f7f7;\r\n	position: absolute;\r\n	left: 6px;\r\n}\r\n\r\n.Navigation .services-checkbox {\r\n	color: #000;\r\n	display: flex;\r\n	align-items: center;\r\n}\r\n\r\n.Navigation .services-toggle {\r\n	margin-right: 4px;\r\n	margin-top: 3px;\r\n}\r\n\r\n.Navigation .search-type {\r\n	top: 3px;\r\n	height: 20px;\r\n	margin-right: 5px;\r\n	border: 1px solid #ccc;\r\n	background-color: #fff;\r\n	padding: 0 2px;\r\n	cursor: pointer;\r\n	width: 50px;\r\n	z-index: 2;\r\n	position: relative;\r\n}\r\n\r\n.Navigation .search-left {\r\n	position: absolute;\r\n	top: 5px;\r\n	left: 65px;\r\n	width: 3px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .search-middle {\r\n	position: absolute;\r\n	top: 5px;\r\n	left: 68px;\r\n	right: 38px;\r\n	height: 20px;\r\n	background-repeat: repeat-x;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .search-right {\r\n	position: absolute;\r\n	top: 5px;\r\n	right: 35px;\r\n	width: 3px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n}\r\n\r\n.Navigation .search-input {\r\n	position: absolute;\r\n	top: 5px;\r\n	left: 68px;\r\n	right: 38px;\r\n	height: 20px;\r\n	border: none;\r\n	background-color: transparent;\r\n	padding: 0 5px;\r\n	z-index: 1;\r\n}\r\n\r\n.Navigation .search-button {\r\n	position: absolute;\r\n	top: 7px;\r\n	right: 5px;\r\n	width: 33px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	background-color: transparent;\r\n	border: none;\r\n	cursor: pointer;\r\n}\r\n\r\n.Navigation .map-container {\r\n	width: 100%;\r\n	flex: 1;\r\n	position: relative;\r\n	display: flex;\r\n	flex-direction: column;\r\n	align-items: center;\r\n	padding: 0 10px 10px 10px;\r\n	box-sizing: border-box;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .location-title {\r\n	width: 100%;\r\n	height: 16px;\r\n	line-height: 16px;\r\n	text-align: center;\r\n	color: #000000;\r\n	text-shadow: none;\r\n	margin-bottom: 2px;\r\n	font-weight: bold;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .map-display {\r\n	width: 280px;\r\n	height: 230px;\r\n	margin: 0 auto;\r\n	position: relative;\r\n	background-color: #000000;\r\n	border: 1px solid #666666;\r\n	box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);\r\n}\r\n\r\n.Navigation .airship-bar {\r\n	width: 100%;\r\n	height: 24px;\r\n	display: flex;\r\n	justify-content: center;\r\n	align-items: flex-start;\r\n	background-color: #f7f7f7;\r\n}\r\n\r\n.Navigation .airship-move {\r\n	width: 120px;\r\n	height: 20px;\r\n	background-repeat: no-repeat;\r\n	cursor: pointer;\r\n}\r\n\r\n.Navigation .footer {\r\n	width: 100%;\r\n	position: relative;\r\n	height: 20px;\r\n	background-color: #f7f7f7;\r\n	border-top: 1px solid #d4d4d4;\r\n	box-sizing: border-box;\r\n}\r\n\r\n.Navigation .coordinates-bar {\r\n	position: relative;\r\n	width: 100%;\r\n	padding: 1px 5px;\r\n	box-sizing: border-box;\r\n	display: flex;\r\n	justify-content: space-between;\r\n	align-items: center;\r\n	height: 20px;\r\n	overflow: hidden;\r\n}\r\n\r\n.Navigation .map-name {\r\n	font-weight: bold;\r\n	color: #000;\r\n	flex: 1;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	text-overflow: ellipsis;\r\n}\r\n\r\n.Navigation .mouse-info,\r\n.Navigation .target-info {\r\n	display: none;\r\n	align-items: center;\r\n	color: #000;\r\n	margin-left: 8px;\r\n	white-space: nowrap;\r\n}\r\n\r\n.Navigation .mouse-label,\r\n.Navigation .target-label {\r\n	margin-right: 2px;\r\n}\r\n\r\n/* Path marker styles */\r\n.Navigation .start-marker,\r\n.Navigation .end-marker {\r\n	position: absolute;\r\n	width: 16px;\r\n	height: 16px;\r\n	transform: translate(-50%, -50%);\r\n}\r\n\r\n.Navigation .start-marker {\r\n	background-color: blue;\r\n}\r\n\r\n.Navigation .end-marker {\r\n	background-color: red;\r\n}\r\n\r\n.Navigation .path-line {\r\n	stroke: yellow;\r\n	stroke-width: 2;\r\n	fill: none;\r\n}\r\n\r\n.Navigation .search-results {\r\n	position: absolute;\r\n	top: 30px;\r\n	left: 10px;\r\n	right: 10px;\r\n	max-height: 200px;\r\n	background-color: #fff;\r\n	border: 1px solid #ccc;\r\n	z-index: 100;\r\n	overflow-y: auto;\r\n	display: none;\r\n	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);\r\n}\r\n\r\n.Navigation .no-results {\r\n	padding: 10px;\r\n	text-align: center;\r\n	color: #666;\r\n}\r\n\r\n.Navigation .results-list {\r\n	list-style: none;\r\n	margin: 0;\r\n	padding: 0;\r\n}\r\n\r\n.Navigation .result-item {\r\n	padding: 5px 10px;\r\n	border-bottom: 1px solid #eee;\r\n	cursor: pointer;\r\n	display: flex;\r\n	align-items: center;\r\n}\r\n\r\n.Navigation .result-item:last-child {\r\n	border-bottom: none;\r\n}\r\n\r\n.Navigation .result-item:hover {\r\n	background-color: #f0f0f0;\r\n}\r\n\r\n.Navigation .result-type {\r\n	margin-right: 5px;\r\n	font-weight: bold;\r\n	color: #666;\r\n	width: 30px;\r\n}\r\n\r\n.Navigation .npc_icon {\r\n	color: #0066cc;\r\n}\r\n\r\n.Navigation .mob_icon {\r\n	color: #cc0000;\r\n}\r\n\r\n.Navigation .result-name {\r\n	flex: 1;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	text-overflow: ellipsis;\r\n}\r\n\r\n.Navigation .result-map {\r\n	color: #666;\r\n	margin-left: 5px;\r\n}\r\n";
 }));
 // src/UI/Components/Navigation/MapPathFinder.js
 var MapPathFinder;
@@ -229732,6 +230304,272 @@ var init_MapPathFinder = __esmMin((() => {
 		return path;
 	};
 }));
+// src/UI/Components/PrivateAirship/PrivateAirship.html?raw
+var PrivateAirship_default$2;
+var init_PrivateAirship$2 = __esmMin((() => {
+	PrivateAirship_default$2 = "<div class=\"PrivateAirship\" data-background=\"private_airplane/bg_pay.bmp\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"title\"><ui-text msg=\"3330\">Payment</ui-text></div>\r\n		<ui-button\r\n			class=\"close\"\r\n			bg=\"basic_interface/sys_close_off.bmp\"\r\n			hover=\"basic_interface/sys_close_on.bmp\"\r\n		></ui-button>\r\n	</div>\r\n	<div class=\"items\"></div>\r\n	<div class=\"notice\">\r\n		<div class=\"notice-icon\" data-background=\"private_airplane/ico_notic.bmp\"></div>\r\n		<div class=\"notice-text\"></div>\r\n	</div>\r\n</div>\r\n";
+}));
+// src/UI/Components/PrivateAirship/PrivateAirship.css?raw
+var PrivateAirship_default$1;
+var init_PrivateAirship$1 = __esmMin((() => {
+	PrivateAirship_default$1 = ":host {\r\n	width: 208px;\r\n	height: 110px;\r\n	top: 0px;\r\n	left: 0px;\r\n}\r\n\r\n.PrivateAirship {\r\n	position: relative;\r\n	width: 100%;\r\n	height: 100%;\r\n	background-color: #eef3fd;\r\n	background-repeat: no-repeat;\r\n	color: #000;\r\n	font-size: 12px;\r\n}\r\n\r\n.PrivateAirship .titlebar {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 208px;\r\n	height: 17px;\r\n	cursor: move;\r\n}\r\n\r\n.PrivateAirship .title {\r\n	position: absolute;\r\n	top: 3px;\r\n	left: 18px;\r\n	color: #000;\r\n	text-shadow: 1px 1px 0 #fff;\r\n	white-space: nowrap;\r\n}\r\n\r\n.PrivateAirship .close {\r\n	position: absolute;\r\n	top: 3px;\r\n	right: 4px;\r\n	width: 11px;\r\n	height: 11px;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n.PrivateAirship .items {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n}\r\n\r\n.PrivateAirship .item {\r\n	position: absolute;\r\n	left: 8px;\r\n	width: 192px;\r\n	height: 20px;\r\n	padding: 0 4px;\r\n	box-sizing: border-box;\r\n	border: 1px solid #9eaecb;\r\n	border-radius: 3px;\r\n	background: linear-gradient(#ffffff, #dfe6f4);\r\n	color: #000;\r\n	font-size: 12px;\r\n	line-height: 18px;\r\n	text-align: center;\r\n	white-space: nowrap;\r\n	overflow: hidden;\r\n	text-overflow: ellipsis;\r\n	cursor: pointer;\r\n}\r\n\r\n.PrivateAirship .item:hover {\r\n	background: linear-gradient(#ffffff, #c9d6ef);\r\n}\r\n\r\n.PrivateAirship .item.disabled {\r\n	opacity: 0.5;\r\n	cursor: default;\r\n	pointer-events: none;\r\n}\r\n\r\n.PrivateAirship .notice {\r\n	display: none;\r\n}\r\n\r\n.PrivateAirship .notice.visible {\r\n	display: block;\r\n}\r\n\r\n.PrivateAirship .notice-icon {\r\n	position: absolute;\r\n	top: calc(86px + var(--extra-rows-height, 0px));\r\n	left: 7px;\r\n	width: 14px;\r\n	height: 13px;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n.PrivateAirship .notice-text {\r\n	position: absolute;\r\n	top: calc(80px + var(--extra-rows-height, 0px));\r\n	left: 26px;\r\n	width: 164px;\r\n	height: 26px;\r\n	display: flex;\r\n	align-items: center;\r\n	color: #b51235;\r\n	line-height: 12px;\r\n	overflow: hidden;\r\n}\r\n";
+}));
+// src/UI/Components/PrivateAirship/PrivateAirship.js
+/**
+* Forget the requests of an earlier map load: the server answers a refusal at
+* once and moves you on success, and a lost connection means a new map load.
+*/
+function syncRequests() {
+	if (_requests.loadId !== MapRenderer._loadId) Object.assign(_requests, {
+		loadId: MapRenderer._loadId,
+		waiting: false,
+		lastSent: 0
+	});
+}
+/**
+* @return {boolean} a request is on its way
+*/
+function isPending() {
+	syncRequests();
+	return _requests.waiting && Date.now() - _requests.lastSent < PENDING_TIMEOUT;
+}
+/**
+* Text for a message id, without RO colour codes.
+*
+* @param {number} id
+* @return {string}
+*/
+function message$1(id) {
+	return String(DB.getMessage(id, FALLBACK[id] || "")).replace(/\^[0-9a-fA-F]{6}/g, "");
+}
+/**
+* Item name, or '' when the client does not know the item.
+*
+* @param {number} itemId
+* @return {string}
+*/
+function itemName(itemId) {
+	const info = DB.getItemInfo(itemId);
+	if (!info || info === DB.getItemInfo(-1)) return "";
+	return info.identifiedDisplayName || "";
+}
+/**
+* Current map, without extension.
+*
+* @return {string}
+*/
+function currentMap() {
+	return PrivateAirship$1.normalize(MapRenderer.currentMap);
+}
+var MSG, FALLBACK, NYANGVINE_FRUIT, RESULT_MESSAGE, ITEM_ROW_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, BASE_ITEM_ROWS, PrivateAirship, _targetMap, _requests, PENDING_TIMEOUT, PrivateAirship_default;
+var init_PrivateAirship = __esmMin((() => {
+	init_DBManager();
+	init_PrivateAirship$3();
+	init_NetworkManager();
+	init_PacketStructure();
+	init_Renderer();
+	init_MapRenderer();
+	init_SessionStorage();
+	init_KeyEventHandler();
+	init_UIManager();
+	init_GUIComponent();
+	init_Elements();
+	init_PrivateAirship$2();
+	init_PrivateAirship$1();
+	MSG = {
+		PAYMENT: 3330,
+		USE_ITEM: 3329,
+		NPC_RANDOM_CELL: 3387,
+		NOT_STARTABLE: 3331,
+		NOT_ENDABLE: 3332,
+		NOT_ENOUGH_ITEM: 3333,
+		CANNOT_USE_ITEM: 3352,
+		SAME_MAP: 3353,
+		DEAD: 3354,
+		TRY_AGAIN: 2825,
+		NYANGVINE_NO_REFUND: 4033
+	};
+	FALLBACK = {
+		[MSG.PAYMENT]: "Payment",
+		[MSG.USE_ITEM]: "Use %s",
+		[MSG.NPC_RANDOM_CELL]: "You will land at a random spot on the map.",
+		[MSG.NOT_STARTABLE]: "This map isn't available for teleport.",
+		[MSG.NOT_ENDABLE]: "You can't teleport in this map",
+		[MSG.NOT_ENOUGH_ITEM]: "Insufficient item.",
+		[MSG.CANNOT_USE_ITEM]: "You can not use items.",
+		[MSG.SAME_MAP]: "Can not move to the same map.",
+		[MSG.DEAD]: "It is impossible to move when your character KO'ed",
+		[MSG.TRY_AGAIN]: "Please try again in a moment.",
+		[MSG.NYANGVINE_NO_REFUND]: "Used Nyangvine Fruits cannot be refunded."
+	};
+	NYANGVINE_FRUIT = 6909;
+	RESULT_MESSAGE = {
+		1: MSG.TRY_AGAIN,
+		2: MSG.NOT_ENOUGH_ITEM,
+		3: MSG.NOT_ENDABLE,
+		4: MSG.NOT_STARTABLE,
+		5: MSG.CANNOT_USE_ITEM
+	};
+	ITEM_ROW_HEIGHT = 26;
+	WINDOW_WIDTH = 208;
+	WINDOW_HEIGHT = 110;
+	BASE_ITEM_ROWS = 2;
+	PrivateAirship = new GUIComponent("PrivateAirship", PrivateAirship_default$1);
+	PrivateAirship.render = () => PrivateAirship_default$2;
+	PrivateAirship.needFocus = true;
+	_targetMap = "";
+	_requests = {
+		loadId: null,
+		waiting: false,
+		lastSent: 0
+	};
+	PENDING_TIMEOUT = 15e3;
+	/**
+	* The checks the official client makes before it sends the request, in its order.
+	*
+	* @param {string} targetMap
+	* @return {number} message id of the first failed check, or 0
+	*/
+	PrivateAirship.precheck = function precheck(targetMap) {
+		const from = currentMap();
+		const to = PrivateAirship$1.normalize(targetMap);
+		if (!PrivateAirship$1.isStartableMap(from)) return MSG.NOT_STARTABLE;
+		if (!PrivateAirship$1.isEndableMap(to)) return MSG.NOT_ENDABLE;
+		if (!to || to === from) return MSG.SAME_MAP;
+		const entity = SessionStorage_default.Entity;
+		if (entity && entity.ACTION && entity.action === entity.ACTION.DIE) return MSG.DEAD;
+		return 0;
+	};
+	/**
+	* Initialize component
+	*/
+	PrivateAirship.init = function init() {
+		(this._shadow || this._host).querySelector(".close").addEventListener("click", () => this.remove());
+		this.draggable(".titlebar");
+	};
+	/**
+	* Center on screen when it opens
+	*/
+	PrivateAirship.onAppend = function onAppend() {
+		Object.assign(this._host.style, {
+			top: `${Math.max(0, Math.floor((Renderer.height - WINDOW_HEIGHT) / 2))}px`,
+			left: `${Math.max(0, Math.floor((Renderer.width - WINDOW_WIDTH) / 2))}px`
+		});
+	};
+	/**
+	* Close on Escape
+	*/
+	PrivateAirship.onKeyDown = function onKeyDown(event) {
+		if (event.which === KEYS.ESCAPE || event.key === "Escape") {
+			this.remove();
+			event.preventDefault();
+			event.stopImmediatePropagation();
+		}
+	};
+	/**
+	* Open the window to fly to a map.
+	*
+	* @param {object} options
+	* @param {string} options.targetMap - map to fly to
+	* @param {boolean} [options.toNpc] - the navigation target is an NPC, which the flight does not reach
+	*/
+	PrivateAirship.open = function open(options) {
+		_targetMap = PrivateAirship$1.normalize(options && options.targetMap);
+		if (this.__active) this.remove();
+		this.append();
+		const failed = this.precheck(_targetMap);
+		this.buildItems(!failed);
+		if (failed) this.setNotice(message$1(failed));
+		else if (options && options.toNpc) this.setNotice(message$1(MSG.NPC_RANDOM_CELL));
+		else this.setNotice("");
+	};
+	/**
+	* One button per payment item the client knows.
+	*
+	* @param {boolean} enabled
+	*/
+	PrivateAirship.buildItems = function buildItems(enabled) {
+		const list = (this._shadow || this._host).querySelector(".items");
+		list.textContent = "";
+		const items = PrivateAirship$1.getNeedItems();
+		let row = 0;
+		for (let i = 0; i < items.length; i++) {
+			const itemId = items[i];
+			const name = itemName(itemId);
+			if (!name) continue;
+			row++;
+			const button = document.createElement("div");
+			button.className = "item" + (enabled ? "" : " disabled");
+			button.style.top = `${row * ITEM_ROW_HEIGHT}px`;
+			button.textContent = message$1(MSG.USE_ITEM).replace("%s", name);
+			button.dataset.itemId = String(itemId);
+			button.addEventListener("click", () => this.pay(itemId));
+			list.appendChild(button);
+		}
+		const extra = Math.max(0, row - BASE_ITEM_ROWS) * ITEM_ROW_HEIGHT;
+		this._host.style.height = `${WINDOW_HEIGHT + extra}px`;
+		this._host.style.setProperty("--extra-rows-height", `${extra}px`);
+	};
+	/**
+	* Show or clear the red notice line.
+	*
+	* @param {string} text
+	*/
+	PrivateAirship.setNotice = function setNotice(text) {
+		const root = this._shadow || this._host;
+		const notice = root.querySelector(".notice");
+		root.querySelector(".notice-text").textContent = text || "";
+		notice.classList.toggle("visible", !!text);
+	};
+	/**
+	* Pay with an item and send the request.
+	*
+	* @param {number} itemId
+	*/
+	PrivateAirship.pay = function pay(itemId) {
+		if (isPending() || !_targetMap) return;
+		if (itemId === NYANGVINE_FRUIT) {
+			UIManager.showPromptBox(message$1(MSG.NYANGVINE_NO_REFUND), "ok", "cancel", () => PrivateAirship.sendRequest(itemId));
+			return;
+		}
+		this.sendRequest(itemId);
+	};
+	/**
+	* Send CZ_PRIVATE_AIRSHIP_REQUEST.
+	*
+	* @param {number} itemId
+	*/
+	PrivateAirship.sendRequest = function sendRequest(itemId) {
+		if (isPending() || !_targetMap) return;
+		syncRequests();
+		_requests.waiting = true;
+		_requests.lastSent = Date.now();
+		const pkt = new PACKET.CZ.PRIVATE_AIRSHIP_REQUEST();
+		pkt.mapName = _targetMap + ".gat";
+		pkt.ItemID = itemId;
+		Network.sendPacket(pkt);
+	};
+	/**
+	* ZC_PRIVATE_AIRSHIP_RESPONSE: close on success, otherwise say why.
+	*
+	* @param {object} pkt
+	*/
+	PrivateAirship.onResponse = function onResponse(pkt) {
+		syncRequests();
+		_requests.waiting = false;
+		if (!PrivateAirship.__active) return;
+		if (pkt.result === 0) {
+			PrivateAirship.remove();
+			return;
+		}
+		PrivateAirship.setNotice(message$1(RESULT_MESSAGE[pkt.result] || MSG.TRY_AGAIN));
+	};
+	/**
+	* Packet Hooks to functions
+	*/
+	Network.hookPacket(PACKET.ZC.PRIVATE_AIRSHIP_RESPONSE, PrivateAirship.onResponse);
+	PrivateAirship_default = UIManager.addComponent(PrivateAirship);
+}));
 // src/UI/Components/Navigation/Navigation.js
 /**
 * Async image create helper
@@ -229860,7 +230698,7 @@ function resetPathFindingWorker() {
 	terminatePathFindingWorker();
 	initializePathFindingWorker();
 }
-var Navigation, _arrow, _toolDealer, _weaponDealer, _armorDealer, _blacksmith, _guide, _inn, _kafra, _map, _ctx$1, _towninfo, _markers, _path, _lastPathUpdate, _pathUpdateThrottle, _pathUpdateLock, _pathFindingWorker, _mapData, _targetData, _finalTargetData, _isMapClickTarget, _blinking, _fadeInterval, _originalColor, _documentClickHandler, Navigation_default;
+var PRIVATE_AIRSHIP_PACKETVER, Navigation, _arrow, _toolDealer, _weaponDealer, _armorDealer, _blacksmith, _guide, _inn, _kafra, _map, _ctx$1, _towninfo, _markers, _path, _lastPathUpdate, _pathUpdateThrottle, _pathUpdateLock, _pathFindingWorker, _mapData, _targetData, _finalTargetData, _isMapClickTarget, _blinking, _fadeInterval, _originalColor, _documentClickHandler, Navigation_default;
 var init_Navigation = __esmMin((() => {
 	init_KeyEventHandler();
 	init_Renderer();
@@ -229875,6 +230713,9 @@ var init_Navigation = __esmMin((() => {
 	init_Navigation$2();
 	init_Navigation$1();
 	init_MapPathFinder();
+	init_PrivateAirship();
+	init_PacketVerManager();
+	PRIVATE_AIRSHIP_PACKETVER = 20180321;
 	Navigation = new GUIComponent("Navigation", Navigation_default$1);
 	Navigation.render = () => Navigation_default$2;
 	_arrow = createAsyncImage();
@@ -229964,6 +230805,7 @@ var init_Navigation = __esmMin((() => {
 		});
 		root.querySelector(".close").addEventListener("click", () => this.hide());
 		root.querySelector(".search-button").addEventListener("click", () => this.onSearch());
+		root.querySelector(".airship-move").addEventListener("click", () => this.onAirshipMove());
 		const searchInput = root.querySelector(".search-input");
 		searchInput.addEventListener("keypress", (e) => {
 			if (e.which === KEYS.ENTER || e.key === "Enter") this.onSearch();
@@ -229994,16 +230836,18 @@ var init_Navigation = __esmMin((() => {
 		initializePathFindingWorker();
 		const mapName = getCurrentMap();
 		this.loadMap(mapName);
+		this.updateAirshipButton();
 		if (_finalTargetData) {
 			const currentPos = getPlayerPosition();
 			this.navigateTo({
 				startMap: mapName,
 				startX: currentPos.x,
 				startY: currentPos.y,
-				endMap: _finalTargetData.map,
+				endMap: _finalTargetData.airshipMap || _finalTargetData.map,
 				endX: _finalTargetData.x,
 				endY: _finalTargetData.y,
-				displayName: _finalTargetData.displayName
+				displayName: _finalTargetData.displayName,
+				isNpc: _finalTargetData.isNpc
 			});
 		}
 	};
@@ -230074,7 +230918,8 @@ var init_Navigation = __esmMin((() => {
 			endMap: result.mapName,
 			endX: result.x,
 			endY: result.y,
-			displayName: result.name
+			displayName: result.name,
+			isNpc: result.type === "NPC"
 		});
 		const resultsContainer = Navigation.getRoot().querySelector(".search-results");
 		if (resultsContainer) resultsContainer.style.display = "none";
@@ -230136,7 +230981,8 @@ var init_Navigation = __esmMin((() => {
 			endMap: currentMap,
 			endX: mapCoords.x,
 			endY: mapCoords.y,
-			displayName: "Map Click"
+			displayName: "Map Click",
+			airshipMap: MapRenderer.currentMap
 		});
 	};
 	/**
@@ -230190,6 +231036,29 @@ var init_Navigation = __esmMin((() => {
 		if (targetInfo) targetInfo.style.display = "none";
 		const currentMap = getCurrentMap();
 		if (currentMap) this.setLocationTitle(currentMap, null);
+		this.updateAirshipButton();
+	};
+	/**
+	* Enable the Private Airship Move button while there is a target
+	*/
+	Navigation.updateAirshipButton = function updateAirshipButton() {
+		const root = Navigation.getRoot();
+		const bar = root && root.querySelector(".airship-bar");
+		const button = root && root.querySelector(".airship-move");
+		if (!bar || !button) return;
+		const supported = PacketVerManager_default.value >= PRIVATE_AIRSHIP_PACKETVER;
+		bar.style.display = supported ? "" : "none";
+		button.disabled = !supported || !_finalTargetData;
+	};
+	/**
+	* Move button: fly to the target's map with the Private Airship
+	*/
+	Navigation.onAirshipMove = function onAirshipMove() {
+		if (!_finalTargetData || PacketVerManager_default.value < PRIVATE_AIRSHIP_PACKETVER) return;
+		PrivateAirship_default.open({
+			targetMap: _finalTargetData.airshipMap || _finalTargetData.map,
+			toNpc: !!_finalTargetData.isNpc
+		});
 	};
 	Navigation.clearPath = function clearPath() {
 		_path = [];
@@ -230223,10 +231092,11 @@ var init_Navigation = __esmMin((() => {
 				startMap: currentMap,
 				startX: currentPos.x,
 				startY: currentPos.y,
-				endMap: _finalTargetData.map,
+				endMap: _finalTargetData.airshipMap || _finalTargetData.map,
 				endX: _finalTargetData.x,
 				endY: _finalTargetData.y,
-				displayName: _finalTargetData.displayName
+				displayName: _finalTargetData.displayName,
+				isNpc: _finalTargetData.isNpc
 			});
 			_lastPathUpdate = tick;
 		}
@@ -230492,10 +231362,11 @@ var init_Navigation = __esmMin((() => {
 			startMap: mapName,
 			startX: currentPos.x,
 			startY: currentPos.y,
-			endMap: _finalTargetData.map,
+			endMap: _finalTargetData.airshipMap || _finalTargetData.map,
 			endX: _finalTargetData.x,
 			endY: _finalTargetData.y,
-			displayName: _finalTargetData.displayName
+			displayName: _finalTargetData.displayName,
+			isNpc: _finalTargetData.isNpc
 		});
 		this.setMapNameText(mapName);
 		const locationTitle = root.querySelector(".location-title");
@@ -230582,12 +231453,16 @@ var init_Navigation = __esmMin((() => {
 			this.setTargetCoordinatesText(options.endX, options.endY, { targetMap: endMap });
 			this.setTargetCoordinatesBlinking(true);
 		}
+		const airshipMap = String(options.airshipMap || options.endMap || "").replace(/\.gat$/, "").toLowerCase();
 		_finalTargetData = {
 			map: endMap,
 			x: options.endX,
 			y: options.endY,
-			displayName
+			displayName,
+			airshipMap,
+			isNpc: !!options.isNpc
 		};
+		this.updateAirshipButton();
 		let warpTypes = [200, 201];
 		const servicesToggle = root.querySelector(".services-toggle");
 		if (servicesToggle && servicesToggle.checked) warpTypes = [
@@ -259217,7 +260092,7 @@ function generateCylinder(totalCircleSides, circleSides, repeatTextureX) {
 	}
 	return new Float32Array(mesh);
 }
-var _program$24, blendMode$3, mat4$18, _matrix$6, Cylinder;
+var _program$24, blendMode$3, mat4$18, _matrix$5, Cylinder;
 var init_Cylinder = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
@@ -259228,7 +260103,7 @@ var init_Cylinder = __esmMin((() => {
 	init_Cylinder$1();
 	blendMode$3 = {};
 	mat4$18 = gl_matrix_default.mat4;
-	_matrix$6 = mat4$18.create();
+	_matrix$5 = mat4$18.create();
 	Cylinder = class {
 		constructor(effect, EF_Inst_Par, EF_Init_Par) {
 			const position = EF_Inst_Par.position;
@@ -259380,11 +260255,11 @@ var init_Cylinder = __esmMin((() => {
 				this.position[2]
 			];
 			if (this.rotate || this.angleX || this.angleY || this.angleZ || this.rotateWithCamera || this.fixedPerspective) {
-				mat4$18.identity(_matrix$6);
-				if (this.rotate) mat4$18.rotateY(_matrix$6, _matrix$6, tick / 4 / 180 * Math.PI);
-				if (this.angleX) mat4$18.rotateX(_matrix$6, _matrix$6, this.angleX / 180 * Math.PI);
-				if (this.angleY) mat4$18.rotateY(_matrix$6, _matrix$6, this.angleY / 180 * Math.PI);
-				if (this.angleZ) mat4$18.rotateZ(_matrix$6, _matrix$6, this.angleZ / 180 * Math.PI);
+				mat4$18.identity(_matrix$5);
+				if (this.rotate) mat4$18.rotateY(_matrix$5, _matrix$5, tick / 4 / 180 * Math.PI);
+				if (this.angleX) mat4$18.rotateX(_matrix$5, _matrix$5, this.angleX / 180 * Math.PI);
+				if (this.angleY) mat4$18.rotateY(_matrix$5, _matrix$5, this.angleY / 180 * Math.PI);
+				if (this.angleZ) mat4$18.rotateZ(_matrix$5, _matrix$5, this.angleZ / 180 * Math.PI);
 				if (this.rotateWithCamera || this.fixedPerspective) {
 					let magic = this.posY;
 					if (this.fixedPerspective) {
@@ -259393,21 +260268,21 @@ var init_Cylinder = __esmMin((() => {
 							currentPosition[2] += this.posZ * Math.cos(vcRad) - this.posY * Math.sin(vcRad);
 							magic = this.posY * Math.sin(vcRad) + this.posZ * Math.sin(vcRad);
 						}
-						mat4$18.rotateX(_matrix$6, _matrix$6, vcRad);
+						mat4$18.rotateX(_matrix$5, _matrix$5, vcRad);
 					}
 					const hcRad = Camera.angle[1] * Math.PI / 180;
 					if (this.posX || this.posY) {
 						currentPosition[0] += this.posX * Math.cos(hcRad) - magic * Math.sin(hcRad);
 						currentPosition[1] += magic * Math.cos(hcRad) + this.posX * Math.sin(hcRad);
 					}
-					mat4$18.rotateY(_matrix$6, _matrix$6, hcRad);
+					mat4$18.rotateY(_matrix$5, _matrix$5, hcRad);
 				} else {
 					currentPosition[0] += this.posX;
 					currentPosition[1] += this.posY;
 					currentPosition[2] += this.posZ;
 				}
 				gl.uniform1i(uniform.uRotate, true);
-				gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$6);
+				gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$5);
 			} else {
 				currentPosition[0] += this.posX;
 				currentPosition[1] += this.posY;
@@ -261974,6 +262849,31 @@ function getRandomIntInclusive(min, max) {
 	max = Math.floor(max);
 	return Math.floor(Math.random() * (max - min + 1) + min);
 }
+/**
+* Alpha of a 2D effect at a time
+*
+* @param {object} fx alphaMax, fadeIn, fadeOut, fadeInMs, fadeOutStartMs
+* @param {number} start ms since the effect started
+* @param {number} duration ms
+* @return {number} alpha, 0..1
+*/
+function twoDAlpha(fx, start, duration) {
+	let alpha = fx.alphaMax;
+	if (fx.fadeInMs && start < fx.fadeInMs) alpha = start * fx.alphaMax / fx.fadeInMs;
+	else if (fx.fadeOutStartMs >= 0 && start > fx.fadeOutStartMs) alpha = (duration - start) * fx.alphaMax / Math.max(duration - fx.fadeOutStartMs, 1);
+	else if (fx.fadeIn && start < duration / 4) alpha = start * fx.alphaMax / (duration / 4);
+	else if (fx.fadeOut && start > duration / 2 + duration / 4) alpha = (duration - start) * fx.alphaMax / (duration / 4);
+	return Math.min(Math.max(alpha, 0), 1);
+}
+/**
+* Size factor of a pulsing 2D effect: 1 + amount * sin(phase), where the phase starts at
+* fx.pulsePhase (degrees) and advances fx.sizePulse.degPerTick each 60 Hz tick.
+*/
+function twoDPulse(fx, start) {
+	if (!fx.sizePulse) return 1;
+	const phase = fx.pulsePhase + start / (1e3 / 60) * fx.sizePulse.degPerTick;
+	return 1 + fx.sizePulse.amount * Math.sin(phase * Math.PI / 180);
+}
 var blendMode$2, shadow_index, TwoDEffect;
 var init_TwoDEffect = __esmMin((() => {
 	init_WebGL();
@@ -261995,6 +262895,8 @@ var init_TwoDEffect = __esmMin((() => {
 			this.zIndex = effect.zIndex ? effect.zIndex : 0;
 			this.fadeOut = effect.fadeOut ? true : false;
 			this.fadeIn = effect.fadeIn ? true : false;
+			this.fadeInMs = effect.fadeInMs > 0 ? effect.fadeInMs : 0;
+			this.fadeOutStartMs = effect.fadeOutStartMs >= 0 ? effect.fadeOutStartMs : -1;
 			this.overlay = effect.overlay ? true : false;
 			this.alphaMax = !isNaN(effect.alphaMax) ? Math.max(Math.min(effect.alphaMax, 1), 0) : 1;
 			this.shadowTexture = effect.shadowTexture ? true : false;
@@ -262198,6 +263100,8 @@ var init_TwoDEffect = __esmMin((() => {
 			if (effect.sizeRandStartY) this.sizeStartY = getRandomIntInclusive(effect.sizeRandStartY[0], effect.sizeRandStartY[1]);
 			if (effect.sizeRandEndY) this.sizeEndY = getRandomIntInclusive(effect.sizeRandEndY[0], effect.sizeRandEndY[1]);
 			if (effect.sizeRandEndX) this.sizeEndX = getRandomIntInclusive(effect.sizeRandEndX[0], effect.sizeRandEndX[1]);
+			this.sizePulse = effect.sizePulse || null;
+			this.pulsePhase = this.sizePulse ? getRandomIntInclusive(0, 359) : 0;
 			if (effect.durationRand) effect.duration = getRandomIntInclusive(effect.durationRand[0], effect.durationRand[1]);
 			if (this.ownerEntity && this.shadowTexture) this.ownerEntity.attachments.add({
 				completeFile: "data/sprite/shadow",
@@ -262308,11 +263212,7 @@ var init_TwoDEffect = __esmMin((() => {
 			} else currentOffsetY = this.offsetyStart;
 			SpriteRenderer.offset[0] = currentOffsetX;
 			SpriteRenderer.offset[1] = currentOffsetY;
-			let alpha = this.alphaMax;
-			if (this.fadeIn && start < duration / 4) alpha = start * this.alphaMax / (duration / 4);
-			else if (this.fadeOut && start > duration / 2 + duration / 4) alpha = (duration - start) * this.alphaMax / (duration / 4);
-			if (alpha < 0) alpha = 0;
-			else if (alpha > 1) alpha = 1;
+			const alpha = twoDAlpha(this, start, duration);
 			SpriteRenderer.color[3] = alpha;
 			SpriteRenderer.color[0] = this.red;
 			SpriteRenderer.color[1] = this.green;
@@ -262345,8 +263245,9 @@ var init_TwoDEffect = __esmMin((() => {
 					currentYSize = steps * step + _start;
 				} else currentYSize = this.sizeStartY;
 			}
-			SpriteRenderer.size[0] = currentXSize;
-			SpriteRenderer.size[1] = currentYSize;
+			const pulse = twoDPulse(this, start);
+			SpriteRenderer.size[0] = currentXSize * pulse;
+			SpriteRenderer.size[1] = currentYSize * pulse;
 			if (this.rotate) {
 				const step = (this.toAngle - this.angle) / 100;
 				const startAngle = this.angle;
@@ -262413,7 +263314,60 @@ var init_TwoDEffect = __esmMin((() => {
 function randBetween(minimum, maximum) {
 	return parseFloat(Math.min(minimum + Math.random() * (maximum - minimum), maximum).toFixed(3));
 }
-var blendMode$1, _soulStrikeFirstEffect, ThreeDEffect;
+/**
+* Load an effect/ texture once for every instance that asks for it.
+*
+* @param {WebGL2RenderingContext} gl
+* @param {string} name file name under data/texture/effect/
+* @param {function} onload receives the texture
+*/
+function sharedTexture(gl, name, onload) {
+	let entry = _sharedTextures.get(name);
+	if (!entry) {
+		entry = {
+			texture: null,
+			waiting: [],
+			users: 0
+		};
+		_sharedTextures.set(name, entry);
+		Client.loadFile(`data/texture/effect/${name}`, (buffer) => {
+			WebGL_default.texture(gl, buffer, (texture) => {
+				if (_sharedTextures.get(name) !== entry) {
+					gl.deleteTexture(texture);
+					return;
+				}
+				entry.texture = texture;
+				entry.waiting.splice(0).forEach((fn) => fn(texture));
+			});
+		});
+	}
+	entry.users++;
+	if (entry.texture) onload(entry.texture);
+	else entry.waiting.push(onload);
+}
+/**
+* One instance stops using a shared texture; the last one deletes it.
+*
+* @param {WebGL2RenderingContext} gl
+* @param {string} name
+*/
+function releaseSharedTexture(gl, name) {
+	const entry = _sharedTextures.get(name);
+	if (!entry || --entry.users > 0) return;
+	if (entry.texture) gl.deleteTexture(entry.texture);
+	_sharedTextures.delete(name);
+}
+/**
+* Age handed to an effect's `track`: official client ticks (1/60 s) since the effect started.
+*
+* @param {number} startTick
+* @param {number} tick
+* @return {number}
+*/
+function trackAge(startTick, tick) {
+	return (tick - startTick) * 60 / 1e3;
+}
+var blendMode$1, _sharedTextures, _soulStrikeFirstEffect, ThreeDEffect;
 var init_ThreeDEffect = __esmMin((() => {
 	init_WebGL();
 	init_Client();
@@ -262423,6 +263377,7 @@ var init_ThreeDEffect = __esmMin((() => {
 	init_Camera();
 	init_Entity$1();
 	blendMode$1 = {};
+	_sharedTextures = /* @__PURE__ */ new Map();
 	_soulStrikeFirstEffect = null;
 	ThreeDEffect = class {
 		constructor(effect, EF_Inst_Par, EF_Init_Par) {
@@ -262435,6 +263390,7 @@ var init_ThreeDEffect = __esmMin((() => {
 			this.ownerEntity = EF_Init_Par.ownerEntity;
 			this.otherEntity = EF_Init_Par.otherEntity;
 			this.textureName = effect.file;
+			this.sharedTexture = !!effect.sharedTexture && /^effect\//.test(effect.file || "");
 			this.textureNameList = Array.isArray(effect.fileList) ? effect.fileList : [];
 			this.frameDelay = !isNaN(effect.frameDelay) ? effect.frameDelay : 10;
 			this.zIndex = effect.zIndex ? effect.zIndex : 0;
@@ -262589,6 +263545,10 @@ var init_ThreeDEffect = __esmMin((() => {
 				this.poszStart = otherPosition[2] - position[2] + this.zOffset + this.zOffsetStart + randStart[2];
 				this.poszEnd = 0 + this.zOffset + this.zOffsetEnd + randEnd[2];
 			}
+			if (effect.endCellOffset) {
+				this.posxEnd += effect.endCellOffset[0];
+				this.posyEnd += effect.endCellOffset[1];
+			}
 			if (effect.size) {
 				this.sizeStartX = effect.size;
 				this.sizeStartY = effect.size;
@@ -262643,6 +263603,7 @@ var init_ThreeDEffect = __esmMin((() => {
 				this.sizeEndY = this.sizeStartY;
 			}
 			this.sizeSmooth = effect.sizeSmooth ? true : false;
+			this.track = typeof effect.track === "function" ? effect.track : null;
 			this.angle = effect.angle ? effect.angle : 0;
 			this.rotate = effect.rotate ? true : false;
 			this.toAngle = effect.toAngle ? effect.toAngle : 0;
@@ -262699,6 +263660,12 @@ var init_ThreeDEffect = __esmMin((() => {
 						if (this.loadedTextures == textureCount) this.ready = true;
 					});
 				});
+			} else if (this.sharedTexture) {
+				this.sharedTextureName = this.textureName.slice(7);
+				sharedTexture(gl, this.sharedTextureName, (texture) => {
+					this.texture = texture;
+					this.ready = true;
+				});
 			} else if (this.textureName) Client.loadFile(`data/texture/${this.textureName}`, (buffer) => {
 				WebGL_default.texture(gl, buffer, (texture) => {
 					this.texture = texture;
@@ -262709,6 +263676,10 @@ var init_ThreeDEffect = __esmMin((() => {
 		}
 		free(gl) {
 			this.ready = false;
+			if (this.sharedTextureName) {
+				releaseSharedTexture(gl, this.sharedTextureName);
+				this.sharedTextureName = null;
+			}
 		}
 		render(gl, tick) {
 			if (this.startTick > tick) return;
@@ -262853,6 +263824,37 @@ var init_ThreeDEffect = __esmMin((() => {
 				const angle = steps * angleStep + startAngle;
 				SpriteRenderer.angle = this.rotateWithCamera ? angle + Camera.angle[1] : angle;
 			} else SpriteRenderer.angle = this.rotateWithCamera ? this.angle + Camera.angle[1] : this.angle;
+			if (this.track) {
+				const sample = this.track(trackAge(this.startTick, tick));
+				if (!sample) {
+					this.needCleanUp = this.endTick < tick;
+					return;
+				}
+				if (sample.x !== void 0) SpriteRenderer.position[0] = this.position[0] + sample.x;
+				if (sample.y !== void 0) SpriteRenderer.position[1] = this.position[1] + sample.y;
+				if (sample.z !== void 0) SpriteRenderer.position[2] = this.position[2] + sample.z;
+				if (sample.size !== void 0) {
+					sizeX = sample.size;
+					sizeY = sample.size;
+					SpriteRenderer.size[0] = sizeX;
+					SpriteRenderer.size[1] = sizeY;
+				}
+				if (sample.sizeX !== void 0) {
+					sizeX = sample.sizeX;
+					SpriteRenderer.size[0] = sizeX;
+				}
+				if (sample.sizeY !== void 0) {
+					sizeY = sample.sizeY;
+					SpriteRenderer.size[1] = sizeY;
+				}
+				SpriteRenderer.offset[0] = sample.offsetX || 0;
+				SpriteRenderer.offset[1] = sample.offsetY || 0;
+				if (sample.alpha !== void 0) {
+					alpha = Math.min(Math.max(sample.alpha, 0), 1);
+					SpriteRenderer.color[3] = alpha;
+				}
+				if (sample.angle !== void 0) SpriteRenderer.angle = this.rotateWithCamera ? sample.angle + Camera.angle[1] : sample.angle;
+			}
 			if (this.actRessource && this.spriteRessource) {
 				let entity = this.ownerEntity;
 				if (!entity) {
@@ -262921,6 +263923,10 @@ var init_ThreeDEffect = __esmMin((() => {
 			} else SpriteRenderer.runWithDepth(this.overlay === false, false, this.overlay === true, () => {
 				SpriteRenderer.render();
 			});
+			if (this.track) {
+				SpriteRenderer.offset[0] = 0;
+				SpriteRenderer.offset[1] = 0;
+			}
 			this.needCleanUp = this.endTick < tick;
 		}
 		static init(gl) {
@@ -262944,6 +263950,8 @@ var init_ThreeDEffect = __esmMin((() => {
 		}
 		static free(gl) {
 			this.ready = false;
+			for (const entry of _sharedTextures.values()) if (entry.texture) gl.deleteTexture(entry.texture);
+			_sharedTextures.clear();
 		}
 		static beforeRender(gl, modelView, projection, fog, tick) {
 			SpriteRenderer.bind3DContext(gl, modelView, projection, fog);
@@ -262998,7 +264006,7 @@ function toScreen(position, matrix, width, height) {
 * @return {number}
 */
 function screenAngle(from, to, matrix, width = Renderer.width, height = Renderer.height) {
-	if (!matrix) matrix = mat4$15.multiply(_matrix$5, Camera.projection, Camera.modelView);
+	if (!matrix) matrix = mat4$15.multiply(_matrix$4, Camera.projection, Camera.modelView);
 	const [x1, y1] = toScreen(from, matrix, width, height);
 	const [x2, y2] = toScreen(to, matrix, width, height);
 	const dx = x2 - x1;
@@ -263029,13 +264037,13 @@ function screenSector(angle) {
 function screenSide(angle) {
 	return angle <= 90 || angle >= 270 ? "right" : "left";
 }
-var mat4$15, vec4$7, _matrix$5, _point;
+var mat4$15, vec4$7, _matrix$4, _point;
 var init_ScreenDirection = __esmMin((() => {
 	init_gl_matrix();
 	init_Camera();
 	init_Renderer();
 	({mat4: mat4$15, vec4: vec4$7} = gl_matrix_default);
-	_matrix$5 = mat4$15.create();
+	_matrix$4 = mat4$15.create();
 	_point = vec4$7.create();
 }));
 // src/Renderer/Effects/ShuffledGrid.js
@@ -263589,7 +264597,7 @@ function setVertex(index, x, y, z, u, v) {
 	_vertices[offset + 3] = u;
 	_vertices[offset + 4] = v;
 }
-var mat4$13, _matrix$4, UNIT, LAYER_COUNT, SEGMENT_COUNT, TEXTURE_COUNT, SEGMENT_HEIGHT, EFFECT_TICK_MS, OPACITY, PARTICLE_TEXTURE, PARTICLE_CYCLE_MS, PARTICLE_SIZE, PARTICLE_COLOR, PARTICLE_FLOATS, PARTICLE_CORNERS, _program$20, _particleProgram, _textureCache, _vertices, WaterfallEffect;
+var mat4$13, _matrix$3, UNIT, LAYER_COUNT, SEGMENT_COUNT, TEXTURE_COUNT, SEGMENT_HEIGHT, EFFECT_TICK_MS, OPACITY, PARTICLE_TEXTURE, PARTICLE_CYCLE_MS, PARTICLE_SIZE, PARTICLE_COLOR, PARTICLE_FLOATS, PARTICLE_CORNERS, _program$20, _particleProgram, _textureCache, _vertices, WaterfallEffect;
 var init_WaterfallEffect = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
@@ -263599,7 +264607,7 @@ var init_WaterfallEffect = __esmMin((() => {
 	init_WaterfallParticle$1();
 	init_WaterfallParticle();
 	mat4$13 = gl_matrix_default.mat4;
-	_matrix$4 = mat4$13.create();
+	_matrix$3 = mat4$13.create();
 	UNIT = 1 / 5;
 	LAYER_COUNT = 4;
 	SEGMENT_COUNT = 5;
@@ -263664,14 +264672,14 @@ var init_WaterfallEffect = __esmMin((() => {
 		render(gl, tick) {
 			const uniform = _program$20.uniform;
 			const attribute = _program$20.attribute;
-			mat4$13.identity(_matrix$4);
-			mat4$13.translate(_matrix$4, _matrix$4, [
+			mat4$13.identity(_matrix$3);
+			mat4$13.translate(_matrix$3, _matrix$3, [
 				this.position[0] + .5,
 				1 - this.position[2],
 				this.position[1] + .5
 			]);
-			if (this.vertical) mat4$13.rotateY(_matrix$4, _matrix$4, Math.PI / 2);
-			gl.uniformMatrix4fv(uniform.uModelMat, false, _matrix$4);
+			if (this.vertical) mat4$13.rotateY(_matrix$3, _matrix$3, Math.PI / 2);
+			gl.uniformMatrix4fv(uniform.uModelMat, false, _matrix$3);
 			const elapsed = tick - this.startTick;
 			const process = Math.floor(elapsed / EFFECT_TICK_MS);
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
@@ -263717,7 +264725,7 @@ var init_WaterfallEffect = __esmMin((() => {
 			const uniform = _particleProgram.uniform;
 			const attribute = _particleProgram.attribute;
 			gl.useProgram(_particleProgram);
-			gl.uniformMatrix4fv(uniform.uModelMat, false, _matrix$4);
+			gl.uniformMatrix4fv(uniform.uModelMat, false, _matrix$3);
 			gl.uniform1f(uniform.uTime, elapsed / PARTICLE_CYCLE_MS);
 			gl.uniform1f(uniform.uSize, PARTICLE_SIZE);
 			gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -264016,6 +265024,7 @@ var _gl, _list$3, _uniqueId, targetableUnits, traps, EffectManager;
 var init_EffectManager = __esmMin((() => {
 	init_EffectTable();
 	init_SkillEffect();
+	init_SkillMotionEffect();
 	init_SkillUnit();
 	init_SkillUnitConst();
 	init_ItemEffect();
@@ -264290,7 +265299,7 @@ var init_EffectManager = __esmMin((() => {
 				}, Params.Inst.startTick + (!isNaN(Params.effect.delayWav) ? Params.effect.delayWav : 0) - Renderer.tick);
 			}
 			Params.Inst.direction = Params.effect.attachedEntity && Params.Init.ownerEntity ? Params.Init.ownerEntity.direction : 0;
-			Params.Inst.duration = !isNaN(Params.effect.duration) ? Params.effect.duration : Params.Init.duration;
+			Params.Inst.duration = typeof Params.effect.duration === "function" ? Params.effect.duration(Params) : !isNaN(Params.effect.duration) ? Params.effect.duration : Params.Init.duration;
 			Params.Inst.delayOffsetDelta = !isNaN(Params.effect.delayOffsetDelta) ? Params.effect.delayOffsetDelta * Params.Inst.duplicateID : 0;
 			Params.Inst.delayLateDelta = !isNaN(Params.effect.delayLateDelta) ? Params.effect.delayLateDelta * Params.Inst.duplicateID : 0;
 			Params.Inst.delayOffset = !isNaN(Params.effect.delayOffset) ? Params.effect.delayOffset + Params.Inst.delayOffsetDelta : 0;
@@ -264661,16 +265670,42 @@ var init_EffectManager = __esmMin((() => {
 			play("damageEffectIdOnTarget", destAID, srcAID);
 		}
 		/**
+		* Spam the caster's motion effect as a skill damage packet arrives: 16
+		* (EF_BASH) for most skills, from the official client's table
+		* (DB/Skills/SkillMotionEffect.js). Not played again when the skill's own
+		* damageEffectIdOnCaster already lists it.
+		*
+		* @param {number} skillId skill id
+		* @param {number} srcAID caster aid
+		* @param {number} destAID target aid
+		* @param {number} tick
+		* @param {number} damageType the packet's action field
+		* @param {number} level the packet's level field
+		* @param {boolean} targetFound is the packet's target a known actor
+		*/
+		static spamSkillMotion(skillId, srcAID, destAID, tick, damageType, level, targetFound) {
+			const effectId = motionEffectForPacket(skillId, damageType, level, targetFound);
+			if (effectId === null || !srcAID) return;
+			const own = SkillEffect[skillId] && SkillEffect[skillId].damageEffectIdOnCaster;
+			if (own != null && (Array.isArray(own) ? own : [own]).includes(effectId)) return;
+			EffectManager.spam({
+				effectId,
+				ownerAID: srcAID,
+				startTick: tick,
+				otherAID: destAID
+			});
+		}
+		/**
 		* Spam skill effect on hit with damage
 		*
 		* @param {number} skill id
 		* @param {number} target aid
 		* @param {number} tick
 		*/
-		static spamSkillHit(skillId, destAID, tick, srcAID) {
+		static spamSkillHit(skillId, destAID, tick, srcAID, hitIndex = 0) {
 			let effects, EF_Init_Par;
 			if (!(skillId in SkillEffect)) return;
-			if (SkillEffect[skillId].hitEffectId) {
+			if (SkillEffect[skillId].hitEffectId != null) {
 				effects = Array.isArray(SkillEffect[skillId].hitEffectId) ? SkillEffect[skillId].hitEffectId : [SkillEffect[skillId].hitEffectId];
 				effects.forEach((effectId) => {
 					EF_Init_Par = {
@@ -264680,6 +265715,17 @@ var init_EffectManager = __esmMin((() => {
 						otherAID: srcAID
 					};
 					EffectManager.spam(EF_Init_Par);
+				});
+			}
+			if (hitIndex === 0 && SkillEffect[skillId].firstHitEffectId != null) {
+				effects = Array.isArray(SkillEffect[skillId].firstHitEffectId) ? SkillEffect[skillId].firstHitEffectId : [SkillEffect[skillId].firstHitEffectId];
+				effects.forEach((effectId) => {
+					EffectManager.spam({
+						effectId,
+						ownerAID: destAID,
+						startTick: tick,
+						otherAID: srcAID
+					});
 				});
 			}
 			if (SkillEffect[skillId].hitEffectIdOnCaster) {
@@ -271823,7 +272869,7 @@ var init_LockOnTarget$1 = __esmMin((() => {
 	LockOnTarget_default = "#version 300 es\r\n#pragma vscode_glsllint_stage : frag\r\nprecision highp float;\r\n\r\nin vec2 vTextureCoord;\r\n\r\nuniform sampler2D uDiffuse;\r\nuniform float uColor;\r\nout vec4 fragColor;\r\n\r\nuniform bool  uFogUse;\r\nuniform float uFogNear;\r\nuniform float uFogFar;\r\nuniform vec3  uFogColor;\r\n\r\nvoid main(void) {\r\n    vec4 textureSample = texture( uDiffuse,  vTextureCoord.st );\r\n\r\n    if (textureSample.a == 0.0) {\r\n        discard;\r\n    }\r\n\r\n    fragColor     = textureSample;\r\n    fragColor.gb *= uColor;\r\n\r\n    if (uFogUse) {\r\n        float depth     = gl_FragCoord.z / gl_FragCoord.w;\r\n        float fogFactor = smoothstep( uFogNear, uFogFar, depth );\r\n        fragColor    = mix( fragColor, vec4( uFogColor, fragColor.w ), fogFactor );\r\n    }\r\n}";
 }));
 // src/Renderer/Effects/LockOnTarget.js
-var _texture$4, _program$10, _buffer$4, mat4$7, _matrix$3, LockOnTarget;
+var _texture$4, _program$10, _buffer$4, mat4$7, _matrix$2, LockOnTarget;
 var init_LockOnTarget = __esmMin((() => {
 	init_WebGL();
 	init_Texture();
@@ -271833,7 +272879,7 @@ var init_LockOnTarget = __esmMin((() => {
 	init_LockOnTarget$2();
 	init_LockOnTarget$1();
 	mat4$7 = gl_matrix_default.mat4;
-	_matrix$3 = mat4$7.create();
+	_matrix$2 = mat4$7.create();
 	LockOnTarget = class LockOnTarget {
 		constructor(target, startTick, endTick) {
 			this.target = target;
@@ -271956,12 +273002,12 @@ var init_LockOnTarget = __esmMin((() => {
 		static beforeRender(gl, modelView, projection, fog, tick) {
 			const uniform = _program$10.uniform;
 			const attribute = _program$10.attribute;
-			mat4$7.identity(_matrix$3);
-			mat4$7.rotateY(_matrix$3, _matrix$3, tick / 4 / 180 * Math.PI);
+			mat4$7.identity(_matrix$2);
+			mat4$7.rotateY(_matrix$2, _matrix$2, tick / 4 / 180 * Math.PI);
 			gl.useProgram(_program$10);
 			gl.uniformMatrix4fv(uniform.uModelViewMat, false, modelView);
 			gl.uniformMatrix4fv(uniform.uProjectionMat, false, projection);
-			gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$3);
+			gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$2);
 			gl.uniform1i(uniform.uFogUse, fog.use && fog.exist);
 			gl.uniform1f(uniform.uFogNear, fog.near);
 			gl.uniform1f(uniform.uFogFar, fog.far);
@@ -272076,7 +273122,7 @@ function generateMagicRing() {
 	}
 	return new Float32Array(mesh);
 }
-var _program$9, _buffer$3, mat4$6, _matrix$2, _verticeCount$1, MagicRing;
+var _program$9, _buffer$3, mat4$6, _matrix$1, _verticeCount$1, MagicRing;
 var init_MagicRing = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
@@ -272084,7 +273130,7 @@ var init_MagicRing = __esmMin((() => {
 	init_MagicRing$2();
 	init_MagicRing$1();
 	mat4$6 = gl_matrix_default.mat4;
-	_matrix$2 = mat4$6.create();
+	_matrix$1 = mat4$6.create();
 	_verticeCount$1 = 0;
 	MagicRing = class {
 		constructor(target, topSize, bottomSize, height, textureName, endTick) {
@@ -272173,12 +273219,12 @@ var init_MagicRing = __esmMin((() => {
 		*/
 		static beforeRender(gl, modelView, projection, fog, tick) {
 			const uniform = _program$9.uniform;
-			mat4$6.identity(_matrix$2);
-			mat4$6.rotateY(_matrix$2, _matrix$2, tick / 4 / 180 * Math.PI);
+			mat4$6.identity(_matrix$1);
+			mat4$6.rotateY(_matrix$1, _matrix$1, tick / 4 / 180 * Math.PI);
 			gl.useProgram(_program$9);
 			gl.uniformMatrix4fv(uniform.uModelViewMat, false, modelView);
 			gl.uniformMatrix4fv(uniform.uProjectionMat, false, projection);
-			gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$2);
+			gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$1);
 			gl.uniform1i(uniform.uFogUse, fog.use && fog.exist);
 			gl.uniform1f(uniform.uFogNear, fog.near);
 			gl.uniform1f(uniform.uFogFar, fog.far);
@@ -272197,6 +273243,131 @@ var init_MagicRing = __esmMin((() => {
 		}
 	};
 }));
+// src/Renderer/Effects/MagicTargetSim.js
+/**
+* Cells across the square for a skill; 0 means no circle.
+*
+* @param {number} skillId
+* @return {number}
+*/
+function castSize(skillId) {
+	const area = skillId in CAST_AREA ? CAST_AREA[skillId] : 0;
+	return Math.max(0, area + 2);
+}
+/**
+* Texture angle on tick `t` (0 on the first) of a square `size` cells across.
+*
+* @param {number} t
+* @param {number} size
+* @return {number} radians
+*/
+function spinAngle(t, size) {
+	return .5 / size * t;
+}
+/**
+* Alpha (0-255) at texture angle `angle`.
+*
+* @param {number} angle radians
+* @return {number}
+*/
+function targetAlpha(angle) {
+	return 128 + Math.trunc(40 * Math.sin(angle));
+}
+var CAST_AREA;
+var init_MagicTargetSim = __esmMin((() => {
+	init_SkillConst();
+	init_EffectPrimSim();
+	CAST_AREA = {};
+	for (const [area, names] of Object.entries({
+		3: [
+			"MG_NAPALMBEAT",
+			"AL_PNEUMA",
+			"AC_SHOWER",
+			"PR_BENEDICTIO",
+			"WZ_FIREPILLAR",
+			"WZ_WATERBALL",
+			"WZ_FROSTNOVA",
+			"BS_HAMMERFALL",
+			"HT_BLITZBEAT",
+			"HT_DETECTING",
+			"AS_GRIMTOOTH",
+			"AS_VENOMDUST",
+			"SN_FALCONASSAULT",
+			"HW_GANBANTEIN",
+			"NC_ARMSCANNON",
+			"NW_BASIC_GRENADE",
+			"NW_GRENADES_DROPPING"
+		],
+		5: [
+			"MG_FIREBALL",
+			"MG_THUNDERSTORM",
+			"PR_SANCTUARY",
+			"WZ_HEAVENDRIVE",
+			"WZ_QUAGMIRE",
+			"HW_GRAVITATION",
+			"NPC_GROUNDDRIVE",
+			"RK_WINDCUTTER",
+			"GC_POISONSMOKE",
+			"AB_EPICLESIS",
+			"NW_WILD_FIRE",
+			"NW_HASTY_FIRE_IN_THE_HOLE"
+		],
+		7: [
+			"PR_MAGNUS",
+			"CR_SLIMPITCHER",
+			"NPC_MAGMA_ERUPTION",
+			"NPC_CLOUD_KILL",
+			"RA_DETONATOR",
+			"SO_CLOUD_KILL",
+			"SO_WARMER",
+			"SO_VACUUM_EXTREME",
+			"SO_VARETYR_SPEAR",
+			"NC_MAGMA_ERUPTION",
+			"LG_KINGS_GRACE",
+			"SU_CN_METEOR",
+			"SU_CN_METEOR2",
+			"AG_TORNADO_STORM",
+			"AG_FLORAL_FLARE_ROAD",
+			"AG_ASTRAL_STRIKE",
+			"CD_PNEUMATICUS_PROCELLA",
+			"SOA_TOTEM_OF_TUTELARY",
+			"HN_METEOR_STORM_BUSTER",
+			"NW_MIDNIGHT_FALLEN"
+		],
+		9: [
+			"WZ_METEOR",
+			"WZ_STORMGUST",
+			"NPC_STORMGUST2",
+			"NPC_DRAGONBREATH",
+			"NPC_RAINOFMETEOR",
+			"RK_DRAGONBREATH",
+			"NC_COLDSLOWER",
+			"SO_EARTHGRAVE",
+			"RK_DRAGONBREATH_WATER",
+			"AG_VIOLENT_QUAKE",
+			"AG_ALL_BLOOM",
+			"IG_CROSS_RAIN",
+			"ABC_ABYSS_STRIKE",
+			"EM_DIAMOND_STORM",
+			"EM_LIGHTNING_LAND",
+			"EM_VENOM_SWAMP",
+			"EM_CONFLAGRATION",
+			"EM_TERRA_DRIVE",
+			"NW_MISSION_BOMBARD",
+			"SOA_TALISMAN_OF_BLACK_TORTOISE",
+			"SH_HYUN_ROKS_BREEZE"
+		],
+		11: ["WZ_VERMILION", "AG_MYSTERY_ILLUSION"],
+		18: ["NPC_COMET", "WL_COMET"],
+		19: ["CD_COMPETENTIA"],
+		"-2": [
+			"NPC_PSYCHIC_WAVE",
+			"SO_DIAMONDDUST",
+			"SO_PSYCHIC_WAVE",
+			"HN_JACK_FROST_NOVA"
+		]
+	})) for (const name of names) if (name in SkillConst_default) CAST_AREA[SkillConst_default[name]] = Number(area);
+}));
 // src/Renderer/Effects/MagicTarget.vs?raw
 var MagicTarget_default$1;
 var init_MagicTarget$2 = __esmMin((() => {
@@ -272205,244 +273376,28 @@ var init_MagicTarget$2 = __esmMin((() => {
 // src/Renderer/Effects/MagicTarget.fs?raw
 var MagicTarget_default;
 var init_MagicTarget$1 = __esmMin((() => {
-	MagicTarget_default = "#version 300 es\r\n#pragma vscode_glsllint_stage : frag\r\nprecision highp float;\r\n\r\nin vec2 vTextureCoord;\r\nout vec4 fragColor;\r\n\r\nuniform sampler2D uDiffuse;\r\n\r\nuniform bool  uFogUse;\r\nuniform float uFogNear;\r\nuniform float uFogFar;\r\nuniform vec3  uFogColor;\r\n\r\nvoid main(void) {\r\n    vec4 textureSample = texture( uDiffuse,  vTextureCoord.st );\r\n\r\n    if (textureSample.a == 0.0) {\r\n        discard;\r\n    }\r\n\r\n    if (textureSample.r < 0.1 || textureSample.g < 0.1 || textureSample.b < 0.1) {\r\n        discard;\r\n    }\r\n\r\n    fragColor = textureSample;\r\n\r\n    if (uFogUse) {\r\n        float depth     = gl_FragCoord.z / gl_FragCoord.w;\r\n        float fogFactor = smoothstep( uFogNear, uFogFar, depth );\r\n        fragColor    = mix( fragColor, vec4( uFogColor, fragColor.w ), fogFactor );\r\n    }\r\n}";
+	MagicTarget_default = "#version 300 es\r\n#pragma vscode_glsllint_stage : frag\r\nprecision highp float;\r\n\r\nin vec2 vTextureCoord;\r\nout vec4 fragColor;\r\n\r\nuniform sampler2D uDiffuse;\r\nuniform float uAlpha;\r\n\r\nuniform bool  uFogUse;\r\nuniform float uFogNear;\r\nuniform float uFogFar;\r\nuniform vec3  uFogColor;\r\n\r\nvoid main(void) {\r\n    vec4 textureSample = texture( uDiffuse,  vTextureCoord.st );\r\n\r\n    if (textureSample.a == 0.0) {\r\n        discard;\r\n    }\r\n\r\n    if (textureSample.r < 0.1 || textureSample.g < 0.1 || textureSample.b < 0.1) {\r\n        discard;\r\n    }\r\n\r\n    fragColor = vec4(textureSample.rgb, textureSample.a * uAlpha);\r\n\r\n    if (uFogUse) {\r\n        float depth     = gl_FragCoord.z / gl_FragCoord.w;\r\n        float fogFactor = smoothstep( uFogNear, uFogFar, depth );\r\n        fragColor    = mix( fragColor, vec4( uFogColor, fragColor.w ), fogFactor );\r\n    }\r\n}";
 }));
 // src/Renderer/Effects/MagicTarget.js
-var _texture$3, _program$8, mat4$5, _matrix$1, CastSize, MagicTarget;
+var _texture$3, _program$8, mat4$5, MagicTarget;
 var init_MagicTarget = __esmMin((() => {
 	init_WebGL();
 	init_gl_matrix();
-	init_SkillConst();
 	init_Client();
 	init_Altitude();
-	init_SessionStorage();
 	init_Camera();
+	init_MagicTargetSim();
 	init_MagicTarget$2();
 	init_MagicTarget$1();
 	mat4$5 = gl_matrix_default.mat4;
-	_matrix$1 = mat4$5.create();
-	CastSize = {};
-	CastSize[SkillConst_default.CR_SLIMPITCHER] = [7];
-	CastSize[SkillConst_default.SO_ARRULLO] = [
-		3,
-		3,
-		5,
-		5,
-		7
-	];
-	CastSize[SkillConst_default.AC_SHOWER] = [
-		3,
-		3,
-		3,
-		3,
-		3,
-		5,
-		5,
-		5,
-		5,
-		5
-	];
-	CastSize[SkillConst_default.NC_ARMSCANNON] = [
-		7,
-		5,
-		3
-	];
-	CastSize[SkillConst_default.AM_DEMONSTRATION] = [3];
-	CastSize[SkillConst_default.SC_BLOODYLUST] = [7];
-	CastSize[SkillConst_default.PF_FOGWALL] = [3];
-	CastSize[SkillConst_default.PR_BENEDICTIO] = [3];
-	CastSize[SkillConst_default.KO_ZENKAI] = [5];
-	CastSize[SkillConst_default.WL_CRIMSONROCK] = [7];
-	CastSize[SkillConst_default.GN_CRAZYWEED] = [9];
-	CastSize[SkillConst_default.NPC_COMET] = CastSize[SkillConst_default.WL_COMET] = [19];
-	CastSize[SkillConst_default.HT_CLAYMORETRAP] = [5];
-	CastSize[SkillConst_default.SC_CHAOSPANIC] = [5];
-	CastSize[SkillConst_default.RK_DRAGONBREATH_WATER] = [
-		3,
-		3,
-		3,
-		5,
-		5,
-		5,
-		7,
-		7,
-		9,
-		9
-	];
-	CastSize[SkillConst_default.RK_DRAGONBREATH] = [
-		3,
-		3,
-		3,
-		5,
-		5,
-		5,
-		7,
-		7,
-		9,
-		9
-	];
-	CastSize[SkillConst_default.SC_DIMENSIONDOOR] = [1];
-	CastSize[SkillConst_default.SO_DIAMONDDUST] = [
-		7,
-		7,
-		7,
-		9,
-		9
-	];
-	CastSize[SkillConst_default.HT_DETECTING] = [3];
-	CastSize[SkillConst_default.GN_DEMONIC_FIRE] = [5];
-	CastSize[SkillConst_default.SA_DELUGE] = [7];
-	CastSize[SkillConst_default.SO_VACUUM_EXTREME] = [
-		3,
-		3,
-		5,
-		5,
-		7
-	];
-	CastSize[SkillConst_default.NPC_EVILLAND] = [11];
-	CastSize[SkillConst_default.AB_EPICLESIS] = [5];
-	CastSize[SkillConst_default.SO_EARTH_INSIGNIA] = [3];
-	CastSize[SkillConst_default.SO_EARTHGRAVE] = [
-		7,
-		7,
-		7,
-		9,
-		9
-	];
-	CastSize[SkillConst_default.HT_FLASHER] = [3];
-	CastSize[SkillConst_default.MG_FIREWALL] = [1];
-	CastSize[SkillConst_default.RA_FIRINGTRAP] = [5];
-	CastSize[SkillConst_default.SO_FIRE_INSIGNIA] = [3];
-	CastSize[SkillConst_default.GN_FIRE_EXPANSION] = [5];
-	CastSize[SkillConst_default.GN_HELLS_PLANT] = [3];
-	CastSize[SkillConst_default.WZ_HEAVENDRIVE] = [5];
-	CastSize[SkillConst_default.HW_GRAVITATION] = [5];
-	CastSize[SkillConst_default.RL_HAMMER_OF_GOD] = [5];
-	CastSize[SkillConst_default.NPC_RAYOFGENESIS] = CastSize[SkillConst_default.LG_RAYOFGENESIS] = [11];
-	CastSize[SkillConst_default.HW_GANBANTEIN] = [3];
-	CastSize[SkillConst_default.NC_COLDSLOWER] = [
-		5,
-		7,
-		9
-	];
-	CastSize[SkillConst_default.WZ_VERMILION] = [11];
-	CastSize[SkillConst_default.SR_RIDEINLIGHTNING] = [
-		3,
-		3,
-		5,
-		5,
-		7
-	];
-	CastSize[SkillConst_default.NJ_RAIGEKISAI] = [
-		3,
-		3,
-		5,
-		5,
-		7
-	];
-	CastSize[SkillConst_default.MH_LAVA_SLIDE] = [
-		3,
-		3,
-		3,
-		5,
-		5,
-		5,
-		7,
-		7,
-		7,
-		9
-	];
-	CastSize[SkillConst_default.NPC_MAGMA_ERUPTION] = CastSize[SkillConst_default.NC_MAGMA_ERUPTION] = [7];
-	CastSize[SkillConst_default.KO_BAKURETSU] = [3];
-	CastSize[SkillConst_default.NPC_CLOUD_KILL] = CastSize[SkillConst_default.SO_CLOUD_KILL] = [7];
-	CastSize[SkillConst_default.WZ_METEOR] = [7];
-	CastSize[SkillConst_default.SC_MANHOLE] = [3];
-	CastSize[SkillConst_default.PR_MAGNUS] = [7];
-	CastSize[SkillConst_default.SA_LANDPROTECTOR] = [
-		7,
-		7,
-		9,
-		9,
-		11
-	];
-	CastSize[SkillConst_default.SC_MAELSTROM] = [5];
-	CastSize[SkillConst_default.KO_MUCHANAGE] = [
-		3,
-		3,
-		3,
-		3,
-		3,
-		3,
-		3,
-		3,
-		5
-	];
-	CastSize[SkillConst_default.WZ_QUAGMIRE] = [5];
-	CastSize[SkillConst_default.NPC_PSYCHIC_WAVE] = CastSize[SkillConst_default.SO_PSYCHIC_WAVE] = [
-		7,
-		7,
-		9,
-		9,
-		11
-	];
-	CastSize[SkillConst_default.GC_POISONSMOKE] = [5];
-	CastSize[SkillConst_default.MH_POISON_MIST] = [7];
-	CastSize[SkillConst_default.AL_PNEUMA] = [3];
-	CastSize[SkillConst_default.LG_OVERBRAND] = [3];
-	CastSize[SkillConst_default.WM_SEVERE_RAINSTORM] = [11];
-	CastSize[SkillConst_default.RG_GRAFFITI] = [5];
-	CastSize[SkillConst_default.PR_SANCTUARY] = [5];
-	CastSize[SkillConst_default.MG_THUNDERSTORM] = [5];
-	CastSize[SkillConst_default.WZ_STORMGUST] = [11];
-	CastSize[SkillConst_default.WM_SOUND_OF_DESTRUCTION] = [
-		9,
-		9,
-		11,
-		13,
-		15
-	];
-	CastSize[SkillConst_default.WM_POEMOFNETHERWORLD] = [3];
-	CastSize[SkillConst_default.MH_XENO_SLASHER] = [
-		3,
-		3,
-		3,
-		5,
-		5,
-		5,
-		7,
-		7,
-		7,
-		9
-	];
-	CastSize[SkillConst_default.SO_WIND_INSIGNIA] = [3];
-	CastSize[SkillConst_default.SA_VIOLENTGALE] = [7];
-	CastSize[SkillConst_default.NJ_SUITON] = [
-		3,
-		3,
-		3,
-		5,
-		5,
-		5,
-		7,
-		7,
-		7,
-		9
-	];
-	CastSize[SkillConst_default.SO_WATER_INSIGNIA] = [3];
-	CastSize[SkillConst_default.SO_WARMER] = [7];
-	CastSize[SkillConst_default.SA_VOLCANO] = [7];
-	CastSize[SkillConst_default.MH_VOLCANIC_ASH] = [3];
-	CastSize[SkillConst_default.AS_VENOMDUST] = [2];
-	CastSize[SkillConst_default.KO_HUUMARANKA] = [7];
 	MagicTarget = class {
-		constructor(id, x, y, endTick, srcEntity) {
+		constructor(id, x, y, endTick, srcEntity, startTick) {
 			this.x = x;
 			this.y = y;
-			if (CastSize[id]) {
-				if (SessionStorage_default.Entity == srcEntity && id == SessionStorage_default.Entity.lastSKID && SessionStorage_default.Entity.lastSkLvl && CastSize[id].length >= SessionStorage_default.Entity.lastSkLvl) this.size = CastSize[id][SessionStorage_default.Entity.lastSkLvl - 1] || 1;
-				else this.size = CastSize[id][0] || 1;
-			} else this.size = 1;
+			this.size = castSize(id);
+			this.startTick = startTick || 0;
 			this.endTick = endTick;
+			this.matrix = mat4$5.create();
 		}
 		/**
 		* Preparing for render
@@ -272450,6 +273405,11 @@ var init_MagicTarget = __esmMin((() => {
 		* @param {object} webgl context
 		*/
 		init(gl) {
+			if (!this.size) {
+				this.vertCount = 0;
+				this.ready = true;
+				return;
+			}
 			const data = Altitude.generatePlane(this.x, this.y, this.size);
 			this.buffer = gl.createBuffer();
 			this.vertCount = data.length / 5;
@@ -272463,7 +273423,7 @@ var init_MagicTarget = __esmMin((() => {
 		* @param {object} webgl context
 		*/
 		free(gl) {
-			gl.deleteBuffer(this.buffer);
+			if (this.buffer) gl.deleteBuffer(this.buffer);
 			this.ready = false;
 		}
 		/**
@@ -272472,13 +273432,19 @@ var init_MagicTarget = __esmMin((() => {
 		* @param {object} wegl context
 		*/
 		render(gl, tick) {
+			this.needCleanUp = this.endTick < tick;
+			if (!this.vertCount) return;
 			const attribute = _program$8.attribute;
+			const angle = spinAngle(Math.max(0, Math.floor((tick - this.startTick) / PRIM_TICK_MS)), this.size);
+			mat4$5.identity(this.matrix);
+			mat4$5.rotateZ(this.matrix, this.matrix, angle);
+			gl.uniformMatrix4fv(_program$8.uniform.uRotationMat, false, this.matrix);
+			gl.uniform1f(_program$8.uniform.uAlpha, targetAlpha(angle) / 255);
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 			gl.uniform1f(_program$8.uniform.uCameraLatitude, Camera.getLatitude());
 			gl.vertexAttribPointer(attribute.aPosition, 3, gl.FLOAT, false, 20, 0);
 			gl.vertexAttribPointer(attribute.aTextureCoord, 2, gl.FLOAT, false, 20, 12);
 			gl.drawArrays(gl.TRIANGLES, 0, this.vertCount);
-			this.needCleanUp = this.endTick < tick;
 		}
 		/**
 		* Initialize effect
@@ -272523,12 +273489,9 @@ var init_MagicTarget = __esmMin((() => {
 		static beforeRender(gl, modelView, projection, fog, tick) {
 			const uniform = _program$8.uniform;
 			const attribute = _program$8.attribute;
-			mat4$5.identity(_matrix$1);
-			mat4$5.rotateZ(_matrix$1, _matrix$1, tick / 1e3 * 40 / 180 * Math.PI);
 			gl.useProgram(_program$8);
 			gl.uniformMatrix4fv(uniform.uModelViewMat, false, modelView);
 			gl.uniformMatrix4fv(uniform.uProjectionMat, false, projection);
-			gl.uniformMatrix4fv(uniform.uRotationMat, false, _matrix$1);
 			gl.uniform1i(uniform.uFogUse, fog.use && fog.exist);
 			gl.uniform1f(uniform.uFogNear, fog.near);
 			gl.uniform1f(uniform.uFogFar, fog.far);
@@ -274450,6 +275413,277 @@ var init_CastRing = __esmMin((() => {
 		}
 	};
 }));
+// src/Renderer/Effects/EndureSim.js
+/**
+* Alpha (0-254) after k ticks of a prim's life.
+*
+* @param {number} k
+* @param {number} life
+* @return {number}
+*/
+function primAlpha(k, life) {
+	const fadeStart = life - Math.floor(life / 3);
+	const rise = (alpha) => Math.min(ENDURE.alphaMax / ENDURE.fadeIn * alpha, ENDURE.alphaMax);
+	if (k < fadeStart) return rise(k);
+	return Math.max(rise(fadeStart) * (life - k) / (life - fadeStart), 0);
+}
+/**
+* Half size of endure.tga after k ticks.
+*
+* @param {number} k
+* @return {number}
+*/
+function ringHalfSize(k) {
+	const { half, speed, shrinkTicks } = ENDURE.ring;
+	const n = Math.min(k, shrinkTicks);
+	const accel = -speed / shrinkTicks;
+	return half + speed * n + accel * n * (n + 1) / 2;
+}
+/**
+* endure.tga `age` ticks after the effect started, or null outside its life.
+*
+* @param {number} age
+* @return {?object} { offsetX, offsetY, sizeX, sizeY, alpha 0-254, angle }
+*/
+function ringAt(age) {
+	const k = Math.floor(age);
+	if (k < 0 || k >= ENDURE.life) return null;
+	const size = ringHalfSize(k) * 2;
+	return {
+		offsetX: 0,
+		offsetY: -ENDURE.lift,
+		sizeX: size,
+		sizeY: size,
+		alpha: primAlpha(k, ENDURE.life),
+		angle: 0
+	};
+}
+/**
+* The streaks that show (born on ticks 0-41).
+*
+* @param {function} [random] returns a number in [0, 1)
+* @return {Array<object>} { spawn, angle, dist, halfWidth, halfLength }
+*/
+function planStreaks(random = Math.random) {
+	const streaks = [];
+	for (let spawn = 0; spawn < ENDURE.streak.ticks; spawn++) {
+		const streak = {
+			spawn,
+			angle: r(random, 360),
+			dist: 100 + r(random, 40),
+			halfWidth: (60 + r(random, 100)) / 100,
+			halfLength: 30 + r(random, 20)
+		};
+		if (spawn + ENDURE.streak.life <= ENDURE.life + 1) streaks.push(streak);
+	}
+	return streaks;
+}
+/**
+* Distance a streak has slid back after k ticks.
+*
+* @param {number} k
+* @return {number}
+*/
+function streakSlide(k) {
+	const { speed, accel } = ENDURE.streak;
+	return -(speed * k + accel * k * (k + 1) / 2);
+}
+/**
+* A streak `age` ticks after its spawn, or null outside its life.
+*
+* @param {object} streak from planStreaks
+* @param {number} age
+* @return {?object} { offsetX, offsetY, sizeX, sizeY, alpha 0-254, angle }
+*/
+function streakAt(streak, age) {
+	const k = Math.floor(age);
+	if (k < 0 || k >= ENDURE.streak.life) return null;
+	const dist = streak.dist - streakSlide(k);
+	return {
+		offsetX: Math.sin(rad(streak.angle)) * dist,
+		offsetY: -Math.cos(rad(streak.angle)) * dist - ENDURE.lift,
+		sizeX: streak.halfWidth * 2,
+		sizeY: streak.halfLength * 2,
+		alpha: primAlpha(k, ENDURE.streak.life),
+		angle: streak.angle
+	};
+}
+var ENDURE, r, rad;
+var init_EndureSim = __esmMin((() => {
+	ENDURE = {
+		life: 80,
+		lift: 20,
+		alphaMax: 254,
+		fadeIn: 20,
+		ring: {
+			half: 150,
+			speed: -5,
+			shrinkTicks: 45
+		},
+		streak: {
+			ticks: 50,
+			life: 40,
+			speed: -4,
+			accel: .1
+		}
+	};
+	r = (random, k) => Math.floor(random() * k);
+	rad = (deg) => deg * Math.PI / 180;
+}));
+// src/DB/Effects/EndureEffect.js
+/**
+* A 3D row drawing one prim on the caster from a sampler.
+*
+* @param {string} file texture
+* @param {number} life ticks
+* @param {function} at age -> sample in client numbers, or null
+* @return {object}
+*/
+function primEffect(file, life, at) {
+	return {
+		type: "3D",
+		file,
+		sharedTexture: true,
+		alphaMax: 1,
+		attachedEntity: true,
+		duration: life * PRIM_TICK_MS,
+		zIndex: 10,
+		track(age) {
+			const p = at(age);
+			if (!p) return null;
+			return {
+				x: 0,
+				y: 0,
+				z: 0,
+				offsetX: p.offsetX,
+				offsetY: p.offsetY,
+				sizeX: p.sizeX,
+				sizeY: p.sizeY,
+				alpha: p.alpha / 255,
+				angle: p.angle
+			};
+		}
+	};
+}
+/**
+* The row of one streak. It starts on the streak's own tick.
+*
+* @param {object} streak from planStreaks
+* @return {object}
+*/
+function endureStreakEffect(streak) {
+	return primEffect("effect/alpha_down.tga", ENDURE.streak.life, (age) => streakAt(streak, age));
+}
+var endureRingEffect, endureEffect;
+var init_EndureEffect = __esmMin((() => {
+	init_EffectPrimSim();
+	init_EndureSim();
+	endureRingEffect = primEffect("effect/endure.tga", ENDURE.life, ringAt);
+	endureEffect = [{
+		...endureRingEffect,
+		wav: "effect/ef_endure"
+	}, {
+		type: "FUNC",
+		attachedEntity: true,
+		func: function(Params) {
+			planStreaks().forEach((streak, i) => {
+				this.spamEffect({
+					effect: endureStreakEffect(streak),
+					Inst: {
+						effectID: 11,
+						duplicateID: i + 1,
+						startTick: Params.Inst.startTick + streak.spawn * PRIM_TICK_MS
+					},
+					Init: Params.Init
+				});
+			});
+		}
+	}];
+}));
+// src/DB/Effects/ArrowShowerEffects.js
+/**
+* One arrow from the caster (the effect's other entity) to its owner's
+* position plus a cell offset.
+* @param {number[]} offset [x, y] in cells
+*/
+function arrow(offset) {
+	return {
+		type: "3D",
+		alphaMax: 1,
+		angle: 180,
+		attachedEntity: false,
+		delayStart: 432,
+		duration: 192,
+		absoluteSpriteName: "data/sprite/npc/skel_archer_arrow",
+		toSrc: true,
+		endCellOffset: offset,
+		rotateToTarget: true,
+		rotateWithCamera: true,
+		size: 100,
+		zOffset: 2,
+		zOffsetEnd: 2,
+		zIndex: 1
+	};
+}
+/** EffectTable rows. */
+function arrowShowerEffects() {
+	return { ef_arrow_shower_target: [arrow([0, 0]), ...NEIGHBOUR_CELLS.map(arrow)] };
+}
+var NEIGHBOUR_CELLS;
+var init_ArrowShowerEffects = __esmMin((() => {
+	NEIGHBOUR_CELLS = [
+		[1, 0],
+		[1, 1],
+		[1, -1],
+		[-1, 0],
+		[-1, 1],
+		[-1, -1],
+		[0, 1],
+		[0, -1]
+	];
+}));
+// src/Renderer/Effects/ArrowFlight.js
+/**
+* Flight time of an arrow.
+*
+* @param {number} cells distance from start to end, in cells
+* @return {number} ms
+*/
+function arrowFlightMs(cells) {
+	const units = Math.max(cells, 0) * UNITS_PER_CELL;
+	return 192 * Math.min(1, units / MIN_SPEED_DISTANCE);
+}
+/**
+* Flight time between two positions ([x, y, z] in cells). At least 1 ms: the client drops a
+* zero-length arrow at once, and a zero duration would mean an endless effect here.
+*
+* @param {number[]} from
+* @param {number[]} to
+* @return {number} ms
+*/
+function arrowFlightBetween(from, to) {
+	if (!from || !to) return 192;
+	return Math.max(arrowFlightMs(Math.hypot(to[0] - from[0], to[1] - from[1], (to[2] || 0) - (from[2] || 0))), 1);
+}
+/**
+* When a player's bow attack releases its arrow, and when the hit lands.
+*
+* @param {number} hitFrame the attack motion's hit frame
+* @param {number} motionSpeed the attack motion's speed factor
+* @return {{ releaseMs: number, hitMs: number }} ms after the attack starts
+*/
+function bowAttackTiming(hitFrame, motionSpeed) {
+	const releaseMs = hitFrame * motionSpeed * 24;
+	return {
+		releaseMs,
+		hitMs: releaseMs + 192
+	};
+}
+var MIN_SPEED_DISTANCE, UNITS_PER_CELL;
+var init_ArrowFlight = __esmMin((() => {
+	MIN_SPEED_DISTANCE = 40;
+	UNITS_PER_CELL = 5;
+}));
 // src/Renderer/Effects/CastFunnelSim.js
 /**
 * A band's alpha (out of 255) on tick `t` (1 on the first). Every band is the same.
@@ -275509,6 +276743,9 @@ var init_EffectTable = __esmMin((() => {
 	init_CastCone();
 	init_CastCircle();
 	init_CastRing();
+	init_EndureEffect();
+	init_ArrowShowerEffects();
+	init_ArrowFlight();
 	init_CastFunnel();
 	init_CasterMarks();
 	init_RotateLine();
@@ -276023,21 +277260,7 @@ var init_EffectTable = __esmMin((() => {
 			wav: "effect/ef_coin2",
 			attachedEntity: true
 		}],
-		11: [{
-			type: "3D",
-			alphaMax: 1,
-			attachedEntity: true,
-			duration: 1e3,
-			fadeIn: true,
-			fadeOut: true,
-			file: "effect/endure.tga",
-			posz: 2,
-			sizeEnd: 70,
-			sizeSmooth: true,
-			sizeStart: 200,
-			wav: "effect/ef_endure",
-			zIndex: 10
-		}],
+		11: [...endureEffect],
 		12: [{
 			type: "CYLINDER",
 			alphaMax: .8,
@@ -277608,7 +278831,11 @@ var init_EffectTable = __esmMin((() => {
 			type: "STR",
 			file: "provoke",
 			wav: "effect/swordman_provoke",
+			delayWav: 83,
 			attachedEntity: true
+		}, {
+			wav: "effect/swordman_provoke",
+			delayWav: 500
 		}],
 		68: [{
 			type: "STR",
@@ -280377,13 +281604,22 @@ var init_EffectTable = __esmMin((() => {
 		}],
 		309: [{
 			type: "2D",
-			alphaMax: .2,
+			alphaMax: 80 / 255,
 			blendMode: 2,
 			file: "effect/pikapika2.bmp",
-			fadeOut: true,
-			duration: 1e3,
-			size: 100,
-			posz: 2,
+			red: 150 / 255,
+			green: 150 / 255,
+			blue: 250 / 255,
+			angleRand: [0, 359],
+			fadeInMs: 20 * (1e3 / 60),
+			fadeOutStartMs: 100 * (1e3 / 60),
+			duration: 3e3,
+			size: 140,
+			sizePulse: {
+				amount: .05,
+				degPerTick: 3
+			},
+			posz: 2.4,
 			wav: "_heal_effect"
 		}],
 		ef_hn_doublebowlingbash: [{
@@ -284123,7 +285359,7 @@ var init_EffectTable = __esmMin((() => {
 			type: "FUNC",
 			attachedEntity: false,
 			func: function(Params) {
-				this.add(new MagicTarget(Params.Init.skillId, Params.Init.position[0], Params.Init.position[1], Params.Inst.endTick, Params.Init.otherEntity), Params);
+				this.add(new MagicTarget(Params.Init.skillId, Params.Init.position[0], Params.Init.position[1], Params.Inst.endTick, Params.Init.otherEntity, Params.Inst.startTick), Params);
 			}
 		}],
 		515: [{
@@ -291270,7 +292506,7 @@ var init_EffectTable = __esmMin((() => {
 			alphaMax: 1,
 			angle: 180,
 			attachedEntity: true,
-			duration: 140,
+			duration: (Params) => arrowFlightBetween(Params.Inst.otherPosition, Params.Inst.position),
 			fadeIn: true,
 			fadeOut: true,
 			absoluteSpriteName: "data/sprite/npc/skel_archer_arrow",
@@ -291493,26 +292729,7 @@ var init_EffectTable = __esmMin((() => {
 			texturePath: "abyss_chaser/abc_abyss_flame/abyss_flame_hit/",
 			min: "abyss_chaser/abc_abyss_flame/abyss_flame_hit/min_abyss_flame_hit"
 		}],
-		ef_arrow_shower_projectile: [{
-			type: "3D",
-			alphaMax: 1,
-			angle: 180,
-			attachedEntity: false,
-			duration: 140,
-			duplicate: 10,
-			timeBetweenDupli: 0,
-			fadeIn: true,
-			fadeOut: true,
-			absoluteSpriteName: "data/sprite/npc/skel_archer_arrow",
-			toSrc: true,
-			rotateToTarget: true,
-			rotateWithCamera: true,
-			size: 100,
-			zOffset: 1,
-			zIndex: 1,
-			posxEndRand: 1.5,
-			posyEndRand: 1.5
-		}],
+		...arrowShowerEffects(),
 		ef_wh_wind_sign: [{
 			type: "STR",
 			file: "windsign/windsign/windsign",
@@ -293191,7 +294408,8 @@ var init_EffectTable = __esmMin((() => {
 		ef_nv_helpangel: [{
 			type: "STR",
 			file: "help_angel/help_angel/help_angel",
-			texturePath: "help_angel/help_angel/"
+			texturePath: "help_angel/help_angel/",
+			wav: "effect/priest_sanctuary"
 		}, {
 			type: "STR",
 			file: "help_angel/help_angel_bottom/help_angel_bottom",
@@ -312682,6 +313900,18 @@ var init_wasmoon_lua5_1 = __esmMin((() => {
 }));
 // src/DB/DBManager.js
 var DBManager_exports = /* @__PURE__ */ __exportAll({ default: () => DB });
+/**
+* Put a loaded navigation table in place of the last one. The arrays are
+* kept, since callers hold them, and emptied first: a client loaded after a
+* server switch may be another archive, with a shorter table or none.
+*
+* @param {Array} table
+* @param {Array|Object|null} json
+*/
+function fillNaviTable(table, json) {
+	table.length = 0;
+	if (json) Object.assign(table, json);
+}
 async function startLua() {
 	LuaModuleLoader.clearCache();
 	const wasmUrl = (await __vitePreload(async () => {
@@ -313432,6 +314662,46 @@ function loadTownInfoFile(filename, callback, onEnd) {
 			onEnd();
 		}
 	}, onEnd);
+}
+/**
+* Loads System/PrivateAirplane_True.lub into DB/Map/PrivateAirship.js
+*
+* @param {string} filename
+* @param {function} callback - unused
+* @param {function} onEnd - called with whether the file was read
+*/
+function loadPrivateAirship(filename, callback, onEnd) {
+	Client.loadFile(filename, async function(file) {
+		console.log("Loading file \"" + filename + "\"...");
+		let success = false;
+		try {
+			const buffer = file instanceof ArrayBuffer ? new Uint8Array(file) : file;
+			const ctx = lua.ctx;
+			PrivateAirship$1.reset();
+			ctx.InsertStartableMap = (mapName) => {
+				PrivateAirship$1.addStartableMap(userStringDecoder.decode(mapName));
+				return 1;
+			};
+			ctx.InsertEndableMap = (mapName) => {
+				PrivateAirship$1.addEndableMap(userStringDecoder.decode(mapName));
+				return 1;
+			};
+			ctx.InsertNeedItem = (itemId) => {
+				PrivateAirship$1.addNeedItem(itemId);
+				return 1;
+			};
+			lua.mountFile(filename, buffer);
+			await lua.doFile(filename);
+			lua.doStringSync("main()");
+			success = PrivateAirship$1.isLoaded();
+		} catch (error) {
+			console.error("[loadPrivateAirship] Error: ", error);
+			PrivateAirship$1.reset();
+		} finally {
+			lua.unmountFile(filename);
+			onEnd(success);
+		}
+	}, () => onEnd(false));
 }
 function loadQuestInfo(filename, callback, onEnd) {
 	new Promise((resolve, reject) => {
@@ -315115,15 +316385,19 @@ function loadLuaValue(file_path, variable_name, callback, onEnd) {
 								elseif type(value) == "string" then
 									return "\"" .. escape_str(value) .. "\""
 								elseif type(value) == "table" then
+									-- pairs() visits keys in no set order, so count them rather than
+									-- expect 1, 2, 3...: an array is keys 1..n with none missing
 									local is_array = true
-									local index = 1
+									local count, highest = 0, 0
 									for k, _ in pairs(value) do
-										if type(k) ~= "number" or k ~= index then
+										if type(k) ~= "number" or k < 1 or k % 1 ~= 0 then
 											is_array = false
 											break
 										end
-										index = index + 1
+										count = count + 1
+										highest = math.max(highest, k)
 									end
+									is_array = is_array and count == highest
 
 									local result = {}
 									if is_array then
@@ -315480,6 +316754,7 @@ var init_DBManager = __esmMin((() => {
 	init_JobHitSoundTable();
 	init_WeaponTrailTable();
 	init_TownInfo();
+	init_PrivateAirship$3();
 	init_StatusInfo();
 	init_StatusConst();
 	init_StatusEffectTable();
@@ -315520,12 +316795,12 @@ var init_DBManager = __esmMin((() => {
 	EnchantListTable = {};
 	SignBoardTranslatedTable = {};
 	SignBoardTable = {};
-	NaviMapTable = {};
-	NaviMobTable = {};
-	NaviNpcTable = {};
-	NaviLinkTable = {};
-	NaviLinkDistanceTable = {};
-	NaviNpcDistanceTable = {};
+	NaviMapTable = [];
+	NaviMobTable = [];
+	NaviNpcTable = [];
+	NaviLinkTable = [];
+	NaviLinkDistanceTable = [];
+	NaviNpcDistanceTable = [];
 	QuestInfo = {};
 	TitleTable = {};
 	PetDBTable = {};
@@ -315586,6 +316861,14 @@ var init_DBManager = __esmMin((() => {
 			mountPalettes = void 0;
 			if (mountPalettesProbe) mountPalettesProbe.stale = true;
 			else MemoryManager.remove(null, DB.getBodyPalPath(JobConst_default.PIG_CREATOR, 1, 0));
+			for (const table of [
+				NaviMapTable,
+				NaviMobTable,
+				NaviNpcTable,
+				NaviLinkTable,
+				NaviLinkDistanceTable,
+				NaviNpcDistanceTable
+			]) table.length = 0;
 			let index = 0, count = 0;
 			function onLoad() {
 				count++;
@@ -315692,22 +316975,22 @@ var init_DBManager = __esmMin((() => {
 				loadStateIconInfo(DB.LUA_PATH + "stateicon/", null, onLoad());
 				if (PacketVerManager_default.value >= 20111010) {
 					loadLuaValue(DB.LUA_PATH + "navigation/navi_map_krpri.lub", "Navi_Map", function(json) {
-						Object.assign(NaviMapTable, json);
+						fillNaviTable(NaviMapTable, json);
 					}, onLoad());
 					loadLuaValue(DB.LUA_PATH + "navigation/navi_mob_krpri.lub", "Navi_Mob", function(json) {
-						Object.assign(NaviMobTable, json);
+						fillNaviTable(NaviMobTable, json);
 					}, onLoad());
 					loadLuaValue(DB.LUA_PATH + "navigation/navi_npc_krpri.lub", "Navi_Npc", function(json) {
-						Object.assign(NaviNpcTable, json);
+						fillNaviTable(NaviNpcTable, json);
 					}, onLoad());
 					loadLuaValue(DB.LUA_PATH + "navigation/navi_link_krpri.lub", "Navi_Link", function(json) {
-						Object.assign(NaviLinkTable, json);
+						fillNaviTable(NaviLinkTable, json);
 					}, onLoad());
 					loadLuaValue(DB.LUA_PATH + "navigation/navi_linkdistance_krpri.lub", "Navi_Distance", function(json) {
-						Object.assign(NaviLinkDistanceTable, json);
+						fillNaviTable(NaviLinkDistanceTable, json);
 					}, onLoad());
 					loadLuaValue(DB.LUA_PATH + "navigation/navi_npcdistance_krpri.lub", "Navi_NpcDistance", function(json) {
-						Object.assign(NaviNpcDistanceTable, json);
+						fillNaviTable(NaviNpcDistanceTable, json);
 					}, onLoad());
 				}
 				if (PacketVerManager_default.value >= 20150507) loadHatEffectInfo(onLoad());
@@ -315761,6 +317044,8 @@ var init_DBManager = __esmMin((() => {
 			}
 			if (PacketVerManager_default.value >= 20150422) loadMoveInfoTable(onLoad());
 			loadWorldMapInfo(DB.LUA_PATH + "worldviewdata/", onLoad());
+			PrivateAirship$1.reset();
+			if (PacketVerManager_default.value >= 20180321) tryLoadLuaAliases(loadPrivateAirship, ["System/PrivateAirplane_True.lub", ...getSystemAliases("System/PrivateAirplane.lub")], null, onLoad());
 			const onTownInfoEnd = onLoad();
 			loadTownInfoFile("System/Towninfo.lub", null, () => {
 				loadTownInfoFile("SystemEN/Towninfo.lub", null, onTownInfoEnd);
@@ -318966,11 +320251,11 @@ function onText(message) {
 * Another remote client of the hall plays this character here: 'Control' in its context menu
 *
 * @param {string} name - a character on the map
-* @return {?object} the bot's hall row, null for anyone else and for this window's own bot
+* @return {?object} the bot's hall row, null for anyone else, for this window's own bot, and in a camera tile
 * @see docs/reference/network/remote-bot.md
 */
 function controllable(name) {
-	if (!RemoteBot.isActive() || name === SessionStorage_default.Entity.display.name) return null;
+	if (!RemoteBot.isActive() || CameraTile.active || name === SessionStorage_default.Entity.display.name) return null;
 	return BotHall.playing(name, MapRenderer.currentMap.replace(/\.[^.]*$/, ""));
 }
 /**
@@ -319016,6 +320301,7 @@ var CONTROL_FAILURES, _opening$1, _added, _log;
 var init_RemoteBotChat = __esmMin((() => {
 	init_RemoteBot();
 	init_BotHall();
+	init_CameraTile();
 	init_SessionStorage();
 	init_MapRenderer();
 	init_ProcessCommand();
@@ -321585,8 +322871,8 @@ function WalkStructure() {
 	this.tick = 0;
 	this.prevTick = 0;
 	this.dist = 0;
-	this.path = new Int16Array(PathFinding_default.MAX_WALKPATH * 2);
-	this.segmentDurations = new Float32Array(PathFinding_default.MAX_WALKPATH);
+	this.path = new Int16Array((PathFinding_default.MAX_WALKPATH + 1) * 2);
+	this.segmentDurations = new Float32Array(PathFinding_default.MAX_WALKPATH + 1);
 	this.pos = /* @__PURE__ */ new Float32Array(3);
 	this.lastPos = /* @__PURE__ */ new Float32Array(3);
 	this.onEnd = null;
@@ -321629,87 +322915,71 @@ function walkToNonWalkableGround(from_x, from_y, to_x, to_y, range, isOverShoot 
 		to_x = OverShootPosition[0];
 		to_y = OverShootPosition[1];
 	}
-	if (from_x === to_x && from_y === to_y) return;
-	const path = this.walk.path;
-	let total = 0;
-	const result = PathFinding_default.searchLongIgnoreCellType(from_x | 0, from_y | 0, to_x | 0, to_y | 0, range || 0, path, true);
-	if (result.success) total = result.pathLength + 1;
-	this.walk.index = 2;
-	this.walk.total = total * 2;
-	if (total > 0) {
-		this.walk.pos.set(this.position);
-		const numSegments = total - 1;
-		for (let i = 0; i < numSegments; i++) {
-			const pIdx = (i + 1) * 2;
-			const segDx = path[pIdx] - (i === 0 ? this.position[0] : path[pIdx - 2]);
-			const segDy = path[pIdx + 1] - (i === 0 ? this.position[1] : path[pIdx - 1]);
-			const segDist = Math.hypot(segDx, segDy);
-			this.walk.segmentDurations[i] = segDist * this.walk.speed;
+	if (from_x === to_x && from_y === to_y && !isAttacking) return;
+	if (from_x !== to_x || from_y !== to_y) {
+		const path = this.walk.path;
+		let total = 0;
+		const result = PathFinding_default.searchLongIgnoreCellType(from_x | 0, from_y | 0, to_x | 0, to_y | 0, range || 0, path, true);
+		if (result.success) total = result.pathLength + 1;
+		this.walk.index = 2;
+		this.walk.total = total * 2;
+		if (total > 0) {
+			this.walk.pos.set(this.position);
+			const numSegments = total - 1;
+			for (let i = 0; i < numSegments; i++) {
+				const pIdx = (i + 1) * 2;
+				const segDx = path[pIdx] - (i === 0 ? this.position[0] : path[pIdx - 2]);
+				const segDy = path[pIdx + 1] - (i === 0 ? this.position[1] : path[pIdx - 1]);
+				const segDist = Math.hypot(segDx, segDy);
+				this.walk.segmentDurations[i] = segDist * this.walk.speed;
+			}
+			const nowTick = Date.now();
+			const pathDuration = estimatePathDuration(this.walk.path, this.walk.total, this.walk.speed, this.position);
+			const startTick = computeWalkStartTick(nowTick, moveStartTime, pathDuration, this.objecttype === this.constructor.TYPE_PC || this.objecttype === this.constructor.TYPE_DISGUISED || this.objecttype === this.constructor.TYPE_PET || this.objecttype === this.constructor.TYPE_HOM || this.objecttype === this.constructor.TYPE_MERC ? pathDuration : Math.min(pathDuration, this.walk.speed));
+			this.walk.tick = this.walk.prevTick = startTick;
+			if (!hadRoute) this.walk.dist = 0;
+			this.walk.lastPos.set(this.position);
+			if (this.walk.total >= 2) {
+				const firstX0 = this.walk.path[2];
+				const firstY0 = this.walk.path[3];
+				const initDir0 = offsetToFloatDir(firstX0 - this.position[0], firstY0 - this.position[1]);
+				this.direction = quantizeDir(initDir0);
+			}
 		}
-		const nowTick = Date.now();
-		const pathDuration = estimatePathDuration(this.walk.path, this.walk.total, this.walk.speed, this.position);
-		const startTick = computeWalkStartTick(nowTick, moveStartTime, pathDuration, this.objecttype === this.constructor.TYPE_PC || this.objecttype === this.constructor.TYPE_DISGUISED || this.objecttype === this.constructor.TYPE_PET || this.objecttype === this.constructor.TYPE_HOM || this.objecttype === this.constructor.TYPE_MERC ? pathDuration : Math.min(pathDuration, this.walk.speed));
-		this.walk.tick = this.walk.prevTick = startTick;
-		if (!hadRoute) this.walk.dist = 0;
-		this.walk.lastPos.set(this.position);
-		if (this.walk.total >= 2) {
-			const firstX0 = this.walk.path[2];
-			const firstY0 = this.walk.path[3];
-			const initDir0 = offsetToFloatDir(firstX0 - this.position[0], firstY0 - this.position[1]);
-			this.direction = quantizeDir(initDir0);
-		}
-		let action = this.ACTION.WALK;
-		if (this.objecttype === this.constructor.TYPE_FALCON && !isAttacking) action = this.ACTION.IDLE;
-		if (this.objecttype == this.constructor.TYPE_WUG && isAttacking) {
-			this.setAction({
-				action: this.ACTION.WALK,
-				frame: 0,
-				repeat: true,
-				play: true,
-				next: {
-					delay: Date.now() + 200,
-					action: this.ACTION.ATTACK,
-					frame: 0,
-					repeat: false,
-					play: true,
-					next: {
-						delay: Date.now() + 432,
-						action: this.ACTION.IDLE,
-						frame: 0,
-						repeat: true,
-						play: true,
-						next: false
-					}
-				}
-			});
-			setTimeout(() => {
-				this.walkToNonWalkableGround(this.position[0], this.position[1], this._followTargetX, this._followTargetY, 0, false, false);
-			}, 632);
-		} else if (this.objecttype == this.constructor.TYPE_FALCON && isAttacking) {
-			this.setAction({
-				action: this.ACTION.WALK,
-				frame: 0,
-				repeat: true,
-				play: true,
-				next: {
-					delay: Date.now() + 432,
-					action: this.ACTION.IDLE,
-					frame: 0,
-					repeat: false,
-					play: true,
-					next: false
-				}
-			});
-			setTimeout(() => {
-				this.walkToNonWalkableGround(this.position[0], this.position[1], this._followTargetX, this._followTargetY, 0, false, false);
-			}, 432);
-		} else if (this.action !== action) this.setAction({
-			action,
+	}
+	if (from_x === to_x && from_y === to_y && this.objecttype === this.constructor.TYPE_FALCON && isAttacking) this.walkToNonWalkableGround(this.position[0], this.position[1], this._followTargetX + (Math.random() > .5 ? 2 : -2), this._followTargetY + (Math.random() > .5 ? 2 : -2), 0, false, false);
+	let action = this.ACTION.WALK;
+	if (this.objecttype === this.constructor.TYPE_FALCON && !isAttacking) action = this.ACTION.IDLE;
+	if (this.objecttype == this.constructor.TYPE_WUG && isAttacking) {
+		if (from_x !== to_x || from_y !== to_y) this.setAction({
+			action: this.ACTION.WALK,
+			frame: 0,
+			repeat: false,
+			play: true,
+			next: false
+		});
+		else this.setAction({
+			action: this.ACTION.ATTACK,
+			frame: 0,
+			repeat: true,
+			play: true,
+			next: false
+		});
+		scheduleCompanionReturn(this, from_x !== to_x || from_y !== to_y ? estimatePathDuration(this.walk.path, this.walk.total, this.walk.speed, this.position) + 432 : 432);
+	} else if (this.objecttype == this.constructor.TYPE_FALCON && isAttacking) {
+		if (from_x !== to_x || from_y !== to_y) this.setAction({
+			action: this.ACTION.WALK,
 			frame: 0,
 			repeat: true,
 			play: true
 		});
-	}
+		scheduleCompanionReturn(this, from_x !== to_x || from_y !== to_y ? estimatePathDuration(this.walk.path, this.walk.total, this.walk.speed, this.position) + 432 : 432);
+	} else if (this.action !== action) this.setAction({
+		action,
+		frame: 0,
+		repeat: true,
+		play: true
+	});
 }
 /**
 * Want to move to a cell
@@ -322043,6 +323313,21 @@ function walkProcess() {
 		return;
 	}
 }
+function scheduleCompanionReturn(entity, delay) {
+	if (entity._returnTimer) clearTimeout(entity._returnTimer);
+	entity._returnTimer = setTimeout(() => {
+		entity._returnTimer = null;
+		entity.setAction({
+			action: entity.ACTION.IDLE,
+			frame: 0,
+			repeat: true,
+			play: true,
+			next: false
+		});
+		entity.walkToNonWalkableGround(entity.position[0], entity.position[1], entity._followTargetX, entity._followTargetY, 1, false, false);
+		entity.isAttacking = false;
+	}, delay);
+}
 function entitiesWalkProcess() {
 	const ownerCellX = this.position[0];
 	const ownerCellY = this.position[1];
@@ -322109,7 +323394,8 @@ function entitiesWalkProcess() {
 			this.wug._followTargetX = ownerCellX;
 			this.wug._followTargetY = ownerCellY;
 			this.wug.walk.lastWalkTick = Date.now();
-			this.wug.walkToNonWalkableGround(this.wug.position[0], this.wug.position[1], ownerCellX, ownerCellY, 3, false, false, Date.now());
+			this.wug.walkTo(this.wug.position[0], this.wug.position[1], ownerCellX, ownerCellY, 3, Date.now());
+			if (!this.wug.walk.total) this.wug.walkToNonWalkableGround(this.wug.position[0], this.wug.position[1], ownerCellX, ownerCellY, 3, false, false, Date.now());
 		}
 	}
 }
@@ -322799,6 +324085,7 @@ var init_EntityRender = __esmMin((() => {
 						EntityComposer.end();
 					});
 					break;
+				case Entity.TYPE_WUG:
 				case Entity.TYPE_HOM:
 					SpriteRenderer.position[2] = SpriteRenderer.position[2] + .2;
 					SpriteRenderer.zIndex = 150;
@@ -324260,6 +325547,12 @@ var init_Entity$1 = __esmMin((() => {
 				case "level":
 					this.clevel = unit.level;
 					break;
+				case "_followTargetX":
+					this._followTargetX = unit._followTargetX;
+					break;
+				case "_followTargetY":
+					this._followTargetY = unit._followTargetY;
+					break;
 				default: if (Entity.prototype.hasOwnProperty(keys[i]) || Entity.prototype.hasOwnProperty(`_${keys[i]}`)) this[keys[i]] = unit[keys[i]];
 			}
 			if (this.life.hp > -1 && this.life.hp_max > -1) {
@@ -324291,6 +325584,7 @@ var init_Entity$1 = __esmMin((() => {
 			this.owner = null;
 			this.falcon = null;
 			this.wug = null;
+			if (this._returnTimer) clearTimeout(this._returnTimer);
 			this.GID = -1;
 		}
 		/**
@@ -324300,6 +325594,10 @@ var init_Entity$1 = __esmMin((() => {
 		* @return {boolean} removed immediatly ?
 		*/
 		remove(type) {
+			const is_pc = this.objecttype === Entity.TYPE_PC;
+			const is_falcon = this.objecttype === Entity.TYPE_FALCON;
+			const is_wug = this.objecttype === Entity.TYPE_WUG;
+			const is_cart = this.objecttype === Entity.TYPE_CART;
 			if (this.cart) {
 				if (type === Entity.VT.DEAD) {
 					const cart = this.cart;
@@ -324314,11 +325612,7 @@ var init_Entity$1 = __esmMin((() => {
 					this.remove_tick = +Date.now();
 					this.remove_delay = 1e3;
 					break;
-				case Entity.VT.DEAD: {
-					const is_pc = this.objecttype === Entity.TYPE_PC;
-					const is_falcon = this.objecttype === Entity.TYPE_FALCON;
-					const is_wug = this.objecttype === Entity.TYPE_WUG;
-					const is_cart = this.objecttype === Entity.TYPE_CART;
+				case Entity.VT.DEAD:
 					if (!is_falcon && !is_cart) {
 						this.setAction({
 							action: this.ACTION.DIE,
@@ -324334,7 +325628,6 @@ var init_Entity$1 = __esmMin((() => {
 						}
 					}
 					break;
-				}
 				default:
 					this.clean();
 					this.remove_tick = Date.now();
@@ -340353,7 +341646,9 @@ function onEntitySpam(pkt) {
 			name: "",
 			hp: -1,
 			maxhp: -1,
-			hideShadow: true
+			hideShadow: true,
+			_followTargetX: entity.position[0],
+			_followTargetY: entity.position[1]
 		});
 		EntityManager.add(entity.falcon);
 	}
@@ -340371,7 +341666,9 @@ function onEntitySpam(pkt) {
 			speed: Math.max(entity.walk.speed - 50, 1),
 			name: "",
 			hp: -1,
-			maxhp: -1
+			maxhp: -1,
+			_followTargetX: entity.position[0],
+			_followTargetY: entity.position[1]
 		});
 		EntityManager.add(entity.wug);
 	}
@@ -340464,20 +341761,24 @@ function onEntityVanish(pkt) {
 					EffectManager.spam(EF_Init_Par);
 				}
 				if (entity.falcon) {
+					EntityManager.removeGID(entity.falcon.GID);
 					entity.falcon.remove(pkt.type);
 					entity.falcon = null;
 				}
 				if (entity.wug) {
+					EntityManager.removeGID(entity.wug.GID);
 					entity.wug.remove(pkt.type);
 					entity.wug = null;
 				}
 			case Entity.VT.OUTOFSIGHT:
 				EffectManager.remove(null, pkt.GID, null);
 				if (entity.falcon) {
+					EntityManager.removeGID(entity.falcon.GID);
 					entity.falcon.remove(pkt.type);
 					entity.falcon = null;
 				}
 				if (entity.wug) {
+					EntityManager.removeGID(entity.wug.GID);
 					entity.wug.remove(pkt.type);
 					entity.wug = null;
 				}
@@ -340667,13 +341968,14 @@ function onEntityAction(pkt) {
 				delayTime = m_attackMotion * m_motionSpeed * 24;
 				animSpeed = pkt.attackMT / m_attackMotion;
 				if (DB.isBow(DB.getWeaponType(srcEntity.weapon, true))) {
-					delayTime = (m_attackMotion + 8 / m_motionSpeed) * m_motionSpeed * 24;
-					pkt.attackMT += delayTime;
+					const bow = bowAttackTiming(m_attackMotion, m_motionSpeed);
+					delayTime = bow.hitMs;
+					pkt.attackMT = bow.hitMs;
 					const EF_Init_Par = {
 						effectId: "ef_arrow_projectile",
 						ownerAID: dstEntity.GID,
 						otherAID: srcEntity.GID,
-						startTick: Renderer.tick + pkt.attackMT,
+						startTick: Renderer.tick + bow.releaseMs,
 						otherPosition: srcEntity.position
 					};
 					EffectManager.spam(EF_Init_Par);
@@ -341257,7 +342559,7 @@ function onEntityUseSkillToAttack(pkt) {
 			const isCombo = target.objecttype !== Entity.TYPE_PC && pkt.count > 1;
 			const isBlueCombo = SkillBlueCombo.includes(pkt.SKID);
 			const addDamage = function(i, startTick) {
-				if (pkt.damage) EffectManager.spamSkillHit(pkt.SKID, pkt.targetID, startTick, pkt.AID);
+				if (pkt.damage) EffectManager.spamSkillHit(pkt.SKID, pkt.targetID, startTick, pkt.AID, i);
 				if (!isCombo && isBlueCombo) Damage.add(pkt.damage / pkt.count, target, startTick, srcWeapon, Damage.TYPE.COMBO_B | (i + 1 === pkt.count ? Damage.TYPE.COMBO_FINAL : 0));
 				else Damage.add(pkt.damage / pkt.count, target, startTick, srcWeapon);
 				if (isCombo) Damage.add(pkt.damage / pkt.count * (i + 1), target, startTick, srcWeapon, (isBlueCombo ? Damage.TYPE.COMBO_B : Damage.TYPE.COMBO) | (i + 1 === pkt.count ? Damage.TYPE.COMBO_FINAL : 0));
@@ -341273,6 +342575,7 @@ function onEntityUseSkillToAttack(pkt) {
 		}
 	}
 	EffectManager.spamSkillDamage(pkt.SKID, pkt.targetID, Renderer.tick, pkt.AID);
+	EffectManager.spamSkillMotion(pkt.SKID, pkt.AID, pkt.targetID, Renderer.tick, pkt.action, pkt.level, !!dstEntity);
 	if (srcEntity && dstEntity && pkt.action != SkillAction$1.SPLASH) {
 		EffectManager.spamSkillRelease(pkt.SKID, pkt.targetID, Renderer.tick, pkt.AID);
 		EffectManager.spamSkill(pkt.SKID, pkt.targetID, null, Renderer.tick + pkt.attackMT, pkt.AID);
@@ -341522,7 +342825,9 @@ function onEntityStatusChange(pkt) {
 					name: "",
 					hp: -1,
 					maxhp: -1,
-					hideShadow: true
+					hideShadow: true,
+					_followTargetX: entity.position[0],
+					_followTargetY: entity.position[1]
 				});
 				EntityManager.add(entity.falcon);
 			}
@@ -341840,11 +343145,13 @@ function onEntityOptionChange(pkt) {
 			name: "",
 			hp: -1,
 			maxhp: -1,
-			hideShadow: true
+			hideShadow: true,
+			_followTargetX: entity.position[0],
+			_followTargetY: entity.position[1]
 		});
 		EntityManager.add(entity.falcon);
 	} else if (entity.falcon && !(entity.effectState & StatusState_default.EffectState.FALCON)) {
-		entity.falcon.remove();
+		EntityManager.remove(entity.falcon.GID);
 		entity.falcon = null;
 	}
 	if (!entity.wug && entity.effectState & StatusState_default.EffectState.WUG) {
@@ -341861,11 +343168,13 @@ function onEntityOptionChange(pkt) {
 			speed: Math.max(entity.walk.speed - 50, 1),
 			name: "",
 			hp: -1,
-			maxhp: -1
+			maxhp: -1,
+			_followTargetX: entity.position[0],
+			_followTargetY: entity.position[1]
 		});
 		EntityManager.add(entity.wug);
 	} else if (entity.wug && !(entity.effectState & StatusState_default.EffectState.WUG)) {
-		entity.wug.remove();
+		EntityManager.remove(entity.wug.GID);
 		entity.wug = null;
 	}
 	let statusCartNum = 0;
@@ -342314,6 +343623,7 @@ var init_Entity = __esmMin((() => {
 	init_CartItems();
 	init_ScreenEffectManager();
 	init_StatusEffects();
+	init_ArrowFlight();
 	SkillNameDisplayExclude = [
 		SkillConst_default.TF_HIDING,
 		SkillConst_default.AS_CLOAKING,
@@ -345902,9 +347212,19 @@ function onSkillResult(pkt) {
 		case 13:
 			error = 1398;
 			break;
+		case 71:
+			error = 1536;
+			break;
 		case 83: error = 661;
 	}
-	if (error) ChatBox_default.addText(DB.getMessage(error), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.SKILL_FAIL);
+	if (error) {
+		if (pkt.itemId > 0 && pkt.NUM > 0 && error === 1536) {
+			const itemInfo = DB.getItemInfo(pkt.itemId);
+			const itemName = itemInfo.identifiedDisplayName || itemInfo.unidentifiedDisplayName || `Item ${pkt.itemId}`;
+			const msg = DB.getMessage(error).replace("%s", itemName).replace("%d", pkt.NUM || 1);
+			ChatBox_default.addText(msg, ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.SKILL_FAIL);
+		} else ChatBox_default.addText(DB.getMessage(error), ChatBox_default.TYPE.ERROR, ChatBox_default.FILTER.SKILL_FAIL);
+	}
 }
 /**
 * List of skills
@@ -349992,9 +351312,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "a503ff42575d7c71d94746c68a35c138841e86d5") {
+		if (!_buildShown && "22e1eec589c6ef87cbc486efbb82f3f4216c44dc") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"a503ff42575d7c71d94746c68a35c138841e86d5".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"22e1eec589c6ef87cbc486efbb82f3f4216c44dc".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -354044,14 +355364,29 @@ var init_WinList = __esmMin((() => {
 // src/UI/Components/RemoteCharacters/RemoteCharacters.html?raw
 var RemoteCharacters_default$2;
 var init_RemoteCharacters$2 = __esmMin((() => {
-	RemoteCharacters_default$2 = "<div id=\"RemoteCharacters\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/titlebar_left.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/titlebar_mid.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/titlebar_right.bmp\"></ui-image></div>\r\n		<span class=\"text\">Remote characters</span>\r\n	</div>\r\n	<div class=\"list\"></div>\r\n	<div class=\"footer\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/btnbar_left2.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/btnbar_mid2.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/btnbar_right2.bmp\"></ui-image></div>\r\n		<button\r\n			class=\"txt settings\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Settings\r\n		</button>\r\n		<button\r\n			class=\"txt login\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Normal login\r\n		</button>\r\n		<button\r\n			class=\"btn connect\"\r\n			type=\"button\"\r\n			data-background=\"login_interface/btn_connect.bmp\"\r\n			data-hover=\"login_interface/btn_connect_a.bmp\"\r\n			data-down=\"login_interface/btn_connect_b.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
+	RemoteCharacters_default$2 = "<div id=\"RemoteCharacters\">\r\n	<div class=\"titlebar\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/titlebar_left.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/titlebar_mid.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/titlebar_right.bmp\"></ui-image></div>\r\n		<span class=\"text\">Remote characters</span>\r\n	</div>\r\n	<input class=\"search\" type=\"text\" maxlength=\"32\" placeholder=\"Search an account or a character\" />\r\n	<div class=\"list\"></div>\r\n	<div class=\"footer\">\r\n		<div class=\"slice left\"><ui-image src=\"basic_interface/btnbar_left2.bmp\"></ui-image></div>\r\n		<div class=\"slice mid\"><ui-image src=\"basic_interface/btnbar_mid2.bmp\"></ui-image></div>\r\n		<div class=\"slice right\"><ui-image src=\"basic_interface/btnbar_right2.bmp\"></ui-image></div>\r\n		<button\r\n			class=\"txt settings\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Settings\r\n		</button>\r\n		<button\r\n			class=\"txt login\"\r\n			type=\"button\"\r\n			data-background=\"navigation_interface3/btn_normal.bmp\"\r\n			data-hover=\"navigation_interface3/btn_over.bmp\"\r\n			data-down=\"navigation_interface3/btn_press.bmp\"\r\n		>\r\n			Normal login\r\n		</button>\r\n		<button\r\n			class=\"btn connect\"\r\n			type=\"button\"\r\n			data-background=\"login_interface/btn_connect.bmp\"\r\n			data-hover=\"login_interface/btn_connect_a.bmp\"\r\n			data-down=\"login_interface/btn_connect_b.bmp\"\r\n		></button>\r\n	</div>\r\n</div>\r\n";
 }));
 // src/UI/Components/RemoteCharacters/RemoteCharacters.css?raw
 var RemoteCharacters_default$1;
 var init_RemoteCharacters$1 = __esmMin((() => {
-	RemoteCharacters_default$1 = ":host {\r\n	width: 280px;\r\n	height: 200px;\r\n}\r\n\r\n#RemoteCharacters {\r\n	position: relative;\r\n	width: 280px;\r\n	height: 200px;\r\n	background-color: white;\r\n	box-shadow: 0 0 0 1px #8c97a6;\r\n	color: black;\r\n	font-size: 12px;\r\n}\r\n\r\n#RemoteCharacters .slice {\r\n	position: absolute;\r\n	top: 0;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#RemoteCharacters .titlebar {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 280px;\r\n	height: 17px;\r\n}\r\n#RemoteCharacters .titlebar .slice {\r\n	width: 12px;\r\n	height: 17px;\r\n}\r\n#RemoteCharacters .titlebar .left {\r\n	left: 0;\r\n}\r\n#RemoteCharacters .titlebar .mid {\r\n	left: 12px;\r\n	width: 256px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteCharacters .titlebar .right {\r\n	right: 0;\r\n}\r\n#RemoteCharacters .titlebar .text {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 17px;\r\n	font-weight: bold;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#RemoteCharacters .list {\r\n	position: absolute;\r\n	top: 22px;\r\n	left: 6px;\r\n	width: 266px;\r\n	height: 140px;\r\n	overflow-y: auto;\r\n	background-color: #f7f7f7;\r\n	border: 1px solid #d4d9e0;\r\n}\r\n#RemoteCharacters .bot {\r\n	position: relative;\r\n	height: 31px;\r\n	padding: 3px 6px 0 20px;\r\n	border-bottom: 1px solid #e3e7ec;\r\n}\r\n#RemoteCharacters .bot.selected {\r\n	background-color: #cfdcf0;\r\n}\r\n#RemoteCharacters .bot .dot {\r\n	position: absolute;\r\n	top: 8px;\r\n	left: 7px;\r\n	font-size: 10px;\r\n	color: #3b7d3b;\r\n}\r\n#RemoteCharacters .bot .name {\r\n	font-weight: bold;\r\n}\r\n#RemoteCharacters .bot .job {\r\n	margin-left: 6px;\r\n	color: #4a5f7f;\r\n}\r\n#RemoteCharacters .bot .map {\r\n	position: absolute;\r\n	top: 3px;\r\n	right: 6px;\r\n	color: #666666;\r\n}\r\n#RemoteCharacters .bot .sub {\r\n	margin-top: 2px;\r\n	font-size: 11px;\r\n	color: #888888;\r\n}\r\n#RemoteCharacters .bot .state {\r\n	position: absolute;\r\n	top: 18px;\r\n	right: 6px;\r\n	font-size: 11px;\r\n	color: #2a5db0;\r\n}\r\n#RemoteCharacters .message {\r\n	padding: 26px 14px 0;\r\n	text-align: center;\r\n	line-height: 16px;\r\n	color: #666666;\r\n}\r\n#RemoteCharacters .message.error {\r\n	color: #aa3333;\r\n}\r\n\r\n#RemoteCharacters .footer {\r\n	position: absolute;\r\n	bottom: 0;\r\n	left: 0;\r\n	width: 280px;\r\n	height: 29px;\r\n}\r\n#RemoteCharacters .footer .slice {\r\n	width: 21px;\r\n	height: 29px;\r\n}\r\n#RemoteCharacters .footer .left {\r\n	left: 0;\r\n}\r\n#RemoteCharacters .footer .mid {\r\n	left: 21px;\r\n	width: 238px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteCharacters .footer .right {\r\n	right: 0;\r\n}\r\n#RemoteCharacters .txt {\r\n	position: absolute;\r\n	bottom: 5px;\r\n	height: 20px;\r\n	padding: 0;\r\n	border: 0;\r\n	background-color: transparent;\r\n	background-size: 100% 20px;\r\n	font-size: 11px;\r\n	color: #333333;\r\n}\r\n#RemoteCharacters .settings {\r\n	left: 6px;\r\n	width: 62px;\r\n}\r\n#RemoteCharacters .login {\r\n	left: 72px;\r\n	width: 84px;\r\n}\r\n#RemoteCharacters .btn {\r\n	position: absolute;\r\n	right: 5px;\r\n	bottom: 5px;\r\n	width: 42px;\r\n	height: 20px;\r\n	border: 0;\r\n	background-color: transparent;\r\n}\r\n#RemoteCharacters .btn:disabled {\r\n	opacity: 0.5;\r\n}\r\n";
+	RemoteCharacters_default$1 = ":host {\r\n	width: 280px;\r\n	height: 222px;\r\n}\r\n\r\n#RemoteCharacters {\r\n	position: relative;\r\n	width: 280px;\r\n	height: 222px;\r\n	background-color: white;\r\n	box-shadow: 0 0 0 1px #8c97a6;\r\n	color: black;\r\n	font-size: 12px;\r\n}\r\n\r\n#RemoteCharacters .slice {\r\n	position: absolute;\r\n	top: 0;\r\n	background-repeat: no-repeat;\r\n}\r\n\r\n#RemoteCharacters .titlebar {\r\n	position: absolute;\r\n	top: 0;\r\n	left: 0;\r\n	width: 280px;\r\n	height: 17px;\r\n}\r\n#RemoteCharacters .titlebar .slice {\r\n	width: 12px;\r\n	height: 17px;\r\n}\r\n#RemoteCharacters .titlebar .left {\r\n	left: 0;\r\n}\r\n#RemoteCharacters .titlebar .mid {\r\n	left: 12px;\r\n	width: 256px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteCharacters .titlebar .right {\r\n	right: 0;\r\n}\r\n#RemoteCharacters .titlebar .text {\r\n	position: absolute;\r\n	top: 2px;\r\n	left: 17px;\r\n	font-weight: bold;\r\n	text-shadow: 1px 1px white;\r\n	white-space: nowrap;\r\n}\r\n\r\n#RemoteCharacters .search {\r\n	position: absolute;\r\n	top: 22px;\r\n	left: 6px;\r\n	width: 268px;\r\n	height: 18px;\r\n	box-sizing: border-box;\r\n	padding: 0 4px;\r\n	border: 1px solid #d4d9e0;\r\n	font-size: 12px;\r\n}\r\n#RemoteCharacters .list {\r\n	position: absolute;\r\n	top: 44px;\r\n	left: 6px;\r\n	width: 266px;\r\n	height: 140px;\r\n	overflow-y: auto;\r\n	background-color: #f7f7f7;\r\n	border: 1px solid #d4d9e0;\r\n}\r\n#RemoteCharacters .bot {\r\n	position: relative;\r\n	padding: 3px 6px 3px 20px;\r\n	border-bottom: 1px solid #e3e7ec;\r\n}\r\n#RemoteCharacters .bot.selected {\r\n	background-color: #cfdcf0;\r\n}\r\n#RemoteCharacters .bot .dot {\r\n	position: absolute;\r\n	top: 4px;\r\n	left: 7px;\r\n	font-size: 10px;\r\n	color: #3b7d3b;\r\n}\r\n#RemoteCharacters .bot .name {\r\n	font-weight: bold;\r\n}\r\n#RemoteCharacters .bot .chars {\r\n	margin-top: 1px;\r\n	font-size: 11px;\r\n	line-height: 14px;\r\n}\r\n#RemoteCharacters .bot .char {\r\n	display: flex;\r\n	white-space: nowrap;\r\n}\r\n#RemoteCharacters .bot .char.playing {\r\n	font-weight: bold;\r\n}\r\n#RemoteCharacters .bot .char.playing::before {\r\n	content: '▸';\r\n	margin-right: 3px;\r\n}\r\n#RemoteCharacters .bot .char.match {\r\n	background-color: #ffe48a;\r\n}\r\n#RemoteCharacters .bot .job {\r\n	margin-left: auto;\r\n	padding-left: 6px;\r\n	font-weight: normal;\r\n	color: #4a5f7f;\r\n}\r\n#RemoteCharacters .bot .map {\r\n	position: absolute;\r\n	top: 3px;\r\n	right: 6px;\r\n	color: #666666;\r\n}\r\n#RemoteCharacters .bot .state {\r\n	font-size: 11px;\r\n	color: #2a5db0;\r\n}\r\n#RemoteCharacters .message {\r\n	padding: 26px 14px 0;\r\n	text-align: center;\r\n	line-height: 16px;\r\n	color: #666666;\r\n}\r\n#RemoteCharacters .message.error {\r\n	color: #aa3333;\r\n}\r\n\r\n#RemoteCharacters .footer {\r\n	position: absolute;\r\n	bottom: 0;\r\n	left: 0;\r\n	width: 280px;\r\n	height: 29px;\r\n}\r\n#RemoteCharacters .footer .slice {\r\n	width: 21px;\r\n	height: 29px;\r\n}\r\n#RemoteCharacters .footer .left {\r\n	left: 0;\r\n}\r\n#RemoteCharacters .footer .mid {\r\n	left: 21px;\r\n	width: 238px;\r\n	background-repeat: repeat-x;\r\n}\r\n#RemoteCharacters .footer .right {\r\n	right: 0;\r\n}\r\n#RemoteCharacters .txt {\r\n	position: absolute;\r\n	bottom: 5px;\r\n	height: 20px;\r\n	padding: 0;\r\n	border: 0;\r\n	background-color: transparent;\r\n	background-size: 100% 20px;\r\n	font-size: 11px;\r\n	color: #333333;\r\n}\r\n#RemoteCharacters .settings {\r\n	left: 6px;\r\n	width: 62px;\r\n}\r\n#RemoteCharacters .login {\r\n	left: 72px;\r\n	width: 84px;\r\n}\r\n#RemoteCharacters .btn {\r\n	position: absolute;\r\n	right: 5px;\r\n	bottom: 5px;\r\n	width: 42px;\r\n	height: 20px;\r\n	border: 0;\r\n	background-color: transparent;\r\n}\r\n#RemoteCharacters .btn:disabled {\r\n	opacity: 0.5;\r\n}\r\n";
 }));
 // src/UI/Components/RemoteCharacters/RemoteCharacters.js
+/**
+* @param {string} text
+* @return {boolean} the search is in it
+*/
+function matches(text) {
+	return !!_search && text.toLowerCase().includes(_search);
+}
+/**
+* @param {Array<object>} bots
+* @return {Array<object>} the bots whose account or one character matches the search
+*/
+function filter(bots) {
+	if (!_search) return bots;
+	return bots.filter((bot) => matches(bot.account) || bot.chars.some((char) => matches(char.name)));
+}
 /**
 * @param {?object} bot
 */
@@ -354072,9 +355407,11 @@ function mark() {
 }
 /**
 * Ask the selected bot for a room of its own
+*
+* @param {boolean} [control] - take its control once in game
 * @see docs/reference/network/remote-bot.md
 */
-function open() {
+function open(control = false) {
 	const settings = BotHall.loadSettings();
 	const bot = BotHall.bots().find((b) => b.id === _selected);
 	const shown = _shown;
@@ -354090,7 +355427,8 @@ function open() {
 			relayKey: settings.relayKey,
 			room: answer.room,
 			secret: answer.secret,
-			character: bot.playing ? bot.playing.name : null
+			character: bot.playing ? bot.playing.name : null,
+			control
 		});
 	}, (err) => {
 		if (shown !== _shown) return;
@@ -354114,6 +355452,23 @@ function message(text, error) {
 	return node;
 }
 /**
+* @param {object} char - {name, job, lv}
+* @param {?object} play - the character the bot plays
+* @return {HTMLElement}
+*/
+function character(char, play) {
+	const node = document.createElement("span");
+	const job = document.createElement("span");
+	node.className = "char";
+	node.classList.toggle("playing", !!play && play.name === char.name);
+	node.classList.toggle("match", matches(char.name));
+	node.textContent = char.name;
+	job.className = "job";
+	job.textContent = `${MonsterTable_default[char.job] || ""} ${char.lv}`.trim();
+	node.appendChild(job);
+	return node;
+}
+/**
 * @param {object} bot
 * @return {HTMLElement}
 */
@@ -354122,9 +355477,8 @@ function row(bot) {
 	const play = bot.playing;
 	const parts = [
 		["dot", bot.id === _opening ? "◷" : "●"],
-		["name", play ? play.name : bot.account],
-		["job", play ? `${MonsterTable_default[play.job] || ""} ${play.lv}`.trim() : "not in game"],
-		["map", play ? play.map : ""]
+		["name", bot.account],
+		["map", play ? play.map : "not in game"]
 	];
 	node.className = bot.id === _selected ? "bot selected" : "bot";
 	node.dataset.id = bot.id;
@@ -354134,16 +355488,16 @@ function row(bot) {
 		span.textContent = parts[i][1];
 		node.appendChild(span);
 	}
-	const sub = document.createElement("div");
-	sub.className = "sub";
-	sub.textContent = `${bot.account} · ${bot.chars.length} character${bot.chars.length === 1 ? "" : "s"}`;
-	node.appendChild(sub);
-	const state = document.createElement("span");
+	const chars = document.createElement("div");
+	chars.className = "chars";
+	for (let i = 0; i < bot.chars.length; ++i) chars.appendChild(character(bot.chars[i], play));
+	node.appendChild(chars);
+	const state = document.createElement("div");
 	state.className = "state";
 	if (bot.id === _opening) state.textContent = "Opening…";
 	else if (_failure && _failure.id === bot.id) state.textContent = _failure.text;
 	else if (bot.windows) state.textContent = `${bot.windows} window${bot.windows === 1 ? "" : "s"} open`;
-	node.appendChild(state);
+	if (state.textContent) node.appendChild(state);
 	node.addEventListener("mousedown", (event) => {
 		select(bot);
 		event.stopImmediatePropagation();
@@ -354158,18 +355512,36 @@ function update() {
 	const list = root && root.querySelector(".list");
 	const state = BotHall.state();
 	const bots = BotHall.bots();
+	const rows = filter(bots);
 	if (!list) return;
-	if (_selected && !bots.some((bot) => bot.id === _selected)) _selected = null;
-	if (!_selected && bots.length) _selected = bots[0].id;
+	if (_selected && !rows.some((bot) => bot.id === _selected)) _selected = null;
+	if (!_selected && rows.length) _selected = rows[0].id;
 	list.textContent = "";
 	if (state === "joining") list.appendChild(message("Entering the hall…"));
 	else if (state !== "in") list.appendChild(message(HALL_FAILURES[state] || `Cannot reach the relay (${state}).`, true));
 	else if (!bots.length && BotHall.waiting()) list.appendChild(message("Calling the remote clients of the hall…"));
 	else if (!bots.length) list.appendChild(message("No remote client in this hall. Are your remote clients running with --spectate-rtc, and the same hall and secret?"));
-	else for (let i = 0; i < bots.length; ++i) list.appendChild(row(bots[i]));
+	else if (!rows.length) list.appendChild(message("No account or character matches this search."));
+	else for (let i = 0; i < rows.length; ++i) list.appendChild(row(rows[i]));
 	mark();
+	const wanted = _controlAccount && bots.find((bot) => bot.account === _controlAccount);
+	if (wanted && !_opening) {
+		_controlAccount = null;
+		_selected = wanted.id;
+		open(true);
+	}
 }
-var HALL_FAILURES, OPEN_FAILURES, RemoteCharacters, _selected, _opening, _failure, _shown, RemoteCharacters_default;
+/**
+* #control=<account>, once: the address bar keeps no order
+*
+* @return {?string}
+*/
+function takeControlHash() {
+	const account = new URLSearchParams(window.location.hash.slice(1)).get("control");
+	if (account) history.replaceState(history.state, "", `${window.location.pathname}${window.location.search}`);
+	return account || null;
+}
+var HALL_FAILURES, OPEN_FAILURES, RemoteCharacters, _selected, _opening, _failure, _shown, _search, _controlAccount, RemoteCharacters_default;
 var init_RemoteCharacters = __esmMin((() => {
 	init_Renderer();
 	init_KeyEventHandler();
@@ -354199,17 +355571,27 @@ var init_RemoteCharacters = __esmMin((() => {
 	_opening = null;
 	_failure = null;
 	_shown = 0;
+	_search = "";
+	_controlAccount = takeControlHash();
 	/**
 	* Initialize UI
 	*/
 	RemoteCharacters.init = function init() {
 		const root = this.getRoot();
-		this._host.style.top = `${(Renderer.height - 200) / 1.5}px`;
+		const search = root.querySelector(".search");
+		this._host.style.top = `${(Renderer.height - 222) / 1.5}px`;
 		this._host.style.left = `${(Renderer.width - 280) / 2}px`;
 		this.draggable(root.querySelector(".titlebar"));
 		root.querySelector(".settings").addEventListener("click", () => RemoteCharacters.onSettingsRequest());
 		root.querySelector(".login").addEventListener("click", () => RemoteCharacters.onLoginRequest());
 		root.querySelector(".connect").addEventListener("click", () => open());
+		search.addEventListener("input", () => {
+			_search = search.value.trim().toLowerCase();
+			update();
+		});
+		search.addEventListener("keydown", (event) => {
+			if (event.which !== KEYS.ENTER && event.which !== KEYS.UP && event.which !== KEYS.DOWN) event.stopPropagation();
+		});
 		root.querySelector(".list").addEventListener("dblclick", (event) => {
 			if (event.target.closest(".bot")) open();
 		});
@@ -354222,6 +355604,8 @@ var init_RemoteCharacters = __esmMin((() => {
 		_selected = null;
 		_opening = null;
 		_failure = null;
+		_search = "";
+		this.getRoot().querySelector(".search").value = "";
 		BotHall.onChange(update);
 		if (settings && BotHall.state() === "off") BotHall.join(settings);
 		update();
@@ -354240,7 +355624,7 @@ var init_RemoteCharacters = __esmMin((() => {
 	* @return {boolean}
 	*/
 	RemoteCharacters.onKeyDown = function onKeyDown(event) {
-		const bots = BotHall.bots();
+		const bots = filter(BotHall.bots());
 		const at = bots.findIndex((bot) => bot.id === _selected);
 		switch (event.which) {
 			case KEYS.ENTER:
@@ -359842,12 +361226,16 @@ function backToLogin() {
 	showLoginScreen();
 }
 /**
-* The account's bots when a hall is set and the player did not take the login
-* window, else the login window and the way to the bots
+* A camera tile's bot; the account's bots when a hall is set and the player did
+* not take the login window, else the login window and the way to the bots
 *
 * @see docs/reference/network/remote-bot.md
 */
 function showLoginScreen() {
+	if (CameraTile.active) {
+		CameraTile.wait(attachRemote);
+		return;
+	}
 	const next = RemoteBot.takeSwitch();
 	if (next) attachRemote(next);
 	else if (!_manual && BotHall.loadSettings()) RemoteCharacters_default.append();
@@ -360523,6 +361911,7 @@ var init_LoginEngine = __esmMin((() => {
 	init_NetworkManager();
 	init_RemoteBot();
 	init_BotHall();
+	init_CameraTile();
 	init_PacketVerManager();
 	init_PacketStructure();
 	init_PluginManager();
