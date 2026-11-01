@@ -17,6 +17,7 @@ vi.mock('Network/NetworkManager.js', () => ({
 vi.mock('Network/RemoteBot.js', () => ({
 	default: {
 		isActive: () => mocks.active,
+		hasControl: () => false,
 		takeElapsed: () => {
 			const elapsed = mocks.elapsed;
 			mocks.elapsed = 0;
