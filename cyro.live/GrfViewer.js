@@ -332918,9 +332918,10 @@ var init_VendingShop = __esmMin((() => {
 		this._host.style.left = `${Math.min(Math.max(0, _preferences$15.x), Renderer.width - hostRect.width)}px`;
 		_realSize = _preferences$15.reduce ? 0 : hostRect.height;
 		const messageText = DB.getMessage(226);
-		const titleShop = Vending_default._shopname.length > 25 ? `${Vending_default._shopname.substring(0, 25)}...` : Vending_default._shopname;
+		const shopname = Vending_default._shopname || "";
+		const titleShop = shopname.length > 25 ? `${shopname.substring(0, 25)}...` : shopname;
 		const shopnameEl = this.getRoot().querySelector(".text.shopname");
-		if (shopnameEl) shopnameEl.textContent = `${messageText} : ${titleShop}`;
+		if (shopnameEl) shopnameEl.textContent = titleShop ? `${messageText} : ${titleShop}` : messageText;
 	};
 	/**
 	* Specify the type of the shop
@@ -351334,9 +351335,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "ab0b29cabfe4ca9b5f621bc032ad06c253fc0681") {
+		if (!_buildShown && "a97f09e583030d9fe9a97c660aa6c1a9ce22199e") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"ab0b29cabfe4ca9b5f621bc032ad06c253fc0681".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"a97f09e583030d9fe9a97c660aa6c1a9ce22199e".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
