@@ -1430,6 +1430,23 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.10.1",
+			"date": "2026-11-02",
+			"title": "Plugin Windows Hold On",
+			"sha": "",
+			"notes": [
+				{
+					"type": "plugins",
+					"keyword": "Plugin windows",
+					"text": "Two map changes in half a second and your plugin window vanished, /rr and all. It now comes back with the second map, and /rr always reopens it.",
+					"details": "When the server moved the character twice within half a second, a plugin's window (Respawn Radar's, for one) went off the screen and stayed off until the next map change, and its command (/rr) showed nothing. It now comes back when the second map is loaded, and the plugin's command brings back a window that is missing.",
+					"commits": [
+						"ebdef4131"
+					]
+				}
+			]
 		}
 	]
 }
