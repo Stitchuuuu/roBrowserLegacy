@@ -341407,7 +341407,7 @@ function onCloseAppear(pkt) {
 * @param {object} pkt - PACKET.ZC.CLOSE_SCRIPT
 */
 function onCloseScript(pkt) {
-	if (RemoteBot.isActive()) {
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		NpcStore_default.setClosePacketSent(true);
 		NpcStore_default.remove();
 	}
@@ -341488,7 +341488,7 @@ function onInputAppear(pkt) {
 * @param {object} pkt - PACKET.ZC.SELECT_DEALTYPE
 */
 function onDealSelection(pkt) {
-	if (RemoteBot.isActive()) return;
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) return;
 	const WinDeal = WinPopup_default.clone("WinDeal");
 	const NAID = pkt.NAID;
 	WinDeal.init = function Init() {
@@ -349917,7 +349917,7 @@ function onExpandedBarterBuyList(pkt) {
 * @param {object} pkt - PACKET_ZC_PC_PURCHASE_RESULT
 */
 function onBuyResult(pkt) {
-	if (RemoteBot.isActive()) NpcStore_default.setClosePacketSent(true);
+	if (RemoteBot.isActive() && !RemoteBot.hasControl()) NpcStore_default.setClosePacketSent(true);
 	NpcStore_default.remove();
 	switch (pkt.result) {
 		case 0:
@@ -352041,9 +352041,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "be89b17ce53584e884e089e330fda506a3e460c2") {
+		if (!_buildShown && "e20d84bdf0360229f75eafc760ba79d62b8c8704") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"be89b17ce53584e884e089e330fda506a3e460c2".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"e20d84bdf0360229f75eafc760ba79d62b8c8704".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -364964,7 +364964,8 @@ function _fireMapReady(source) {
 		clearTimeout(_mapReadyFallbackTimer);
 		_mapReadyFallbackTimer = null;
 	}
-	if (_lifecycle.state !== "map-enter") return;
+	const state = _lifecycle.state;
+	if (state !== "map-enter" && state !== "map-ready") return;
 	_logger.verbose(`[NativePM lifecycle] map-ready (${source})`, "color:#0af");
 	transition("map-ready");
 }
@@ -365366,6 +365367,7 @@ function registerPlayerWindow(panelFactory, opts = {}) {
 			if (disposed) return;
 			userToggled = true;
 			visible = true;
+			if (getState() === "map-ready" && (!panel || _detached(panel))) _doAppend();
 			_applyVisibility();
 			_persist();
 			if (typeof opts.onShow === "function") try {
@@ -365387,7 +365389,7 @@ function registerPlayerWindow(panelFactory, opts = {}) {
 			}
 		},
 		toggle() {
-			if (visible) handle.hide();
+			if (visible && panel && !_detached(panel)) handle.hide();
 			else handle.show();
 		},
 		isVisible() {
