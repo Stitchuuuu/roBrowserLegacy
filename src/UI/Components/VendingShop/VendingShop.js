@@ -147,11 +147,13 @@ VendingShop.onAppend = function onAppend() {
 
 	_realSize = _preferences.reduce ? 0 : hostRect.height;
 	const messageText = DB.getMessage(226);
-	const titleShop = Vending._shopname.length > 25 ? `${Vending._shopname.substring(0, 25)}...` : Vending._shopname;
+	// Typed when this window opened the shop: a window attached to a vendor later has no name
+	const shopname = Vending._shopname || '';
+	const titleShop = shopname.length > 25 ? `${shopname.substring(0, 25)}...` : shopname;
 	const root = this.getRoot();
 	const shopnameEl = root.querySelector('.text.shopname');
 	if (shopnameEl) {
-		shopnameEl.textContent = `${messageText} : ${titleShop}`;
+		shopnameEl.textContent = titleShop ? `${messageText} : ${titleShop}` : messageText;
 	}
 };
 
