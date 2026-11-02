@@ -352045,9 +352045,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "b801ab367f482017d5055af47c6145b68d5a55cb") {
+		if (!_buildShown && "ab0b29cabfe4ca9b5f621bc032ad06c253fc0681") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"b801ab367f482017d5055af47c6145b68d5a55cb".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"ab0b29cabfe4ca9b5f621bc032ad06c253fc0681".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -364968,7 +364968,8 @@ function _fireMapReady(source) {
 		clearTimeout(_mapReadyFallbackTimer);
 		_mapReadyFallbackTimer = null;
 	}
-	if (_lifecycle.state !== "map-enter") return;
+	const state = _lifecycle.state;
+	if (state !== "map-enter" && state !== "map-ready") return;
 	_logger.verbose(`[NativePM lifecycle] map-ready (${source})`, "color:#0af");
 	transition("map-ready");
 }
@@ -365370,6 +365371,7 @@ function registerPlayerWindow(panelFactory, opts = {}) {
 			if (disposed) return;
 			userToggled = true;
 			visible = true;
+			if (getState() === "map-ready" && (!panel || _detached(panel))) _doAppend();
 			_applyVisibility();
 			_persist();
 			if (typeof opts.onShow === "function") try {
@@ -365391,7 +365393,7 @@ function registerPlayerWindow(panelFactory, opts = {}) {
 			}
 		},
 		toggle() {
-			if (visible) handle.hide();
+			if (visible && panel && !_detached(panel)) handle.hide();
 			else handle.show();
 		},
 		isVisible() {

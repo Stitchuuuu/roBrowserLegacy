@@ -351312,9 +351312,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "b801ab367f482017d5055af47c6145b68d5a55cb") {
+		if (!_buildShown && "ab0b29cabfe4ca9b5f621bc032ad06c253fc0681") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"b801ab367f482017d5055af47c6145b68d5a55cb".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"ab0b29cabfe4ca9b5f621bc032ad06c253fc0681".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
