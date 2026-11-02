@@ -78,6 +78,21 @@ describe('lifecycle map-ready', () => {
 		expect(ready).not.toHaveBeenCalled();
 	});
 
+	// The server moves the player again within the debounce of the last entry:
+	// the engine loads that map too, with no map-enter announced for it
+	it('comes again at the end of a load whose entry the debounce swallowed', async () => {
+		const background = { remove: vi.fn(callback => callback()) };
+		const { ready, enterMap } = await load(background);
+
+		enterMap();
+		background.remove(() => {});
+		vi.advanceTimersByTime(300);
+		enterMap();
+		background.remove(() => {});
+
+		expect(ready).toHaveBeenCalledTimes(2);
+	});
+
 	it('still comes after a while when the Background trap could not be set', async () => {
 		const { ready, enterMap } = await load(null);
 
