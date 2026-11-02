@@ -21,7 +21,7 @@
 
 import { UIManager, Preferences } from './plugin-api.js'
 import { on as busOn, EVENTS } from './event-bus.js'
-import { hasReached, registerCleanup } from './lifecycle.js'
+import { getState, hasReached, registerCleanup } from './lifecycle.js'
 
 /**
  * Return the light-DOM host element of a component (carries position / z-index /
@@ -392,6 +392,8 @@ export function registerPlayerWindow(panelFactory, opts = {}) {
 			if (disposed) {return}
 			userToggled = true
 			visible = true
+			// In map, a panel out of the DOM comes back now, not at the next map-ready
+			if (getState() === 'map-ready' && (!panel || _detached(panel))) {_doAppend()}
 			_applyVisibility()
 			_persist()
 			if (typeof opts.onShow === 'function') {
@@ -408,7 +410,7 @@ export function registerPlayerWindow(panelFactory, opts = {}) {
 				try { opts.onHide() } catch (e) { console.error('[ui] onHide handler:', e) }
 			}
 		},
-		toggle() { if (visible) {handle.hide()} else {handle.show()} },
+		toggle() { if (visible && panel && !_detached(panel)) {handle.hide()} else {handle.show()} },
 		isVisible() { return visible },
 		getPanel() { return panel },
 		dispose() {

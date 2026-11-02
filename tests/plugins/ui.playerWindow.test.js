@@ -11,7 +11,11 @@ vi.mock('Plugins/native-manager/libs/plugin-api.js', () => ({
 	UIManager: { components: mocks.components },
 	Preferences: { get: (_key, defaults) => ({ ...defaults, save() {} }) }
 }));
-vi.mock('Plugins/native-manager/libs/lifecycle.js', () => ({ hasReached: () => false, registerCleanup: () => {} }));
+vi.mock('Plugins/native-manager/libs/lifecycle.js', () => ({
+	hasReached: () => false,
+	getState: () => 'map-ready',
+	registerCleanup: () => {}
+}));
 
 const { registerPlayerWindow } = await import('Plugins/native-manager/libs/ui.js');
 const { emit, EVENTS } = await import('Plugins/native-manager/libs/event-bus.js');
@@ -110,5 +114,27 @@ describe('a plugin window across a map transition', () => {
 
 		emit(EVENTS.MAP_READY);
 		expect(window.ui[0].isConnected).toBe(true);
+	});
+
+	// A window the player asks for does not wait for a map change
+	it('comes back when shown in game, out of the DOM', () => {
+		const window = panel();
+		const handle = registerPlayerWindow(() => window);
+		emit(EVENTS.MAP_READY);
+		window.remove();
+
+		handle.show();
+		expect(window.ui[0].isConnected).toBe(true);
+	});
+
+	it('is shown, not hidden, by a toggle while out of the DOM', () => {
+		const window = panel();
+		const handle = registerPlayerWindow(() => window);
+		emit(EVENTS.MAP_READY);
+		window.remove();
+
+		handle.toggle();
+		expect(window.ui[0].isConnected).toBe(true);
+		expect(handle.isVisible()).toBe(true);
 	});
 });

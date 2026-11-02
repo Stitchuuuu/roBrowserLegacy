@@ -380,8 +380,8 @@ function _wirePackets() {
 // via `bus.on(EVENTS.BACKGROUND_REMOVE, cb)` for non-phase use cases.
 //
 // Background.remove is also called without a callback in other paths (login
-// flow, some logout paths). The map-ready guard `state === 'map-enter'` rejects
-// those — only fires when we're between map-enter and the first fade-end.
+// flow, some logout paths). The map-ready guard rejects those — it only fires
+// in map, after a map-enter or for a load whose entry the debounce swallowed.
 
 const MAP_READY_GUARD = Symbol.for('native-manager/lifecycle:bg-remove-wrapped')
 let _mapReadyFallbackTimer = null
@@ -424,9 +424,11 @@ function _fireMapReady(source) {
 		clearTimeout(_mapReadyFallbackTimer)
 		_mapReadyFallbackTimer = null
 	}
-	// Strict guard : only when we're freshly arrived in map. Rejects login-flow
-	// Background.remove() calls (state='boot') and logout calls (state='logout').
-	if (_lifecycle.state !== 'map-enter') {return}
+	// Only in map. Rejects login-flow Background.remove() calls (state='boot')
+	// and logout calls (state='logout'). Already 'map-ready' : a map entry within
+	// the debounce of the last one, whose load the engine ran all the same.
+	const state = _lifecycle.state
+	if (state !== 'map-enter' && state !== 'map-ready') {return}
 	_logger.verbose(`[NativePM lifecycle] map-ready (${source})`, 'color:#0af')
 	transition('map-ready')
 }
