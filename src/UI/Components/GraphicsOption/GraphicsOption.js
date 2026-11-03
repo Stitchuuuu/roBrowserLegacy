@@ -117,6 +117,7 @@ GraphicsOption.init = function init() {
 
 	// Map transition
 	bindChange('.mapTransition', onUpdateMapTransition);
+	bindChange('.fades', onToggleFades);
 
 	this.draggable('.titlebar');
 };
@@ -167,6 +168,7 @@ GraphicsOption.onAppend = function onAppend() {
 	// Map transition
 	root.querySelector('.mapTransition').value =
 		GraphicsSettings.mapTransition || Configs.get('mapTransition') || 'client';
+	root.querySelector('.fades').checked = GraphicsSettings.fades;
 };
 
 /**
@@ -414,6 +416,14 @@ function onUpdateOccluderFadeRadius() {
  */
 function onUpdateMapTransition() {
 	GraphicsSettings.mapTransition = this.value;
+	GraphicsSettings.save();
+}
+
+/**
+ * Fade to and from black, or cut
+ */
+function onToggleFades() {
+	GraphicsSettings.fades = !!this.checked;
 	GraphicsSettings.save();
 }
 

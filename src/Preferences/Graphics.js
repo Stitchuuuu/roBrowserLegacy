@@ -88,7 +88,13 @@ const defaultGraphicsSettings = {
 	 * Map change: 'client' cuts to and from the loading image, 'smooth' fades
 	 * to and from it through black. '' follows ROConfig.mapTransition
 	 */
-	mapTransition: ''
+	mapTransition: '',
+
+	/**
+	 * Fades to and from black around a teleport or a background (login, loading):
+	 * off, every one of them is a cut
+	 */
+	fades: true
 };
 
 /**
