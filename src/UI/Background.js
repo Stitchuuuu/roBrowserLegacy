@@ -396,12 +396,13 @@ class Background {
 }
 
 /**
- * Is the map change set to fade around the loading image? The player's choice, else the server's default
+ * Is the map change set to fade around the loading image? The player's choice, else the server's default;
+ * never with the fades off
  *
  * @return {boolean}
  */
 function isSmooth() {
-	return (GraphicsSettings.mapTransition || Configs.get('mapTransition')) === 'smooth';
+	return GraphicsSettings.fades && (GraphicsSettings.mapTransition || Configs.get('mapTransition')) === 'smooth';
 }
 
 /**
@@ -425,6 +426,7 @@ function smoothFade(calmFrames, calmBefore = 0) {
  * @see docs/reference/map-transition.md
  */
 function transition(callback, fadeOut = true, fadeIn = true, fade = {}) {
+	const fades = GraphicsSettings.fades;
 	const transitionDuration = fade.duration || Configs.get('transitionDuration') || TRANSITION_DURATION;
 
 	if (Background._overlayAnim) {
@@ -458,7 +460,7 @@ function transition(callback, fadeOut = true, fadeIn = true, fade = {}) {
 			return;
 		}
 
-		if (!fadeIn) {
+		if (!fadeIn || !fades) {
 			_overlay.remove();
 			return;
 		}
@@ -477,6 +479,13 @@ function transition(callback, fadeOut = true, fadeIn = true, fade = {}) {
 
 	if (!fadeOut) {
 		onBlack();
+		return;
+	}
+
+	// Fades off: a cut, still on the next frame like the end of a fade, so the
+	// callers' work after this call keeps running before the one at black
+	if (!fades) {
+		Background._overlayAnim = nextFrame(onBlack);
 		return;
 	}
 

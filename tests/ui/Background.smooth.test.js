@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => {
 	const frames = [];
 	globalThis.requestAnimationFrame = callback => frames.push(callback);
 
-	return { animations: [], frames, graphics: { mapTransition: '' } };
+	return { animations: [], frames, graphics: { mapTransition: '', fades: true } };
 });
 
 vi.mock('DB/DBManager.js', () => ({ default: { INTERFACE_PATH: '' } }));

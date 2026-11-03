@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ graphics: { mapTransition: '' } }));
+const mocks = vi.hoisted(() => ({ graphics: { mapTransition: '', fades: true } }));
 
 vi.mock('DB/DBManager.js', () => ({ default: { INTERFACE_PATH: 'data/texture/' } }));
 vi.mock('Core/Client.js', () => ({ default: { loadFile: vi.fn((path, onload) => onload('blob:' + path)) } }));
