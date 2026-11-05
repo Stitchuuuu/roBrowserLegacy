@@ -212211,7 +212211,7 @@ var init_Events = __esmMin((() => {
 		*/
 		static process(tick) {
 			let count = _events.length;
-			while (count > 0) {
+			while (count > 0 && _events.length > 0) {
 				if (_events[0].tick > tick) break;
 				_events.shift().callback();
 				count--;
@@ -351335,9 +351335,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "a97f09e583030d9fe9a97c660aa6c1a9ce22199e") {
+		if (!_buildShown && "d7bd09dc751ea17b00107bd3e6d2093228339739") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"a97f09e583030d9fe9a97c660aa6c1a9ce22199e".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"d7bd09dc751ea17b00107bd3e6d2093228339739".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
