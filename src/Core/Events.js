@@ -81,8 +81,8 @@ class Events {
 	static process(tick) {
 		let count = _events.length;
 
-		// Execute time out events.
-		while (count > 0) {
+		// Execute time out events. A callback may clear other pending events.
+		while (count > 0 && _events.length > 0) {
 			if (_events[0].tick > tick) {
 				break;
 			}
