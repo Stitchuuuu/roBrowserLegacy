@@ -1241,8 +1241,9 @@ class EffectManager {
 	 * @param {number} tick
 	 * @param {number} srcAID caster aid
 	 * @param {function} [random] returns a number in [0, 1)
+	 * @param {number} [hitCount] the packet's hit count, handed to the effects as hitCount
 	 */
-	static spamSkillDamage(skillId, destAID, tick, srcAID, random = Math.random) {
+	static spamSkillDamage(skillId, destAID, tick, srcAID, random = Math.random, hitCount = 1) {
 		const skill = SkillEffect[skillId];
 		if (!skill) {
 			return;
@@ -1260,7 +1261,9 @@ class EffectManager {
 					effectId: effectId,
 					ownerAID: ownerAID,
 					startTick: tick,
-					otherAID: otherAID
+					otherAID: otherAID,
+					// The packet's hit count: the bolts draw one bolt per hit
+					hitCount: hitCount
 				});
 			});
 		};
@@ -1310,6 +1313,12 @@ class EffectManager {
 	static spamSkillHit(skillId, destAID, tick, srcAID, hitIndex = 0) {
 		let effects, EF_Init_Par;
 		if (!(skillId in SkillEffect)) {
+			return;
+		}
+
+		// Skills marked hitEffectOnce play their hit effects for the first hit
+		// of a damage packet only.
+		if (SkillEffect[skillId].hitEffectOnce && hitIndex > 0) {
 			return;
 		}
 
