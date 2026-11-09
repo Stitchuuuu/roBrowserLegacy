@@ -85,6 +85,7 @@ beforeEach(() => {
 		action: 0,
 		direction: 0,
 		headDir: 0,
+		position: [12, 34],
 		display: { name: 'Tester' }
 	};
 	ControlPreferences.noctrl = false;
