@@ -141,6 +141,12 @@ let _snapCache = [];
 const _frozenBy = [];
 
 /**
+ * Appended windows, the ones UIManager never sees included: message boxes,
+ * whisper windows and storage filters are clones or instances of their own.
+ */
+const _opened = [];
+
+/**
  * Mouse interaction modes
  */
 const MouseMode = Object.freeze({
@@ -304,6 +310,9 @@ class GUIComponent {
 	 */
 	append(target, rebuild = false) {
 		this.__active = true;
+		if (!_opened.includes(this)) {
+			_opened.push(this);
+		}
 
 		if (!this.__loaded) {
 			this.prepare();
@@ -382,6 +391,10 @@ class GUIComponent {
 	 */
 	remove() {
 		this.__active = false;
+		const opened = _opened.indexOf(this);
+		if (opened !== -1) {
+			_opened.splice(opened, 1);
+		}
 
 		if (this.__loaded && this._host && this._host.parentNode) {
 			this._release(true);
@@ -461,15 +474,13 @@ class GUIComponent {
 	 * Equivalent to UIComponent.prototype.focus().
 	 */
 	focus() {
-		if (!this.manager || !this.needFocus) return;
+		if (!this.needFocus) return;
 
-		const components = this.manager.components;
 		const list = [];
 
 		// Collect zIndex values from other active components
-		for (const name in components) {
-			const other = components[name];
-			if (other === this || !other.__active || !other.needFocus) continue;
+		for (const other of _opened) {
+			if (other === this || !other.needFocus) continue;
 
 			// Works with both UIComponent (.ui.css) and GUIComponent (._host.style)
 			const z = parseInt(this._getZIndex(other), 10);
@@ -487,9 +498,8 @@ class GUIComponent {
 		}
 
 		// Apply new zIndex to all other components
-		for (const name in components) {
-			const other = components[name];
-			if (other === this || !other.__active || !other.needFocus) continue;
+		for (const other of _opened) {
+			if (other === this || !other.needFocus) continue;
 
 			const z = parseInt(this._getZIndex(other), 10);
 			this._setZIndex(other, list[z - 50]);
@@ -504,14 +514,10 @@ class GUIComponent {
 	 * Equivalent to UIComponent.prototype.placeOnTop().
 	 */
 	placeOnTop() {
-		if (!this.manager) return;
-
-		const components = this.manager.components;
 		const zList = [];
 
-		for (const name in components) {
-			const other = components[name];
-			if (other === this || !other.__active || !other.needFocus) continue;
+		for (const other of _opened) {
+			if (other === this || !other.needFocus) continue;
 			zList.push(parseInt(this._getZIndex(other), 10));
 		}
 
