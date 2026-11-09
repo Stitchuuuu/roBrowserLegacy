@@ -1,6 +1,7 @@
 :host {
 	width: 280px;
-	height: 222px;
+	/* 222px frame + the auto-retry strip below it */
+	height: 248px;
 }
 
 #RemoteCharacters {
@@ -186,4 +187,29 @@
 }
 #RemoteCharacters .btn:disabled {
 	opacity: 0.5;
+}
+
+#RemoteCharacters .autoretry {
+	position: absolute;
+	top: 226px;
+	left: 0;
+	width: 280px;
+	height: 20px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 6px;
+	background-color: rgba(0, 0, 0, 0.45);
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	border-radius: 2px;
+	color: #ffffff;
+	font-size: 11px;
+}
+#RemoteCharacters .autoretry label {
+	cursor: pointer;
+}
+#RemoteCharacters .autoretry .autoretry-check {
+	margin: 0;
+	cursor: pointer;
 }

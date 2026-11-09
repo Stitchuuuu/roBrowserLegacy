@@ -203,8 +203,8 @@ function onReload() {
 		LoginEngine.init(_servers[0]);
 	}
 
-	// A switch to another remote client: back to the same server, no list
-	else if (_previous_server && switching) {
+	// A switch to another remote client, or auto-retry taking its bot again: back to the same server, no list
+	else if (_previous_server && (switching || RemoteBot.returning())) {
 		LoginEngine.init(_previous_server);
 	} else {
 		for (i = 0; i < count; ++i) {

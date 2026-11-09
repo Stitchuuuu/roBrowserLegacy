@@ -70,6 +70,11 @@ let _timer = 0;
 const AutoRetry = {};
 
 /**
+ * @var {number} the gap an engine leaves before an attempt it replays itself
+ */
+AutoRetry.MIN_GAP = MIN_GAP;
+
+/**
  * Is the feature turned on ? Read by the checkbox and by the engines, which
  * only arm when it is.
  *

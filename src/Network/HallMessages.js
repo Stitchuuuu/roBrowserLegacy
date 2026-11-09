@@ -141,7 +141,9 @@ function normalize(m) {
 				account: str(m.account, MAX_NAME, 'account'),
 				chars,
 				playing,
-				windows: int(m.windows, 99, 'windows')
+				windows: int(m.windows, 99, 'windows'),
+				// Optional: absent from a bot older than it
+				reconnecting: m.reconnecting === true
 			};
 		}
 

@@ -206,6 +206,7 @@ class MapEngine {
 
 				// The map server took us: the attempt auto-retry counted is over
 				AutoRetry.disarm();
+				RemoteBot.stopRetry();
 
 				// Success, try to login.
 				let pkt;

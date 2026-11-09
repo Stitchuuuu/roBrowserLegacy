@@ -24,6 +24,8 @@ const mocks = vi.hoisted(() => {
 
 	return {
 		MockGUIComponent,
+		boxes: [],
+		remote: { drop: null, attempt: 0, stops: 0 },
 		hall: {
 			bots: [],
 			onChange: null,
@@ -49,6 +51,28 @@ vi.mock('UI/UIManager.js', () => ({
 			component.getRoot().innerHTML = component.render();
 			component.init();
 			return component;
+		},
+		showMessageBox(text, _type, onOk) {
+			const box = { text, ok: onOk, removed: false };
+			box.remove = () => {
+				box.removed = true;
+			};
+			mocks.boxes.push(box);
+			return box;
+		}
+	}
+}));
+vi.mock('Network/RemoteBot.js', () => ({
+	default: {
+		takeDrop: () => {
+			const drop = mocks.remote.drop;
+			mocks.remote.drop = null;
+			return drop;
+		},
+		attempt: () => mocks.remote.attempt,
+		stopRetry: () => {
+			++mocks.remote.stops;
+			mocks.remote.attempt = 0;
 		}
 	}
 }));
@@ -67,6 +91,8 @@ vi.mock('Network/BotHall.js', () => ({
 }));
 
 const { default: RemoteCharacters } = await import('UI/Components/RemoteCharacters/RemoteCharacters.js');
+// The instance the component reads, before a test resets the modules
+const { default: AutoRetry } = await import('Engine/AutoRetry.js');
 
 const ALICE = {
 	id: 'p1',
@@ -276,5 +302,160 @@ describe('Remote characters opened by the camera page: #control=<account>', () =
 
 		expect(mocks.hall.open).toHaveBeenCalledWith('p1');
 		expect(Opened.onRoomOpened).toHaveBeenCalledWith(expect.objectContaining({ control: false }));
+	});
+});
+
+describe('Remote characters auto-retry', () => {
+	const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+
+	beforeEach(() => {
+		AutoRetry.setEnabled(true);
+		mocks.boxes.length = 0;
+		mocks.remote.stops = 0;
+		mocks.hall.open = vi.fn(() => Promise.resolve({ room: 'fresh', secret: 'x' }));
+		RemoteCharacters.onRemove();
+	});
+
+	function appendAfter(drop) {
+		mocks.remote.drop = drop;
+		RemoteCharacters.onAppend();
+	}
+
+	const LOST = { account: 'alice_farm', character: null, control: true, repick: false, why: '' };
+	const OUT = { ...ALICE, playing: null, reconnecting: true };
+	const PARKED = { ...ALICE, playing: null, reconnecting: false };
+
+	function state(account) {
+		const row = [...root().querySelectorAll('.bot')].find(n => n.querySelector('.name').textContent === account);
+		const node = row && row.querySelector('.state');
+		return node ? node.textContent : '';
+	}
+
+	it('shares its box with the login window', () => {
+		RemoteCharacters.onAppend();
+		const box = root().querySelector('.autoretry-check');
+		expect(box.checked).toBe(true);
+		box.checked = false;
+		box.dispatchEvent(new Event('change'));
+		expect(AutoRetry.isEnabled()).toBe(false);
+	});
+
+	it('waits for a bot lost in game until it plays again, then opens it with its control', async () => {
+		mocks.hall.bots = [ALICE, BOB]; // the list from before the drop still says it plays
+		appendAfter(LOST);
+		expect(mocks.hall.open).not.toHaveBeenCalled();
+
+		mocks.hall.bots = [OUT, BOB];
+		mocks.hall.onChange();
+		expect(state('alice_farm')).toMatch(/Reconnecting to the server/);
+		expect(mocks.hall.open).not.toHaveBeenCalled();
+
+		mocks.hall.bots = [ALICE, BOB];
+		mocks.hall.onChange();
+		await settle();
+		expect(mocks.hall.open).toHaveBeenCalledWith('p1');
+		expect(RemoteCharacters.onRoomOpened).toHaveBeenCalledWith(
+			expect.objectContaining({ account: 'alice_farm', character: 'Mendel', control: true })
+		);
+	});
+
+	it('lets a parked bot go: nothing brings it back by itself', () => {
+		mocks.hall.bots = [ALICE, BOB];
+		appendAfter(LOST);
+		mocks.hall.bots = [PARKED, BOB];
+		mocks.hall.onChange();
+		expect(state('alice_farm')).toBe('');
+		mocks.hall.bots = [ALICE, BOB];
+		mocks.hall.onChange();
+		expect(mocks.hall.open).not.toHaveBeenCalled();
+	});
+
+	it('keeps waiting for a bot restarted meanwhile, whose first hello is out of the game', async () => {
+		mocks.hall.bots = [ALICE];
+		appendAfter(LOST);
+		mocks.hall.bots = [{ ...PARKED, id: 'p9' }];
+		mocks.hall.onChange();
+		expect(state('alice_farm')).toMatch(/Waiting for it/);
+		mocks.hall.bots = [{ ...ALICE, id: 'p9' }];
+		mocks.hall.onChange();
+		await settle();
+		expect(mocks.hall.open).toHaveBeenCalledWith('p9');
+	});
+
+	it('does not open a bot that reconnects by itself, and opens it once it plays', async () => {
+		mocks.hall.bots = [OUT, BOB];
+		RemoteCharacters.onAppend();
+		root().querySelector('.connect').click();
+		expect(mocks.hall.open).not.toHaveBeenCalled();
+		expect(state('alice_farm')).toMatch(/opened once it plays again/);
+
+		mocks.hall.bots = [ALICE, BOB];
+		mocks.hall.onChange();
+		await settle();
+		expect(mocks.hall.open).toHaveBeenCalledWith('p1');
+	});
+
+	it('stops waiting on another bot picked, Normal login, or the box unticked', () => {
+		const lost = () => {
+			mocks.hall.bots = [OUT, BOB];
+			appendAfter(LOST);
+			mocks.hall.onChange();
+		};
+		const comesBack = () => {
+			mocks.hall.bots = [ALICE, BOB];
+			mocks.hall.onChange();
+		};
+		RemoteCharacters.onLoginRequest = vi.fn();
+
+		lost();
+		root().querySelectorAll('.bot')[1].dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+		comesBack();
+		lost();
+		root().querySelector('.login').click();
+		comesBack();
+		lost();
+		const box = root().querySelector('.autoretry-check');
+		box.checked = false;
+		box.dispatchEvent(new Event('change'));
+		comesBack();
+
+		expect(mocks.hall.open).not.toHaveBeenCalled();
+	});
+
+	it('picks the same character again after the box of a login that failed for a while', async () => {
+		vi.useFakeTimers();
+		try {
+			mocks.hall.bots = [PARKED, BOB];
+			mocks.remote.attempt = 2;
+			appendAfter({ account: 'alice_farm', character: 'Priestess', control: false, repick: true, why: 'x' });
+			expect(mocks.boxes.map(b => b.text)).toEqual(['Remote client: x.']);
+			expect(state('alice_farm')).toBe('Retrying… (attempt 2)');
+			expect(mocks.hall.open).not.toHaveBeenCalled();
+
+			vi.advanceTimersByTime(AutoRetry.MIN_GAP);
+			expect(mocks.boxes[0].removed).toBe(true);
+			expect(mocks.hall.open).toHaveBeenCalledWith('p1');
+			await vi.runAllTimersAsync();
+			expect(RemoteCharacters.onRoomOpened).toHaveBeenCalledWith(
+				expect.objectContaining({ character: 'Priestess', control: false })
+			);
+			expect(mocks.remote.stops).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('OK on the box of the failed login stops the run', () => {
+		vi.useFakeTimers();
+		try {
+			mocks.hall.bots = [PARKED, BOB];
+			appendAfter({ account: 'alice_farm', character: 'Priestess', control: false, repick: true, why: 'x' });
+			mocks.boxes[0].ok();
+			vi.advanceTimersByTime(AutoRetry.MIN_GAP);
+			expect(mocks.hall.open).not.toHaveBeenCalled();
+			expect(mocks.remote.stops).toBe(1);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
