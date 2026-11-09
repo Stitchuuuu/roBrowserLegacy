@@ -331589,6 +331589,7 @@ var init_GUIComponent = __esmMin((() => {
 			this._isDraggable = false;
 			this.mouseMode = MouseMode.STOP;
 			this.needFocus = true;
+			this.alwaysOnTop = false;
 			this.manager = null;
 			this.__loaded = false;
 			this.__preparing = false;
@@ -331756,6 +331757,16 @@ var init_GUIComponent = __esmMin((() => {
 				this._setZIndex(other, list[z - 50]);
 			}
 			this._setZIndex(this, list.length + 50 - j);
+			if (!this.alwaysOnTop) this._raiseAlwaysOnTop();
+		}
+		/**
+		* Put the open always-on-top windows back in front, in their current order.
+		*/
+		_raiseAlwaysOnTop() {
+			const onTop = [];
+			for (const other of _opened) if (other.alwaysOnTop && other.needFocus) onTop.push(other);
+			onTop.sort((a, b) => parseInt(this._getZIndex(a), 10) - parseInt(this._getZIndex(b), 10));
+			for (const other of onTop) other.focus();
 		}
 		/**
 		* Place on top of all other components.
@@ -331768,6 +331779,7 @@ var init_GUIComponent = __esmMin((() => {
 				zList.push(parseInt(this._getZIndex(other), 10));
 			}
 			this._setZIndex(this, Math.max(50, ...zList) + 1);
+			if (!this.alwaysOnTop) this._raiseAlwaysOnTop();
 		}
 		/**
 		* Clone a component.
@@ -331782,6 +331794,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.render) cloned.render = this.render;
 			cloned.mouseMode = this.mouseMode;
 			cloned.needFocus = this.needFocus;
+			cloned.alwaysOnTop = this.alwaysOnTop;
 			if (full) for (const key of Object.keys(this)) {
 				if (key === "_host" || key === "_shadow" || key === "_container" || key === "ui" || key === "__loaded" || key === "__preparing" || key === "__scrollbarObserver") continue;
 				cloned[key] = this[key];
@@ -332561,7 +332574,7 @@ function _prioritizeKeyDown() {
 		window.addEventListener("keydown", this._keyHandler, true);
 	}
 }
-var UIManager;
+var ERROR_BOX_Z_INDEX, UIManager;
 var init_UIManager = __esmMin((() => {
 	init_GUIComponent();
 	init_Common$1();
@@ -332569,6 +332582,7 @@ var init_UIManager = __esmMin((() => {
 	init_KeyEventHandler();
 	init_ClampToViewport();
 	init_preload_helper();
+	ERROR_BOX_Z_INDEX = 1e3;
 	(function injectCommonCSS() {
 		let style = document.querySelector("style[data-common]");
 		if (!style) {
@@ -332658,6 +332672,7 @@ var init_UIManager = __esmMin((() => {
 		static showErrorBox(text) {
 			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
+			WinError.needFocus = false;
 			let overlay;
 			WinError.init = function Init() {
 				const root = this._shadow;
@@ -332682,7 +332697,8 @@ var init_UIManager = __esmMin((() => {
 			overlay = _createOverlay();
 			WinError.onAppend = _prioritizeKeyDown;
 			WinError.append();
-			overlay.style.zIndex = String(parseInt(WinError._host.style.zIndex, 10) - 1);
+			WinError._host.style.zIndex = String(ERROR_BOX_Z_INDEX);
+			overlay.style.zIndex = String(999);
 			return WinError;
 		}
 		/**
@@ -344733,6 +344749,7 @@ var init_WinPopup = __esmMin((() => {
 		});
 	};
 	WinPopup.needFocus = true;
+	WinPopup.alwaysOnTop = true;
 	WinPopup.mouseMode = GUIComponent.MouseMode.FREEZE;
 	WinPopup_default = UIManager.addComponent(WinPopup);
 }));
