@@ -98,6 +98,13 @@ The three builds agree on all of this.
   the graphics options (`GraphicsSettings.mapTransition`) overrides it.
   `Background` reads the mode itself, because the plugin libs wrap
   `Background.remove(callback)` and forward the callback only.
+- **Fades off, an option** (`GraphicsSettings.fades`, the graphics options'
+  « Screen Fades » box, ticked by default). Unticked, every fade above is a
+  cut, the smooth mode included: what runs at black runs on the next display
+  frame instead, as it would at the end of a fade to black, so the callers'
+  work after the call (the same-map teleport's `CZ_NOTIFY_ACTORINIT`) keeps
+  its order. A cut after a map load stays immediate, as in the client mode.
+  A camera tile turns the fades off, in memory only.
 - **`CZ_NOTIFY_ACTORINIT`**: a same-map teleport sends it before the fade, as
   the client does; the inventory and equipment the server sends back in the
   meantime survive the restart at black. A map change sends it from `onLoad`,

@@ -97,6 +97,7 @@ function apply() {
 	AudioPrefs.BGM.play = false;
 	AudioPrefs.Sound.play = false;
 	GraphicsSettings.fpslimit = 15;
+	GraphicsSettings.fades = false;
 	Configs.set('quality', 50);
 
 	style.textContent = sceneRule();

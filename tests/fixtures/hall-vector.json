@@ -36,9 +36,10 @@
 					"lv": 40,
 					"map": "pay_fild02"
 				},
-				"windows": 1
+				"windows": 1,
+				"reconnecting": false
 			},
-			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"node_spectate\",\"chars\":[{\"name\":\"NodeSpectate\",\"job\":7,\"lv\":40},{\"name\":\"Alt\",\"job\":0,\"lv\":1}],\"playing\":{\"name\":\"NodeSpectate\",\"job\":7,\"lv\":40,\"map\":\"pay_fild02\"},\"windows\":1}"
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"node_spectate\",\"chars\":[{\"name\":\"NodeSpectate\",\"job\":7,\"lv\":40},{\"name\":\"Alt\",\"job\":0,\"lv\":1}],\"playing\":{\"name\":\"NodeSpectate\",\"job\":7,\"lv\":40,\"map\":\"pay_fild02\"},\"windows\":1,\"reconnecting\":false}"
 		},
 		{
 			"name": "hello, not in game",
@@ -49,9 +50,24 @@
 				"account": "a",
 				"chars": [],
 				"playing": null,
-				"windows": 0
+				"windows": 0,
+				"reconnecting": false
 			},
-			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":null,\"windows\":0}"
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":null,\"windows\":0,\"reconnecting\":false}"
+		},
+		{
+			"name": "hello, reconnecting",
+			"msg": {
+				"t": "hello",
+				"v": 1,
+				"kind": "node",
+				"account": "a",
+				"chars": [],
+				"playing": null,
+				"windows": 0,
+				"reconnecting": true
+			},
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":null,\"windows\":0,\"reconnecting\":true}"
 		},
 		{
 			"name": "open",
@@ -193,7 +209,8 @@
 					"lv": 2,
 					"map": "m"
 				},
-				"windows": 0
+				"windows": 0,
+				"reconnecting": false
 			}
 		},
 		{
@@ -237,6 +254,20 @@
 				"v": 1,
 				"name": "bot.left",
 				"data": null
+			}
+		},
+		{
+			"name": "hello: reconnecting other than true reads false",
+			"text": "{\"t\":\"hello\",\"v\":1,\"kind\":\"node\",\"account\":\"a\",\"chars\":[],\"playing\":null,\"windows\":0,\"reconnecting\":\"yes\"}",
+			"msg": {
+				"t": "hello",
+				"v": 1,
+				"kind": "node",
+				"account": "a",
+				"chars": [],
+				"playing": null,
+				"windows": 0,
+				"reconnecting": false
 			}
 		}
 	],

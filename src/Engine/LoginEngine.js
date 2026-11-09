@@ -64,10 +64,12 @@ WinLoading.init = function () {
  * every append so a popup shown again after the run carries no stale line.
  */
 WinLoading.onAppend = function onAppend() {
+	// A remote client's character picked again counts across the logins its run takes
+	const attempt = Math.max(AutoRetry.attempt(), RemoteBot.attempt());
 	let text = DB.getMessage(121);
 
-	if (AutoRetry.attempt() > 1) {
-		text += '\nAttempt #' + AutoRetry.attempt();
+	if (attempt > 1) {
+		text += '\nAttempt #' + attempt;
 	}
 
 	this._shadow.querySelector('.text').textContent = text;

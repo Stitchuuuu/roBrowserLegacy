@@ -105,12 +105,18 @@ in roBrowserLegacy-Node:
 
 | page → bot | bot → page |
 |---|---|
-| `{t:'who', v:1}` | `{t:'hello', v:1, kind:'node', account, chars:[{name, job, lv}], playing:{name, job, lv, map} \| null, windows}` |
+| `{t:'who', v:1}` | `{t:'hello', v:1, kind:'node', account, chars:[{name, job, lv}], playing:{name, job, lv, map} \| null, windows, reconnecting}` |
 | `{t:'open', v:1, id}` | `{t:'room', v:1, id, room, secret}` or `{t:'no', v:1, id, why}` (`busy`, `error`) |
 | `{t:'call', v:1, id, name, data}` | `{t:'ret', v:1, id, ok:true, data}` or `{t:'ret', v:1, id, ok:false, why}` (`unknown`, `error`, `big`, or the name's own) |
 | `{t:'ev', v:1, name, data}` | `{t:'ev', v:1, name, data}` |
 
-- The bot sends `hello` again, unasked, when its map or character changes.
+- The bot sends `hello` again, unasked, when its map or character changes,
+  and when its reconnect loop starts or ends.
+- `reconnecting` is true while the bot is out of the game and its reconnect
+  loop runs (its link dropped): it comes back by itself. A bot out of the game
+  otherwise (Disconnect & Exit, `/logout`, a loop that gave up) says false. The
+  `hello` a dropped link causes leaves on the next tick, once the bot decided
+  whether it reconnects. A bot older than the field sends none: read false.
 - Every field is bounded (names 32 characters, 15 characters per account,
   ids up to 2³¹-1, 8 KiB per message). An unknown `t` is ignored, so a newer
   side can add requests; anything else that does not fit cuts that peer only.
@@ -159,6 +165,9 @@ What the list says when it cannot show remote clients, or one does not open:
 | This remote client left the hall | `gone`: it left, or the hall closed, while asked |
 | This remote client did not answer | no answer within 15 s |
 | This remote client could not open a room | `no`, `error`: its fresh room failed |
+| Reconnecting to the server… | `reconnecting` (auto-retry, below) |
+| Waiting for it to be back in game… / … opened once it plays again. | auto-retry waits for this bot |
+| Retrying… (attempt N) | auto-retry picks a character again |
 
 « Normal login », or a login screen without hall settings, leaves a room the
 list opened, so a real login reaches the real server; a pasted link stays.
@@ -236,6 +245,7 @@ Beside the records, the room carries JSON text both ways
 | `{t:'control', v:1, on}` | bot → window | whether this window holds the bot's control: on every `@control`, and each time the window is in game, so a control the bot let go of meanwhile reads off (`RemoteBot.hasControl()`) |
 | `{t:'progress', v:1, elapsed}` | bot → window | before the records of a snapshot that carries a progress bar: the ms it has already run (`RemoteBot.takeElapsed()`) |
 | `{t:'character', v:1, name}` | bot → window | before the char list, when the bot switched characters on its own: the one the window picks (`RemoteBot.takeCharacter()`) |
+| `{t:'loginfail', v:1, retry, why}` | bot → window | before it closes the character select of a logged-out bot whose login failed: why, and whether the same pick may work later (auto-retry, below) |
 | `{t:'logout', v:1}` | window → bot | **Disconnect & Exit**, confirmed: the bot runs its `/logout` (below) |
 
 `RemoteBot` keeps `control`, `progress` and `character` itself;
@@ -420,11 +430,44 @@ picks none for it. The character the player picks:
 
 A login that fails (the bot holds no password: an « alt » account is handed
 back at `/logout`), or a bot not on a map 45 s later, closes the window's
-socket (« Disconnected ») and gives the control back; the bot's log says why.
+socket and gives the control back; the bot's log says why, and so does the
+window's box (« Remote client: … », from `{t:'loginfail'}`).
 
 Only the WebRTC mode has this: the WebSocket attach of the dev page has no
 text, and gives each socket a window of its own, so its control would not
 follow it from the character select to the map.
+
+## Auto-retry
+
+Remote characters has the login window's « Auto-retry » box under it: the
+same setting (`Engine/AutoRetry.js`, the `AutoRetry` preference), so ticking
+one ticks the other. Ticked, a window the list opened does not end its game in
+« Disconnected from Server. » when the bot's sockets close on their own
+(`NetworkManager` asks `RemoteBot.dropped()`): it goes back to the list at
+once, on the same server without the server list (`RemoteBot.returning()`,
+`GameEngine`), and the list takes the bot again (`RemoteBot.takeDrop()`).
+
+| what happened | what the list does |
+|---|---|
+| the bot's pick at a logged-out bot failed, `retry: true` | shows the bot's why in a box, as the login window does, then after `AutoRetry.MIN_GAP` opens the bot again and picks the same character (`RemoteBot.picked()`); « Attempt #N » in the loading box. OK on the box stops |
+| the same, `retry: false` | nothing: the error box, with the bot's why |
+| anything else (the bot's link dropped, its process died) | waits on its row and opens it again once it plays, with the control the window held |
+| a click on a bot whose `hello` says `reconnecting` | no room: it waits the same way (its cached character select would fight its own reconnect) |
+
+`retry` is the bot's sorting (`retryable()` in its `spectate/responder.js`),
+the same as the window's own auto-retry: a server that did not answer, refusals
+3 / 4 / 7 / 100, bans 1 / 4 / 8, another login that took over, no map 45 s
+after the login — not wrong credentials, other bans, an account the bot holds
+no password for.
+
+A wait ends when the bot plays again, but only once it was seen out of the
+game: the list from before the drop may still say it plays. It ends without a
+room when the same bot says it is out of the game and not reconnecting: it was
+parked, and nothing brings it back by itself. A bot that left the hall and came
+back (a restart) is waited for until it plays, whatever its first `hello`
+says. Picking another bot, « Normal login », Settings or unticking the box end
+a wait or a run. A pasted link, a camera tile and a box left unticked keep the
+error box.
 
 ## Progress bars
 

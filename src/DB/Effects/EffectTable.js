@@ -40,6 +40,15 @@ import CastRing from 'Renderer/Effects/CastRing.js';
 import { endureEffect } from 'DB/Effects/EndureEffect.js';
 import { arrowShowerEffects } from 'DB/Effects/ArrowShowerEffects.js';
 import { arrowFlightBetween } from 'Renderer/Effects/ArrowFlight.js';
+import BoltRain from 'Renderer/Effects/BoltRain.js';
+import IceSpikes from 'Renderer/Effects/IceSpikes.js';
+import {
+	planPath as planIcePath,
+	planShards as planIceShards,
+	PATH as ICE_PATH,
+	SHARDS as ICE_SHARDS
+} from 'Renderer/Effects/IceSpikesSim.js';
+import { soulStrikeEffect } from 'DB/Effects/SoulStrikeEffect.js';
 import CastFunnel from 'Renderer/Effects/CastFunnel.js';
 import CasterMarks from 'Renderer/Effects/CasterMarks.js';
 import RotateLine from 'Renderer/Effects/RotateLine.js';
@@ -1077,48 +1086,7 @@ export default {
 		}
 	],
 
-	15: [
-		{
-			//soul strike caster	//EF_SOULSTRIKE	Soul Strike
-			alphaMax: 1,
-			attachedEntity: true,
-			blue: 1,
-			duration: 200,
-			delayLate: 250,
-			//duplicate: -1,
-			fadeIn: true,
-			fadeOut: true,
-			file: 'effect/pok3.tga',
-			toSrc: true,
-			green: 1,
-			poszEnd: 1,
-			poszSmooth: true,
-			poszStartRand: 5,
-			poszStartRandMiddle: 6,
-			red: 1,
-			size: 50,
-			timeBetweenDupli: 150,
-			type: '3D',
-			wav: 'effect/ef_soulstrike',
-			zIndex: 1
-		},
-		{
-			type: '3D',
-			duration: 250,
-			duplicate: 5,
-			timeBetweenDupli: 20,
-			absoluteSpriteName: 'data/sprite/\xc0\xcc\xc6\xd1\xc6\xae/particle1',
-			playSprite: true,
-			toSrc: true,
-			rotateToTarget: true,
-			sizeStart: 100.0,
-			sizeEnd: 500.0,
-			zOffsetStart: 3,
-			arc: 4.0,
-			retreat: 3.0,
-			soulStrikePattern: true
-		}
-	],
+	15: soulStrikeEffect,
 
 	16: [
 		{
@@ -1378,29 +1346,102 @@ export default {
 		}
 	],
 
+	stonecurse_sound: [
+		{
+			// The sound the official client plays with Stone Curse's effect 23 (not part of 23 itself)
+			wav: '_stonecurse',
+			attachedEntity: true
+		}
+	],
+
 	24: [
 		{
-			//fireball caster effect (on target effect 49:)	//EF_FIREBALL	Fire Ball
+			//EF_FIREBALL	Fire Ball, played on the caster: the official client throws four fireball sprites at the
+			//target on ticks 20, 24, 28 and 32, each flying 20 ticks from 15 units up, each with its own sound.
+			//The first is plain, the next three tinted (246, 199, 76) and fainter (alpha 180, 130, 80).
 			type: '3D',
-			alphaMax: 0.2,
-			alphaMaxDelta: 0.2,
-			attachedEntity: true,
-			duration: 250,
-			delayOffset: 160,
-			delayOffsetDelta: -40,
 			spriteName: 'fireball',
 			playSprite: true,
-			duplicate: 5,
-			timeBetweenDupli: 0,
-			toSrc: true,
+			attachedEntity: false,
+			fromSrc: true,
 			rotateToTarget: true,
 			rotateWithCamera: true,
-			zOffset: 2,
-			size: 200,
+			zOffset: 3,
+			delayStart: 333,
+			duration: 333,
+			alphaMax: 1,
+			size: 130,
 			zIndex: 1
 		},
 		{
-			wav: 'effect/ef_fireball'
+			type: '3D',
+			spriteName: 'fireball',
+			playSprite: true,
+			attachedEntity: false,
+			fromSrc: true,
+			rotateToTarget: true,
+			rotateWithCamera: true,
+			zOffset: 3,
+			delayStart: 400,
+			duration: 333,
+			alphaMax: 180 / 255,
+			red: 246 / 255,
+			green: 199 / 255,
+			blue: 76 / 255,
+			size: 130,
+			zIndex: 1
+		},
+		{
+			type: '3D',
+			spriteName: 'fireball',
+			playSprite: true,
+			attachedEntity: false,
+			fromSrc: true,
+			rotateToTarget: true,
+			rotateWithCamera: true,
+			zOffset: 3,
+			delayStart: 467,
+			duration: 333,
+			alphaMax: 130 / 255,
+			red: 246 / 255,
+			green: 199 / 255,
+			blue: 76 / 255,
+			size: 130,
+			zIndex: 1
+		},
+		{
+			type: '3D',
+			spriteName: 'fireball',
+			playSprite: true,
+			attachedEntity: false,
+			fromSrc: true,
+			rotateToTarget: true,
+			rotateWithCamera: true,
+			zOffset: 3,
+			delayStart: 533,
+			duration: 333,
+			alphaMax: 80 / 255,
+			red: 246 / 255,
+			green: 199 / 255,
+			blue: 76 / 255,
+			size: 130,
+			zIndex: 1
+		},
+		{
+			wav: 'effect/ef_fireball',
+			delayWav: 333
+		},
+		{
+			wav: 'effect/ef_fireball',
+			delayWav: 400
+		},
+		{
+			wav: 'effect/ef_fireball',
+			delayWav: 467
+		},
+		{
+			wav: 'effect/ef_fireball',
+			delayWav: 533
 		}
 	],
 
@@ -1419,71 +1460,75 @@ export default {
 
 	26: [
 		{
-			//EF_ICEARROW	A sound (a swipe?)
-			//type: 'FUNC',
-			wav: 'effect/ef_icearrow%d', // Or ef_icearrow2 & ef_icearrow3 . Seems to be random
+			//EF_ICEARROW	Cold Bolt, on the target: one ice bolt per hit, 10 ticks apart from tick 12,
+			//each opening a ring_blue ring as it lands (BoltRainSim.js)
+			type: 'FUNC',
+			attachedEntity: true,
+			func: function (Params) {
+				this.add(
+					new BoltRain(Params.Init.ownerEntity.position, Params.Inst.startTick, Params.Init.hitCount, 'cold'),
+					Params
+				);
+			}
+		},
+		{
+			// One sound per cast, on tick 12
+			wav: 'effect/ef_icearrow%d',
 			rand: [1, 3],
-			attachedEntity: false
+			delayWav: 200,
+			attachedEntity: true
 		}
 	],
 
 	27: [
 		{
-			//EF_FROSTDIVER	Frost Diver (ice spikes traveling from caster to target)
-			type: 'TRAIL',
-			attachedEntity: false,
-			duration: 2500,
-			speed: 24,
-			interval: 17,
-			stopAtTarget: true,
-			overshoot: 2,
-			spread: [0.1, 0.3],
-			spawn: [
-				{
-					type: 'QuadHorn',
-					textureFile: 'effect/ice.tga',
-					attachedEntity: false,
-					duration: 670,
-					height: [0.2, 1.8],
-					offsetX: 0,
-					offsetY: 0,
-					offsetZ: 0,
-					bottomSize: [0.06, 0.22],
-					blendMode: 8,
-					rotateX: [-15, 15],
-					rotateY: [0, 360],
-					color: [1.0, 1.0, 1.0, 1.0],
-					animation: 4,
-					animationSpeed: 330,
-					riseDistance: 2.0,
-					fadeOut: 170
+			//EF_FROSTDIVER	Frost Diver, on the caster: one thin ice spike a tick along the line to the
+			//target, pushing out of the ground (IceSpikesSim.js)
+			type: 'FUNC',
+			attachedEntity: true,
+			func: function (Params) {
+				const caster = Params.Init.ownerEntity;
+				const target = Params.Init.otherEntity;
+				if (!target) {
+					return;
 				}
-			]
+				const at = [caster.position[0], caster.position[1], caster.position[2]];
+				const spikes = planIcePath((target.position[0] - at[0]) * 5, (target.position[1] - at[1]) * 5);
+				this.add(new IceSpikes(at, Params.Inst.startTick, spikes, ICE_PATH.life), Params);
+			}
 		}
 	],
 
 	28: [
 		{
-			//Frost Diver target hit	//EF_FROSTDIVER2	Frost Diver (Hitting)
+			//EF_FROSTDIVER2	Frost Diver hit, on the target: 8 wide ice spikes bursting from the feet
+			//(IceSpikesSim.js)
+			type: 'FUNC',
 			attachedEntity: true,
-			file: 'freeze', //effect/ice.tga
-			type: 'STR',
-			wav: 'effect/ef_frostdiver2'
+			func: function (Params) {
+				this.add(
+					new IceSpikes(
+						Params.Init.ownerEntity.position,
+						Params.Inst.startTick,
+						planIceShards(),
+						ICE_SHARDS.life
+					),
+					Params
+				);
+			}
+		},
+		{
+			wav: 'effect/ef_frostdiver2',
+			attachedEntity: true
 		}
 	],
 
 	29: [
 		{
-			//EF_LIGHTBOLT	Lightning Bolt
+			//EF_LIGHTBOLT	Lightning Bolt (the official client plays Lightning.str only; the wind hit is 52)
 			attachedEntity: true,
 			duplicate: 1,
 			file: 'lightning',
-			type: 'STR'
-		},
-		{
-			attachedEntity: true,
-			file: 'windhit%d',
-			rand: [1, 3],
 			type: 'STR'
 		}
 	],
@@ -1500,9 +1545,57 @@ export default {
 
 	31: [
 		{
-			//EF_FIREARROW	Weird bubbles launching from feet
-			//type: 'FUNC',
-			wav: 'effect/ef_firearrow1',
+			//EF_FIREARROW	Fire Bolt, on the target: one fire bolt per hit, 10 ticks apart from tick 12,
+			//each opening a ring_yellow ring as it lands, and a spark every 4 ticks from the newest
+			//bolt (BoltRainSim.js)
+			type: 'FUNC',
+			attachedEntity: true,
+			func: function (Params) {
+				const target = Params.Init.ownerEntity;
+				const spark = (s, startTick) => {
+					// A particle4 sprite flying from the bolt back up its line, shrinking away
+					const at = [target.position[0], target.position[1], target.position[2]];
+					this.spamEffect({
+						effect: {
+							type: '3D',
+							spriteName: 'particle4',
+							playSprite: true,
+							attachedEntity: false,
+							duration: (s.life * 1000) / 60,
+							posxStart: s.start.x / 5,
+							posyStart: s.start.y / 5,
+							poszStart: s.start.up / 5,
+							posxEnd: s.end.x / 5,
+							posyEnd: s.end.y / 5,
+							poszEnd: s.end.up / 5,
+							sizeStart: s.scale * 100,
+							sizeEnd: 1,
+							alphaMax: 1,
+							fadeOut: true,
+							zIndex: 1
+						},
+						Inst: { effectID: 31, duplicateID: 0, startTick },
+						Init: Object.assign({}, Params.Init, { position: at })
+					});
+				};
+				this.add(
+					new BoltRain(
+						target.position,
+						Params.Inst.startTick,
+						Params.Init.hitCount,
+						'fire',
+						Math.random,
+						spark
+					),
+					Params
+				);
+			}
+		},
+		{
+			// One sound per cast, on tick 12
+			wav: 'effect/ef_firearrow%d',
+			rand: [1, 3],
+			delayWav: 200,
 			attachedEntity: true
 		}
 	],

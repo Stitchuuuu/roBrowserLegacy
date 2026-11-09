@@ -63,7 +63,7 @@ describe('camera tile', () => {
 		expect((await load('#camera', crossOrigin)).CameraTile.active).toBe(false);
 	});
 
-	it('mutes the sound, caps the frames and lowers the quality in memory, never in the shared localStorage', async () => {
+	it('mutes the sound, caps the frames, cuts the fades and lowers the quality in memory, never in the shared localStorage', async () => {
 		const stored = {
 			Audio: JSON.stringify({ BGM: { play: true, volume: 0.5 }, Sound: { play: true, volume: 0.5 }, _version: 1.0 }),
 			Graphics: JSON.stringify({ quality: 100, fpslimit: -1, _version: 1.1 })
@@ -73,6 +73,7 @@ describe('camera tile', () => {
 		expect(AudioPrefs.BGM.play).toBe(false);
 		expect(AudioPrefs.Sound.play).toBe(false);
 		expect(GraphicsSettings.fpslimit).toBe(15);
+		expect(GraphicsSettings.fades).toBe(false);
 		expect(Configs.get('quality', 100)).toBe(50);
 		// The other tiles and the normal tab read the same storage: nothing written
 		expect(localStorage.getItem('Audio')).toBe(stored.Audio);
@@ -84,6 +85,7 @@ describe('camera tile', () => {
 
 		expect(AudioPrefs.BGM.play).toBe(true);
 		expect(GraphicsSettings.fpslimit).toBe(-1);
+		expect(GraphicsSettings.fades).toBe(true);
 		expect(Configs.get('quality', 100)).toBe(100);
 		expect(document.head.querySelector('style')).toBe(null);
 	});

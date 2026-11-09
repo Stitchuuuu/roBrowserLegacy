@@ -9,12 +9,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
 	uiManager: { showErrorBox: vi.fn() },
+	gameEngine: { reload: vi.fn() },
 	packetCrypt: { init: vi.fn(), process: vi.fn(), reset: vi.fn() },
 	joinRoom: vi.fn(),
 	rooms: []
 }));
 
 vi.mock('UI/UIManager.js', () => ({ default: mocks.uiManager }));
+vi.mock('Engine/GameEngine.js', () => ({ default: mocks.gameEngine }));
 vi.mock('Network/PacketCrypt.js', () => ({ default: mocks.packetCrypt }));
 vi.mock('Vendors/signal/index.js', async importOriginal => ({
 	...(await importOriginal()),
@@ -464,5 +466,111 @@ describe('remote mode: what the bot says of its control and its bar, and a switc
 		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'b', secret: SECRET, control: true });
 		RemoteBot.leave();
 		expect(RemoteBot.takeWantControl()).toBe(false);
+	});
+});
+
+describe('auto-retry in the remote mode', () => {
+	let AutoRetry;
+
+	beforeEach(async () => {
+		sessionStorage.clear();
+		mocks.rooms.length = 0;
+		mocks.joinRoom.mockReset();
+		mocks.joinRoom.mockImplementation(() => {
+			const room = fakeRoom();
+			mocks.rooms.push(room);
+			return room;
+		});
+		await load('');
+		AutoRetry = (await import('Engine/AutoRetry.js')).default;
+		AutoRetry.setEnabled(true);
+	});
+
+	/** A room the list opened for alice_farm, its bot peer linked */
+	function attached() {
+		RemoteBot.useRoom({ relay: RELAY, relayKey: '', room: 'a', secret: SECRET, account: 'alice_farm' });
+		const peer = fakePeer();
+		mocks.rooms[mocks.rooms.length - 1].emit('peer', peer);
+		return peer;
+	}
+	const say = (peer, message) => peer.emit('message', JSON.stringify(message));
+
+	it('a bot lost in game is waited for, its control kept, once', () => {
+		const peer = attached();
+		say(peer, { t: 'control', v: 1, on: true });
+
+		expect(RemoteBot.dropped()).toBe(true);
+		expect(RemoteBot.takeDrop()).toEqual({
+			account: 'alice_farm',
+			character: null,
+			control: true,
+			repick: false,
+			why: ''
+		});
+		expect(RemoteBot.takeDrop()).toBe(null);
+		expect(RemoteBot.attempt()).toBe(0);
+	});
+
+	it('a pick the bot could not log in with for a while is picked again, counted', () => {
+		const peer = attached();
+		RemoteBot.picked('Mendel');
+		say(peer, { t: 'loginfail', v: 1, retry: true, why: 'the login failed: map server connect failed' });
+
+		expect(RemoteBot.dropped()).toBe(true);
+		expect(RemoteBot.takeDrop()).toMatchObject({ account: 'alice_farm', character: 'Mendel', repick: true });
+		expect(RemoteBot.attempt()).toBe(2);
+
+		say(peer, { t: 'loginfail', v: 1, retry: true, why: 'again' });
+		RemoteBot.dropped();
+		expect(RemoteBot.attempt()).toBe(3);
+		// Logged in on the bot's login server: the run goes on until the map
+		RemoteBot.setLoginScreen(null);
+		say(peer, { t: 'loginfail', v: 1, retry: true, why: 'again' });
+		RemoteBot.dropped();
+		expect(RemoteBot.attempt()).toBe(4);
+		RemoteBot.stopRetry();
+		expect(RemoteBot.attempt()).toBe(0);
+	});
+
+	it('a pick that can never work keeps the error box, with the why of the bot', () => {
+		const peer = attached();
+		say(peer, { t: 'loginfail', v: 1, retry: false, why: 'the bot holds no password for this account' });
+
+		expect(RemoteBot.dropped()).toBe(false);
+		expect(RemoteBot.loginFailure()).toBe('the bot holds no password for this account');
+		expect(RemoteBot.takeDrop()).toBe(null);
+	});
+
+	it('keeps the error box with auto-retry off, for a pasted link and in a camera tile', async () => {
+		AutoRetry.setEnabled(false);
+		attached();
+		expect(RemoteBot.dropped()).toBe(false);
+
+		AutoRetry.setEnabled(true);
+		RemoteBot.setLink(LINK);
+		expect(RemoteBot.dropped()).toBe(false);
+	});
+
+	it('goes back to the list without the error box when the bot goes, the error box with auto-retry off', async () => {
+		mocks.uiManager.showErrorBox.mockClear();
+		mocks.gameEngine.reload.mockClear();
+		let peer = attached();
+		Network.connect('game.invalid', 5121, vi.fn(), true);
+		await settle();
+
+		peer.emit('close', 'gone');
+		await settle();
+		expect(mocks.gameEngine.reload).toHaveBeenCalledOnce();
+		expect(mocks.uiManager.showErrorBox).not.toHaveBeenCalled();
+		expect(RemoteBot.takeDrop()).toMatchObject({ account: 'alice_farm', repick: false });
+
+		AutoRetry.setEnabled(false);
+		peer = attached();
+		Network.connect('game.invalid', 5121, vi.fn(), true);
+		await settle();
+		peer.emit('close', 'gone');
+		await settle();
+		expect(mocks.gameEngine.reload).toHaveBeenCalledOnce();
+		expect(mocks.uiManager.showErrorBox).toHaveBeenCalledWith('Disconnected from Server.');
 	});
 });
