@@ -924,6 +924,7 @@ function onConnectRequest(entity) {
 		AutoRetry.arm();
 	}
 	_pickedSlot = entity.CharNum;
+	RemoteBot.picked(entity.name);
 
 	CharSelect.remove();
 	UIManager.getComponent('WinLoading').append();

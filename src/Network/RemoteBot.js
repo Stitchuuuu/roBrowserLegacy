@@ -10,6 +10,7 @@ import { joinRoom, parseLink } from 'Vendors/signal/index.js';
 import RtcSockets from './SocketHelpers/RtcSockets.js';
 import BotHall from './BotHall.js';
 import CameraTile from './CameraTile.js';
+import AutoRetry from 'Engine/AutoRetry.js';
 
 /**
  * sessionStorage key of the link: a reload in the tab attaches again
@@ -90,6 +91,31 @@ let _switch = null;
  */
 let _wantControl = false;
 
+/**
+ * @var {?string} _account - the account of the bot the list opened
+ */
+let _account = null;
+
+/**
+ * @var {?string} _picked - the character picked at this room's character select
+ */
+let _picked = null;
+
+/**
+ * @var {?{retry: boolean, why: string}} _loginFail - why the bot could not log in with the character picked
+ */
+let _loginFail = null;
+
+/**
+ * @var {?object} _drop - the bot to come back to, once the list shows: see dropped()
+ */
+let _drop = null;
+
+/**
+ * @var {number} _attempt - picks tried again at a logged-out bot, 0 outside such a run
+ */
+let _attempt = 0;
+
 const RemoteBot = {};
 
 /**
@@ -151,6 +177,7 @@ RemoteBot.useRoom = function useRoom(room) {
 	_character = room.character || null;
 	_listRoom = true;
 	_wantControl = !!room.control;
+	_account = room.account || null;
 	join({ relay: room.relay, relayKey: room.relayKey || undefined, room: room.room, secret: room.secret });
 	try {
 		sessionStorage.removeItem(STORAGE_KEY);
@@ -258,6 +285,82 @@ RemoteBot.sendText = function sendText(message) {
 };
 
 /**
+ * @param {string} name - the character picked at this room's character select, picked again by an auto-retry
+ */
+RemoteBot.picked = function picked(name) {
+	_picked = name;
+};
+
+/**
+ * The bot's sockets closed on their own: with auto-retry on, keep its bot to come back to on the list rather
+ * than end the game in an error box. A pick the bot could not log in with is picked again, unless it can never
+ * work (the bot said so); a bot lost otherwise is waited for until it plays again.
+ *
+ * @return {boolean} true: go back to the list at once, no error box
+ * @see docs/reference/network/remote-bot.md
+ */
+RemoteBot.dropped = function dropped() {
+	const fail = _loginFail;
+
+	if (!_sockets || !_listRoom || !_account || CameraTile.active || !AutoRetry.isEnabled()) {
+		return false;
+	}
+	if (fail && !fail.retry) {
+		return false;
+	}
+
+	_loginFail = null;
+	_drop = {
+		account: _account,
+		character: fail ? _picked : null,
+		control: _control,
+		repick: !!fail,
+		why: fail ? fail.why : ''
+	};
+	_attempt = fail ? Math.max(1, _attempt) + 1 : 0;
+	return true;
+};
+
+/**
+ * @return {?{account: string, character: ?string, control: boolean, repick: boolean, why: string}} the bot
+ *   dropped() kept, once: repick, pick that character again; otherwise wait for the bot to play again
+ */
+RemoteBot.takeDrop = function takeDrop() {
+	const drop = _drop;
+
+	_drop = null;
+	return drop;
+};
+
+/**
+ * @return {boolean} a bot dropped() kept waits for the remote characters
+ */
+RemoteBot.returning = function returning() {
+	return !!_drop;
+};
+
+/**
+ * @return {string} why the bot could not log in with the character picked, for the error box dropped() left
+ */
+RemoteBot.loginFailure = function loginFailure() {
+	return _loginFail ? _loginFail.why : '';
+};
+
+/**
+ * @return {number} the pick an auto-retry runs at a logged-out bot, from the second one on; 0 otherwise
+ */
+RemoteBot.attempt = function attempt() {
+	return _attempt;
+};
+
+/**
+ * The auto-retry run is over: in game, cancelled, or another bot taken
+ */
+RemoteBot.stopRetry = function stopRetry() {
+	_attempt = 0;
+};
+
+/**
  * Back to the server from a room the bot list opened; a link stays
  */
 RemoteBot.leave = function leave() {
@@ -272,6 +375,7 @@ RemoteBot.leave = function leave() {
 	}
 	_character = null;
 	_wantControl = false;
+	_account = null;
 };
 
 /**
@@ -330,6 +434,8 @@ function join(link) {
 	_sockets = new RtcSockets(joinRoom({ ...link, max: 2 }));
 	_control = false;
 	_elapsed = 0;
+	_picked = null;
+	_loginFail = null;
 	_sockets.onText = text => {
 		let message = null;
 
@@ -351,6 +457,10 @@ function join(link) {
 			} else if (t === 'character') {
 				// The bot switched characters on its own: this character select picks the one it took
 				_character = typeof message.name === 'string' ? message.name.slice(0, 24) : null;
+				return;
+			} else if (t === 'loginfail') {
+				// Before the bot closes the character select: dropped() reads it
+				_loginFail = { retry: message.retry === true, why: String(message.why || '').slice(0, 200) };
 				return;
 			}
 		} else {

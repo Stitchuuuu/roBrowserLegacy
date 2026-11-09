@@ -56,6 +56,9 @@ vi.mock('Network/NetworkManager.js', () => ({
 }));
 vi.mock('Network/RemoteBot.js', () => ({
 	default: {
+		picked: () => {
+			// an auto-retry keeps it
+		},
 		// Once, like the real one, when a test asks for it
 		takeCharacter: () => {
 			const name = mocks.botCharacter;

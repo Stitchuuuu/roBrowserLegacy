@@ -597,9 +597,14 @@ function onClose() {
 
 			if (_onDisconnect) {
 				_onDisconnect();
+			} else if (RemoteBot.dropped()) {
+				// Auto-retry: back to the remote characters, which take the bot again
+				import('Engine/GameEngine.js').then(GameEngine => GameEngine.default.reload());
 			} else {
+				const why = RemoteBot.loginFailure();
+
 				import('UI/UIManager.js').then(UIManager => {
-					UIManager.default.showErrorBox('Disconnected from Server.');
+					UIManager.default.showErrorBox(why ? `Remote client: ${why}.` : 'Disconnected from Server.');
 				});
 			}
 		}
