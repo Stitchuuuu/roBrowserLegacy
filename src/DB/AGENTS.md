@@ -1,5 +1,13 @@
 # AGENTS.md — Database Subsystem (`src/DB/`)
 
+## Topological snapshot
+
+- `DBManager.js` — central lookup and loading layer.
+- `Items/`, `Skills/`, `Status/`, `Jobs/`, `Map/`, `Monsters/`, `Pets/`, `Effects/` — game metadata and behavior tables.
+- `*Const.js` files — stable numeric IDs and constants used across the client.
+- `docs/Encoding.md` and `docs/LuaModuleResolution.md` — text decoding and Lua-backed table rules.
+- `tests/db/` — regression tests for constants and mappings.
+
 Instructions for working on `DBManager.js` and game data tables (`Effects/`, `Items/`, `Jobs/`, `Map/`, `Monsters/`, `Pets/`, `Skills/`, `Status/`, `Emotions.js`, `TownInfo.js`).
 
 ## Mandatory Prerequisites
@@ -29,7 +37,7 @@ Instructions for working on `DBManager.js` and game data tables (`Effects/`, `It
 ## Subsystem Structure (`src/DB/`)
 
 - `DBManager.js` — Central database manager: loads text/CSV/XML/BSON/Lua tables (`MsgStringTable`, item tables, skill trees, palette probes, AI scripts) and exposes lookup helpers (`DB.getMessage()`, `DB.getItemInfo()`, `DB.formatMsgToHtml()`, `DB.INTERFACE_PATH`, etc.).
-- `Effects/` — `EffectConst.js`, `EffectTable.js`, `WeatherEffect.js`, `EndureEffect.js` (effect 11's rows, motion in `Renderer/Effects/EndureSim.js`), `ArrowShowerEffects.js` (Arrow Shower's arrows to the cells around the target).
+- `Effects/` — `EffectConst.js`, `EffectTable.js`, `WeatherEffect.js`, `EndureEffect.js` (effect 11's rows, motion in `Renderer/Effects/EndureSim.js`), `ArrowShowerEffects.js` (Arrow Shower's arrows to the cells around the target), `SoulStrikeEffect.js` (effect 15's rows, motion in `Renderer/Effects/SoulStrikeSim.js`).
 - `Items/` — `EquipmentLocation.js`, `HatTable.js`, `ItemEffect.js`, `ItemRandomOptionTable.js`, `ItemTable.js`, `ItemType.js`, `RobeTable.js`, `ShieldTable.js`, `WeaponHitSoundTable.js`, `WeaponSoundTable.js`, `WeaponTable.js`, `WeaponTrailTable.js`, `WeaponType.js`, `WeaponTypeExpansion.js`.
 - `Jobs/` — `AllMountTable.js`, `BabyTable.js`, `HairIndexTable.js`, `JobConst.js`, `JobHitSoundTable.js`, `JobNameTable.js`, `JobPropertyTable.js`, `MountTable.js`, `PalNameTable.js`, `RankingTypes.js`, `WeaponAction.js`, `WeaponJobTable.js`.
 - `Map/` — `MapState.js`, `MapTable.js`, `PrivateAirship.js` (Private Airship start/end maps and payment items from `PrivateAirplane_True.lub`), `WorldMap.js`.

@@ -1334,10 +1334,16 @@ function onEntityViewChange(pkt) {
 				entity.weapon = resolved.weapon;
 				entity.shield = resolved.shield;
 			} else {
-				entity.weapon = DB.getWeaponViewID(pkt.value);
-				if (pkt.value2 !== undefined) {
-					entity.shield = pkt.value2;
-				}
+				const resolved = resolveEntityWeapons(
+					pkt.value,
+					pkt.value2 !== undefined ? pkt.value2 : entity.shield,
+					entity,
+					Session.Entity,
+					Inventory,
+					Equipment
+				);
+				entity.weapon = resolved.weapon;
+				entity.shield = resolved.shield;
 			}
 
 			// load self aura
@@ -1373,7 +1379,18 @@ function onEntityViewChange(pkt) {
 			entity.bodypalette = pkt.value;
 			break;
 		case 8:
-			entity.shield = pkt.value;
+			{
+				const resolved = resolveEntityWeapons(
+					entity.weapon,
+					pkt.value,
+					entity,
+					Session.Entity,
+					Inventory,
+					Equipment
+				);
+				entity.weapon = resolved.weapon;
+				entity.shield = resolved.shield;
+			}
 			break;
 		case 9:
 			break; // LOOK_SHOES ??
@@ -1708,7 +1725,7 @@ function onEntityUseSkillToAttack(pkt) {
 	}
 
 	// Effects the official client plays as each damage packet arrives
-	EffectManager.spamSkillDamage(pkt.SKID, pkt.targetID, Renderer.tick, pkt.AID);
+	EffectManager.spamSkillDamage(pkt.SKID, pkt.targetID, Renderer.tick, pkt.AID, undefined, pkt.count);
 	EffectManager.spamSkillMotion(pkt.SKID, pkt.AID, pkt.targetID, Renderer.tick, pkt.action, pkt.level, !!dstEntity);
 
 	if (srcEntity && dstEntity && pkt.action != SkillAction.SPLASH) {
