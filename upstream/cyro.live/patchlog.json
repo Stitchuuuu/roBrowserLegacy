@@ -1177,6 +1177,87 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.11.0",
+			"date": "2026-11-09",
+			"title": "Follow the Footsteps",
+			"sha": "51cf9ac4c",
+			"notes": [
+				{
+					"type": "new",
+					"keyword": "Mage skills",
+					"text": "Your Wizard casts Cold Bolt 10 and you can finally count the ten bolts: one falls per hit and rings the ground where it lands. Frost Diver draws its ice path, Soul Strike sends one soul per hit.",
+					"details": "Cold Bolt, Fire Bolt, Lightning Bolt, Fire Ball, Frost Diver, Soul Strike, Napalm Beat, Thunderstorm, Stone Curse and Energy Coat are drawn like the official client: one falling bolt per hit with a ring where it lands, four fireballs from the caster, the ice spike path of Frost Diver, one soul per hit for Soul Strike, and the elemental hit on every hit.",
+					"commits": [
+						"a9ac620d3"
+					]
+				},
+				{
+					"type": "new",
+					"keyword": "Navigation and World Map",
+					"text": "Lost on the way to Glast Heim? /navi now leaves footsteps on the floor to follow, and the World Map tells you who lives on each map and from what level you can survive it.",
+					"details": "The Navigation window was reworked and draws the route as footsteps on the floor. The World Map shows the monsters of a map with their level range and a recommended level, and the Kafra teleport and airship routes as overlays.",
+					"commits": [
+						"1be638f59"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Weapons and shields",
+					"text": "Weapons and shields are drawn with the right sprites: a shield is no longer taken for a weapon, and an Assassin with a shield is no longer drawn dual-wielding.",
+					"details": "Shields are recognized from what the server sends: a shield is drawn as a shield, not as a weapon in the other hand, and an Assassin holding a weapon and a shield is no longer drawn dual-wielding. Item-specific shield sprites are used when the client has them.",
+					"commits": [
+						"00018f745"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Disconnected while changing map",
+					"text": "No more « Disconnected from Server. » box when the server you are leaving closes during a character pick or a map-server change.",
+					"details": "When the server we were leaving closed its connection during a character pick or a map-server change, the client showed « Disconnected from Server. » though the game went on behind it, and OK reloaded the game. That close is now expected.",
+					"commits": [
+						"ed8570e8b"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Check Attendance",
+					"text": "The attendance window showed empty boxes and quietly added 20 days to itself on every map change, so each teleport loaded a little slower. Rewards show their icons now, and the slowdown is gone.",
+					"details": "The reward icons of the attendance window are drawn. The window added 20 days to its list on every map change, which made each map load a bit slower than the last; it now rebuilds the list, and a claimed day stays claimed.",
+					"commits": [
+						"7fc5fd6e3",
+						"2ec8f82c8"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Skill tree",
+					"text": "Opening the skill tree no longer mixes up the job before yours on jobs that share a tab (High Priest, Paladin…), which could make the tree refuse a skill you had the points for.",
+					"details": "Opening the skill tree changed which job came before a job sharing its tab (High Priest, Paladin…), so the tree lost requirements from the previous job and could refuse a skill you had the points for.",
+					"commits": [
+						"a1fd274b5"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "Job level",
+					"text": "You just changed job, the next map loads, and your job level goes back to what it was at login. It now stays where it is.",
+					"details": "After a job change, the basic info window could go back to the job level you logged in with on the next map change. It now keeps the current one.",
+					"commits": [
+						"c3efc9979"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "NPC menus",
+					"text": "Double-click a little too low in a Kafra menu and the server kicked you out. Clicking the empty area of an NPC menu now does nothing.",
+					"details": "A click or double click on the empty area under an NPC menu's choices sent an invalid choice, and the server disconnected the player for it. It now sends nothing.",
+					"commits": [
+						"e48e7975b"
+					]
+				}
+			]
 		}
 	]
 }
