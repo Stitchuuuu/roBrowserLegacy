@@ -257701,12 +257701,7 @@ function parseChatSetup() {
 	this.type = parseInt(root.querySelector("input[name=public]:checked").value, 10);
 	this.password = root.querySelector("input[name=password]").value;
 	if (this.title.length < 1) {
-		const overlay = document.createElement("div");
-		overlay.className = "win_popup_overlay";
-		document.body.appendChild(overlay);
-		const popup = UIManager.showMessageBox(DB.getMessage(13), "ok", () => {
-			document.body.removeChild(overlay);
-		}, true);
+		const popup = UIManager.showMessageBox(DB.getMessage(13), "ok", null, true);
 		popup._host.style.top = parseInt(this._host.style.top, 10) - 120 + "px";
 		popup._host.style.left = parseInt(this._host.style.left, 10) + "px";
 		return;
@@ -331736,7 +331731,7 @@ var init_GUIComponent = __esmMin((() => {
 			this._isDraggable = false;
 			this.mouseMode = MouseMode.STOP;
 			this.needFocus = true;
-			this.alwaysOnTop = false;
+			this._modalOverlay = null;
 			this.manager = null;
 			this.__loaded = false;
 			this.__preparing = false;
@@ -331854,6 +331849,10 @@ var init_GUIComponent = __esmMin((() => {
 			this.__active = false;
 			const opened = _opened.indexOf(this);
 			if (opened !== -1) _opened.splice(opened, 1);
+			if (this._modalOverlay) {
+				this._modalOverlay.remove();
+				this._modalOverlay = null;
+			}
 			if (this.__loaded && this._host && this._host.parentNode) {
 				if (this.onRemove) this.onRemove();
 				this._unbindKeyDown();
@@ -331886,7 +331885,7 @@ var init_GUIComponent = __esmMin((() => {
 			if (!this.needFocus) return;
 			const list = [];
 			for (const other of _opened) {
-				if (other === this || !other.needFocus) continue;
+				if (other === this || !other.__active || !other.needFocus) continue;
 				const z = parseInt(this._getZIndex(other), 10);
 				list[z - 50] = z;
 			}
@@ -331899,21 +331898,22 @@ var init_GUIComponent = __esmMin((() => {
 				list[i] -= j;
 			}
 			for (const other of _opened) {
-				if (other === this || !other.needFocus) continue;
+				if (other === this || !other.__active || !other.needFocus) continue;
 				const z = parseInt(this._getZIndex(other), 10);
 				this._setZIndex(other, list[z - 50]);
 			}
 			this._setZIndex(this, list.length + 50 - j);
-			if (!this.alwaysOnTop) this._raiseAlwaysOnTop();
+			if (!this._modalOverlay) this._raiseModals();
 		}
 		/**
-		* Put the open always-on-top windows back in front, in their current order.
+		* Put the open modal windows back in front, in their current order:
+		* nothing comes over a window that blocks the ones behind it.
 		*/
-		_raiseAlwaysOnTop() {
-			const onTop = [];
-			for (const other of _opened) if (other.alwaysOnTop && other.needFocus) onTop.push(other);
-			onTop.sort((a, b) => parseInt(this._getZIndex(a), 10) - parseInt(this._getZIndex(b), 10));
-			for (const other of onTop) other.focus();
+		_raiseModals() {
+			const modals = [];
+			for (const other of _opened) if (other._modalOverlay && other.__active && other.needFocus) modals.push(other);
+			modals.sort((a, b) => parseInt(this._getZIndex(a), 10) - parseInt(this._getZIndex(b), 10));
+			for (const other of modals) other.focus();
 		}
 		/**
 		* Place on top of all other components.
@@ -331922,11 +331922,11 @@ var init_GUIComponent = __esmMin((() => {
 		placeOnTop() {
 			const zList = [];
 			for (const other of _opened) {
-				if (other === this || !other.needFocus) continue;
+				if (other === this || !other.__active || !other.needFocus) continue;
 				zList.push(parseInt(this._getZIndex(other), 10));
 			}
 			this._setZIndex(this, Math.max(50, ...zList) + 1);
-			if (!this.alwaysOnTop) this._raiseAlwaysOnTop();
+			if (!this._modalOverlay) this._raiseModals();
 		}
 		/**
 		* Clone a component.
@@ -331941,7 +331941,6 @@ var init_GUIComponent = __esmMin((() => {
 			if (this.render) cloned.render = this.render;
 			cloned.mouseMode = this.mouseMode;
 			cloned.needFocus = this.needFocus;
-			cloned.alwaysOnTop = this.alwaysOnTop;
 			if (full) for (const key of Object.keys(this)) {
 				if (key === "_host" || key === "_shadow" || key === "_container" || key === "ui" || key === "__loaded" || key === "__preparing" || key === "__scrollbarObserver") continue;
 				cloned[key] = this[key];
@@ -332006,8 +332005,14 @@ var init_GUIComponent = __esmMin((() => {
 		* @param {number} value
 		*/
 		_setZIndex(comp, value) {
-			if (comp._host) comp._host.style.zIndex = value;
-			else comp.ui.css("zIndex", value);
+			if (comp._host) {
+				comp._host.style.zIndex = value;
+				const overlay = comp._modalOverlay;
+				if (overlay) {
+					overlay.style.zIndex = value;
+					if (overlay.nextSibling !== comp._host) comp._host.before(overlay);
+				}
+			} else comp.ui.css("zIndex", value);
 		}
 		/**
 		* Make the component draggable.
@@ -344018,7 +344023,6 @@ var init_WinPopup = __esmMin((() => {
 		});
 	};
 	WinPopup.needFocus = true;
-	WinPopup.alwaysOnTop = true;
 	WinPopup.mouseMode = GUIComponent.MouseMode.FREEZE;
 	WinPopup_default = UIManager.addComponent(WinPopup);
 }));
@@ -356459,29 +356463,19 @@ var init_PincodeWindow = __esmMin((() => {
 	* Once append to body
 	*/
 	PincodeWindow.onAppend = function onAppend() {
-		if (!PincodeWindow._overlay) {
+		if (!PincodeWindow._modalOverlay) {
 			const overlay = document.createElement("div");
 			overlay.className = "win_popup_overlay";
 			document.body.appendChild(overlay);
-			PincodeWindow._overlay = overlay;
+			PincodeWindow._modalOverlay = overlay;
 		}
 		Renderer.render(render$1);
-		queueMicrotask(() => {
-			if (PincodeWindow._overlay && PincodeWindow._host) {
-				const hostZ = parseInt(PincodeWindow._host.style.zIndex, 10) || 100;
-				PincodeWindow._overlay.style.zIndex = String(hostZ - 1);
-			}
-		});
 	};
 	/**
 	* Stop rendering
 	*/
 	PincodeWindow.onRemove = function onRemove() {
 		Renderer.stop(render$1);
-		if (PincodeWindow._overlay) {
-			PincodeWindow._overlay.remove();
-			PincodeWindow._overlay = null;
-		}
 	};
 	PincodeWindow.selectInput = function selectInput(selection) {
 		PincodeWindow.sel_input = selection;
@@ -358910,18 +358904,18 @@ function onDeleteRequest(charID) {
 		onDeleteAnswer({ ErrorCode: -2 });
 	}
 	function onOk() {
+		document.body.appendChild(_overlay);
 		InputBox_default.append();
 		if (PacketVerManager_default.value >= 20100803) InputBox_default.setType("birthdate", true);
 		else InputBox_default.setType("mail", true);
 		InputBox_default.onSubmitRequest = onSubmit;
+		_ui_box.append();
 		_ui_box._host.style.zIndex = "50";
 		_overlay.style.zIndex = "51";
-		_ui_box.append();
 	}
 	_ui_box = UIManager.showPromptBox(DB.getMessage(19), "ok", "cancel", onOk, onCancel);
 	const _overlay = document.createElement("div");
 	_overlay.className = "win_popup_overlay";
-	document.body.appendChild(_overlay);
 	function onSubmit(input) {
 		_inputValue = input;
 		InputBox_default.remove();
@@ -366729,6 +366723,7 @@ var init_UIManager = __esmMin((() => {
 				};
 				WinMSG.onAppend = _prioritizeKeyDown;
 			}
+			WinMSG._modalOverlay = _createOverlay();
 			WinMSG.append();
 			return WinMSG;
 		}
@@ -366758,6 +366753,7 @@ var init_UIManager = __esmMin((() => {
 					if (onNo) onNo();
 				}));
 			};
+			WinPrompt._modalOverlay = _createOverlay();
 			WinPrompt.append();
 			return WinPrompt;
 		}
