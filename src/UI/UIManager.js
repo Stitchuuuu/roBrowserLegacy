@@ -289,6 +289,7 @@ class UIManager {
 			WinMSG.onAppend = _prioritizeKeyDown;
 		}
 
+		WinMSG._modalOverlay = _createOverlay();
 		WinMSG.append();
 		return WinMSG;
 	}
@@ -329,6 +330,7 @@ class UIManager {
 			);
 		};
 
+		WinPrompt._modalOverlay = _createOverlay();
 		WinPrompt.append();
 		return WinPrompt;
 	}
