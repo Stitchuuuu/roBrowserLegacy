@@ -331914,17 +331914,6 @@ var init_GUIComponent = __esmMin((() => {
 				this._setZIndex(other, list[z - 50]);
 			}
 			this._setZIndex(this, list.length + 50 - j);
-			if (!this._modalOverlay) this._raiseModals();
-		}
-		/**
-		* Put the open modal windows back in front, in their current order:
-		* nothing comes over a window that blocks the ones behind it.
-		*/
-		_raiseModals() {
-			const modals = [];
-			for (const other of _opened) if (other._modalOverlay && other.__active && other.needFocus) modals.push(other);
-			modals.sort((a, b) => parseInt(this._getZIndex(a), 10) - parseInt(this._getZIndex(b), 10));
-			for (const other of modals) other.focus();
 		}
 		/**
 		* Place on top of all other components.
@@ -331937,7 +331926,6 @@ var init_GUIComponent = __esmMin((() => {
 				zList.push(parseInt(this._getZIndex(other), 10));
 			}
 			this._setZIndex(this, Math.max(50, ...zList) + 1);
-			if (!this._modalOverlay) this._raiseModals();
 		}
 		/**
 		* Clone a component.
@@ -366676,13 +366664,11 @@ var init_UIManager = __esmMin((() => {
 			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
 			WinError.needFocus = false;
-			let overlay;
 			WinError.init = function Init() {
 				const root = this._shadow;
 				root.querySelector(".text").textContent = text;
 				Object.assign(this._host.style, _popupPosition());
 				root.querySelector(".btns").appendChild(_createButton("ok", () => {
-					overlay.remove();
 					WinError.remove();
 					__vitePreload(() => Promise.resolve().then(() => (init_GameEngine(), GameEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
 				}));
@@ -366692,16 +366678,14 @@ var init_UIManager = __esmMin((() => {
 				switch (event.which) {
 					case KEYS.ENTER:
 					case KEYS.ESCAPE:
-						overlay.remove();
 						this.remove();
 						__vitePreload(() => Promise.resolve().then(() => (init_GameEngine(), GameEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
 				}
 			};
-			overlay = _createOverlay();
+			WinError._modalOverlay = _createOverlay();
 			WinError.onAppend = _prioritizeKeyDown;
 			WinError.append();
-			WinError._host.style.zIndex = String(ERROR_BOX_Z_INDEX);
-			overlay.style.zIndex = String(999);
+			WinError._setZIndex(WinError, ERROR_BOX_Z_INDEX);
 			return WinError;
 		}
 		/**
@@ -366735,7 +366719,6 @@ var init_UIManager = __esmMin((() => {
 				};
 				WinMSG.onAppend = _prioritizeKeyDown;
 			}
-			WinMSG._modalOverlay = _createOverlay();
 			WinMSG.append();
 			return WinMSG;
 		}
@@ -366765,7 +366748,6 @@ var init_UIManager = __esmMin((() => {
 					if (onNo) onNo();
 				}));
 			};
-			WinPrompt._modalOverlay = _createOverlay();
 			WinPrompt.append();
 			return WinPrompt;
 		}
