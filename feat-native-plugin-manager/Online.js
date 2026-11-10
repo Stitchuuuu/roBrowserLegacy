@@ -360260,9 +360260,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET$1.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "393cb27fe5fa00ec4bc7f04f103426ef67f04b3d") {
+		if (!_buildShown && "05b5a3a00be714537a485b86eb59dbe5932b0380") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"393cb27fe5fa00ec4bc7f04f103426ef67f04b3d".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"05b5a3a00be714537a485b86eb59dbe5932b0380".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -364021,7 +364021,8 @@ function onPincodeCheckSuccess(pkt) {
 			break;
 		case 5:
 		case 6:
-		case 8:
+		case 8: {
+			const message = _creatingPincode ? DB.getMessage(1893) : DB.getMessage(pkt.State == 5 ? 1896 : pkt.State == 6 ? 1897 : 1892);
 			_pincodeAttempts++;
 			if (_pincodeAttempts < 3) {
 				PincodeWindow_default.resetPins();
@@ -364032,9 +364033,9 @@ function onPincodeCheckSuccess(pkt) {
 				}
 				PincodeWindow_default.append();
 			} else PincodeWindow_default.onExitRequest();
-			if (_creatingPincode === true) UIManager.showMessageBox(DB.getMessage(1893), "ok");
-			else UIManager.showMessageBox(DB.getMessage(pkt.State == 5 ? 1896 : pkt.State == 6 ? 1897 : 1892), "ok");
+			UIManager.showMessageBox(message, "ok");
 			break;
+		}
 		default:
 			console.log("PINCODE: Received unknown state from server: " + pkt.State);
 			PincodeWindow_default.append();
