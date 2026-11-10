@@ -359155,7 +359155,8 @@ function onPincodeCheckSuccess(pkt) {
 			break;
 		case 5:
 		case 6:
-		case 8:
+		case 8: {
+			const message = _creatingPincode ? DB.getMessage(1893) : DB.getMessage(pkt.State == 5 ? 1896 : pkt.State == 6 ? 1897 : 1892);
 			_pincodeAttempts++;
 			if (_pincodeAttempts < 3) {
 				PincodeWindow_default.resetPins();
@@ -359166,9 +359167,9 @@ function onPincodeCheckSuccess(pkt) {
 				}
 				PincodeWindow_default.append();
 			} else PincodeWindow_default.onExitRequest();
-			if (_creatingPincode === true) UIManager.showMessageBox(DB.getMessage(1893), "ok");
-			else UIManager.showMessageBox(DB.getMessage(pkt.State == 5 ? 1896 : pkt.State == 6 ? 1897 : 1892), "ok");
+			UIManager.showMessageBox(message, "ok");
 			break;
+		}
 		default:
 			console.log("PINCODE: Received unknown state from server: " + pkt.State);
 			PincodeWindow_default.append();
