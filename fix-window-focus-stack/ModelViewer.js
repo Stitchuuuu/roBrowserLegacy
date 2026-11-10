@@ -359137,27 +359137,25 @@ function onPincodeCheckSuccess(pkt) {
 		case 2:
 		case 4:
 			Controller$2.setUIEnabled(false);
-			UIManager.showMessageBox(DB.getMessage(1900), "ok");
 			PincodeWindow_default.selectInput(0);
 			PincodeWindow_default.setUserSeed(pkt.Seed);
 			PincodeWindow_default.onPincodeCheckRequest = onPincodeCreate;
 			PincodeWindow_default.append();
+			UIManager.showMessageBox(DB.getMessage(1900), "ok");
 			break;
 		case 3:
 			Controller$2.setUIEnabled(false);
 			if (_pincodeAttempts < 3) {
-				UIManager.showMessageBox(DB.getMessage(2345), "ok");
 				PincodeWindow_default.setUserSeed(pkt.Seed);
 				PincodeWindow_default.onPincodeReset = onPincodeReset;
 				PincodeWindow_default.onParentPincodeResetReq();
 				PincodeWindow_default.append();
+				UIManager.showMessageBox(DB.getMessage(2345), "ok");
 			} else PincodeWindow_default.onExitRequest();
 			break;
 		case 5:
 		case 6:
 		case 8:
-			if (_creatingPincode === true) UIManager.showMessageBox(DB.getMessage(1893), "ok");
-			else UIManager.showMessageBox(DB.getMessage(pkt.State == 5 ? 1896 : pkt.State == 6 ? 1897 : 1892), "ok");
 			_pincodeAttempts++;
 			if (_pincodeAttempts < 3) {
 				PincodeWindow_default.resetPins();
@@ -359168,6 +359166,8 @@ function onPincodeCheckSuccess(pkt) {
 				}
 				PincodeWindow_default.append();
 			} else PincodeWindow_default.onExitRequest();
+			if (_creatingPincode === true) UIManager.showMessageBox(DB.getMessage(1893), "ok");
+			else UIManager.showMessageBox(DB.getMessage(pkt.State == 5 ? 1896 : pkt.State == 6 ? 1897 : 1892), "ok");
 			break;
 		default:
 			console.log("PINCODE: Received unknown state from server: " + pkt.State);
