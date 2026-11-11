@@ -325325,9 +325325,9 @@ function onMapChange(pkt) {
 		}
 		if (PacketVerManager_default.value >= 20130320) Network.sendPacket(new PACKET.CZ.BLOCKING_PLAY_CANCEL());
 		PatchNotes_default.checkUnseen();
-		if (!_buildShown && "05b5a3a00be714537a485b86eb59dbe5932b0380") {
+		if (!_buildShown && "70d6c35d80e726b0b862cbaabd4d1ffabb7013e3") {
 			_buildShown = true;
-			ChatBox_default.addText(`Build ${"05b5a3a00be714537a485b86eb59dbe5932b0380".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
+			ChatBox_default.addText(`Build ${"70d6c35d80e726b0b862cbaabd4d1ffabb7013e3".slice(0, 7)}`, ChatBox_default.TYPE.INFO, ChatBox_default.FILTER.PUBLIC_LOG);
 		}
 	};
 	if (MapRenderer.setMap(pkt.mapName, ui)) {
@@ -329012,6 +329012,17 @@ function onUserPincodeResetReq() {
 	_pincodeAttempts = 0;
 	PincodeWindow_default.onPincodeReset = onPincodeReset;
 }
+/**
+* Show a PIN answer over the PincodeWindow, which takes no clicks until it is closed
+*
+* @param {string} text
+*/
+function showPincodeMessage(text) {
+	const box = UIManager.showMessageBox(text, "ok");
+	box._modalOverlay = document.createElement("div");
+	box._modalOverlay.className = "win_popup_overlay";
+	box.focus();
+}
 function onPincodeCheckSuccess(pkt) {
 	if (!PincodeWindow_default.__active && pkt.State == 0) {
 		console.log("Pincode is disabled.");
@@ -329072,7 +329083,7 @@ function onPincodeCheckSuccess(pkt) {
 			PincodeWindow_default.setUserSeed(pkt.Seed);
 			PincodeWindow_default.onPincodeCheckRequest = onPincodeCreate;
 			PincodeWindow_default.append();
-			UIManager.showMessageBox(DB.getMessage(1900), "ok");
+			showPincodeMessage(DB.getMessage(1900));
 			break;
 		case 3:
 			Controller$2.setUIEnabled(false);
@@ -329081,7 +329092,7 @@ function onPincodeCheckSuccess(pkt) {
 				PincodeWindow_default.onPincodeReset = onPincodeReset;
 				PincodeWindow_default.onParentPincodeResetReq();
 				PincodeWindow_default.append();
-				UIManager.showMessageBox(DB.getMessage(2345), "ok");
+				showPincodeMessage(DB.getMessage(2345));
 			} else PincodeWindow_default.onExitRequest();
 			break;
 		case 5:
@@ -329098,7 +329109,7 @@ function onPincodeCheckSuccess(pkt) {
 				}
 				PincodeWindow_default.append();
 			} else PincodeWindow_default.onExitRequest();
-			UIManager.showMessageBox(message, "ok");
+			showPincodeMessage(message);
 			break;
 		}
 		default:
@@ -370667,17 +370678,6 @@ var init_GUIComponent = __esmMin((() => {
 				this._setZIndex(other, list[z - 50]);
 			}
 			this._setZIndex(this, list.length + 50 - j);
-			if (!this._modalOverlay) this._raiseModals();
-		}
-		/**
-		* Put the open modal windows back in front, in their current order:
-		* nothing comes over a window that blocks the ones behind it.
-		*/
-		_raiseModals() {
-			const modals = [];
-			for (const other of _opened) if (other._modalOverlay && other.__active && other.needFocus) modals.push(other);
-			modals.sort((a, b) => parseInt(this._getZIndex(a), 10) - parseInt(this._getZIndex(b), 10));
-			for (const other of modals) other.focus();
 		}
 		/**
 		* Place on top of all other components.
@@ -370690,7 +370690,6 @@ var init_GUIComponent = __esmMin((() => {
 				zList.push(parseInt(this._getZIndex(other), 10));
 			}
 			this._setZIndex(this, Math.max(50, ...zList) + 1);
-			if (!this._modalOverlay) this._raiseModals();
 		}
 		/**
 		* Clone a component.
@@ -371597,13 +371596,11 @@ var init_UIManager = __esmMin((() => {
 			this.components.SkillTargetSelection?.remove();
 			const WinError = this.getComponent("WinPopup").clone("WinError");
 			WinError.needFocus = false;
-			let overlay;
 			WinError.init = function Init() {
 				const root = this._shadow;
 				root.querySelector(".text").textContent = text;
 				Object.assign(this._host.style, _popupPosition());
 				root.querySelector(".btns").appendChild(_createButton("ok", () => {
-					overlay.remove();
 					WinError.remove();
 					__vitePreload(() => Promise.resolve().then(() => (init_GameEngine(), GameEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
 				}));
@@ -371613,16 +371610,14 @@ var init_UIManager = __esmMin((() => {
 				switch (event.which) {
 					case KEYS.ENTER:
 					case KEYS.ESCAPE:
-						overlay.remove();
 						this.remove();
 						__vitePreload(() => Promise.resolve().then(() => (init_GameEngine(), GameEngine_exports)).then((m) => m.default.reload()), void 0, import.meta.url);
 				}
 			};
-			overlay = _createOverlay();
+			WinError._modalOverlay = _createOverlay();
 			WinError.onAppend = _prioritizeKeyDown;
 			WinError.append();
-			WinError._host.style.zIndex = String(ERROR_BOX_Z_INDEX);
-			overlay.style.zIndex = String(999);
+			WinError._setZIndex(WinError, ERROR_BOX_Z_INDEX);
 			return WinError;
 		}
 		/**
@@ -371656,7 +371651,6 @@ var init_UIManager = __esmMin((() => {
 				};
 				WinMSG.onAppend = _prioritizeKeyDown;
 			}
-			WinMSG._modalOverlay = _createOverlay();
 			WinMSG.append();
 			return WinMSG;
 		}
@@ -371686,7 +371680,6 @@ var init_UIManager = __esmMin((() => {
 					if (onNo) onNo();
 				}));
 			};
-			WinPrompt._modalOverlay = _createOverlay();
 			WinPrompt.append();
 			return WinPrompt;
 		}
