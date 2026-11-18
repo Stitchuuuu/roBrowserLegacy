@@ -534,6 +534,9 @@ A window that holds `@control` (`RemoteBot.hasControl()`) shops as a normal
 window: the bot's routines are paused and the window's packets go through, so
 the chooser shows, the window picks Buy or Sell, and it sends its own close
 packet. Without that the player in control got no Buy / Sell chooser at all.
+The bot can still pick first — a `/sell` sent to it from the window — so the
+chooser closes when the buy or sell list arrives, whoever picked, and on a
+`ZC_CLOSE_SCRIPT`; before that it stayed open over the store and after it.
 
 ## When the bot cannot be reached
 

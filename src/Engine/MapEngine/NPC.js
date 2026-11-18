@@ -76,6 +76,8 @@ function onCloseAppear(pkt) {
  * @param {object} pkt - PACKET.ZC.CLOSE_SCRIPT
  */
 function onCloseScript(pkt) {
+	// A remote bot that leaves the shop before picking: the chooser goes with it
+	closeDealSelection();
 	// On a remote bot the bot leaving a shop is said with this packet: the server says nothing
 	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		NpcStore.setClosePacketSent(true);
@@ -177,6 +179,22 @@ function onInputAppear(pkt) {
 }
 
 /**
+ * The open Buy / Sell chooser
+ * @var {?object}
+ */
+let _dealWindow = null;
+
+/**
+ * Close the Buy / Sell chooser, if open
+ */
+export function closeDealSelection() {
+	if (_dealWindow) {
+		_dealWindow.remove();
+		_dealWindow = null;
+	}
+}
+
+/**
  * On Shop selection (buy/sell)
  * @param {object} pkt - PACKET.ZC.SELECT_DEALTYPE
  */
@@ -185,8 +203,10 @@ function onDealSelection(pkt) {
 	if (RemoteBot.isActive() && !RemoteBot.hasControl()) {
 		return;
 	}
+	closeDealSelection();
 	const WinDeal = WinPopup.clone('WinDeal');
 	const NAID = pkt.NAID;
+	_dealWindow = WinDeal;
 
 	WinDeal.init = function Init() {
 		this.draggable();
@@ -213,7 +233,7 @@ function onDealSelection(pkt) {
 
 		btns.appendChild(
 			createBtn('buy', function () {
-				WinDeal.remove();
+				closeDealSelection();
 				const _pkt = new PACKET.CZ.ACK_SELECT_DEALTYPE();
 				_pkt.type = 0;
 				_pkt.NAID = NAID;
@@ -223,7 +243,7 @@ function onDealSelection(pkt) {
 
 		btns.appendChild(
 			createBtn('sell', function () {
-				WinDeal.remove();
+				closeDealSelection();
 				const _pkt = new PACKET.CZ.ACK_SELECT_DEALTYPE();
 				_pkt.type = 1;
 				_pkt.NAID = NAID;
@@ -233,7 +253,7 @@ function onDealSelection(pkt) {
 
 		btns.appendChild(
 			createBtn('cancel', function () {
-				WinDeal.remove();
+				closeDealSelection();
 			})
 		);
 	};

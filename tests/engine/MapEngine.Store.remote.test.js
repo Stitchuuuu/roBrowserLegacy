@@ -4,6 +4,7 @@
  * On a remote bot the bot shops, the window only gets the server's packets: no Buy / Sell chooser the
  * window could answer, no close packet sent from the window when the bot's buy closes the store, and the
  * store closed when the bot walks away from it (it says so with a CLOSE_SCRIPT, the server with nothing).
+ * A window in control gets the chooser, which goes away once the list shows the pick, whoever made it.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -88,6 +89,27 @@ describe('NPC shop on a remote bot this window holds the control of', () => {
 		deliver(PACKET.ZC.SELECT_DEALTYPE, {});
 		expect(clone).toHaveBeenCalledWith('WinDeal');
 		clone.mockRestore();
+	});
+
+	it('closes the chooser when the list shows the bot picked for it', () => {
+		const clone = vi.spyOn(WinPopup, 'clone');
+		deliver(PACKET.ZC.SELECT_DEALTYPE, {});
+		const chooser = clone.mock.results[0].value;
+		clone.mockRestore();
+		expect(chooser.__active).toBe(true);
+		// The sell list takes the same path, but needs the Inventory window mounted
+		buyList();
+		expect(chooser.__active).toBe(false);
+		expect(NpcStore.__active).toBe(true);
+	});
+
+	it('closes the chooser when the bot leaves the shop before picking', () => {
+		const clone = vi.spyOn(WinPopup, 'clone');
+		deliver(PACKET.ZC.SELECT_DEALTYPE, {});
+		const chooser = clone.mock.results[0].value;
+		clone.mockRestore();
+		deliver(PACKET.ZC.CLOSE_SCRIPT, {});
+		expect(chooser.__active).toBe(false);
 	});
 
 	it('closes the store with its own close packet after a buy', () => {
