@@ -17,6 +17,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import RemoteBot from 'Network/RemoteBot.js';
+import { closeDealSelection } from 'Engine/MapEngine/NPC.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import NpcStore from 'UI/Components/NpcStore/NpcStore.js';
@@ -95,6 +96,8 @@ function onDeleteVendingItem(pkt) {
  * @param {object} pkt - PACKET.ZC.PC_PURCHASE_ITEMLIST
  */
 function onBuyList(pkt) {
+	// The pick is made, by this window or by a remote bot
+	closeDealSelection();
 	NpcStore.append();
 	NpcStore.setType(NpcStore.Type.BUY);
 	NpcStore.setList(pkt.itemList);
@@ -291,6 +294,8 @@ function onSellToBuyingStoreResult(pkt) {
  * @param {object} pkt - PACKET.ZC.PC_SELL_ITEMLIST
  */
 function onSellList(pkt) {
+	// The pick is made, by this window or by a remote bot
+	closeDealSelection();
 	NpcStore.append();
 	NpcStore.setType(NpcStore.Type.SELL);
 	NpcStore.setList(pkt.itemList);
