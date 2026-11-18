@@ -159,6 +159,51 @@ describe('camera page', () => {
 		expect(JSON.parse(localStorage.getItem('cameraTiles')).slots[0]).toBe(null);
 	});
 
+	it('searches the list by account or character, None kept, the text kept when the hall changes', async () => {
+		await start();
+		mousedown(tiles()[0].querySelector('.select'));
+		const search = tiles()[0].querySelector('.drop .search');
+		const names = () =>
+			[...tiles()[0].querySelectorAll('.drop .row:not(.none)')].map(r => r.querySelector('.name').textContent);
+		const type = text => {
+			search.value = text;
+			search.dispatchEvent(new Event('input'));
+		};
+
+		expect(document.activeElement).toBe(search);
+		type('GARD');
+		expect(names()).toEqual(['bob_kvm']);
+		expect(tiles()[0].querySelector('.drop .row.none')).not.toBe(null);
+
+		type('alice');
+		hall([ALICE, BOB]);
+		expect(tiles()[0].querySelector('.drop .search').value).toBe('alice');
+		expect(names()).toEqual(['alice_farm']);
+
+		type('zzz');
+		expect(names()).toEqual([]);
+		expect(tiles()[0].querySelector('.drop .empty').textContent).toBe('No bot matches « zzz ».');
+	});
+
+	it('picks the first bot found with Enter, never a full one', async () => {
+		await start();
+		mousedown(tiles()[0].querySelector('.select'));
+		const search = tiles()[0].querySelector('.drop .search');
+		const enter = text => {
+			search.value = text;
+			search.dispatchEvent(new Event('input'));
+			search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		};
+
+		enter('gard');
+		expect(tiles()[0].querySelector('.drop')).not.toBe(null);
+		expect(message(0)).toBe('No bot on this tile');
+
+		enter('e');
+		expect(tiles()[0].querySelector('.drop')).toBe(null);
+		expect(tiles()[0].querySelector('.select b').textContent).toBe('Mendel');
+	});
+
 	it('watches a picked bot, scene only first, the room asked once its game window is ready, by message only', async () => {
 		await start();
 		pick(1, 'alice_farm');
