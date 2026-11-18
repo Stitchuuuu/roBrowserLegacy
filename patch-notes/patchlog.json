@@ -1557,6 +1557,35 @@
 					]
 				}
 			]
+		},
+		{
+			"version": "0.11.1",
+			"date": "2026-11-18",
+			"title": "Boxes Back in Line",
+			"sha": "",
+			"notes": [
+				{
+					"type": "fixed",
+					"keyword": "Request boxes",
+					"text": "Party, trade, guild and friend request boxes no longer stay pinned in front: a window opened or clicked afterwards comes over them.",
+					"details": "Party, trade, guild and friend request boxes no longer stay pinned in front of every window: a window opened or clicked after them comes over them, as in the official client. The error box that ends the game still holds every click until it is closed.",
+					"commits": [
+						"38fe5723d",
+						"c8922dffc"
+					]
+				},
+				{
+					"type": "fixed",
+					"keyword": "PIN code",
+					"text": "While a PIN message is open, the PIN window waits until you press OK.",
+					"details": "While a new, expired or wrong PIN message is open, the PIN window behind it takes no click until OK is pressed, as in the official client.",
+					"commits": [
+						"393cb27fe",
+						"05b5a3a00",
+						"70d6c35d8"
+					]
+				}
+			]
 		}
 	]
 }
