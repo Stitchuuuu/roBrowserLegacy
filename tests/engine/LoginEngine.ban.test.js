@@ -65,7 +65,8 @@ vi.mock('Network/PacketStructure.js', () => ({
 	)
 }));
 vi.mock('Network/PacketVerManager.js', () => ({ default: { value: 20180704 } }));
-vi.mock('DB/DBManager.js', () => ({ default: { getMessage: id => 'MSG ' + id } }));
+// The client is loaded: LoginEngine.init skips its first load of the DB
+vi.mock('DB/DBManager.js', () => ({ default: { isLoaded: true, getMessage: id => 'MSG ' + id } }));
 vi.mock('Core/Configs.js', () => ({ default: { setServer: vi.fn(), get: (_k, d) => d, set: vi.fn() } }));
 vi.mock('Core/Thread.js', () => ({ default: { send: vi.fn() } }));
 vi.mock('Utils/CodepageManager.js', () => ({ default: { detectEncodingByLangtype: vi.fn() } }));

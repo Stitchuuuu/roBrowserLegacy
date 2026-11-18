@@ -121,6 +121,11 @@ let _tiles = [];
 let _drop = -1;
 
 /**
+ * @var {string} _query - the search of the open bot list, trimmed and lower case
+ */
+let _query = '';
+
+/**
  * @var {number} _opens - counts the opens asked
  */
 let _opens = 0;
@@ -363,7 +368,7 @@ function update() {
 		draw(i);
 	}
 	if (_drop >= 0) {
-		openDrop(_drop);
+		fillDrop();
 	}
 }
 
@@ -580,25 +585,64 @@ function draw(i) {
 }
 
 /**
- * The hall's bots under a tile's select
+ * The hall's bots under a tile's select, with a search
  *
  * @param {number} i - slot
  */
 function openDrop(i) {
 	const drop = element('div', 'drop');
-	const bots = BotHall.bots()
-		.slice()
-		.sort((a, b) => a.account.localeCompare(b.account));
+	const search = element('input', 'search');
 
 	closeDrop();
 	_drop = i;
+	search.placeholder = 'Search an account or a character';
+	search.addEventListener('input', () => {
+		_query = search.value.trim().toLowerCase();
+		fillDrop();
+	});
+	search.addEventListener('keydown', event => {
+		if (event.key === 'Enter') {
+			const bot = found().find(b => !full(i, b));
+			if (bot) {
+				pick(i, bot);
+			}
+		}
+	});
+	drop.appendChild(search);
+	drop.appendChild(element('div', 'list'));
+	_tiles[i].node.appendChild(drop);
+	fillDrop();
+	search.focus();
+}
+
+/**
+ * @return {Array<object>} the hall's bots the search keeps, by account
+ */
+function found() {
+	const has = text => text.toLowerCase().includes(_query);
+
+	return BotHall.bots()
+		.filter(bot => !_query || has(bot.account) || bot.chars.some(char => has(char.name)))
+		.sort((a, b) => a.account.localeCompare(b.account));
+}
+
+/**
+ * The open list's lines: None, then the bots found
+ */
+function fillDrop() {
+	const list = _tiles[_drop].node.querySelector('.drop .list');
+	const bots = found();
+
+	list.textContent = '';
+	list.appendChild(none(_drop));
 	for (let j = 0; j < bots.length; ++j) {
-		drop.appendChild(row(i, bots[j]));
+		list.appendChild(row(_drop, bots[j]));
 	}
 	if (!bots.length) {
-		drop.appendChild(element('div', 'empty', 'No remote client in the hall.'));
+		list.appendChild(
+			element('div', 'empty', _query ? `No bot matches « ${_query} ».` : 'No remote client in the hall.')
+		);
 	}
-	_tiles[i].node.appendChild(drop);
 }
 
 function closeDrop() {
@@ -609,6 +653,33 @@ function closeDrop() {
 		}
 	}
 	_drop = -1;
+	_query = '';
+}
+
+/**
+ * @param {number} i - slot
+ * @param {object} bot - hall row
+ * @return {boolean} the bot has all its windows, none of them this tile's
+ */
+function full(i, bot) {
+	const picked = !!_slots[i] && _slots[i].account === bot.account;
+
+	return bot.windows >= MAX_WINDOWS && !(picked && _tiles[i].frame);
+}
+
+/**
+ * @param {number} i - slot
+ * @return {HTMLElement} the line that leaves the tile empty
+ */
+function none(i) {
+	const node = element('div', 'row none', 'None');
+
+	node.classList.toggle('sel', !_slots[i]);
+	node.addEventListener('mousedown', event => {
+		event.stopPropagation();
+		pick(i, null);
+	});
+	return node;
 }
 
 /**
@@ -620,7 +691,7 @@ function row(i, bot) {
 	const node = element('div', 'row');
 	const char = bot.playing || bot.chars[0] || { name: '', job: 0, lv: 0 };
 	const picked = !!_slots[i] && _slots[i].account === bot.account;
-	const busy = bot.windows >= MAX_WINDOWS && !(picked && _tiles[i].frame);
+	const busy = full(i, bot);
 	const line = element('div', 'char', char.name);
 
 	node.classList.toggle('off', !bot.playing);
@@ -644,17 +715,17 @@ function row(i, bot) {
 }
 
 /**
- * Watch this bot in this tile, scene only to begin with
+ * Watch this bot in this tile, scene only to begin with; none empties the tile
  *
  * @param {number} i - slot
- * @param {object} bot - hall row
+ * @param {?object} bot - hall row
  */
 function pick(i, bot) {
-	const char = bot.playing || bot.chars[0];
+	const char = bot && (bot.playing || bot.chars[0]);
 
 	closeDrop();
 	leave(i);
-	_slots[i] = { account: bot.account, name: char ? char.name : bot.account, scene: true };
+	_slots[i] = bot ? { account: bot.account, name: char ? char.name : bot.account, scene: true } : null;
 	save();
 	update();
 }

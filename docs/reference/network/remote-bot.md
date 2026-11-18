@@ -339,7 +339,9 @@ does): N tiles cost the relay 1 + 2N connections, the page's and, per tile,
 the tile's and the bot's in their room. Each tile has a bar above its game:
 the bot list (account, the character it plays, map, job and level; a bot with
 its four windows open is greyed « full · 4 windows » and cannot be picked),
-« Scene only », and Control. The page keeps the tile count and each slot's
+« Scene only », and Control. The list opens on a search field (account or
+any character of the account; Enter picks the first bot found that is not
+full) above « None », which empties the tile and lets go of its window. The page keeps the tile count and each slot's
 pick (account, character name, scene only) in `localStorage` (`cameraTiles`);
 picking a bot ticks « Scene only ».
 
@@ -534,6 +536,9 @@ A window that holds `@control` (`RemoteBot.hasControl()`) shops as a normal
 window: the bot's routines are paused and the window's packets go through, so
 the chooser shows, the window picks Buy or Sell, and it sends its own close
 packet. Without that the player in control got no Buy / Sell chooser at all.
+The bot can still pick first — a `/sell` sent to it from the window — so the
+chooser closes when the buy or sell list arrives, whoever picked, and on a
+`ZC_CLOSE_SCRIPT`; before that it stayed open over the store and after it.
 
 ## When the bot cannot be reached
 

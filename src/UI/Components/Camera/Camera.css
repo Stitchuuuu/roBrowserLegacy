@@ -241,6 +241,20 @@ body {
 	font-size: 11px;
 	box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.5);
 }
+#Camera .drop .search {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	display: block;
+	width: 100%;
+	height: 18px;
+	box-sizing: border-box;
+	padding: 0 4px;
+	border: 0;
+	border-bottom: 1px solid #d4d9e0;
+	font-size: 11px;
+	outline: none;
+}
 #Camera .drop .row {
 	position: relative;
 	padding: 2px 6px 3px 18px;
@@ -292,6 +306,10 @@ body {
 #Camera .drop .row.busy {
 	cursor: default;
 	background: none;
+}
+#Camera .drop .row.none {
+	color: #4a5f7f;
+	font-style: italic;
 }
 #Camera .drop .empty {
 	padding: 4px 6px;
