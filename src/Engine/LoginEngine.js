@@ -40,8 +40,6 @@ import Queue from 'Utils/Queue.js';
 import Background from 'UI/Background.js';
 import MD5 from 'Vendors/spark-md5.min.js';
 import Rijndael from 'Utils/Rijndael.js';
-
-// Version Dependent UIs
 import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
 
 /**
@@ -102,7 +100,6 @@ class LoginEngine {
 	 */
 	static init(server) {
 		const q = new Queue();
-		const old_server = _server;
 
 		Configs.setServer(server);
 		UIManager.removeComponents();
@@ -113,20 +110,18 @@ class LoginEngine {
 		console.log('%c[LOGIN] Game Mode: ', 'color:#007000', Session.isRenewal ? 'RENEWAL' : 'PRE-RENEWAL');
 
 		// Setup Default Charset based on LangType
-		const charset = TextEncoding.detectEncodingByLangtype(Session.LangType, Configs.get('disableKorean'));
+		DB.userCharpage = TextEncoding.detectEncodingByLangtype(Session.LangType, Configs.get('disableKorean'));
 
 		console.log('%c[LOGIN] Language Type: ', 'color:#007000', Session.LangType);
-		console.log('%c[LOGIN] Encoding: ', 'color:#007000', charset);
-
-		_server = server;
+		console.log('%c[LOGIN] Encoding: ', 'color:#007000', DB.userCharpage);
 
 		// Add support for "packetver" definition in Server listing
-		const packetver = String(Configs.get('packetver'));
 		const remoteClient = Configs.get('remoteClient');
 		const autoLogin = Configs.get('autoLogin');
 		const audioExt = Configs.get('BGMFileExtension');
 
 		// Server packetver
+		const packetver = String(Configs.get('packetver'));
 		if (packetver) {
 			if (packetver.match(/^\d+$/)) {
 				PACKETVER.value = parseInt(packetver, 10);
@@ -138,30 +133,32 @@ class LoginEngine {
 			return;
 		}
 
+		_server = server;
+		_server.packetver = PACKETVER.value;
+
 		// Add support for remote client in server definition
 		if (remoteClient) {
 			Thread.send('SET_HOST', remoteClient);
+		}
 
-			// Check if the selected server changed.
-			if (old_server != null && (old_server.address != _server.address || old_server.port != _server.port)) {
-				// Re-Loading game data with server specific files (txt, lua, lub)
-				q.add(() => {
-					DB.onReady = () => {
-						Background.setLoginBackground(); // remove loading
-						q._next();
-					};
-					DB.onProgress = (i, count) => {
-						Background.setPercent(Math.floor((i / count) * 100));
-					};
-					UIManager.removeComponents();
-					Background.init();
-					Background.resize(Renderer.width, Renderer.height);
-					Background.setLoginBackground(() => {
-						DB.isLoaded = false;
-						DB.init();
-					});
-				});
-			}
+		// Init DB Lazy init gate
+		if (!DB.isLoaded && !DB.startedLazyInit) {
+			DB.startedLazyInit = true;
+			Background.init();
+			Background.resize(Renderer.width, Renderer.height);
+			Background.setImage('bgi_temp.bmp');
+			DB.onProgress = (i, count) => {
+				Background.setPercent(Math.floor((i / count) * 100));
+			};
+			DB.onReady = () => {
+				DB.startedLazyInit = false;
+				LoginEngine.init(server);
+			};
+			DB.lazyInit().catch(() => {
+				DB.startedLazyInit = false;
+				UIManager.showErrorBox('Failed to start Database');
+			});
+			return;
 		}
 
 		// Server audio configuration
@@ -266,16 +263,6 @@ class LoginEngine {
 		showLoginScreen();
 
 		Network.close();
-	}
-
-	/**
-	 * setLoadedServer()
-	 *
-	 * Called by GameEngine when it reloads files due to a service change
-	 * so we don't wind up trying to load the db twice. (Or concurrently.)
-	 */
-	static setLoadedServer(server) {
-		_server = server;
 	}
 }
 
