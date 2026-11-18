@@ -73,7 +73,7 @@ const hall = bots => {
 /** Pick a bot in a slot through its list */
 function pick(i, account) {
 	mousedown(tiles()[i].querySelector('.select'));
-	const row = [...tiles()[i].querySelectorAll('.drop .row')].find(r => r.querySelector('.name').textContent === account);
+	const row = [...tiles()[i].querySelectorAll('.drop .row:not(.none)')].find(r => r.querySelector('.name').textContent === account);
 	mousedown(row);
 }
 
@@ -127,7 +127,7 @@ describe('camera page', () => {
 	it('lists the hall under a select, a full bot greyed and not pickable', async () => {
 		await start();
 		mousedown(tiles()[2].querySelector('.select'));
-		const rows = [...tiles()[2].querySelectorAll('.drop .row')];
+		const rows = [...tiles()[2].querySelectorAll('.drop .row:not(.none)')];
 
 		expect(rows.map(r => r.querySelector('.name').textContent)).toEqual(['alice_farm', 'bob_kvm']);
 		expect(rows[0].querySelector('.char').textContent).toBe('MendelKnight 72');
@@ -137,6 +137,26 @@ describe('camera page', () => {
 		mousedown(rows[1]);
 		expect(mocks.open).not.toHaveBeenCalled();
 		expect(message(2)).toBe('No bot on this tile');
+	});
+
+	it('empties a tile with None, first in its list: the game window goes, the slot is kept empty', async () => {
+		await start();
+		mousedown(tiles()[0].querySelector('.select'));
+		expect(tiles()[0].querySelector('.drop .row').classList.contains('none')).toBe(true);
+		expect(tiles()[0].querySelector('.drop .row.none').classList.contains('sel')).toBe(true);
+		mousedown(tiles()[0].querySelector('.select'));
+
+		pick(0, 'alice_farm');
+		await answer(0);
+		expect(message(0)).toBe('');
+
+		mousedown(tiles()[0].querySelector('.select'));
+		mousedown(tiles()[0].querySelector('.drop .row.none'));
+		expect(frame(0)).toBe(null);
+		expect(tiles()[0].querySelector('.drop')).toBe(null);
+		expect(message(0)).toBe('No bot on this tile');
+		expect(tiles()[0].querySelector('.control').disabled).toBe(true);
+		expect(JSON.parse(localStorage.getItem('cameraTiles')).slots[0]).toBe(null);
 	});
 
 	it('watches a picked bot, scene only first, the room asked once its game window is ready, by message only', async () => {
