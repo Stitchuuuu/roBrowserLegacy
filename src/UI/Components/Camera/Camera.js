@@ -592,6 +592,7 @@ function openDrop(i) {
 
 	closeDrop();
 	_drop = i;
+	drop.appendChild(none(i));
 	for (let j = 0; j < bots.length; ++j) {
 		drop.appendChild(row(i, bots[j]));
 	}
@@ -609,6 +610,21 @@ function closeDrop() {
 		}
 	}
 	_drop = -1;
+}
+
+/**
+ * @param {number} i - slot
+ * @return {HTMLElement} the line that leaves the tile empty
+ */
+function none(i) {
+	const node = element('div', 'row none', 'None');
+
+	node.classList.toggle('sel', !_slots[i]);
+	node.addEventListener('mousedown', event => {
+		event.stopPropagation();
+		pick(i, null);
+	});
+	return node;
 }
 
 /**
@@ -644,17 +660,17 @@ function row(i, bot) {
 }
 
 /**
- * Watch this bot in this tile, scene only to begin with
+ * Watch this bot in this tile, scene only to begin with; none empties the tile
  *
  * @param {number} i - slot
- * @param {object} bot - hall row
+ * @param {?object} bot - hall row
  */
 function pick(i, bot) {
-	const char = bot.playing || bot.chars[0];
+	const char = bot && (bot.playing || bot.chars[0]);
 
 	closeDrop();
 	leave(i);
-	_slots[i] = { account: bot.account, name: char ? char.name : bot.account, scene: true };
+	_slots[i] = bot ? { account: bot.account, name: char ? char.name : bot.account, scene: true } : null;
 	save();
 	update();
 }

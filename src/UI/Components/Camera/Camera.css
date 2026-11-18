@@ -293,6 +293,10 @@ body {
 	cursor: default;
 	background: none;
 }
+#Camera .drop .row.none {
+	color: #4a5f7f;
+	font-style: italic;
+}
 #Camera .drop .empty {
 	padding: 4px 6px;
 	color: #8a93a0;
